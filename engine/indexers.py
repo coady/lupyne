@@ -1,17 +1,13 @@
 """
-Pythonic wrapper around lucene search engine.
+Wrappers for Index{Read,Search,Writ}ers
 
-Provides high-level interfaces to indexes and documents,
-abstracting away java lucene primitives: terms, fields, etc.
+The final Indexer classes exposes a high-level Searcher class, and optionally a Writer
 """
 
 import itertools, operator
-import warnings
 import contextlib
 import lucene
-
-if lucene.getVMEnv() is None:
-    warnings.warn("lucene.initVM(lucene.CLASSPATH,... ) must be called before using lucene.", RuntimeWarning, stacklevel=2)
+from documents import Field, Document, Hits
 
 def iterate(jit, positioned=False):
     """Transform java iterator into python iterator.
@@ -22,48 +18,6 @@ def iterate(jit, positioned=False):
             yield jit
         while jit.next():
             yield jit
-
-class Document(object):
-    """Delegated lucene Document.
-    
-    Supports mapping interface of field names to values, but duplicate field names are allowed."""
-    Fields = lucene.Field.Store, lucene.Field.Index, lucene.Field.TermVector
-    def __init__(self, doc=None):
-        self.doc = lucene.Document() if doc is None else doc
-    @classmethod
-    def settings(cls, store=False, index='analyzed', termvector=False):
-        "Return field parameters from text or boolean descriptors."
-        if isinstance(store, bool):
-            store = 'yes' if store else 'no'
-        if isinstance(index, bool):
-            index = 'not_analyzed' if index else 'no'
-        if isinstance(termvector, bool):
-            termvector = 'yes' if termvector else 'no'
-        return [getattr(field, setting.upper()) for field, setting in zip(cls.Fields, [store, index, termvector])]
-    def add(self, name, value, **settings):
-        "Add field to document with given parameters."
-        self.doc.add(lucene.Field(name, value, *self.settings(**settings)))
-    def fields(self):
-        return itertools.imap(lucene.Field.cast_, self.doc.getFields())
-    def __iter__(self):
-        for field in self.fields():
-            yield field.name()
-    def items(self):
-        for field in self.fields():
-            yield field.name(), field.stringValue()
-    def __getitem__(self, name):
-        value = self.doc[name]
-        if value is None:
-            raise KeyError(value)
-        return value
-    def get(self, name, default=None):
-        value = self.doc[name]
-        return default if value is None else value
-    def __delitem__(self, name):
-        self.doc.removeFields(name)
-    def getlist(self, name):
-        "Return multiple field values."
-        return list(self.doc.getValues(name))
 
 class IndexReader(object):
     """Delegated lucene IndexReader.
@@ -99,7 +53,7 @@ class IndexReader(object):
     def count(self, name, value):
         "Return number of documents with given term."
         return self.docFreq(lucene.Term(name, value))
-    def fields(self, option='all'):
+    def names(self, option='all'):
         "Return field names, given option description."
         option = getattr(self.FieldOption, option.upper())
         return list(self.getFieldNames(option))
@@ -121,39 +75,6 @@ class IndexReader(object):
         for termpositions in iterate(self.termPositions(lucene.Term(name, value))):
             positions = [termpositions.nextPosition() for n in xrange(termpositions.freq())]
             yield termpositions.doc(), positions
-
-class Hit(Document):
-    "A Document with an id and score, from a search result."
-    def __init__(self, doc, id, score):
-        Document.__init__(self, doc)
-        self.id, self.score = id, score
-    def items(self):
-        "Include id and score using python naming convention."
-        fields = {'__id__': self.id, '__score__': self.score}
-        return itertools.chain(fields.items(), Document.items(self))
-
-class Hits(object):
-    """Search results: lazily evaluated and memory efficient.
-    
-    Supports a read-only sequence interface to hit objects.
-    @searcher: IndexSearcher which can retrieve documents.
-    @ids: ordered doc ids.
-    @scores: ordered doc scores.
-    @count: total number of hits."""
-    def __init__(self, searcher, ids, scores, count=0):
-        self.searcher = searcher
-        self.ids, self.scores = ids, scores
-        self.count = count or len(self)
-    def __len__(self):
-        return len(self.ids)
-    def __getitem__(self, index):
-        id, score = self.ids[index], self.scores[index]
-        if isinstance(index, slice):
-            return type(self)(self.searcher, id, score, self.count)
-        return Hit(self.searcher.doc(id), id, score)
-    def items(self):
-        "Generate zipped ids and scores."
-        return itertools.izip(self.ids, self.scores)
 
 class HitCollector(lucene.PythonHitCollector):
     "Collect all ids and scores."
@@ -248,15 +169,15 @@ class IndexWriter(lucene.IndexWriter):
     def __init__(self, directory=None, mode='a', analyzer=lucene.StandardAnalyzer):
         create = [mode == 'w'] * (mode != 'a')
         lucene.IndexWriter.__init__(self, directory or lucene.RAMDirectory(), analyzer(), *create)
-        self.settings = {}
+        self.fields = {}
     @property
     def segments(self):
         "Return segment filenames with document counts."
         items = (seg.split(':c') for seg in self.segString().split())
         return dict((name, int(value)) for name, value in items)
-    def set(self, name, **settings):
-        "Assign settings to field name."
-        self.settings[name] = Document.settings(**settings)
+    def set(self, name, **params):
+        "Assign parameters to field name."
+        self.fields[name] = Field(name, **params)
     def add(self, document=(), **fields):
         """Add document to index.
         
@@ -265,9 +186,10 @@ class IndexWriter(lucene.IndexWriter):
         fields.update(document)
         doc = lucene.Document()
         for name, values in fields.items():
-            settings = self.settings[name]
-            for value in ([values] if isinstance(values, basestring) else values):
-                doc.add(lucene.Field(name, value, *settings))
+            if isinstance(values, basestring):
+                values = [values] 
+            for field in self.fields[name].items(*values):
+                doc.add(field)
         self.addDocument(doc)
     def delete(self, *query, **parser):
         "Remove documents which match given query or term."

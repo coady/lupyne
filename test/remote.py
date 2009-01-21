@@ -51,13 +51,13 @@ class RemoteTest(unittest.TestCase):
         for name, settings in fixture.fields():
             assert resource.post('/fields/' + name, **settings)
         fields = resource.get('/fields')
-        assert sorted(fields) == ['amendment', 'article', 'text']
+        assert sorted(fields) == ['amendment', 'article', 'date', 'text']
         for field in fields:
             assert sorted(resource.get('/fields/' + name)) == ['index', 'store', 'termvector']
         resource.post('/docs/', docs=list(fixture.docs()))
         assert resource.get('/').values() == [35]
         resource.post('/commit')
-        assert resource.get('/terms') == ['amendment', 'article', 'text']
+        assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
         articles = resource.get('/terms/article')
         articles.remove('Preamble')
         assert sorted(map(int, articles)) == range(1, 8)

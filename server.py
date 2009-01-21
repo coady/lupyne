@@ -12,7 +12,7 @@ from functools import partial
 import lucene
 import cherrypy
 from cherrypy.wsgiserver import WorkerThread
-from engine import Indexer, Hit
+from engine import Indexer
 
 def json_tool():
     if cherrypy.response.status is None:
@@ -39,8 +39,9 @@ def json_doc(doc, fields=None, multifields=()):
         result = dict(doc.items())
     else:
         result = dict(zip(fields, map(doc.__getitem__, fields)))
-    if isinstance(doc, Hit):
-        result.update(itertools.islice(doc.items(), 2))  # id & score
+    for name in ('id', 'score'):
+        if hasattr(doc, name):
+            result['__%s__' % name] = getattr(doc, name)
     result.update(zip(multifields, map(doc.getlist, multifields)))
     return result
 
@@ -106,16 +107,16 @@ class Root(object):
         docs = [json_doc(hit, fields, multifields) for hit in hits]
         return {'count': hits.count, 'docs': docs}
     @cherrypy.expose
-    def fields(self, name='', **settings):
-        """Return data about fields and assign their settings.
+    def fields(self, name='', **params):
+        """Return and store a field's parameters.
         
         GET /fields                     [name<string>,... ]
         GET/POST /fields/name<chars>    {store=<string>, index=<string>, termvector=<string>}"""
         if not name:
-            return sorted(self.indexer.settings)
+            return sorted(self.indexer.fields)
         if cherrypy.request.method in ('PUT', 'POST'):
-            self.indexer.set(name, **settings)
-        return dict(zip(['store', 'index', 'termvector'], map(str, getitem(self.indexer.settings, name))))
+            self.indexer.set(name, **params)
+        return dict(zip(['store', 'index', 'termvector'], map(str, getitem(self.indexer.fields, name).params)))
     @cherrypy.expose
     def terms(self, name='', value=':', *args, **options):
         """Return data about indexed terms.
@@ -127,7 +128,7 @@ class Root(object):
         GET /terms/name<chars>/value<chars>/docs/counts         [[id<int>, count<int>],... ]
         GET /terms/name<chars>/value<chars>/docs/positions      [[id<int>, [position<int>,... ]],... ]"""
         if not name:
-            return sorted(self.indexer.fields(**options))
+            return sorted(self.indexer.names(**options))
         if ':' in value:
             start, stop = value.split(':')
             terms = self.indexer.terms(name, start)

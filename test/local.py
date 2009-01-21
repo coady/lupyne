@@ -39,9 +39,9 @@ class LocalTest(unittest.TestCase):
         self.assertRaises(KeyError, doc.__getitem__, 'key')
         assert doc.getlist('name') == ['a'] and doc.getlist('key') == []
         assert index.count('text', 'hello') == index.count('text:hello') == 26
-        assert sorted(index.fields()) == ['name', 'rank', 'text']
-        assert sorted(index.fields('indexed')) == ['rank', 'text']
-        assert index.fields('unindexed') == ['name']
+        assert sorted(index.names()) == ['name', 'rank', 'text']
+        assert sorted(index.names('indexed')) == ['rank', 'text']
+        assert index.names('unindexed') == ['name']
         assert list(index.terms('text')) == ['hello', 'world']
         assert dict(index.terms('text', 'w', counts=True)) == {'world': 26}
         assert list(index.terms('test')) == []
@@ -86,13 +86,13 @@ class LocalTest(unittest.TestCase):
     
     def testData(self):
         index = engine.Indexer(self.tempdir)
-        for name, settings in fixture.fields():
-            index.set(name, **settings)
+        for name, params in fixture.fields():
+            index.set(name, **params)
         for doc in fixture.docs():
             index.add(doc)
-        assert len(index) == 35 and index.fields() == []
+        assert len(index) == 35 and index.names() == []
         index.commit()
-        assert sorted(index.fields()) == ['amendment', 'article', 'text']
+        assert sorted(index.names()) == ['amendment', 'article', 'date', 'text']
         articles = list(index.terms('article'))
         articles.remove('Preamble')
         assert sorted(map(int, articles)) == range(1, 8)
@@ -118,7 +118,7 @@ class LocalTest(unittest.TestCase):
         assert sorted(hits.ids) == hits.ids and hits.ids != ids[:len(hits)]
         hit, = index.search('freedom', field='text')
         assert hit['amendment'] == '1'
-        assert sorted(dict(hit.items())) == ['__id__', '__score__', 'amendment']
+        assert sorted(dict(hit.items())) == ['__id__', '__score__', 'amendment', 'date']
         hits = index.search('text:right')
         hits = index.search('text:people', filter=hits.ids)
         assert len(hits) == 4
