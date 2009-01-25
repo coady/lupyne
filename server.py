@@ -15,9 +15,10 @@ from cherrypy.wsgiserver import WorkerThread
 from engine import Indexer
 
 def json_tool():
-    if cherrypy.response.status is None:
-        cherrypy.response.headers['Content-Type'] = 'text/json'
-        cherrypy.response.body = json.dumps(cherrypy.response.body)
+    response = cherrypy.response
+    if response.status is None:
+        response.headers['Content-Type'] = 'text/json'
+        response.body = json.dumps(response.body)
 cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
 
 class AttachedThread(WorkerThread):
@@ -26,24 +27,12 @@ class AttachedThread(WorkerThread):
         lucene.getVMEnv().attachCurrentThread()
         WorkerThread.run(self)
 
-def getitem(obj, key):
+def finditem(obj, key):
     "Get item or raise NotFound."
     try:
         return obj[key]
     except KeyError:
         raise cherrypy.NotFound(key)
-
-def json_doc(doc, fields=None, multifields=()):
-    "Transform document into json compatible dict."
-    if fields is None:
-        result = dict(doc.items())
-    else:
-        result = dict(zip(fields, map(doc.__getitem__, fields)))
-    for name in ('id', 'score'):
-        if hasattr(doc, name):
-            result['__%s__' % name] = getattr(doc, name)
-    result.update(zip(multifields, map(doc.getlist, multifields)))
-    return result
 
 class Root(object):
     def __init__(self, *args, **kwargs):
@@ -63,7 +52,7 @@ class Root(object):
         with self.lock:
             self.indexer.commit()
     @cherrypy.expose
-    def docs(self, id=None, docs='[]', fields=None, multifields=''):
+    def docs(self, id=None, docs='[]', fields='', multifields=''):
         """Return and index documents.
         
         GET /docs   [id<int>,... ]
@@ -72,17 +61,16 @@ class Root(object):
             &multifields=<chars>,...
         {<string>: <string>|<array>,... }
         POST /docs  docs=[{<string>: <string>|<array>,... },... ]"""
-        if fields is not None:
-            fields = fields.split(',')
+        fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
         if cherrypy.request.method == 'GET':
             if id is None:
                 return list(self.indexer)
-            return json_doc(getitem(self.indexer, int(id)), fields, multifields)
+            return finditem(self.indexer, int(id)).dict(*multifields, **fields)
         for doc in json.loads(docs):
             self.indexer.add(doc)
     @cherrypy.expose
-    def search(self, q, count=None, fields=None, multifields='', sort=None, reverse='false'):
+    def search(self, q, count=None, fields='', multifields='', sort=None, reverse='false'):
         """Run or delete a query.
         
         DELETE /search?q=<chars>
@@ -92,19 +80,17 @@ class Root(object):
             &multifields=<chars>,...
             &sort=<chars>,...
             &reverse=true|false,
-        {"count": <int>, "docs": [{"__id__": <int>, "__score__": <int>, <string>: <string>|<array>,... },... ]}"""
+        {"count": <int>, "docs": [{"__id__": <int>, "__score__": <number>, <string>: <string>|<array>,... },... ]}"""
         if cherrypy.request.method == 'DELETE':
             return self.indexer.delete(q)
         if count is not None:
             count = int(count)
-        if fields is not None:
-            fields = fields.split(',')
+        fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
         if sort is not None and ',' in sort:
             sort = fields.split(',')
-        reverse = json.loads(reverse)
-        hits = self.indexer.search(q, count=count, sort=sort)
-        docs = [json_doc(hit, fields, multifields) for hit in hits]
+        hits = self.indexer.search(q, count=count, sort=sort, reverse=json.loads(reverse))
+        docs = [hit.dict(*multifields, **fields) for hit in hits]
         return {'count': hits.count, 'docs': docs}
     @cherrypy.expose
     def fields(self, name='', **params):
@@ -116,7 +102,8 @@ class Root(object):
             return sorted(self.indexer.fields)
         if cherrypy.request.method in ('PUT', 'POST'):
             self.indexer.set(name, **params)
-        return dict(zip(['store', 'index', 'termvector'], map(str, getitem(self.indexer.fields, name).params)))
+        field = finditem(self.indexer.fields, name)
+        return dict((name, getattr(field, name)) for name in map(str.lower, field.names))
     @cherrypy.expose
     def terms(self, name='', value=':', *args, **options):
         """Return data about indexed terms.

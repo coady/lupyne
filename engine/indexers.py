@@ -1,7 +1,7 @@
 """
-Wrappers for Index{Read,Search,Writ}ers
+Wrappers for Index{Read,Search,Writ}ers.
 
-The final Indexer classes exposes a high-level Searcher class, and optionally a Writer
+The final Indexer classes exposes a high-level Searcher class, and optionally a Writer.
 """
 
 import itertools, operator
@@ -208,7 +208,7 @@ class IndexWriter(lucene.IndexWriter):
         return self
 
 class Indexer(IndexWriter):
-    """A all purpose interface to an index.
+    """An all-purpose interface to an index.
     
     Opening in read mode yields in only an IndexSearcher.
     Opening in write mode yields an IndexWriter with a delegated IndexSearcher."""

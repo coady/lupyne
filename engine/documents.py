@@ -1,27 +1,93 @@
 """
-Document wrappers
+Field and Document wrappers.
 """
 
 import itertools
 import lucene
 
-class Field(object):
-    "Saved parameters which can generate lucene Fields given values."
-    Parameters = lucene.Field.Store, lucene.Field.Index, lucene.Field.TermVector
+class Field(list):
+    """Saved parameters which can generate lucene Fields given values.
+    
+    @name: name of field
+    @store, index, termvector: field parameters, expressed as bools or strs, with lucene defaults."""
+    names = 'Store', 'Index', 'TermVector'
+    parameters = tuple(getattr(lucene.Field, name) for name in names)
     def __init__(self, name, store=False, index='analyzed', termvector=False):
-        "Assign field parameters from text or boolean descriptors, with lucene defaults."
-        self.name = name
         if isinstance(store, bool):
             store = 'yes' if store else 'no'
         if isinstance(index, bool):
             index = 'not_analyzed' if index else 'no'
         if isinstance(termvector, bool):
             termvector = 'yes' if termvector else 'no'
-        self.params = [getattr(name, value.upper()) for name, value in zip(self.Parameters, [store, index, termvector])]
+        items = zip(self.parameters, [store, index, termvector])
+        self += (getattr(param, value.upper()) for param, value in items)
+        self.name = name
+        for index, name in enumerate(self.names):
+            setattr(self, name.lower(), str(self[index]))
     def items(self, *values):
         "Generate lucene Fields suitable for adding to a document."
         for value in values:
-            yield lucene.Field(self.name, value, *self.params)
+            yield lucene.Field(self.name, value, *self)
+
+class NestedField(Field):
+    """Field which indexes every component into its own field.
+    
+    The original value may be optionally stored, but all components will be only indexed.
+    @sep: field separator."""
+    def __init__(self, name, store=False, index=False, termvector=False, sep=':'):
+        Field.__init__(self, name, store, index, termvector)
+        self.sep = sep
+        self.params = lucene.Field.Store.NO, lucene.Field.Index.NOT_ANALYZED
+    def items(self, *values):
+        for value in values:
+            try:
+                yield lucene.Field(self.name, value, *self)
+            except lucene.JavaError:
+                pass # field might not be stored or indexed
+            words = value.split(self.sep)
+            for index, word in enumerate(words):
+                name = self.sep.join([self.name] + words[:index])
+                yield lucene.Field(name, word, *self.params)
+    def query(self, value):
+        "Return lucene TermQuery of the appropriate field depth."
+        words = value.split(self.sep)
+        value = words.pop()
+        name = self.sep.join([self.name] + words)
+        return lucene.TermQuery(lucene.Term(name, value))
+
+class PrefixField(NestedField):
+    """Field indexed with a prefix tree.
+    
+    Unlike a normal nested field, the field names only refer to the depth, while the values are nested.
+    The component fields are expressed as slices of the original values, but may be customized.
+    @start, stop, step: slice parameters, which respect the python convention of half-open intervals."""
+    def __init__(self, name, store=False, index=True, termvector=False, sep='', start=1, stop=None, step=1):
+        NestedField.__init__(self, name, store, index, termvector, sep=sep)
+        self.slice = slice(start, stop, step)
+    def split(self, value):
+        "Return value split into its components."
+        return value.split(self.sep) if self.sep else value
+    def join(self, words):
+        "Return final value from components."
+        return self.sep.join(words)
+    def getname(self, index):
+        "Return customized name for prefix field of given depth."
+        return '%s[:%i]' % (self.name, index)
+    def items(self, *values):
+        """Generate tiered indexed fields along with the original value.
+        
+        Optimized to handle duplicate values."""
+        for value in set(values):
+            yield lucene.Field(self.name, value, *self)
+        values = [tuple(self.split(value)) for value in values]
+        for index in range(*self.slice.indices(max(map(len, values)))):
+            name = self.getname(index)
+            for value in set(value[:index] for value in values if len(value) >= index):
+                yield lucene.Field(name, self.join(value), *self.params)
+    def query(self, prefix):
+        "Return lucene TermQuery of the appropriate prefixed field."
+        name = self.getname(len(self.split(prefix)))
+        return lucene.TermQuery(lucene.Term(name, prefix))
 
 class Document(object):
     """Delegated lucene Document.
@@ -35,7 +101,9 @@ class Document(object):
         for field in Field(name, **params).items(value):
             self.doc.add(field)
     def fields(self):
-        return itertools.imap(lucene.Field.cast_, self.doc.getFields())
+        return itertools.imap(lucene.Field.cast_, self.doc.fields())
+    def __len__(self):
+        return self.doc.getFields().size()
     def __iter__(self):
         for field in self.fields():
             yield field.name()
@@ -55,16 +123,28 @@ class Document(object):
     def getlist(self, name):
         "Return multiple field values."
         return list(self.doc.getValues(name))
+    def dict(self, *names, **defaults):
+        """Return dict representation of document.
+        
+        @names: names of multi-valued fields to return as a list.
+        @defaults: filter unique fields, using default values as necessary."""
+        for name, value in defaults.items():
+            defaults[name] = self.get(name, value)
+        if not defaults:
+            defaults = dict(self.items())
+        defaults.update(zip(names, map(self.getlist, names)))
+        return defaults
 
 class Hit(Document):
     "A Document with an id and score, from a search result."
     def __init__(self, doc, id, score):
         Document.__init__(self, doc)
         self.id, self.score = id, score
-    def items(self):
-        "Include id and score using python naming convention."
-        fields = {'__id__': self.id, '__score__': self.score}
-        return itertools.chain(fields.items(), Document.items(self))
+    def dict(self, *names, **kwargs):
+        "Return dict representation of document with __id__ and __score__."
+        result = Document.dict(self, *names, **kwargs)
+        result.update(__id__=self.id, __score__=self.score)
+        return result
 
 class Hits(object):
     """Search results: lazily evaluated and memory efficient.

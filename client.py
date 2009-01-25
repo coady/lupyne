@@ -9,11 +9,11 @@ import httplib, urllib
 class Resource(httplib.HTTPConnection):
     "Synchronous connection which handles json responses."
     headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/json"}
-    def __call__(self, method, path, body=None, headers={}):
+    def __call__(self, method, path, body=None, headers=()):
+        headers = dict(headers)
         if body is not None:
             body = urllib.urlencode(dict((name, value if isinstance(value, basestring) else json.dumps(value)) \
                 for name, value in body.items()))
-            headers = dict(headers)
             headers['Content-Length'] = len(body)
         self.request(method, path, body, headers)
         response = self.getresponse()
