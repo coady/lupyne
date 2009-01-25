@@ -108,7 +108,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     def search(self, query, filter=None, count=None, sort=None, reverse=False, **parser):
         """Run query and return Hits.
         
-        @query: query string, query Object, or lucene Query.
+        @query: query string, Query object, or lucene Query.
         @filter: doc ids or lucene Filter.
         @count: maximum number of hits to return.
         @sort: field name, names, or lucene Sort.
@@ -186,8 +186,8 @@ class IndexWriter(lucene.IndexWriter):
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.
     
-    Opening in read mode yields in only an IndexSearcher.
-    Opening in write mode yields an IndexWriter with a delegated IndexSearcher."""
+    Opening in read mode returns an IndexSearcher.
+    Opening in write mode returns an IndexWriter with a delegated IndexSearcher."""
     def __new__(cls, directory=None, mode='a', analyzer=lucene.StandardAnalyzer):
         if mode == 'r':
             return IndexSearcher(directory, analyzer)
