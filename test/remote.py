@@ -2,6 +2,7 @@ import unittest, os, optparse
 import tempfile, shutil
 import subprocess, time
 import operator
+import httplib
 import client
 import fixture
 
@@ -24,7 +25,9 @@ class RemoteTest(unittest.TestCase):
         (directory, count), = resource.get('/').items()
         assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
         assert resource.get('/docs') == []
+        self.assertRaises(httplib.HTTPException, resource.get, '/docs/0')
         assert resource.get('/fields') == []
+        self.assertRaises(httplib.HTTPException, resource.get, '/fields/name')
         assert resource.get('/terms') == []
         assert resource.get('/terms/x') == []
         assert resource.get('/terms/x/:') == []
@@ -58,6 +61,10 @@ class RemoteTest(unittest.TestCase):
         doc, = hits['docs']
         assert sorted(doc) == ['__id__', '__score__', 'name']
         assert doc['__id__'] == 0 and doc['__score__'] > 0 and doc['name'] == 'sample' 
+        resource.delete('/search/?q=name:sample')
+        assert resource.get('/docs') == [0]
+        resource.post('/commit')
+        assert resource.get('/docs') == []
 
     def test1Basic(self):
         resource = client.Resource('localhost:8080')

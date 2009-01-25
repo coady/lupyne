@@ -41,6 +41,7 @@ class LocalTest(unittest.TestCase):
         assert sorted(indexer.names('indexed')) == ['tag', 'text']
         assert indexer.names('unindexed') == ['name']
         assert list(indexer.terms('text')) == ['hello', 'world']
+        assert list(indexer.terms('text', 'h', 'v')) == ['hello']
         assert dict(indexer.terms('text', 'w', counts=True)) == {'world': 1}
         assert list(indexer.terms('test')) == []
         assert list(indexer.docs('text', 'hello')) == [0]
@@ -111,8 +112,18 @@ class LocalTest(unittest.TestCase):
         assert len(hits) == 4
         hit, = indexer.search('date:192*')
         assert hit['amendment'] == '19'
-        hits = indexer.search('date:[1919 TO 1920]')
-        sorted(hit['amendment'] for hit in hits) == ['18', '19']
+        hits = indexer.search('date:[1919 TO 1921]')
+        amendments = ['18', '19']
+        assert sorted(hit['amendment'] for hit in hits) == amendments
+        query = engine.Query.range('date', '1919', '1921')
+        hits = indexer.search(query)
+        assert sorted(hit['amendment'] for hit in hits) == amendments
+        hits = indexer.search(query | engine.Query.term('text', 'vote'))
+        assert set(hit.get('amendment') for hit in hits) > set(amendments)
+        hit, = indexer.search(query & engine.Query.term('text', 'vote'))
+        assert hit['amendment'] == '19'
+        hit, = indexer.search(query - engine.Query.term('text', 'vote'))
+        assert hit['amendment'] == '18'
         del indexer
         assert engine.Indexer(self.tempdir)
 
@@ -129,9 +140,9 @@ class LocalTest(unittest.TestCase):
         assert sorted(indexer.names('unindexed')) == ['city', 'county', 'state']
         lngs = list(indexer.terms('lng'))
         east, west = lngs[0], lngs[-1]
-        hit, = indexer.search(lucene.TermQuery(lucene.Term('lng', west)))
+        hit, = indexer.search(engine.Query.term('lng', west))
         assert hit['state'] == 'AK' and hit['county'] == 'Aleutians West'
-        hit, = indexer.search(lucene.TermQuery(lucene.Term('lng', east)))
+        hit, = indexer.search(engine.Query.term('lng', east))
         assert hit['state'] == 'PR' and hit['county'] == 'Culebra'
         states = list(indexer.terms('loc'))
         assert states[0] == 'AK' and states[-1] == 'WY'
@@ -151,9 +162,11 @@ class LocalTest(unittest.TestCase):
         field = indexer.fields['longitude']
         hits = indexer.search(field.query(lng))
         assert hit.id in hits.ids
-        assert len(hits) == indexer.search(lucene.PrefixQuery(lucene.Term('lng', lng))).count
-        assert len(indexer.search(field.query(lng[:3]))) > len(hits)
-        self.assertRaises(lucene.JavaError, indexer.search, lucene.PrefixQuery(lucene.Term('lng', lng[:3])))
+        assert len(hits) == indexer.count(engine.Query.prefix('lng', lng))
+        count = indexer.count(field.query(lng[:3]))
+        assert count > len(hits)
+        self.assertRaises(lucene.JavaError, indexer.search, engine.Query.prefix('lng', lng[:3]))
+        assert count > indexer.count(engine.Query.term('loc', 'CA'), filter=lucene.PrefixFilter(lucene.Term('lng', lng)))
 
 if __name__ == '__main__':
     unittest.main()

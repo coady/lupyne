@@ -7,6 +7,7 @@ The final Indexer classes exposes a high-level Searcher class, and optionally a 
 import itertools, operator
 import contextlib
 import lucene
+from queries import HitCollector, Filter, Query
 from documents import Field, Document, Hits
 
 def iterate(jit, positioned=False):
@@ -57,14 +58,16 @@ class IndexReader(object):
         "Return field names, given option description."
         option = getattr(self.FieldOption, option.upper())
         return list(self.getFieldNames(option))
-    def terms(self, name, value='', counts=False):
-        "Generate term values given starting point, optionally with frequency counts."
-        for termenum in iterate(self.indexReader.terms(lucene.Term(name, value)), positioned=True):
+    def terms(self, name, start='', stop=None, counts=False):
+        "Generate a slice of term values, optionally with frequency counts."
+        for termenum in iterate(self.indexReader.terms(lucene.Term(name, start)), positioned=True):
             term = termenum.term()
-            if not term or term.field() != name:
-                break
-            text = term.text()
-            yield (text, termenum.docFreq()) if counts else text
+            if term and term.field() == name:
+                text = term.text()
+                if stop is None or text < stop:
+                    yield (text, termenum.docFreq()) if counts else text
+                    continue
+            break
     def docs(self, name, value, counts=False):
         "Generate doc ids which contain given term, optionally with frequency counts."
         for termdocs in iterate(self.termDocs(lucene.Term(name, value))):
@@ -75,32 +78,6 @@ class IndexReader(object):
         for termpositions in iterate(self.termPositions(lucene.Term(name, value))):
             positions = [termpositions.nextPosition() for n in xrange(termpositions.freq())]
             yield termpositions.doc(), positions
-
-class HitCollector(lucene.PythonHitCollector):
-    "Collect all ids and scores."
-    def __init__(self, searcher):
-        lucene.PythonHitCollector.__init__(self, searcher)
-        self.collect = {}.__setitem__
-    def sorted(self, key=None, reverse=False):
-        "Return ordered ids and scores."
-        data = self.collect.__self__
-        ids = sorted(data)
-        if key is None:
-            ids.sort(key=data.__getitem__, reverse=True)
-        else:
-            ids.sort(key=key, reverse=reverse)
-        return ids, map(data.__getitem__, ids)
-
-class Filter(lucene.PythonFilter):
-    "Filter a set of ids."
-    def __init__(self, ids):
-        lucene.PythonFilter.__init__(self)
-        self.ids = ids
-    def bits(self, reader):
-        bits = lucene.BitSet(reader.maxDoc())
-        for id in self.ids:
-            bits.set(id)
-        return bits
 
 class IndexSearcher(lucene.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher.
@@ -123,22 +100,22 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         parser = lucene.QueryParser(field, self.analyzer)
         parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
         return parser.parse(query)
-    def count(self, *query, **parser):
+    def count(self, *query, **kwargs):
         "Run number of hits for given query or term."
         if len(query) == 1:
-            return self.search(query[0], count=1, **parser).count
+            return self.search(query[0], count=1, **kwargs).count
         return IndexReader.count(self, *query)
     def search(self, query, filter=None, count=None, sort=None, reverse=False, **parser):
         """Run query and return Hits.
         
-        @query: query string or lucene Query.
+        @query: query string, query Object, or lucene Query.
         @filter: doc ids or lucene Filter.
         @count: maximum number of hits to return.
         @sort: field name, names, or lucene Sort.
         @reverse: reverse flag used with sort.
         @parser: parsing options."""
         if not isinstance(query, lucene.Query):
-            query = self.parse(query, **parser)
+            query = query.q if isinstance(query, Query) else self.parse(query, **parser)
         if not isinstance(filter, (lucene.Filter, type(None))):
             filter = Filter(filter)
         # use custom HitCollector if all results are necessary, otherwise let lucene's TopDocs handle it
@@ -147,12 +124,11 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
             lucene.IndexSearcher.search(self, query, filter, collector)
             return Hits(self, *collector.sorted(key=sort, reverse=reverse))
         if sort is None:
-            sort = ()
+            topdocs = lucene.IndexSearcher.search(self, query, filter, count)
         else:
             if not isinstance(sort, lucene.Sort):
                 sort = lucene.Sort(sort, reverse) if isinstance(sort, basestring) else lucene.Sort(sort)
-            sort = sort,
-        topdocs = lucene.IndexSearcher.search(self, query, filter, count, *sort)
+            topdocs = lucene.IndexSearcher.search(self, query, filter, count, sort)
         ids, scores = (map(operator.attrgetter(name), topdocs.scoreDocs) for name in ['doc', 'score'])
         return Hits(self, ids, scores, topdocs.totalHits)
 

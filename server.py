@@ -5,10 +5,10 @@ Autoreload is not compatible with the VM initialization that lucene requires.
 Also recommended that lucene VM ignores keyboard interrupts.
 """
 
-import itertools, operator
 import json
 import thread
 from functools import partial
+from contextlib import contextmanager
 import lucene
 import cherrypy
 from cherrypy.wsgiserver import WorkerThread
@@ -27,12 +27,13 @@ class AttachedThread(WorkerThread):
         lucene.getVMEnv().attachCurrentThread()
         WorkerThread.run(self)
 
-def finditem(obj, key):
-    "Get item or raise NotFound."
+@contextmanager
+def handle404(exc):
+    "Translate given exception into 404 Not Found."
     try:
-        return obj[key]
-    except KeyError:
-        raise cherrypy.NotFound(key)
+        yield
+    except exc:
+        raise cherrypy.NotFound(cherrypy.request.path_info)
 
 class Root(object):
     def __init__(self, *args, **kwargs):
@@ -66,7 +67,9 @@ class Root(object):
         if cherrypy.request.method == 'GET':
             if id is None:
                 return list(self.indexer)
-            return finditem(self.indexer, int(id)).dict(*multifields, **fields)
+            with handle404(KeyError):
+                doc = self.indexer[int(id)]
+            return doc.dict(*multifields, **fields)
         for doc in json.loads(docs):
             self.indexer.add(doc)
     @cherrypy.expose
@@ -102,8 +105,9 @@ class Root(object):
             return sorted(self.indexer.fields)
         if cherrypy.request.method in ('PUT', 'POST'):
             self.indexer.set(name, **params)
-        field = finditem(self.indexer.fields, name)
-        return dict((name, getattr(field, name)) for name in map(str.lower, field.names))
+        with handle404(KeyError):
+            field = self.indexer.fields[name]
+        return dict((name, getattr(field, name)) for name in map(str.lower, field.Names))
     @cherrypy.expose
     def terms(self, name='', value=':', *args, **options):
         """Return data about indexed terms.
@@ -118,10 +122,7 @@ class Root(object):
             return sorted(self.indexer.names(**options))
         if ':' in value:
             start, stop = value.split(':')
-            terms = self.indexer.terms(name, start)
-            if stop:
-                terms = itertools.takewhile(partial(operator.gt, stop), terms)
-            return list(terms)
+            return list(self.indexer.terms(name, start, stop or None))
         docs, stats = (args + ('', ''))[:2]
         if not docs:
             return self.indexer.count(name, value)

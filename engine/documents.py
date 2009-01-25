@@ -10,8 +10,8 @@ class Field(list):
     
     @name: name of field
     @store, index, termvector: field parameters, expressed as bools or strs, with lucene defaults."""
-    names = 'Store', 'Index', 'TermVector'
-    parameters = tuple(getattr(lucene.Field, name) for name in names)
+    Names = 'Store', 'Index', 'TermVector'
+    Parameters = tuple(getattr(lucene.Field, name) for name in Names)
     def __init__(self, name, store=False, index='analyzed', termvector=False):
         if isinstance(store, bool):
             store = 'yes' if store else 'no'
@@ -19,10 +19,10 @@ class Field(list):
             index = 'not_analyzed' if index else 'no'
         if isinstance(termvector, bool):
             termvector = 'yes' if termvector else 'no'
-        items = zip(self.parameters, [store, index, termvector])
+        items = zip(self.Parameters, [store, index, termvector])
         self += (getattr(param, value.upper()) for param, value in items)
         self.name = name
-        for index, name in enumerate(self.names):
+        for index, name in enumerate(self.Names):
             setattr(self, name.lower(), str(self[index]))
     def items(self, *values):
         "Generate lucene Fields suitable for adding to a document."
@@ -32,12 +32,15 @@ class Field(list):
 class NestedField(Field):
     """Field which indexes every component into its own field.
     
-    The original value may be optionally stored, but all components will be only indexed.
+    The original value may be optionally stored, but components will be only indexed.
     @sep: field separator."""
     def __init__(self, name, store=False, index=False, termvector=False, sep=':'):
         Field.__init__(self, name, store, index, termvector)
         self.sep = sep
         self.params = lucene.Field.Store.NO, lucene.Field.Index.NOT_ANALYZED
+    def getname(self, words):
+        "Return customized name for given words."
+        return self.sep.join([self.name] + words)
     def items(self, *values):
         for value in values:
             try:
@@ -46,14 +49,13 @@ class NestedField(Field):
                 pass # field might not be stored or indexed
             words = value.split(self.sep)
             for index, word in enumerate(words):
-                name = self.sep.join([self.name] + words[:index])
+                name = self.getname(words[:index])
                 yield lucene.Field(name, word, *self.params)
     def query(self, value):
         "Return lucene TermQuery of the appropriate field depth."
         words = value.split(self.sep)
         value = words.pop()
-        name = self.sep.join([self.name] + words)
-        return lucene.TermQuery(lucene.Term(name, value))
+        return lucene.TermQuery(lucene.Term(self.getname(words), value))
 
 class PrefixField(NestedField):
     """Field indexed with a prefix tree.
@@ -113,7 +115,7 @@ class Document(object):
     def __getitem__(self, name):
         value = self.doc[name]
         if value is None:
-            raise KeyError(value)
+            raise KeyError(name)
         return value
     def get(self, name, default=None):
         value = self.doc[name]
@@ -140,9 +142,9 @@ class Hit(Document):
     def __init__(self, doc, id, score):
         Document.__init__(self, doc)
         self.id, self.score = id, score
-    def dict(self, *names, **kwargs):
+    def dict(self, *names, **defaults):
         "Return dict representation of document with __id__ and __score__."
-        result = Document.dict(self, *names, **kwargs)
+        result = Document.dict(self, *names, **defaults)
         result.update(__id__=self.id, __score__=self.score)
         return result
 

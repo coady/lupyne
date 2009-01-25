@@ -11,5 +11,6 @@ import lucene
 if lucene.getVMEnv() is None:
     warnings.warn("lucene.initVM(lucene.CLASSPATH,... ) must be called before using lucene.", RuntimeWarning, stacklevel=2)
 
-from indexers import Indexer, IndexSearcher
+from queries import Query
 from documents import Document, Field, NestedField, PrefixField
+from indexers import Indexer, IndexSearcher
