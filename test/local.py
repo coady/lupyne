@@ -30,6 +30,7 @@ class LocalTest(unittest.TestCase):
         assert 0 in indexer and 1 not in indexer
         doc = indexer[0]
         assert len(doc) == 3
+        assert 'name' in doc and 'missing' not in doc
         assert sorted(doc.items()) == [('name', 'sample'), ('tag', 'python'), ('tag', 'search')]
         assert doc.dict('tag') == {'name': 'sample', 'tag': ['python', 'search']}
         assert doc.dict(name=None, missing=True) == {'name': 'sample', 'missing': True}

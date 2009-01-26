@@ -35,8 +35,8 @@ class RemoteTest(unittest.TestCase):
         assert resource.get('/terms/x/y/docs') == []
         assert resource.get('/terms/x/y/docs/counts') == []
         assert resource.get('/terms/x/y/docs/positions') == []
-        resource.post('/fields/text')
-        resource.post('/fields/name', store='yes', index='not_analyzed')
+        resource.put('/fields/text')
+        resource.put('/fields/name', store='yes', index='not_analyzed')
         assert sorted(resource.get('/fields')) == ['name', 'text']
         assert resource.get('/fields/text')['index'] == 'ANALYZED'
         resource.post('/docs', docs=[{'name': 'sample', 'text': 'hello world'}])
@@ -70,7 +70,7 @@ class RemoteTest(unittest.TestCase):
         resource = client.Resource('localhost:8080')
         assert resource.get('/fields') == []
         for name, settings in fixture.constitution.fields.items():
-            assert resource.post('/fields/' + name, **settings)
+            assert resource.put('/fields/' + name, **settings)
         fields = resource.get('/fields')
         assert sorted(fields) == ['amendment', 'article', 'date', 'text']
         for field in fields:

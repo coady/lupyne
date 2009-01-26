@@ -7,3 +7,5 @@ Root
 ----
 .. autoclass:: server.Root
   :members:
+
+.. autofunction:: main

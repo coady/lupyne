@@ -7,3 +7,4 @@ Resource
 --------
 .. autoclass:: client.Resource
   :members:
+  :undoc-members:

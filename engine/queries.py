@@ -10,13 +10,16 @@ class Query(object):
         self.q = q
     @classmethod
     def term(cls, name, value):
+        "Create wrapped lucene TermQuery."
         return cls(lucene.TermQuery(lucene.Term(name, value)))
     @classmethod
-    def range(cls, name, lower, upper, inclusive=False):
-        return cls(lucene.RangeQuery(lucene.Term(name, lower), lucene.Term(name, upper), inclusive))
-    @classmethod
     def prefix(cls, name, value):
+        "Create wrapped lucene PrefixQuery."
         return cls(lucene.PrefixQuery(lucene.Term(name, value)))
+    @classmethod
+    def range(cls, name, lower, upper, inclusive=False):
+        "Create wrapped lucene RangeQuery."
+        return cls(lucene.RangeQuery(lucene.Term(name, lower), lucene.Term(name, upper), inclusive))
     def __and__(self, other):
         q = lucene.BooleanQuery()
         q.add(self.q, lucene.BooleanClause.Occur.MUST)

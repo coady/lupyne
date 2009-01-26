@@ -24,9 +24,9 @@ class Resource(httplib.HTTPConnection):
         if params:
             path += '?' + urllib.urlencode(params)
         return self('GET', path)
-    def post(self, path, **params):
-        return self('POST', path, params, self.headers)
-    def put(self, path, **params):
-        return self('PUT', path, params, self.headers)
+    def post(self, path, **body):
+        return self('POST', path, body, self.headers)
+    def put(self, path, **body):
+        return self('PUT', path, body, self.headers)
     def delete(self, path):
         return self('DELETE', path)

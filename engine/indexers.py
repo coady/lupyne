@@ -1,7 +1,7 @@
 """
-Wrappers for Index{Read,Search,Writ}ers.
+Wrappers for lucene Index{Read,Search,Writ}ers.
 
-The final Indexer classes exposes a high-level Searcher class, and optionally a Writer.
+The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 """
 
 import itertools, operator
@@ -13,7 +13,8 @@ from documents import Field, Document, Hits
 def iterate(jit, positioned=False):
     """Transform java iterator into python iterator.
     
-    @positioned: current iterator position is valid."""
+    :positioned: current iterator position is valid
+    """
     with contextlib.closing(jit):
         if positioned:
             yield jit
@@ -21,10 +22,10 @@ def iterate(jit, positioned=False):
             yield jit
 
 class IndexReader(object):
-    """Delegated lucene IndexReader.
-    
-    Supports mapping interface of doc ids to document objects.
-    @directory: lucene IndexReader or directory."""
+    """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
+
+    :directory: lucene IndexReader or directory.
+    """
     def __init__(self, directory):
         self.indexReader = directory if isinstance(directory, lucene.IndexReader) else lucene.IndexReader.open(directory)
     def __getattr__(self, name):
@@ -46,10 +47,13 @@ class IndexReader(object):
         self.deleteDocument(id)
     @property
     def directory(self):
-        "Return reader's directory."
+        "reader's lucene Directory"
         return self.indexReader.directory()
     def delete(self, name, value):
-        "Delete documents with given term."
+        """Delete documents with given term.
+        
+        Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
+        """
         self.deleteDocuments(lucene.Term(name, value))
     def count(self, name, value):
         "Return number of documents with given term."
@@ -80,11 +84,11 @@ class IndexReader(object):
             yield termpositions.doc(), positions
 
 class IndexSearcher(lucene.IndexSearcher, IndexReader):
-    """Inherited lucene IndexSearcher.
+    """Inherited lucene IndexSearcher, with a delegated IndexReader as well.
     
-    Also delegates to IndexReader's interface.
-    @directory: directory path or lucene Directory.
-    @analyzer: lucene Analyzer class."""
+    :param directory: directory path or lucene Directory
+    :param analyzer: lucene Analyzer class
+    """
     def __init__(self, directory, analyzer=lucene.StandardAnalyzer):
         lucene.IndexSearcher.__init__(self, directory)
         self.analyzer = analyzer()
@@ -92,28 +96,34 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         if str(self) != '<null>':
             self.close()
     def parse(self, query, field='', op='or'):
-        """Return parsed query.
+        """Return lucene parsed Query.
         
-        @field: default query field name.
-        @op: default query operator."""
+        :param field: default query field name
+        :param op: default query operator
+        """
         # parser's aren't thread-safe (nor slow), so create one each time
         parser = lucene.QueryParser(field, self.analyzer)
         parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
         return parser.parse(query)
-    def count(self, *query, **kwargs):
-        "Run number of hits for given query or term."
+    def count(self, *query, **options):
+        """Return number of hits for given query or term.
+        
+        :param query: :meth:`search` compatible query, or optimally a name and value
+        :param options: additional :meth:`search` options
+        """
         if len(query) == 1:
-            return self.search(query[0], count=1, **kwargs).count
+            return self.search(query[0], count=1, **options).count
         return IndexReader.count(self, *query)
     def search(self, query, filter=None, count=None, sort=None, reverse=False, **parser):
-        """Run query and return Hits.
+        """Run query and return `Hits`_.
         
-        @query: query string, Query object, or lucene Query.
-        @filter: doc ids or lucene Filter.
-        @count: maximum number of hits to return.
-        @sort: field name, names, or lucene Sort.
-        @reverse: reverse flag used with sort.
-        @parser: parsing options."""
+        :param query: query string, `Query`_ object, or lucene Query
+        :param filter: doc ids or lucene Filter
+        :param count: maximum number of hits to retrieve
+        :param sort: field name, names, or lucene Sort
+        :param reverse: reverse flag used with sort
+        :param parser: :meth:`parse` options
+        """
         if not isinstance(query, lucene.Query):
             query = query.q if isinstance(query, Query) else self.parse(query, **parser)
         if not isinstance(filter, (lucene.Filter, type(None))):
@@ -134,11 +144,12 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
 
 class IndexWriter(lucene.IndexWriter):
     """Inherited lucene IndexWriter.
-    
     Supports setting fields parameters explicitly, so documents can be represented as dictionaries.
-    @directory: directory path or lucene Directory.
-    @mode: file mode (updating is implied) - 'w' truncates, 'r' doesn't create.
-    @analyzer: lucene Analyzer class."""
+
+    :param directory: directory path or lucene Directory.
+    :param mode: file mode: 'a' creates if necessary, 'w' overwrites, 'r' doesn't create
+    :param analyzer: lucene Analyzer class
+    """
     __len__ = lucene.IndexWriter.numDocs
     __del__ = IndexSearcher.__del__.im_func
     parse = IndexSearcher.parse.im_func
@@ -148,30 +159,42 @@ class IndexWriter(lucene.IndexWriter):
         self.fields = {}
     @property
     def segments(self):
-        "Return segment filenames with document counts."
+        "segment filenames with document counts"
         items = (seg.split(':c') for seg in self.segString().split())
         return dict((name, int(value)) for name, value in items)
     def set(self, name, **params):
-        "Assign parameters to field name."
-        self.fields[name] = Field(name, **params)
-    def add(self, document=(), **fields):
-        """Add document to index.
+        """Assign parameters to field name.
         
-        @document: optional document dict or items.
-        @fields: additional fields to document."""
-        fields.update(document)
+        :param name: name of lucene Field
+        :param params: store,index,termvector options compatible with `Field`_
+        """
+        self.fields[name] = Field(name, **params)
+    def add(self, document=(), **terms):
+        """Add document to index.
+        Document is comprised of name: value pairs, where the values may be one or multiple strings.
+        
+        :param document: optional document terms as a dict or items
+        :param terms: additional terms to document
+        """
+        terms.update(document)
         doc = lucene.Document()
-        for name, values in fields.items():
+        for name, values in terms.items():
             if isinstance(values, basestring):
                 values = [values] 
             for field in self.fields[name].items(*values):
                 doc.add(field)
         self.addDocument(doc)
-    def delete(self, *query, **parser):
-        "Remove documents which match given query or term."
+    def delete(self, *query, **options):
+        """Remove documents which match given query or term.
+        
+        :param query: :meth:`IndexSearcher.search` compatible query, or optimally a name and value
+        :param options: additional :meth:`parse` options
+        """
         if len(query) == 1:
             query = query[0]
-            self.deleteDocuments(query if isinstance(query, lucene.Query) else self.parse(query, **parser))
+            if not isinstance(query, lucene.Query):
+                query = query.q if isinstance(query, Query) else self.parse(query, **options)
+            self.deleteDocuments(query)
         else:
             self.deleteDocuments(lucene.Term(*query))
     def __iadd__(self, directory):
@@ -185,9 +208,9 @@ class IndexWriter(lucene.IndexWriter):
 
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.
-    
-    Opening in read mode returns an IndexSearcher.
-    Opening in write mode returns an IndexWriter with a delegated IndexSearcher."""
+    Opening in read mode returns an `IndexSearcher`_.
+    Opening in write mode (the default) returns an `IndexWriter`_ with a delegated `IndexSearcher`_.
+    """
     def __new__(cls, directory=None, mode='a', analyzer=lucene.StandardAnalyzer):
         if mode == 'r':
             return IndexSearcher(directory, analyzer)

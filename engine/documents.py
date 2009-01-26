@@ -1,5 +1,5 @@
 """
-Field and Document wrappers.
+Wrappers for lucene Fields and Documents.
 """
 
 import itertools
@@ -8,8 +8,9 @@ import lucene
 class Field(list):
     """Saved parameters which can generate lucene Fields given values.
     
-    @name: name of field
-    @store, index, termvector: field parameters, expressed as bools or strs, with lucene defaults."""
+    :param name: name of field
+    :param store, index, termvector: field parameters, expressed as bools or strs, with lucene defaults.
+    """
     Names = 'Store', 'Index', 'TermVector'
     Parameters = tuple(getattr(lucene.Field, name) for name in Names)
     def __init__(self, name, store=False, index='analyzed', termvector=False):
@@ -31,17 +32,20 @@ class Field(list):
 
 class NestedField(Field):
     """Field which indexes every component into its own field.
-    
     The original value may be optionally stored, but components will be only indexed.
-    @sep: field separator."""
+    
+    :param sep: field separator.
+    """
     def __init__(self, name, store=False, index=False, termvector=False, sep=':'):
         Field.__init__(self, name, store, index, termvector)
         self.sep = sep
+        # these params are instance variables because they don't exist before initVM is called
         self.params = lucene.Field.Store.NO, lucene.Field.Index.NOT_ANALYZED
     def getname(self, words):
         "Return customized name for given words."
         return self.sep.join([self.name] + words)
     def items(self, *values):
+        "Generate original field (if necessary) and all component fields."
         for value in values:
             try:
                 yield lucene.Field(self.name, value, *self)
@@ -59,26 +63,25 @@ class NestedField(Field):
 
 class PrefixField(NestedField):
     """Field indexed with a prefix tree.
-    
     Unlike a normal nested field, the field names only refer to the depth, while the values are nested.
-    The component fields are expressed as slices of the original values, but may be customized.
-    @start, stop, step: slice parameters, which respect the python convention of half-open intervals."""
+    The component field names are expressed as slices of the original values, but may be customized.
+    
+    :param start, stop, step: slice parameters, which respect the python convention of half-open intervals.
+    """
     def __init__(self, name, store=False, index=True, termvector=False, sep='', start=1, stop=None, step=1):
         NestedField.__init__(self, name, store, index, termvector, sep=sep)
         self.slice = slice(start, stop, step)
     def split(self, value):
-        "Return value split into its components."
         return value.split(self.sep) if self.sep else value
     def join(self, words):
-        "Return final value from components."
         return self.sep.join(words)
     def getname(self, index):
         "Return customized name for prefix field of given depth."
         return '%s[:%i]' % (self.name, index)
     def items(self, *values):
         """Generate tiered indexed fields along with the original value.
-        
-        Optimized to handle duplicate values."""
+        Optimized to handle duplicate values.
+        """
         for value in set(values):
             yield lucene.Field(self.name, value, *self)
         values = [tuple(self.split(value)) for value in values]
@@ -93,8 +96,10 @@ class PrefixField(NestedField):
 
 class Document(object):
     """Delegated lucene Document.
+    Provides mapping interface of field names to values, but duplicate field names are allowed.
     
-    Supports mapping interface of field names to values, but duplicate field names are allowed."""
+    :param doc: optional lucene Document.
+    """
     Fields = lucene.Field.Store, lucene.Field.Index, lucene.Field.TermVector
     def __init__(self, doc=None):
         self.doc = lucene.Document() if doc is None else doc
@@ -103,13 +108,17 @@ class Document(object):
         for field in Field(name, **params).items(value):
             self.doc.add(field)
     def fields(self):
+        "Generate lucene Fields."
         return itertools.imap(lucene.Field.cast_, self.doc.fields())
     def __len__(self):
         return self.doc.getFields().size()
+    def __contains__(self, name):
+        return self.doc[name] is not None
     def __iter__(self):
         for field in self.fields():
             yield field.name()
     def items(self):
+        "Generate name, value pairs for all fields."
         for field in self.fields():
             yield field.name(), field.stringValue()
     def __getitem__(self, name):
@@ -118,18 +127,19 @@ class Document(object):
             raise KeyError(name)
         return value
     def get(self, name, default=None):
+        "Return field value if present, else default."
         value = self.doc[name]
         return default if value is None else value
     def __delitem__(self, name):
         self.doc.removeFields(name)
     def getlist(self, name):
-        "Return multiple field values."
+        "Return list of all values for given field."
         return list(self.doc.getValues(name))
     def dict(self, *names, **defaults):
         """Return dict representation of document.
         
-        @names: names of multi-valued fields to return as a list.
-        @defaults: filter unique fields, using default values as necessary."""
+        :param names: names of multi-valued fields to return as a list.
+        :param defaults: return only given fields, using default values as necessary."""
         for name, value in defaults.items():
             defaults[name] = self.get(name, value)
         if not defaults:
@@ -150,12 +160,12 @@ class Hit(Document):
 
 class Hits(object):
     """Search results: lazily evaluated and memory efficient.
+    Provides a read-only sequence interface to hit objects.
     
-    Supports a read-only sequence interface to hit objects.
-    @searcher: IndexSearcher which can retrieve documents.
-    @ids: ordered doc ids.
-    @scores: ordered doc scores.
-    @count: total number of hits."""
+    :param searcher: `IndexSearcher`_ which can retrieve documents.
+    :param ids: ordered doc ids.
+    :param scores: ordered doc scores.
+    :param count: total number of hits."""
     def __init__(self, searcher, ids, scores, count=0):
         self.searcher = searcher
         self.ids, self.scores = ids, scores

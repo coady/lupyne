@@ -1,8 +1,10 @@
 """
-Restful json server.
+Restful json `CherryPy <http://cherrypy.org/>`_ server.
 
-Autoreload is not compatible with the VM initialization that lucene requires.
-Also recommended that lucene VM ignores keyboard interrupts.
+CherryPy and Lucene VM integration issues:
+ * Autoreload is not compatible with the VM initialization.
+ * WorkerThreads must be attached to the VM.
+ * Also recommended that the VM ignores keyboard interrupts for clean server shutdown.
 """
 
 import json
@@ -15,6 +17,7 @@ from cherrypy.wsgiserver import WorkerThread
 from engine import Indexer
 
 def json_tool():
+    "Transform responses into json format."
     response = cherrypy.response
     if response.status is None:
         response.headers['Content-Type'] = 'text/json'
@@ -36,6 +39,7 @@ def handle404(exc):
         raise cherrypy.NotFound(cherrypy.request.path_info)
 
 class Root(object):
+    "Dispatch root with a delegated Indexer."
     def __init__(self, *args, **kwargs):
         self.indexer = Indexer(*args, **kwargs)
         self.lock = thread.allocate_lock()
@@ -43,25 +47,43 @@ class Root(object):
     def index(self):
         """Return index information.
         
-        GET /   {directory<string>, count<int>}"""
+        **GET** /
+            Return a mapping of the directory to the document count.
+            
+            :return: {*string*: *int*}
+        """
         return {str(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
     def commit(self):
         """Commit write operations.
         
-        POST /commit"""
+        **POST** /commit
+        """
         with self.lock:
             self.indexer.commit()
     @cherrypy.expose
     def docs(self, id=None, docs='[]', fields='', multifields=''):
         """Return and index documents.
         
-        GET /docs   [id<int>,... ]
-        GET /docs/<int>?
-            &fields=<chars>,...
-            &multifields=<chars>,...
-        {<string>: <string>|<array>,... }
-        POST /docs  docs=[{<string>: <string>|<array>,... },... ]"""
+        **GET** /docs
+            Return list of doc ids.
+            
+            :return: [*int*,... ]
+        
+        **GET** /docs/*int*?
+            Return document mappings, optionally selected unique or multi-valued fields.
+            
+            &fields=\ *chars*,...
+            
+            &multifields=\ *chars*,...
+            
+            :return: {*string*: *string*\|\ *array*,... }
+        
+        **POST** /docs
+            Add documents to index.
+            
+            docs=[{*string*: *string*\|\ *array*,... },... ]
+        """
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
         if cherrypy.request.method == 'GET':
@@ -76,14 +98,24 @@ class Root(object):
     def search(self, q, count=None, fields='', multifields='', sort=None, reverse='false'):
         """Run or delete a query.
         
-        DELETE /search?q=<chars>
-        GET /search?q=<chars>
-            &count=<int>,
-            &fields=<chars>,...
-            &multifields=<chars>,...
-            &sort=<chars>,...
+        **DELETE** /search?q=\ *chars*
+            Delete documents which match query.
+        
+        **GET** /search?q=\ *chars*,
+            Return list document mappings and total doc count.
+            
+            &count=\ *int*
+            
+            &fields=\ *chars*,...
+            
+            &multifields=\ *chars*,...
+            
+            &sort=\ *chars*,...
+            
             &reverse=true|false,
-        {"count": <int>, "docs": [{"__id__": <int>, "__score__": <number>, <string>: <string>|<array>,... },... ]}"""
+            
+            :return: {"count": *int*, "docs": [{"__id__": *int*, "__score__": *number*, *string*: *string*\|\ *array*,... },... ]}
+        """
         if cherrypy.request.method == 'DELETE':
             return self.indexer.delete(q)
         if count is not None:
@@ -99,8 +131,25 @@ class Root(object):
     def fields(self, name='', **params):
         """Return and store a field's parameters.
         
-        GET /fields                     [name<string>,... ]
-        GET/POST /fields/name<chars>    {store=<string>, index=<string>, termvector=<string>}"""
+        **GET** /fields
+            Return known field names.
+            
+            :return: [*string*,... ]
+        
+        **GET** /fields/*chars*
+            Return parameters for given field name.
+            
+            :return: {"store": *string*, "index": *string*, "termvector": *string*}
+        
+        **PUT** /fields/*chars*
+            Set parameters for given field name.
+            
+            store=\ *chars*
+            
+            index=\ *chars*
+            
+            termvector=\ *chars*
+        """
         if not name:
             return sorted(self.indexer.fields)
         if cherrypy.request.method in ('PUT', 'POST'):
@@ -112,12 +161,43 @@ class Root(object):
     def terms(self, name='', value=':', *args, **options):
         """Return data about indexed terms.
         
-        GET /terms?option=<chars>                               [name<string>,... ]
-        GET /terms/name<chars>/[start<chars>:stop<chars>]       [value<string>,... ]
-        GET /terms/name<chars>/value<chars>                     count<int>
-        GET /terms/name<chars>/value<chars>/docs                [id<int>,... ]
-        GET /terms/name<chars>/value<chars>/docs/counts         [[id<int>, count<int>],... ]
-        GET /terms/name<chars>/value<chars>/docs/positions      [[id<int>, [position<int>,... ]],... ]"""
+        **GET** /terms?
+            Return field names, with optional selection.
+            
+            &option=\ *chars*
+            
+            :return: [*string*,... ]
+        
+        **GET** /terms/*chars*
+            Return term values for given field name.
+            
+            :return: [*string*,... ]
+        
+        **GET** /terms/*chars*/[*chars*:*chars*]
+            Return slice of term values for given field name.
+            
+            :return: [*string*,... ]
+        
+        **GET** /terms/*chars*/*chars*
+            Return document count with given term.
+            
+            :return: *int*
+        
+        **GET** /terms/*chars*/*chars*/docs
+            Return document ids with given term.
+            
+            :return: [*int*,... ]
+        
+        **GET** /terms/*chars*/*chars*/docs/counts
+            Return document ids and frequency counts for given term.
+            
+            :return: [[*int*, *int*],... ]
+        
+        **GET** /terms/*chars*/*chars*/docs/positions
+            Return document ids and positions for given term.
+            
+            :return: [[*int*, [*int*,... ]],... ]
+        """
         if not name:
             return sorted(self.indexer.names(**options))
         if ':' in value:
