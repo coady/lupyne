@@ -1,0 +1,707 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>engine &mdash; CherryPyLucene v0.1a documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1a',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="top" title="CherryPyLucene v0.1a documentation" href="index.html" />
+    <link rel="next" title="server" href="server.html" />
+    <link rel="prev" title="Welcome to CherryPyLucene&#8217;s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="server.html" title="server"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to CherryPyLucene&#8217;s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">CherryPyLucene v0.1a documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section" id="module-engine">
+<h1>engine<a class="headerlink" href="#module-engine" title="Permalink to this headline">¶</a></h1>
+<p>Pythonic wrapper around <a class="reference external" href="http://lucene.apache.org/java/docs/index.html">Lucene</a> search engine.</p>
+<p>Provides high-level interfaces to indexes and documents,
+abstracting away java lucene primitives.</p>
+<div class="section" id="module-engine.indexers">
+<h2>indexers<a class="headerlink" href="#module-engine.indexers" title="Permalink to this headline">¶</a></h2>
+<p>Wrappers for lucene Index{Read,Search,Writ}ers.</p>
+<p>The final <a class="reference internal" href="#indexer">Indexer</a> classes exposes a high-level Searcher and Writer.</p>
+<div class="section" id="indexsearcher">
+<h3>IndexSearcher<a class="headerlink" href="#indexsearcher" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.indexers.IndexSearcher">
+<!--[engine.indexers.IndexSearcher]-->class <tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexSearcher</tt><big>(</big><em>directory</em>, <em>analyzer=&lt;type 'StandardAnalyzer'&gt;</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.indexers.IndexSearcher" class="reference internal" href="#engine.indexers.IndexSearcher"><tt class="xref docutils literal"><span class="pre">IndexSearcher</span></tt></a>, <tt class="xref docutils literal"><span class="pre">engine.indexers.IndexReader</span></tt></p>
+<p>Inherited lucene IndexSearcher, with a delegated IndexReader as well.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>directory</em> &#8211; directory path or lucene Directory</li>
+<li><em>analyzer</em> &#8211; lucene Analyzer class</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Provides a mapping interface of ids to document objects.</p>
+<dl class="method">
+<dt>
+<tt class="descname">__del__():</tt></dt>
+<dd>Closes index.</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__len__():</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__contains__(id):</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__iter__():</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__getitem__(id):</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__delitem__(id):</tt></dt>
+<dd>Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexSearcher.count">
+<!--[engine.indexers.IndexSearcher.count]--><tt class="descname">count</tt><big>(</big><em>*query</em>, <em>**options</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return number of hits for given query or term.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>query</em> &#8211; <a title="engine.indexers.IndexSearcher.search" class="reference internal" href="#engine.indexers.IndexSearcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> compatible query, or optimally a name and value</li>
+<li><em>options</em> &#8211; additional <a title="engine.indexers.IndexSearcher.search" class="reference internal" href="#engine.indexers.IndexSearcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexSearcher.delete">
+<!--[engine.indexers.IndexSearcher.delete]--><tt class="descname">delete</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete documents with given term.</p>
+<p>Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.indexers.IndexSearcher.directory">
+<!--[engine.indexers.IndexSearcher.directory]--><tt class="descname">directory</tt><a class="headerlink" href="#engine.indexers.IndexSearcher.directory" title="Permalink to this definition">¶</a></dt>
+<dd>reader&#8217;s lucene Directory</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexSearcher.docs">
+<!--[engine.indexers.IndexSearcher.docs]--><tt class="descname">docs</tt><big>(</big><em>name</em>, <em>value</em>, <em>counts=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.docs" title="Permalink to this definition">¶</a></dt>
+<dd>Generate doc ids which contain given term, optionally with frequency counts.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexSearcher.names">
+<!--[engine.indexers.IndexSearcher.names]--><tt class="descname">names</tt><big>(</big><em>option='all'</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.names" title="Permalink to this definition">¶</a></dt>
+<dd>Return field names, given option description.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexSearcher.parse">
+<!--[engine.indexers.IndexSearcher.parse]--><tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op='or'</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return lucene parsed Query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>field</em> &#8211; default query field name</li>
+<li><em>op</em> &#8211; default query operator</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexSearcher.positions">
+<!--[engine.indexers.IndexSearcher.positions]--><tt class="descname">positions</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.positions" title="Permalink to this definition">¶</a></dt>
+<dd>Generate doc ids which contain given term, with their positions.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexSearcher.search">
+<!--[engine.indexers.IndexSearcher.search]--><tt class="descname">search</tt><big>(</big><em>query</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run query and return <a class="reference internal" href="#hits">Hits</a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>query</em> &#8211; query string, <a class="reference internal" href="#query">Query</a> object, or lucene Query</li>
+<li><em>filter</em> &#8211; doc ids or lucene Filter</li>
+<li><em>count</em> &#8211; maximum number of hits to retrieve</li>
+<li><em>sort</em> &#8211; field name, names, or lucene Sort</li>
+<li><em>reverse</em> &#8211; reverse flag used with sort</li>
+<li><em>parser</em> &#8211; <a title="engine.indexers.IndexSearcher.parse" class="reference internal" href="#engine.indexers.IndexSearcher.parse"><tt class="xref docutils literal"><span class="pre">parse()</span></tt></a> options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexSearcher.terms">
+<!--[engine.indexers.IndexSearcher.terms]--><tt class="descname">terms</tt><big>(</big><em>name</em>, <em>start=''</em>, <em>stop=None</em>, <em>counts=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.terms" title="Permalink to this definition">¶</a></dt>
+<dd>Generate a slice of term values, optionally with frequency counts.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="indexwriter">
+<h3>IndexWriter<a class="headerlink" href="#indexwriter" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.indexers.IndexWriter">
+<!--[engine.indexers.IndexWriter]-->class <tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexWriter</tt><big>(</big><em>directory=None</em>, <em>mode='a'</em>, <em>analyzer=&lt;type 'StandardAnalyzer'&gt;</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.indexers.IndexWriter" class="reference internal" href="#engine.indexers.IndexWriter"><tt class="xref docutils literal"><span class="pre">IndexWriter</span></tt></a></p>
+<p>Inherited lucene IndexWriter.
+Supports setting fields parameters explicitly, so documents can be represented as dictionaries.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>directory</em> &#8211; directory path or lucene Directory.</li>
+<li><em>mode</em> &#8211; file mode: &#8216;a&#8217; creates if necessary, &#8216;w&#8217; overwrites, &#8216;r&#8217; doesn&#8217;t create</li>
+<li><em>analyzer</em> &#8211; lucene Analyzer class</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt>
+<tt class="descname">__del__():</tt></dt>
+<dd>Closes index.</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__len__():</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexWriter.__iadd__">
+<!--[engine.indexers.IndexWriter.__iadd__]--><tt class="descname">__iadd__</tt><big>(</big><em>directory</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.__iadd__" title="Permalink to this definition">¶</a></dt>
+<dd>Add directory (or reader, searcher, writer) to index.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexWriter.add">
+<!--[engine.indexers.IndexWriter.add]--><tt class="descname">add</tt><big>(</big><em>document=()</em>, <em>**terms</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add document to index.
+Document is comprised of name: value pairs, where the values may be one or multiple strings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>document</em> &#8211; optional document terms as a dict or items</li>
+<li><em>terms</em> &#8211; additional terms to document</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexWriter.delete">
+<!--[engine.indexers.IndexWriter.delete]--><tt class="descname">delete</tt><big>(</big><em>*query</em>, <em>**options</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove documents which match given query or term.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>query</em> &#8211; <a title="engine.indexers.IndexSearcher.search" class="reference internal" href="#engine.indexers.IndexSearcher.search"><tt class="xref docutils literal"><span class="pre">IndexSearcher.search()</span></tt></a> compatible query, or optimally a name and value</li>
+<li><em>options</em> &#8211; additional <a title="engine.indexers.IndexWriter.parse" class="reference internal" href="#engine.indexers.IndexWriter.parse"><tt class="xref docutils literal"><span class="pre">parse()</span></tt></a> options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexWriter.parse">
+<!--[engine.indexers.IndexWriter.parse]--><tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op='or'</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return lucene parsed Query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>field</em> &#8211; default query field name</li>
+<li><em>op</em> &#8211; default query operator</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.indexers.IndexWriter.segments">
+<!--[engine.indexers.IndexWriter.segments]--><tt class="descname">segments</tt><a class="headerlink" href="#engine.indexers.IndexWriter.segments" title="Permalink to this definition">¶</a></dt>
+<dd>segment filenames with document counts</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexWriter.set">
+<!--[engine.indexers.IndexWriter.set]--><tt class="descname">set</tt><big>(</big><em>name</em>, <em>**params</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign parameters to field name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>name</em> &#8211; name of lucene Field</li>
+<li><em>params</em> &#8211; store,index,termvector options compatible with <a class="reference internal" href="#field">Field</a></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="indexer">
+<h3>Indexer<a class="headerlink" href="#indexer" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.indexers.Indexer">
+<!--[engine.indexers.Indexer]-->class <tt class="descclassname">engine.indexers.</tt><tt class="descname">Indexer</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.indexers.Indexer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.indexers.IndexWriter" class="reference internal" href="#engine.indexers.IndexWriter"><tt class="xref docutils literal"><span class="pre">engine.indexers.IndexWriter</span></tt></a></p>
+<p>An all-purpose interface to an index.
+Opening in read mode returns an <a class="reference internal" href="#indexsearcher">IndexSearcher</a>.
+Opening in write mode (the default) returns an <a class="reference internal" href="#indexwriter">IndexWriter</a> with a delegated <a class="reference internal" href="#indexsearcher">IndexSearcher</a>.</p>
+<dl class="method">
+<dt id="engine.indexers.Indexer.commit">
+<!--[engine.indexers.Indexer.commit]--><tt class="descname">commit</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.Indexer.commit" title="Permalink to this definition">¶</a></dt>
+<dd>Commit writes and refresh searcher.  Not thread-safe.</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-engine.documents">
+<h2>documents<a class="headerlink" href="#module-engine.documents" title="Permalink to this headline">¶</a></h2>
+<p>Wrappers for lucene Fields and Documents.</p>
+<div class="section" id="document">
+<h3>Document<a class="headerlink" href="#document" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.documents.Document">
+<!--[engine.documents.Document]-->class <tt class="descclassname">engine.documents.</tt><tt class="descname">Document</tt><big>(</big><em>doc=None</em><big>)</big><a class="headerlink" href="#engine.documents.Document" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delegated lucene Document.
+Provides mapping interface of field names to values, but duplicate field names are allowed.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>doc</em> &#8211; optional lucene Document.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt>
+<tt class="descname">__len__():</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__contains__(name):</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__iter__():</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__getitem__(name):</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__delitem__(name):</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.Document.add">
+<!--[engine.documents.Document.add]--><tt class="descname">add</tt><big>(</big><em>name</em>, <em>value</em>, <em>**params</em><big>)</big><a class="headerlink" href="#engine.documents.Document.add" title="Permalink to this definition">¶</a></dt>
+<dd>Add field to document with given parameters.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.Document.dict">
+<!--[engine.documents.Document.dict]--><tt class="descname">dict</tt><big>(</big><em>*names</em>, <em>**defaults</em><big>)</big><a class="headerlink" href="#engine.documents.Document.dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return dict representation of document.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>names</em> &#8211; names of multi-valued fields to return as a list.</li>
+<li><em>defaults</em> &#8211; return only given fields, using default values as necessary.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.Document.fields">
+<!--[engine.documents.Document.fields]--><tt class="descname">fields</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.documents.Document.fields" title="Permalink to this definition">¶</a></dt>
+<dd>Generate lucene Fields.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.Document.get">
+<!--[engine.documents.Document.get]--><tt class="descname">get</tt><big>(</big><em>name</em>, <em>default=None</em><big>)</big><a class="headerlink" href="#engine.documents.Document.get" title="Permalink to this definition">¶</a></dt>
+<dd>Return field value if present, else default.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.Document.getlist">
+<!--[engine.documents.Document.getlist]--><tt class="descname">getlist</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#engine.documents.Document.getlist" title="Permalink to this definition">¶</a></dt>
+<dd>Return list of all values for given field.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.Document.items">
+<!--[engine.documents.Document.items]--><tt class="descname">items</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.documents.Document.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate name, value pairs for all fields.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="hit">
+<h3>Hit<a class="headerlink" href="#hit" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.documents.Hit">
+<!--[engine.documents.Hit]-->class <tt class="descclassname">engine.documents.</tt><tt class="descname">Hit</tt><big>(</big><em>doc</em>, <em>id</em>, <em>score</em><big>)</big><a class="headerlink" href="#engine.documents.Hit" title="Permalink to this definition">¶</a></dt>
+<dd><p>A Document with an id and score, from a search result.</p>
+<dl class="method">
+<dt id="engine.documents.Hit.dict">
+<!--[engine.documents.Hit.dict]--><tt class="descname">dict</tt><big>(</big><em>*names</em>, <em>**defaults</em><big>)</big><a class="headerlink" href="#engine.documents.Hit.dict" title="Permalink to this definition">¶</a></dt>
+<dd>Return dict representation of document with __id__ and __score__.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="hits">
+<h3>Hits<a class="headerlink" href="#hits" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.documents.Hits">
+<!--[engine.documents.Hits]-->class <tt class="descclassname">engine.documents.</tt><tt class="descname">Hits</tt><big>(</big><em>searcher</em>, <em>ids</em>, <em>scores</em>, <em>count=0</em><big>)</big><a class="headerlink" href="#engine.documents.Hits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Search results: lazily evaluated and memory efficient.
+Provides a read-only sequence interface to hit objects.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>searcher</em> &#8211; <a class="reference internal" href="#indexsearcher">IndexSearcher</a> which can retrieve documents.</li>
+<li><em>ids</em> &#8211; ordered doc ids.</li>
+<li><em>scores</em> &#8211; ordered doc scores.</li>
+<li><em>count</em> &#8211; total number of hits.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt>
+<tt class="descname">__len__():</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__contains__(name):</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.Hits.items">
+<!--[engine.documents.Hits.items]--><tt class="descname">items</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.documents.Hits.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate zipped ids and scores.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="field">
+<h3>Field<a class="headerlink" href="#field" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.documents.Field">
+<!--[engine.documents.Field]-->class <tt class="descclassname">engine.documents.</tt><tt class="descname">Field</tt><big>(</big><em>name</em>, <em>store=False</em>, <em>index='analyzed'</em>, <em>termvector=False</em><big>)</big><a class="headerlink" href="#engine.documents.Field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saved parameters which can generate lucene Fields given values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>name</em> &#8211; name of field</li>
+<li><em>store, index, termvector</em> &#8211; field parameters, expressed as bools or strs, with lucene defaults.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.documents.Field.items">
+<!--[engine.documents.Field.items]--><tt class="descname">items</tt><big>(</big><em>*values</em><big>)</big><a class="headerlink" href="#engine.documents.Field.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate lucene Fields suitable for adding to a document.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="nestedfield">
+<h3>NestedField<a class="headerlink" href="#nestedfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.documents.NestedField">
+<!--[engine.documents.NestedField]-->class <tt class="descclassname">engine.documents.</tt><tt class="descname">NestedField</tt><big>(</big><em>name</em>, <em>store=False</em>, <em>index=False</em>, <em>termvector=False</em>, <em>sep=':'</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.documents.Field" class="reference internal" href="#engine.documents.Field"><tt class="xref docutils literal"><span class="pre">engine.documents.Field</span></tt></a></p>
+<p>Field which indexes every component into its own field.
+The original value may be optionally stored, but components will be only indexed.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>sep</em> &#8211; field separator.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.documents.NestedField.getname">
+<!--[engine.documents.NestedField.getname]--><tt class="descname">getname</tt><big>(</big><em>words</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.getname" title="Permalink to this definition">¶</a></dt>
+<dd>Return customized name for given words.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.NestedField.items">
+<!--[engine.documents.NestedField.items]--><tt class="descname">items</tt><big>(</big><em>*values</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate original field (if necessary) and all component fields.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.NestedField.query">
+<!--[engine.documents.NestedField.query]--><tt class="descname">query</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.query" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene TermQuery of the appropriate field depth.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="prefixfield">
+<h3>PrefixField<a class="headerlink" href="#prefixfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.documents.PrefixField">
+<!--[engine.documents.PrefixField]-->class <tt class="descclassname">engine.documents.</tt><tt class="descname">PrefixField</tt><big>(</big><em>name</em>, <em>store=False</em>, <em>index=True</em>, <em>termvector=False</em>, <em>sep=''</em>, <em>start=1</em>, <em>stop=None</em>, <em>step=1</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.documents.NestedField" class="reference internal" href="#engine.documents.NestedField"><tt class="xref docutils literal"><span class="pre">engine.documents.NestedField</span></tt></a></p>
+<p>Field indexed with a prefix tree.
+Unlike a normal nested field, the field names only refer to the depth, while the values are nested.
+The component field names are expressed as slices of the original values, but may be customized.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>start, stop, step</em> &#8211; slice parameters, which respect the python convention of half-open intervals.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.documents.PrefixField.getname">
+<!--[engine.documents.PrefixField.getname]--><tt class="descname">getname</tt><big>(</big><em>index</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.getname" title="Permalink to this definition">¶</a></dt>
+<dd>Return customized name for prefix field of given depth.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.PrefixField.items">
+<!--[engine.documents.PrefixField.items]--><tt class="descname">items</tt><big>(</big><em>*values</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate tiered indexed fields along with the original value.
+Optimized to handle duplicate values.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.PrefixField.query">
+<!--[engine.documents.PrefixField.query]--><tt class="descname">query</tt><big>(</big><em>prefix</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.query" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene TermQuery of the appropriate prefixed field.</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-engine.queries">
+<h2>queries<a class="headerlink" href="#module-engine.queries" title="Permalink to this headline">¶</a></h2>
+<p>Query wrappers and search utilities.</p>
+<div class="section" id="query">
+<h3>Query<a class="headerlink" href="#query" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.queries.Query">
+<!--[engine.queries.Query]-->class <tt class="descclassname">engine.queries.</tt><tt class="descname">Query</tt><big>(</big><em>q</em><big>)</big><a class="headerlink" href="#engine.queries.Query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Query wrapper which exploits operator overloading for easier creation.</p>
+<dl class="staticmethod">
+<dt id="engine.queries.Query.term">
+<!--[engine.queries.Query.term]--><em class="property">
+static </em><tt class="descname">term</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.queries.Query.term" title="Permalink to this definition">¶</a></dt>
+<dd>Create wrapped lucene TermQuery.</dd></dl>
+
+<dl class="staticmethod">
+<dt id="engine.queries.Query.prefix">
+<!--[engine.queries.Query.prefix]--><em class="property">
+static </em><tt class="descname">prefix</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.queries.Query.prefix" title="Permalink to this definition">¶</a></dt>
+<dd>Create wrapped lucene PrefixQuery.</dd></dl>
+
+<dl class="staticmethod">
+<dt id="engine.queries.Query.range">
+<!--[engine.queries.Query.range]--><em class="property">
+static </em><tt class="descname">range</tt><big>(</big><em>self</em>, <em>name</em>, <em>lower</em>, <em>upper</em>, <em>inclusive=False</em><big>)</big><a class="headerlink" href="#engine.queries.Query.range" title="Permalink to this definition">¶</a></dt>
+<dd>Create wrapped lucene RangeQuery.</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__and__(self, other):</tt></dt>
+<dd>self AND other</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__or__(self, other):</tt></dt>
+<dd>self OR other</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__sub__(self, other):</tt></dt>
+<dd>self NOT other</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3><a href="index.html">Table Of Contents</a></h3>
+            <ul>
+<li><a class="reference external" href="">engine</a><ul>
+<li><a class="reference external" href="#module-engine.indexers">indexers</a><ul>
+<li><a class="reference external" href="#indexsearcher">IndexSearcher</a></li>
+<li><a class="reference external" href="#indexwriter">IndexWriter</a></li>
+<li><a class="reference external" href="#indexer">Indexer</a></li>
+</ul>
+</li>
+<li><a class="reference external" href="#module-engine.documents">documents</a><ul>
+<li><a class="reference external" href="#document">Document</a></li>
+<li><a class="reference external" href="#hit">Hit</a></li>
+<li><a class="reference external" href="#hits">Hits</a></li>
+<li><a class="reference external" href="#field">Field</a></li>
+<li><a class="reference external" href="#nestedfield">NestedField</a></li>
+<li><a class="reference external" href="#prefixfield">PrefixField</a></li>
+</ul>
+</li>
+<li><a class="reference external" href="#module-engine.queries">queries</a><ul>
+<li><a class="reference external" href="#query">Query</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="index.html" title="previous chapter">Welcome to CherryPyLucene&#8217;s documentation!</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="server.html" title="next chapter">server</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/engine.txt">Show Source</a></li>
+            </ul>
+          <h3>Quick search</h3>
+            <form class="search" action="search.html" method="get">
+              <input type="text" name="q" size="18" /> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="server.html" title="server"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to CherryPyLucene&#8217;s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">CherryPyLucene v0.1a documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2009, Aric Coady.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.5.1.
+    </div>
+  </body>
+</html>

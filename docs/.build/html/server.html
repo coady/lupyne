@@ -1,0 +1,344 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>server &mdash; CherryPyLucene v0.1a documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1a',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="top" title="CherryPyLucene v0.1a documentation" href="index.html" />
+    <link rel="next" title="client" href="client.html" />
+    <link rel="prev" title="engine" href="engine.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="client.html" title="client"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="engine.html" title="engine"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">CherryPyLucene v0.1a documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section" id="module-server">
+<h1>server<a class="headerlink" href="#module-server" title="Permalink to this headline">¶</a></h1>
+<p>Restful json <a class="reference external" href="http://cherrypy.org/">CherryPy</a> server.</p>
+<dl class="docutils">
+<dt>CherryPy and Lucene VM integration issues:</dt>
+<dd><ul class="first last simple">
+<li>Autoreload is not compatible with the VM initialization.</li>
+<li>WorkerThreads must be attached to the VM.</li>
+<li>Also recommended that the VM ignores keyboard interrupts for clean server shutdown.</li>
+</ul>
+</dd>
+</dl>
+<div class="section" id="root">
+<h2>Root<a class="headerlink" href="#root" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="server.Root">
+<!--[server.Root]-->class <tt class="descclassname">server.</tt><tt class="descname">Root</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.Root" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dispatch root with a delegated Indexer.</p>
+<dl class="method">
+<dt id="server.Root.commit">
+<!--[server.Root.commit]--><tt class="descname">commit</tt><big>(</big><big>)</big><a class="headerlink" href="#server.Root.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Commit write operations.</p>
+<p><strong>POST</strong> /commit</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="server.Root.docs">
+<!--[server.Root.docs]--><tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>docs='</em><span class="optional">[</span><span class="optional">]</span>, <em>'</em>, <em>fields=''</em>, <em>multifields=''</em><big>)</big><a class="headerlink" href="#server.Root.docs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return and index documents.</p>
+<dl class="docutils">
+<dt><strong>GET</strong> /docs</dt>
+<dd><p class="first">Return list of doc ids.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[<em>int</em>,... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET</strong> /docs/<em>int</em>?</dt>
+<dd><p class="first">Return document mappings, optionally selected unique or multi-valued fields.</p>
+<p>&amp;fields=<em>chars</em>,...</p>
+<p>&amp;multifields=<em>chars</em>,...</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">{<em>string</em>: <em>string</em>|<em>array</em>,... }</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>POST</strong> /docs</dt>
+<dd><p class="first">Add documents to index.</p>
+<p class="last">docs=[{<em>string</em>: <em>string</em>|<em>array</em>,... },... ]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="server.Root.fields">
+<!--[server.Root.fields]--><tt class="descname">fields</tt><big>(</big><em>name=''</em>, <em>**params</em><big>)</big><a class="headerlink" href="#server.Root.fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return and store a field&#8217;s parameters.</p>
+<dl class="docutils">
+<dt><strong>GET</strong> /fields</dt>
+<dd><p class="first">Return known field names.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[<em>string</em>,... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET</strong> /fields/<em>chars</em></dt>
+<dd><p class="first">Return parameters for given field name.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">{&#8220;store&#8221;: <em>string</em>, &#8220;index&#8221;: <em>string</em>, &#8220;termvector&#8221;: <em>string</em>}</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>PUT</strong> /fields/<em>chars</em></dt>
+<dd><p class="first">Set parameters for given field name.</p>
+<p>store=<em>chars</em></p>
+<p>index=<em>chars</em></p>
+<p class="last">termvector=<em>chars</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="server.Root.index">
+<!--[server.Root.index]--><tt class="descname">index</tt><big>(</big><big>)</big><a class="headerlink" href="#server.Root.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return index information.</p>
+<dl class="docutils">
+<dt><strong>GET</strong> /</dt>
+<dd><p class="first">Return a mapping of the directory to the document count.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">{<em>string</em>: <em>int</em>}</td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="server.Root.search">
+<!--[server.Root.search]--><tt class="descname">search</tt><big>(</big><em>q</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.Root.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run or delete a query.</p>
+<dl class="docutils">
+<dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>
+<dd>Delete documents which match query.</dd>
+<dt><strong>GET</strong> /search?q=<em>chars</em>,</dt>
+<dd><p class="first">Return list document mappings and total doc count.</p>
+<p>&amp;count=<em>int</em></p>
+<p>&amp;fields=<em>chars</em>,...</p>
+<p>&amp;multifields=<em>chars</em>,...</p>
+<p>&amp;sort=<em>chars</em>,...</p>
+<p>&amp;reverse=true|false,</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">{&#8220;count&#8221;: <em>int</em>, &#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>number</em>, <em>string</em>: <em>string</em>|<em>array</em>,... },... ]}</td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="server.Root.terms">
+<!--[server.Root.terms]--><tt class="descname">terms</tt><big>(</big><em>name=''</em>, <em>value=':'</em>, <em>*args</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.Root.terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return data about indexed terms.</p>
+<dl class="docutils">
+<dt><strong>GET</strong> /terms?</dt>
+<dd><p class="first">Return field names, with optional selection.</p>
+<p>&amp;option=<em>chars</em></p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[<em>string</em>,... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET</strong> /terms/<em>chars</em></dt>
+<dd><p class="first">Return term values for given field name.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[<em>string</em>,... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET</strong> /terms/<em>chars</em>/[<em>chars</em>:<em>chars</em>]</dt>
+<dd><p class="first">Return slice of term values for given field name.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[<em>string</em>,... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em></dt>
+<dd><p class="first">Return document count with given term.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body"><em>int</em></td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>/docs</dt>
+<dd><p class="first">Return document ids with given term.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[<em>int</em>,... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>/docs/counts</dt>
+<dd><p class="first">Return document ids and frequency counts for given term.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[[<em>int</em>, <em>int</em>],... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>/docs/positions</dt>
+<dd><p class="first">Return document ids and positions for given term.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[[<em>int</em>, [<em>int</em>,... ]],... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="server.main">
+<!--[server.main]--><tt class="descclassname">server.</tt><tt class="descname">main</tt><big>(</big><em>root</em><big>)</big><a class="headerlink" href="#server.main" title="Permalink to this definition">¶</a></dt>
+<dd>Attach root and run server.</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3><a href="index.html">Table Of Contents</a></h3>
+            <ul>
+<li><a class="reference external" href="">server</a><ul>
+<li><a class="reference external" href="#root">Root</a></li>
+</ul>
+</li>
+</ul>
+
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="engine.html" title="previous chapter">engine</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="client.html" title="next chapter">client</a></p>
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/server.txt">Show Source</a></li>
+            </ul>
+          <h3>Quick search</h3>
+            <form class="search" action="search.html" method="get">
+              <input type="text" name="q" size="18" /> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="modindex.html" title="Global Module Index"
+             accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="client.html" title="client"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="engine.html" title="engine"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">CherryPyLucene v0.1a documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2009, Aric Coady.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.5.1.
+    </div>
+  </body>
+</html>
