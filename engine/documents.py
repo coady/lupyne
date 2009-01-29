@@ -82,12 +82,12 @@ class PrefixField(NestedField):
         """Generate tiered indexed fields along with the original value.
         Optimized to handle duplicate values.
         """
-        for value in set(values):
-            yield lucene.Field(self.name, value, *self)
+        for field in Field.items(self, *values):
+            yield field
         values = [tuple(self.split(value)) for value in values]
         for index in range(*self.slice.indices(max(map(len, values)))):
             name = self.getname(index)
-            for value in set(value[:index] for value in values if len(value) >= index):
+            for value in sorted(set(value[:index] for value in values if len(value) >= index)):
                 yield lucene.Field(name, self.join(value), *self.params)
     def query(self, prefix):
         "Return lucene TermQuery of the appropriate prefixed field."

@@ -1,4 +1,4 @@
-import unittest, os
+import unittest, os, optparse
 import tempfile, shutil
 import itertools
 import lucene
@@ -6,13 +6,20 @@ lucene.initVM(lucene.CLASSPATH)
 import engine
 import fixture
 
-class LocalTest(unittest.TestCase):
+class BaseTest(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp(dir=os.path.dirname(__file__))
+        parser = optparse.OptionParser()
+        parser.add_option("-v", "--verbose", action="store_true", dest="verbose")
+        options, args = parser.parse_args()
+        self.verbose = options.verbose
     def tearDown(self):
         shutil.rmtree(self.tempdir)
+
+class LocalTest(BaseTest):
     
     def test0Interface(self):
+        "Indexer and document interfaces."
         indexer = engine.Indexer()
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         searcher = engine.Indexer(indexer.directory, mode='r')
@@ -75,9 +82,14 @@ class LocalTest(unittest.TestCase):
         assert len(indexer) == 1
     
     def test1Basic(self):
+        "Text fields and simple searches."
         self.assertRaises(lucene.JavaError, engine.Indexer, self.tempdir, 'r')
         indexer = engine.Indexer(self.tempdir)
-        fixture.constitution.load(indexer)
+        for name, params in fixture.constitution.fields.items():
+            indexer.set(name, **params)
+        for doc in fixture.constitution.docs():
+            indexer.add(doc)
+        indexer.commit()
         assert len(indexer)== 35
         assert sorted(indexer.names()) == ['amendment', 'article', 'date', 'text']
         articles = list(indexer.terms('article'))
@@ -129,45 +141,83 @@ class LocalTest(unittest.TestCase):
         assert engine.Indexer(self.tempdir)
 
     def test2Advanced(self):
+        "Large data set with hierarchical fields."
         indexer = engine.Indexer(self.tempdir)
-        indexer.rAMBufferSizeMB = 100.0
-        fixture.zipcodes.load(indexer,
-            latitude=engine.PrefixField('lat', store=True, stop=7),
-            longitude=engine.PrefixField('lng', store=True, stop=7),
-            location=engine.NestedField('loc'),
-        )
-        assert len(indexer) > 40000
-        assert set(name[:3] for name in indexer.names('indexed')) == set(['lat', 'loc', 'lng', 'zip'])
-        assert sorted(indexer.names('unindexed')) == ['city', 'county', 'state']
-        lngs = list(indexer.terms('lng'))
+        for name, params in fixture.zipcodes.fields.items():
+            indexer.set(name, **params)
+        indexer.fields['location'] = engine.NestedField('location')
+        indexer.fields['longitude'] = engine.PrefixField('longitude', store=True)
+        for doc in fixture.zipcodes.docs():
+            if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
+                lat, lng = ('%08.3f' % doc.pop(l) for l in ['latitude', 'longitude'])
+                location = ':'.join(doc[name] for name in ['state', 'county', 'city'])
+                indexer.add(doc, latitude=lat, longitude=lng, location=location)
+        indexer.commit()
+        assert set(['location', 'longitude', 'zipcode']) <= set(indexer.names('indexed'))
+        assert set(['city', 'county', 'state']) <= set(indexer.names('unindexed'))
+        lngs = list(indexer.terms('longitude'))
         east, west = lngs[0], lngs[-1]
-        hit, = indexer.search(engine.Query.term('lng', west))
+        hit, = indexer.search(engine.Query.term('longitude', west))
         assert hit['state'] == 'AK' and hit['county'] == 'Aleutians West'
-        hit, = indexer.search(engine.Query.term('lng', east))
+        hit, = indexer.search(engine.Query.term('longitude', east))
         assert hit['state'] == 'PR' and hit['county'] == 'Culebra'
-        states = list(indexer.terms('loc'))
+        states = list(indexer.terms('location'))
         assert states[0] == 'AK' and states[-1] == 'WY'
-        counties = list(indexer.terms('loc:CA'))
+        counties = list(indexer.terms('location:CA'))
         field = indexer.fields['location']
         hits = indexer.search(field.query('CA'))
         assert sorted(set(hit['county'] for hit in hits)) == counties
         assert counties[0] == 'Alameda' and counties[-1] == 'Yuba'
-        cities = list(indexer.terms('loc:CA:Los Angeles'))
+        cities = list(indexer.terms('location:CA:Los Angeles'))
         hits = indexer.search(field.query('CA:Los Angeles'))
         assert sorted(set(hit['city'] for hit in hits)) == cities
         assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
         hit, = indexer.search('zipcode:90210')
         assert hit['state'] == 'CA' and hit['county'] == 'Los Angeles' and hit['city'] == 'Beverly Hills'
-        assert hit['lng'] == '-118.406477'
-        lng = hit['lng'][:4]
+        assert hit['longitude'] == '-118.406'
+        lng = hit['longitude'][:4]
         field = indexer.fields['longitude']
         hits = indexer.search(field.query(lng))
         assert hit.id in hits.ids
-        assert len(hits) == indexer.count(engine.Query.prefix('lng', lng))
+        assert len(hits) == indexer.count(engine.Query.prefix('longitude', lng))
         count = indexer.count(field.query(lng[:3]))
         assert count > len(hits)
-        self.assertRaises(lucene.JavaError, indexer.search, engine.Query.prefix('lng', lng[:3]))
-        assert count > indexer.count(engine.Query.term('loc', 'CA'), filter=lucene.PrefixFilter(lucene.Term('lng', lng)))
+        self.assertRaises(lucene.JavaError, indexer.search, engine.Query.prefix('longitude', lng[:3]))
+        assert count > indexer.count(engine.Query.term('location', 'CA'), filter=lucene.PrefixFilter(lucene.Term('longitude', lng)))
+
+    def test3Spatial(self):
+        "Optional spatial test."
+        try:
+            from engine import spatial
+        except ImportError:
+            if self.verbose:
+                print 'Geohash not installed;  skipping spatial test.'
+            return
+        indexer = engine.Indexer(self.tempdir)
+        for name, params in fixture.zipcodes.fields.items():
+            indexer.set(name, **params)
+        indexer.fields['location'] = spatial.PointField('location', precision=6, store=True)
+        for doc in fixture.zipcodes.docs():
+            if doc['state'] == 'CA':
+                lat, lng = doc.pop('latitude'), doc.pop('longitude')
+                indexer.add(doc, location=[(lng, lat)], latitude=str(lat), longitude=str(lng))
+        indexer.commit()
+        field = indexer.fields['location']
+        city, zipcode, location = 'Beverly Hills', '90210', '9q5cct'
+        hit, = indexer.search('zipcode:' + zipcode)
+        assert hit['location'] == location and hit['city'] == city
+        hit, = indexer.search('location:' + location)
+        assert hit['zipcode'] == zipcode and hit['city'] == city
+        x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
+        hits = indexer.search(field.query(x, y, precision=5))
+        cities = set(hit['city'] for hit in hits)
+        assert set([city]) == cities
+        hits = indexer.search(field.query(x, y, precision=4))
+        cities = set(hit['city'] for hit in hits)
+        assert city in cities and len(cities) > 10
+        hits = indexer.search(field.within(x, y, 0.1))
+        cities = set(hit['city'] for hit in hits)
+        assert city in cities and len(cities) > 50
 
 if __name__ == '__main__':
     unittest.main()

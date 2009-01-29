@@ -5,17 +5,7 @@ import csv
 import itertools
 from datetime import datetime
 
-class data(object):
-    @classmethod
-    def load(cls, writer, **fields):
-        for name, params in cls.fields.items():
-            writer.set(name, **params)
-        writer.fields.update(fields)
-        for doc in cls.docs():
-            writer.add(doc)
-        writer.commit()
-
-class constitution(data):
+class constitution(object):
     fields = dict.fromkeys(['article', 'amendment', 'date'], {'store': 'yes', 'index': 'not_analyzed'})
     fields['text'] = {}
     @classmethod
@@ -32,21 +22,18 @@ class constitution(data):
                 fields.update({header.lower(): num, 'date': str(date)})
             yield fields
 
-class zipcodes(data):
-    fields = dict.fromkeys(['zipcode', 'latitude', 'longitude'], {'store': 'yes', 'index': 'not_analyzed'})
-    fields.update(dict.fromkeys(['city', 'county', 'state'], {'store': 'yes', 'index': 'no'}))
-    fields['location'] = {'index': 'not_analyzed'}
+class zipcodes(object):
+    fields = dict.fromkeys(['city', 'county', 'state', 'latitude', 'longitude'], {'store': 'yes', 'index': 'no'})
+    fields['zipcode'] = {'store': 'yes', 'index': 'not_analyzed'}
     @classmethod
     def docs(cls):
         file = open(os.path.join(os.path.dirname(__file__), 'zipcodes.txt'))
         for zipcode, latitude, longitude, state, city, county in csv.reader(file):
-            city, county = city.title(), county.title()
             yield {
                 'zipcode': zipcode,
-                'latitude': '%011f' % float(latitude),
-                'longitude': '%011f' % float(longitude),
-                'location': ':'.join([state, county, city]),
-                'city': city,
-                'county': county,
+                'latitude': float(latitude),
+                'longitude': float(longitude),
+                'city': city.title(),
+                'county': county.title(),
                 'state': state,
             }

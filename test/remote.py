@@ -1,26 +1,24 @@
-import unittest, os, optparse
-import tempfile, shutil
+import unittest, os
 import subprocess, time
 import operator
 import httplib
 import client
 import fixture
+from local import BaseTest
 
-class RemoteTest(unittest.TestCase):
+class RemoteTest(BaseTest):
     def setUp(self):
-        self.tempdir = tempfile.mkdtemp(dir=os.path.dirname(__file__))
-        parser = optparse.OptionParser()
-        parser.add_option("-v", "--verbose", action="store_true", dest="verbose")
-        options, args = parser.parse_args()
-        stderr = None if options.verbose else subprocess.PIPE
+        BaseTest.setUp(self)
+        stderr = None if self.verbose else subprocess.PIPE
         self.server = subprocess.Popen(['python', 'server.py', self.tempdir], stderr=stderr)
-        time.sleep(1)
+        time.sleep(1)   # give server a chance to start
     def tearDown(self):
         self.server.terminate()
         assert self.server.wait() == 0
-        shutil.rmtree(self.tempdir)
+        BaseTest.tearDown(self)
     
     def test0Interface(self):
+        "Remote reading and writing."
         resource = client.Resource('localhost:8080')
         (directory, count), = resource.get('/').items()
         assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
@@ -50,6 +48,7 @@ class RemoteTest(unittest.TestCase):
         assert resource.get('/docs/0?fields=missing') == {'missing': None}
         assert resource.get('/docs/0?multifields=name') == {'name': ['sample']}
         assert resource.get('/terms') == ['name', 'text']
+        assert resource.get('/terms?option=unindexed') == []
         assert resource.get('/terms/text') == ['hello', 'world']
         assert resource.get('/terms/text/world') == 1
         assert resource.get('/terms/text/world/docs') == [0]
@@ -67,6 +66,7 @@ class RemoteTest(unittest.TestCase):
         assert resource.get('/docs') == []
 
     def test1Basic(self):
+        "Remote text indexing and searching."
         resource = client.Resource('localhost:8080')
         assert resource.get('/fields') == []
         for name, settings in fixture.constitution.fields.items():

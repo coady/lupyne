@@ -304,6 +304,11 @@
 <li><a class="reference external" href="#query">Query</a></li>
 </ul>
 </li>
+<li><a class="reference external" href="#module-engine.spatial">spatial</a><ul>
+<li><a class="reference external" href="#pointfield">PointField</a></li>
+<li><a class="reference external" href="#polygonfield">PolygonField</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -904,6 +909,81 @@ static </em><tt class="descname">range</tt><big>(</big><em>self</em>, <em>name</
 <dt>
 <tt class="descname">__sub__(self, other):</tt></dt>
 <dd>self NOT other</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-engine.spatial">
+<h2>spatial<a class="headerlink" href="#module-engine.spatial" title="Permalink to this headline">¶</a></h2>
+<p>Geospatial fields.</p>
+<p><a class="reference external" href="http://en.wikipedia.org/wiki/Geohash">Geohashing</a> is used to create an efficient index.</p>
+<dl class="docutils">
+<dt>Dependencies:</dt>
+<dd><ul class="first last simple">
+<li>Geohash: required for encoding.</li>
+<li>pyproj: optional for transforming a projected coordinate system back into lat/longs.</li>
+<li>shapely or django&#8217;s geos: recommended for polygon support.</li>
+</ul>
+</dd>
+</dl>
+<div class="section" id="pointfield">
+<h3>PointField<a class="headerlink" href="#pointfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.spatial.PointField">
+<!--[engine.spatial.PointField]-->class <tt class="descclassname">engine.spatial.</tt><tt class="descname">PointField</tt><big>(</big><em>name</em>, <em>precision=12</em>, <em>srid=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a></p>
+<p>Geospatial points, with optional projection.
+Geohashes create a tiered index of tiles.
+Points should still be stored if exact distances are required.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>precision</em> &#8211; geohash encoding precision</li>
+<li><em>srid</em> &#8211; projection coordinate system</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.spatial.PointField.encode">
+<!--[engine.spatial.PointField.encode]--><tt class="descname">encode</tt><big>(</big><em>x</em>, <em>y</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.encode" title="Permalink to this definition">¶</a></dt>
+<dd>Return geohash from point coordinates.</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.PointField.items">
+<!--[engine.spatial.PointField.items]--><tt class="descname">items</tt><big>(</big><em>*points</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate geohashed tiles from points (lng, lat).</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.PointField.query">
+<!--[engine.spatial.PointField.query]--><tt class="descname">query</tt><big>(</big><em>x</em>, <em>y</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.query" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene TermQuery for point at given precision.</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.PointField.within">
+<!--[engine.spatial.PointField.within]--><tt class="descname">within</tt><big>(</big><em>x</em>, <em>y</em>, <em>distance</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.within" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene Query for all tiles which could be within distance of given point.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="polygonfield">
+<h3>PolygonField<a class="headerlink" href="#polygonfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.spatial.PolygonField">
+<!--[engine.spatial.PolygonField]-->class <tt class="descclassname">engine.spatial.</tt><tt class="descname">PolygonField</tt><big>(</big><em>name</em>, <em>precision=12</em>, <em>srid=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PolygonField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.spatial.PointField" class="reference internal" href="#engine.spatial.PointField"><tt class="xref docutils literal"><span class="pre">engine.spatial.PointField</span></tt></a></p>
+<p>GeoField which implicitly supports polygons (technically linear rings of points).
+Differs from points in that all necessary hash tiles are included to match the points&#8217; boundary.
+As with PointField, the tiered tiles are a search optimization, not a distance calculator.</p>
+<dl class="method">
+<dt id="engine.spatial.PolygonField.items">
+<!--[engine.spatial.PolygonField.items]--><tt class="descname">items</tt><big>(</big><em>*polygons</em><big>)</big><a class="headerlink" href="#engine.spatial.PolygonField.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate all covered geohashed tiles from points.</dd></dl>
 
 </dd></dl>
 

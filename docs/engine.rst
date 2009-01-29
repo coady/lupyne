@@ -132,3 +132,19 @@ Query
   .. method:: __sub__(self, other):
   
     self NOT other
+
+spatial
+---------
+.. automodule:: engine.spatial
+
+PointField
+^^^^^^^^^^^^^
+.. autoclass:: engine.spatial.PointField
+  :show-inheritance:
+  :members:
+
+PolygonField
+^^^^^^^^^^^^^
+.. autoclass:: engine.spatial.PolygonField
+  :show-inheritance:
+  :members:
