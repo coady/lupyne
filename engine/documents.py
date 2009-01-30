@@ -30,69 +30,58 @@ class Field(list):
         for value in values:
             yield lucene.Field(self.name, value, *self)
 
-class NestedField(Field):
-    """Field which indexes every component into its own field.
-    The original value may be optionally stored, but components will be only indexed.
-    
-    :param sep: field separator.
+class PrefixField(Field):
+    """Field which indexes every prefix of a value into a separate component field.
+    The customizable component field names are expressed as slices.
+    Original value may be stored only for convenience.
     """
-    def __init__(self, name, store=False, index=False, termvector=False, sep=':'):
+    def __init__(self, name, store=False, index=True, termvector=False):
         Field.__init__(self, name, store, index, termvector)
-        self.sep = sep
-        # these params are instance variables because they don't exist before initVM is called
-        self.params = lucene.Field.Store.NO, lucene.Field.Index.NOT_ANALYZED
-    def getname(self, words):
-        "Return customized name for given words."
-        return self.sep.join([self.name] + words)
-    def items(self, *values):
-        "Generate original field (if necessary) and all component fields."
-        for value in values:
-            try:
-                yield lucene.Field(self.name, value, *self)
-            except lucene.JavaError:
-                pass # field might not be stored or indexed
-            words = value.split(self.sep)
-            for index, word in enumerate(words):
-                name = self.getname(words[:index])
-                yield lucene.Field(name, word, *self.params)
-    def query(self, value):
-        "Return lucene TermQuery of the appropriate field depth."
-        words = value.split(self.sep)
-        value = words.pop()
-        return lucene.TermQuery(lucene.Term(self.getname(words), value))
-
-class PrefixField(NestedField):
-    """Field indexed with a prefix tree.
-    Unlike a normal nested field, the field names only refer to the depth, while the values are nested.
-    The component field names are expressed as slices of the original values, but may be customized.
-    
-    :param start, stop, step: slice parameters, which respect the python convention of half-open intervals.
-    """
-    def __init__(self, name, store=False, index=True, termvector=False, sep='', start=1, stop=None, step=1):
-        NestedField.__init__(self, name, store, index, termvector, sep=sep)
-        self.slice = slice(start, stop, step)
-    def split(self, value):
-        return value.split(self.sep) if self.sep else value
+    def split(self, text):
+        "Return immutable sequence of words from name or value."
+        return text
     def join(self, words):
-        return self.sep.join(words)
-    def getname(self, index):
-        "Return customized name for prefix field of given depth."
-        return '%s[:%i]' % (self.name, index)
+        "Return text from separate words."
+        return words
+    def getname(self, stop):
+        "Return prefix field name for given depth."
+        return '%s[:%i]' % (self.name, stop)
     def items(self, *values):
-        """Generate tiered indexed fields along with the original value.
+        """Generate indexed component fields.
         Optimized to handle duplicate values.
         """
-        for field in Field.items(self, *values):
-            yield field
-        values = [tuple(self.split(value)) for value in values]
-        for index in range(*self.slice.indices(max(map(len, values)))):
-            name = self.getname(index)
-            for value in sorted(set(value[:index] for value in values if len(value) >= index)):
-                yield lucene.Field(name, self.join(value), *self.params)
-    def query(self, prefix):
+        if self.store != 'NO':
+            for value in values:
+                yield lucene.Field(self.name, value, self[0], lucene.Field.Index.NO)
+        values = map(self.split, values)
+        for stop in range(1, max(map(len, values))+1):
+            name = self.getname(stop)
+            for value in sorted(set(value[:stop] for value in values if len(value) >= stop)):
+                yield lucene.Field(name, self.join(value), lucene.Field.Store.NO, *self[1:])
+    def query(self, value):
         "Return lucene TermQuery of the appropriate prefixed field."
-        name = self.getname(len(self.split(prefix)))
-        return lucene.TermQuery(lucene.Term(name, prefix))
+        name = self.getname(len(self.split(value)))
+        return lucene.TermQuery(lucene.Term(name, value))
+
+class NestedField(PrefixField):
+    """Field which indexes every component into its own field.
+    
+    :param sep: field separator used on name and values.
+    """
+    def __init__(self, name, sep=':', **kwargs):
+        PrefixField.__init__(self, name, **kwargs)
+        self.sep = sep
+        names = self.split(name)
+        self.names = [self.join(names[:stop]) for stop in range(len(names)+1)]
+    def split(self, text):
+        "Return immutable sequence of words from name or value."
+        return tuple(text.split(self.sep))
+    def join(self, words):
+        "Return text from separate words."
+        return self.sep.join(words)
+    def getname(self, stop):
+        "Return componen field name for given depth."
+        return self.names[stop]
 
 class Document(object):
     """Delegated lucene Document.
@@ -103,9 +92,9 @@ class Document(object):
     Fields = lucene.Field.Store, lucene.Field.Index, lucene.Field.TermVector
     def __init__(self, doc=None):
         self.doc = lucene.Document() if doc is None else doc
-    def add(self, name, value, **params):
+    def add(self, name, value, cls=Field, **params):
         "Add field to document with given parameters."
-        for field in Field(name, **params).items(value):
+        for field in cls(name, **params).items(value):
             self.doc.add(field)
     def fields(self):
         "Generate lucene Fields."

@@ -94,15 +94,15 @@ Field
 .. autoclass:: engine.documents.Field
   :members:
 
-NestedField
-^^^^^^^^^^^^^
-.. autoclass:: engine.documents.NestedField
-  :show-inheritance:
-  :members:
-
 PrefixField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.PrefixField
+  :show-inheritance:
+  :members:
+
+NestedField
+^^^^^^^^^^^^^
+.. autoclass:: engine.documents.NestedField
   :show-inheritance:
   :members:
 

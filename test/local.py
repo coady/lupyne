@@ -145,30 +145,31 @@ class LocalTest(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
-        indexer.fields['location'] = engine.NestedField('location')
-        indexer.fields['longitude'] = engine.PrefixField('longitude', store=True)
+        indexer.set('longitude', engine.PrefixField, store=True)
+        indexer.fields['location'] = engine.NestedField('state:county:city')
         for doc in fixture.zipcodes.docs():
             if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
                 lat, lng = ('%08.3f' % doc.pop(l) for l in ['latitude', 'longitude'])
                 location = ':'.join(doc[name] for name in ['state', 'county', 'city'])
                 indexer.add(doc, latitude=lat, longitude=lng, location=location)
         indexer.commit()
-        assert set(['location', 'longitude', 'zipcode']) <= set(indexer.names('indexed'))
-        assert set(['city', 'county', 'state']) <= set(indexer.names('unindexed'))
-        lngs = list(indexer.terms('longitude'))
+        assert set(['state', 'zipcode']) < set(indexer.names('indexed'))
+        assert set(['latitude', 'longitude', 'county', 'city']) == set(indexer.names('unindexed'))
+        longitude = max(name for name in indexer.names() if name.startswith('longitude'))
+        lngs = list(indexer.terms(longitude))
         east, west = lngs[0], lngs[-1]
-        hit, = indexer.search(engine.Query.term('longitude', west))
+        hit, = indexer.search(engine.Query.term(longitude, west))
         assert hit['state'] == 'AK' and hit['county'] == 'Aleutians West'
-        hit, = indexer.search(engine.Query.term('longitude', east))
+        hit, = indexer.search(engine.Query.term(longitude, east))
         assert hit['state'] == 'PR' and hit['county'] == 'Culebra'
-        states = list(indexer.terms('location'))
+        states = list(indexer.terms('state'))
         assert states[0] == 'AK' and states[-1] == 'WY'
-        counties = list(indexer.terms('location:CA'))
+        counties = [term.split(':')[-1] for term in indexer.terms('state:county', 'CA', 'CA~')]
         field = indexer.fields['location']
         hits = indexer.search(field.query('CA'))
         assert sorted(set(hit['county'] for hit in hits)) == counties
         assert counties[0] == 'Alameda' and counties[-1] == 'Yuba'
-        cities = list(indexer.terms('location:CA:Los Angeles'))
+        cities = [term.split(':')[-1] for term in indexer.terms('state:county:city', 'CA:Los Angeles', 'CA:Los Angeles~')]
         hits = indexer.search(field.query('CA:Los Angeles'))
         assert sorted(set(hit['city'] for hit in hits)) == cities
         assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
@@ -179,11 +180,11 @@ class LocalTest(BaseTest):
         field = indexer.fields['longitude']
         hits = indexer.search(field.query(lng))
         assert hit.id in hits.ids
-        assert len(hits) == indexer.count(engine.Query.prefix('longitude', lng))
+        assert len(hits) == indexer.count(engine.Query.prefix(longitude, lng))
         count = indexer.count(field.query(lng[:3]))
         assert count > len(hits)
-        self.assertRaises(lucene.JavaError, indexer.search, engine.Query.prefix('longitude', lng[:3]))
-        assert count > indexer.count(engine.Query.term('location', 'CA'), filter=lucene.PrefixFilter(lucene.Term('longitude', lng)))
+        self.assertRaises(lucene.JavaError, indexer.search, engine.Query.prefix(longitude, lng[:3]))
+        assert count > indexer.count(engine.Query.term('state', 'CA'), filter=lucene.PrefixFilter(lucene.Term(longitude, lng)))
 
     def test3Spatial(self):
         "Optional spatial test."
@@ -206,7 +207,7 @@ class LocalTest(BaseTest):
         city, zipcode, location = 'Beverly Hills', '90210', '9q5cct'
         hit, = indexer.search('zipcode:' + zipcode)
         assert hit['location'] == location and hit['city'] == city
-        hit, = indexer.search('location:' + location)
+        hit, = indexer.search(engine.PrefixField.query(field, location))
         assert hit['zipcode'] == zipcode and hit['city'] == city
         x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
         hits = indexer.search(field.query(x, y, precision=5))

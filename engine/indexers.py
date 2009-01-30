@@ -162,13 +162,14 @@ class IndexWriter(lucene.IndexWriter):
         "segment filenames with document counts"
         items = (seg.split(':c') for seg in self.segString().split())
         return dict((name, int(value)) for name, value in items)
-    def set(self, name, **params):
+    def set(self, name, cls=Field, **params):
         """Assign parameters to field name.
         
-        :param name: name of lucene Field
+        :param name: registered name of field
+        :param cls: optional `Field`_ constructor
         :param params: store,index,termvector options compatible with `Field`_
         """
-        self.fields[name] = Field(name, **params)
+        self.fields[name] = cls(name, **params)
     def add(self, document=(), **terms):
         """Add document to index.
         Document is comprised of name: value pairs, where the values may be one or multiple strings.
