@@ -135,8 +135,10 @@ class LocalTest(BaseTest):
         assert set(hit.get('amendment') for hit in hits) > set(amendments)
         hit, = indexer.search(query & engine.Query.term('text', 'vote'))
         assert hit['amendment'] == '19'
-        hit, = indexer.search(query - engine.Query.term('text', 'vote'))
+        hit, = indexer.search(query - engine.Query.terms(text='vote'))
         assert hit['amendment'] == '18'
+        hit, = indexer.search(engine.Query.phrase('text', 'persons', None, 'papers'))
+        assert hit['amendment'] == '4'
         del indexer
         assert engine.Indexer(self.tempdir)
 

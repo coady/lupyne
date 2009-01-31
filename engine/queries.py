@@ -5,13 +5,28 @@ Query wrappers and search utilities.
 import lucene
 
 class Query(object):
-    "Query wrapper which exploits operator overloading for easier creation."
+    """Delegated lucene Query.
+    Uses class methods and operator overloading for convenient query construction.
+    """
     def __init__(self, q):
         self.q = q
+    def __getattr__(self, name):
+        if name == 'q':
+            raise AttributeError(name)
+        return getattr(self.q, name)
+    def __str__(self):
+        return str(self.q)
     @classmethod
     def term(cls, name, value):
         "Create wrapped lucene TermQuery."
         return cls(lucene.TermQuery(lucene.Term(name, value)))
+    @classmethod
+    def terms(cls, **terms):
+        "Create wrapped lucene BooleanQuery (AND)."
+        q = lucene.BooleanQuery()
+        for name, value in terms.items():
+            q.add(cls.term(name, value).q, lucene.BooleanClause.Occur.MUST)
+        return cls(q)
     @classmethod
     def prefix(cls, name, value):
         "Create wrapped lucene PrefixQuery."
@@ -20,6 +35,14 @@ class Query(object):
     def range(cls, name, lower, upper, inclusive=False):
         "Create wrapped lucene RangeQuery."
         return cls(lucene.RangeQuery(lucene.Term(name, lower), lucene.Term(name, upper), inclusive))
+    @classmethod
+    def phrase(cls, name, *values):
+        "Create wrapped lucene PhraseQuery.  None may be used as a placeholder."
+        q = lucene.PhraseQuery()
+        for index, value in enumerate(values):
+            if value is not None:
+                q.add(lucene.Term(name, value), index)
+        return cls(q)
     def __and__(self, other):
         q = lucene.BooleanQuery()
         q.add(self.q, lucene.BooleanClause.Occur.MUST)
