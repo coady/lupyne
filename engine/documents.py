@@ -80,7 +80,7 @@ class NestedField(PrefixField):
         "Return text from separate words."
         return self.sep.join(words)
     def getname(self, stop):
-        "Return componen field name for given depth."
+        "Return component field name for given depth."
         return self.names[stop]
 
 class Document(object):
@@ -98,7 +98,7 @@ class Document(object):
             self.doc.add(field)
     def fields(self):
         "Generate lucene Fields."
-        return itertools.imap(lucene.Field.cast_, self.doc.fields())
+        return itertools.imap(lucene.Field.cast_, self.doc.getFields())
     def __len__(self):
         return self.doc.getFields().size()
     def __contains__(self, name):

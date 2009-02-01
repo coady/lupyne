@@ -1,6 +1,8 @@
 """
 Restful json `CherryPy <http://cherrypy.org/>`_ server.
 
+    $ python server.py `directory`
+
 CherryPy and Lucene VM integration issues:
  * Autoreload is not compatible with the VM initialization.
  * WorkerThreads must be attached to the VM.

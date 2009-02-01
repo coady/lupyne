@@ -87,22 +87,22 @@ Hits
 
   .. method:: __len__():
 
-  .. method:: __contains__(name):
+  .. method:: __getitem__(index):
 
 Field
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.Field
   :members:
 
-NestedField
-^^^^^^^^^^^^^
-.. autoclass:: engine.documents.NestedField
-  :show-inheritance:
-  :members:
-
 PrefixField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.PrefixField
+  :show-inheritance:
+  :members:
+
+NestedField
+^^^^^^^^^^^^^
+.. autoclass:: engine.documents.NestedField
   :show-inheritance:
   :members:
 
@@ -117,9 +117,13 @@ Query
 
   .. automethod:: term(name, value)
 
+  .. automethod:: terms(**terms)
+
   .. automethod:: prefix(name, value)
 
   .. automethod:: range(self, name, lower, upper, inclusive=False)
+
+  .. automethod:: phrase(self, name, *values)
 
   .. method:: __and__(self, other):
   

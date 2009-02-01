@@ -82,7 +82,7 @@ class PointField(PrefixField):
         return q
 
 class PolygonField(PointField):
-    """GeoField which implicitly supports polygons (technically linear rings of points).
+    """PointField which implicitly supports polygons (technically linear rings of points).
     Differs from points in that all necessary hash tiles are included to match the points' boundary.
     As with PointField, the tiered tiles are a search optimization, not a distance calculator.
     """
