@@ -130,7 +130,7 @@ class LocalTest(BaseTest):
         hits = indexer.search('date:[1919 TO 1921]')
         amendments = ['18', '19']
         assert sorted(hit['amendment'] for hit in hits) == amendments
-        query = engine.Query.range('date', '1919', '1921')
+        query = engine.Query.range('date', '1919', '1921', inclusive=True)
         hits = indexer.search(query)
         assert sorted(hit['amendment'] for hit in hits) == amendments
         hits = indexer.search(query | engine.Query.term('text', 'vote'))
@@ -170,11 +170,11 @@ class LocalTest(BaseTest):
         assert states[0] == 'AK' and states[-1] == 'WY'
         counties = [term.split(':')[-1] for term in indexer.terms('state:county', 'CA', 'CA~')]
         field = indexer.fields['location']
-        hits = indexer.search(field.query('CA'))
+        hits = indexer.search(field.prefix('CA'))
         assert sorted(set(hit['county'] for hit in hits)) == counties
         assert counties[0] == 'Alameda' and counties[-1] == 'Yuba'
         cities = [term.split(':')[-1] for term in indexer.terms('state:county:city', 'CA:Los Angeles', 'CA:Los Angeles~')]
-        hits = indexer.search(field.query('CA:Los Angeles'))
+        hits = indexer.search(field.prefix('CA:Los Angeles'))
         assert sorted(set(hit['city'] for hit in hits)) == cities
         assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
         hit, = indexer.search('zipcode:90210')
@@ -182,10 +182,10 @@ class LocalTest(BaseTest):
         assert hit['longitude'] == '-118.406'
         lng = hit['longitude'][:4]
         field = indexer.fields['longitude']
-        hits = indexer.search(field.query(lng))
+        hits = indexer.search(field.prefix(lng))
         assert hit.id in hits.ids
         assert len(hits) == indexer.count(engine.Query.prefix(longitude, lng))
-        count = indexer.count(field.query(lng[:3]))
+        count = indexer.count(field.prefix(lng[:3]))
         assert count > len(hits)
         self.assertRaises(lucene.JavaError, indexer.search, engine.Query.prefix(longitude, lng[:3]))
         assert count > indexer.count(engine.Query.term('state', 'CA'), filter=lucene.PrefixFilter(lucene.Term(longitude, lng)))
@@ -211,13 +211,13 @@ class LocalTest(BaseTest):
         city, zipcode, location = 'Beverly Hills', '90210', '9q5cct'
         hit, = indexer.search('zipcode:' + zipcode)
         assert hit['location'] == location and hit['city'] == city
-        hit, = indexer.search(engine.PrefixField.query(field, location))
+        hit, = indexer.search(field.prefix(location))
         assert hit['zipcode'] == zipcode and hit['city'] == city
         x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
-        hits = indexer.search(field.query(x, y, precision=5))
+        hits = indexer.search(field.near(x, y, precision=5))
         cities = set(hit['city'] for hit in hits)
         assert set([city]) == cities
-        hits = indexer.search(field.query(x, y, precision=4))
+        hits = indexer.search(field.near(x, y, precision=4))
         cities = set(hit['city'] for hit in hits)
         assert city in cities and len(cities) > 10
         hits = indexer.search(field.within(x, y, 0.1))

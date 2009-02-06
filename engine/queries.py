@@ -32,7 +32,7 @@ class Query(object):
         "Create wrapped lucene PrefixQuery."
         return cls(lucene.PrefixQuery(lucene.Term(name, value)))
     @classmethod
-    def range(cls, name, lower, upper, inclusive=False):
+    def range(cls, name, lower, upper, inclusive):
         "Create wrapped lucene RangeQuery."
         return cls(lucene.RangeQuery(lucene.Term(name, lower), lucene.Term(name, upper), inclusive))
     @classmethod

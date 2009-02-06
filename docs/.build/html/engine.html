@@ -533,9 +533,14 @@ Optimized to handle duplicate values.</dd></dl>
 <dd>Return text from separate words.</dd></dl>
 
 <dl class="method">
-<dt id="engine.documents.PrefixField.query">
-<!--[engine.documents.PrefixField.query]--><tt class="descname">query</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.query" title="Permalink to this definition">¶</a></dt>
+<dt id="engine.documents.PrefixField.prefix">
+<!--[engine.documents.PrefixField.prefix]--><tt class="descname">prefix</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.prefix" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene TermQuery of the appropriate prefixed field.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.PrefixField.range">
+<!--[engine.documents.PrefixField.range]--><tt class="descname">range</tt><big>(</big><em>lower</em>, <em>upper</em>, <em>inclusive</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.range" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene RangeQuery of the appropriate prefixed field.</dd></dl>
 
 <dl class="method">
 <dt id="engine.documents.PrefixField.split">
@@ -686,8 +691,8 @@ Points should still be stored if exact distances are required.</p>
 <dd>Generate geohashed tiles from points (lng, lat).</dd></dl>
 
 <dl class="method">
-<dt id="engine.spatial.PointField.query">
-<!--[engine.spatial.PointField.query]--><tt class="descname">query</tt><big>(</big><em>x</em>, <em>y</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.query" title="Permalink to this definition">¶</a></dt>
+<dt id="engine.spatial.PointField.near">
+<!--[engine.spatial.PointField.near]--><tt class="descname">near</tt><big>(</big><em>x</em>, <em>y</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.near" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene TermQuery for point at given precision.</dd></dl>
 
 <dl class="method">

@@ -5,30 +5,26 @@ Wrappers for lucene Fields and Documents.
 import itertools
 import lucene
 
-class Field(list):
+class Field(object):
     """Saved parameters which can generate lucene Fields given values.
     
     :param name: name of field
     :param store, index, termvector: field parameters, expressed as bools or strs, with lucene defaults.
     """
-    Names = 'Store', 'Index', 'TermVector'
-    Parameters = tuple(getattr(lucene.Field, name) for name in Names)
     def __init__(self, name, store=False, index='analyzed', termvector=False):
+        self.name = name
         if isinstance(store, bool):
             store = 'yes' if store else 'no'
         if isinstance(index, bool):
             index = 'not_analyzed' if index else 'no'
         if isinstance(termvector, bool):
             termvector = 'yes' if termvector else 'no'
-        items = zip(self.Parameters, [store, index, termvector])
-        self += (getattr(param, value.upper()) for param, value in items)
-        self.name = name
-        for index, name in enumerate(self.Names):
-            setattr(self, name.lower(), str(self[index]))
+        for name, value in zip(['Store', 'Index', 'TermVector'], [store, index, termvector]):
+            setattr(self, name.lower(), getattr(getattr(lucene.Field, name), value.upper()))
     def items(self, *values):
         "Generate lucene Fields suitable for adding to a document."
         for value in values:
-            yield lucene.Field(self.name, value, *self)
+            yield lucene.Field(self.name, value, self.store, self.index, self.termvector)
 
 class PrefixField(Field):
     """Field which indexes every prefix of a value into a separate component field.
@@ -50,18 +46,23 @@ class PrefixField(Field):
         """Generate indexed component fields.
         Optimized to handle duplicate values.
         """
-        if self.store != 'NO':
+        if self.store != lucene.Field.Store.NO:
             for value in values:
-                yield lucene.Field(self.name, value, self[0], lucene.Field.Index.NO)
+                yield lucene.Field(self.name, value, self.store, lucene.Field.Index.NO)
         values = map(self.split, values)
         for stop in range(1, max(map(len, values))+1):
             name = self.getname(stop)
             for value in sorted(set(value[:stop] for value in values if len(value) >= stop)):
-                yield lucene.Field(name, self.join(value), lucene.Field.Store.NO, *self[1:])
-    def query(self, value):
+                yield lucene.Field(name, self.join(value), lucene.Field.Store.NO, self.index, self.termvector)
+    def prefix(self, value):
         "Return lucene TermQuery of the appropriate prefixed field."
         name = self.getname(len(self.split(value)))
         return lucene.TermQuery(lucene.Term(name, value))
+    def range(self, lower, upper, inclusive):
+        "Return lucene RangeQuery of the appropriate prefixed field."
+        lower, upper = (self.prefix(value).term for value in [lower, upper])
+        assert lower.field() == upper.field(), "range bounds should have equal depth"
+        return lucene.RangeQuery(lower, upper, inclusive)
 
 class NestedField(PrefixField):
     """Field which indexes every component into its own field.

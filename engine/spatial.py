@@ -60,9 +60,9 @@ class PointField(PrefixField):
         "Generate geohashed tiles from points (lng, lat)."
         hashes = itertools.starmap(self.encode, set(points))
         return PrefixField.items(self, *sorted(set(hashes)))
-    def query(self, x, y, precision=None):
+    def near(self, x, y, precision=None):
         "Return lucene TermQuery for point at given precision."
-        return PrefixField.query(self, self.encode(x, y, precision))
+        return self.prefix(self.encode(x, y, precision))
     def within(self, x, y, distance):
         "Return lucene Query for all tiles which could be within distance of given point."
         # tiles are roughly regular polygons, so radiating distance at 45 degrees should be sufficient
@@ -76,10 +76,7 @@ class PointField(PrefixField):
         lower, upper = min(hashes), max(hashes)
         while geoint(upper) - geoint(lower) >= len(alphabet):
             lower, upper = lower[:-1], upper[:-1]
-        q = lucene.BooleanQuery()
-        for hash in geowalk(lower, upper):
-            q.add(PrefixField.query(self, hash), lucene.BooleanClause.Occur.SHOULD)
-        return q
+        return self.range(lower, upper, inclusive=True)
 
 class PolygonField(PointField):
     """PointField which implicitly supports polygons (technically linear rings of points).

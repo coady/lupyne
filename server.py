@@ -158,7 +158,7 @@ class Root(object):
             self.indexer.set(name, **params)
         with handle404(KeyError):
             field = self.indexer.fields[name]
-        return dict((name, getattr(field, name)) for name in map(str.lower, field.Names))
+        return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
     @cherrypy.expose
     def terms(self, name='', value=':', *args, **options):
         """Return data about indexed terms.
