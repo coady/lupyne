@@ -89,7 +89,6 @@ class Document(object):
     
     :param doc: optional lucene Document.
     """
-    Fields = lucene.Field.Store, lucene.Field.Index, lucene.Field.TermVector
     def __init__(self, doc=None):
         self.doc = lucene.Document() if doc is None else doc
     def add(self, name, value, cls=Field, **params):

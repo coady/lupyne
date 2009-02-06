@@ -201,7 +201,7 @@ class IndexWriter(lucene.IndexWriter):
     def __iadd__(self, directory):
         "Add directory (or reader, searcher, writer) to index."
         if isinstance(directory, basestring):
-            directory = lucene.FSDirectory(directory)
+            directory = lucene.FSDirectory.getDirectory(directory)
         elif not isinstance(directory, lucene.Directory):
             directory = directory.directory
         self.addIndexesNoOptimize([directory])

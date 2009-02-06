@@ -121,9 +121,9 @@ Query
 
   .. automethod:: prefix(name, value)
 
-  .. automethod:: range(self, name, lower, upper, inclusive=False)
+  .. automethod:: range(name, lower, upper, inclusive=False)
 
-  .. automethod:: phrase(self, name, *values)
+  .. automethod:: phrase(name, *values)
 
   .. method:: __and__(self, other):
   

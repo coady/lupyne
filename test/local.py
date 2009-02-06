@@ -75,11 +75,13 @@ class LocalTest(BaseTest):
         indexer.optimize()
         assert len(indexer) == sum(indexer.segments.values())
         assert 0 not in indexer
-        temp = engine.Indexer()
+        temp = engine.Indexer(self.tempdir)
         temp.add()
         temp.commit()
+        indexer += temp
         indexer += temp.directory
-        assert len(indexer) == 1
+        indexer += self.tempdir
+        assert len(indexer) == 3
     
     def test1Basic(self):
         "Text fields and simple searches."

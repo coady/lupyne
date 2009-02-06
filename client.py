@@ -2,7 +2,6 @@
 Restful json client.
 """
 
-import os
 import json
 import httplib, urllib
 
