@@ -3,7 +3,7 @@ import tempfile, shutil
 import itertools
 import lucene
 lucene.initVM(lucene.CLASSPATH)
-import engine
+from cherrypylucene import engine
 import fixture
 
 class BaseTest(unittest.TestCase):
@@ -16,7 +16,7 @@ class BaseTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-class LocalTest(BaseTest):
+class TestCase(BaseTest):
     
     def test0Interface(self):
         "Indexer and document interfaces."
@@ -193,11 +193,12 @@ class LocalTest(BaseTest):
     def test3Spatial(self):
         "Optional spatial test."
         try:
-            from engine import spatial
+            import Geohash
         except ImportError:
             if self.verbose:
                 print 'Geohash not installed;  skipping spatial test.'
             return
+        from cherrypylucene.engine import spatial
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)

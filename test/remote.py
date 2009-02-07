@@ -2,15 +2,15 @@ import unittest, os
 import subprocess, time
 import operator
 import httplib
-import client
+from cherrypylucene import client
 import fixture
 from local import BaseTest
 
-class RemoteTest(BaseTest):
+class TestCase(BaseTest):
     def setUp(self):
         BaseTest.setUp(self)
         stderr = None if self.verbose else subprocess.PIPE
-        self.server = subprocess.Popen(['python', 'server.py', self.tempdir], stderr=stderr)
+        self.server = subprocess.Popen(['python', '-m', 'cherrypylucene.server', self.tempdir], stderr=stderr)
         time.sleep(1)   # give server a chance to start
     def tearDown(self):
         self.server.terminate()

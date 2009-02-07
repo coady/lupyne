@@ -13,7 +13,7 @@ engine.indexers.IndexWriter.set method engine.html
 engine.queries.Query.term staticmethod engine.html
 client.Resource.delete method client.html
 engine.indexers.IndexWriter.add method engine.html
-server.Root.fields method server.html
+engine.documents.Document.fields method engine.html
 engine.documents.Document.dict method engine.html
 engine.queries.Query.prefix staticmethod engine.html
 engine.documents.PrefixField.getname method engine.html
@@ -35,7 +35,7 @@ engine.indexers.IndexSearcher.count method engine.html
 engine.queries.Query class engine.html
 engine.indexers.Indexer.commit method engine.html
 engine.indexers.IndexWriter.delete method engine.html
-engine.documents.Document.fields method engine.html
+server.Root.fields method server.html
 engine.documents.NestedField.split method engine.html
 engine.spatial.PointField.items method engine.html
 engine.indexers.IndexSearcher.delete method engine.html
