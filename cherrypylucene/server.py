@@ -42,6 +42,7 @@ def handle404(exc):
 
 class Root(object):
     "Dispatch root with a delegated Indexer."
+    _cp_config = {'tools.json.on': True}
     def __init__(self, *args, **kwargs):
         self.indexer = Indexer(*args, **kwargs)
         self.lock = thread.allocate_lock()
@@ -220,7 +221,6 @@ def main(root):
     cherrypy.wsgiserver.WorkerThread = AttachedThread
     cherrypy.engine.subscribe('stop', root.indexer.close)
     cherrypy.config['engine.autoreload.on'] = False
-    cherrypy.config['tools.json.on'] = True
     cherrypy.config['checker.on'] = False # python2.6 incompatibility
     cherrypy.server.socket_host = '0.0.0.0'
     cherrypy.quickstart(root)
