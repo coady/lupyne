@@ -15,13 +15,15 @@ import Geohash
 import lucene
 from documents import PrefixField
 
+BASE = 32
 alphabet = Geohash.geohash.__base32
 base32 = '0123456789abcdefghijklmnopqrstuv'
 charmap = dict(zip(alphabet, itertools.count()))
+assert BASE == len(alphabet) == len(base32)
 
 def geoint(hash):
     "Convert geohash into integer."
-    return int(''.join(base32[charmap[c]] for c in hash), len(base32))
+    return int(''.join(base32[charmap[c]] for c in hash), BASE)
 
 def geonext(hash):
     "Return next lexicographic geohash."
@@ -63,8 +65,13 @@ class PointField(PrefixField):
     def near(self, x, y, precision=None):
         "Return lucene TermQuery for point at given precision."
         return self.prefix(self.encode(x, y, precision))
-    def within(self, x, y, distance):
-        "Return lucene Query for all tiles which could be within distance of given point."
+    def within(self, x, y, distance, maxcount=(BASE / 2)):
+        """Return lucene RangeQuery for all tiles which could be within distance of given point.
+        
+        :param x, y: point
+        :param distance: search radius in same units as the geometries
+        :param maxcount: maximum number of tile clauses to include
+        """
         # tiles are roughly regular polygons, so radiating distance at 45 degrees should be sufficient
         radius = distance / (2**0.5)
         offsets = [(0, 0),
@@ -74,7 +81,7 @@ class PointField(PrefixField):
         hashes = set(self.encode(x+i, y+j) for i, j in offsets)
         # zoom out to a reasonable level of precision for given distance
         lower, upper = min(hashes), max(hashes)
-        while geoint(upper) - geoint(lower) >= len(alphabet):
+        while geoint(upper) - geoint(lower) > maxcount:
             lower, upper = lower[:-1], upper[:-1]
         return self.range(lower, upper, inclusive=True)
 

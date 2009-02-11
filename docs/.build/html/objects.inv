@@ -17,7 +17,6 @@ engine.documents.Document.fields method engine.html
 engine.documents.Document.dict method engine.html
 engine.queries.Query.prefix staticmethod engine.html
 engine.documents.PrefixField.getname method engine.html
-engine.documents.PrefixField class engine.html
 client.Resource.post method client.html
 engine.documents.PrefixField.items method engine.html
 engine.indexers.IndexSearcher.names method engine.html
@@ -45,6 +44,7 @@ engine.indexers.IndexWriter.__iadd__ method engine.html
 server.Root class server.html
 engine.indexers.IndexWriter.segments attribute engine.html
 engine.spatial.PolygonField.items method engine.html
+server.Root.commit method server.html
 engine.documents.NestedField.getname method engine.html
 engine.documents.Document.add method engine.html
 engine.documents.Document.getlist method engine.html
@@ -66,11 +66,11 @@ engine.indexers.IndexSearcher.directory attribute engine.html
 engine.spatial.PointField.encode method engine.html
 engine.spatial.PointField class engine.html
 engine.documents.Hits.items method engine.html
-server.Root.commit method server.html
+engine.indexers.IndexSearcher.docs method engine.html
 engine.indexers.IndexWriter.parse method engine.html
 client.Resource class client.html
 engine.indexers.IndexSearcher.parse method engine.html
-engine.indexers.IndexSearcher.docs method engine.html
+engine.documents.PrefixField class engine.html
 engine.documents.NestedField.join method engine.html
 engine.documents.PrefixField.range method engine.html
 engine.documents.Field.items method engine.html

@@ -697,8 +697,22 @@ Points should still be stored if exact distances are required.</p>
 
 <dl class="method">
 <dt id="engine.spatial.PointField.within">
-<!--[engine.spatial.PointField.within]--><tt class="descname">within</tt><big>(</big><em>x</em>, <em>y</em>, <em>distance</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.within" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene Query for all tiles which could be within distance of given point.</dd></dl>
+<!--[engine.spatial.PointField.within]--><tt class="descname">within</tt><big>(</big><em>x</em>, <em>y</em>, <em>distance</em>, <em>maxcount=16</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.within" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return lucene RangeQuery for all tiles which could be within distance of given point.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>x, y</em> &#8211; point</li>
+<li><em>distance</em> &#8211; search radius in same units as the geometries</li>
+<li><em>maxcount</em> &#8211; maximum number of tile clauses to include</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
