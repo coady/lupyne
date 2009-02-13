@@ -2,6 +2,8 @@
 Query wrappers and search utilities.
 """
 
+import itertools
+import collections
 import lucene
 
 class Query(object):
@@ -73,14 +75,46 @@ class HitCollector(lucene.PythonHitCollector):
         ids.sort(key=key, reverse=reverse)
         return ids, map(data.__getitem__, ids)
 
+class BitSet(lucene.BitSet):
+    "Inherited lucene BitSet with a set interface."
+    __len__ = lucene.BitSet.cardinality
+    __contains__ = lucene.BitSet.get
+    add = lucene.BitSet.set
+    def __init__(self, ids=()):
+        lucene.BitSet.__init__(self, int(isinstance(ids, collections.Sized)) and len(ids))
+        if isinstance(ids, lucene.BitSet):
+            self |= ids
+        else:
+            for id in ids:
+                self.set(id)
+    def discard(self, id):
+        self.set(id, False)
+    def __iter__(self):
+        return itertools.ifilter(self.get, xrange(self.length()))
+    def __ior__(self, other):
+        getattr(self, 'or')(other)
+        return self
+    def __iand__(self, other):
+        getattr(self, 'and')(other)
+        return self
+    def __isub__(self, other):
+        self.andNot(other)
+        return self
+    def __or__(self, other):
+        return type(self)(self).__ior__(other)
+    def __and__(self, other):
+        return type(self)(self).__iand__(other)
+    def __sub__(self, other):
+        return type(self)(self).__isub__(other)
+
 class Filter(lucene.PythonFilter):
-    "Filter a set of ids."
+    "Inherited lucene Filter with a cached BitSet of ids."
     def __init__(self, ids):
         lucene.PythonFilter.__init__(self)
-        self.ids = ids
-    def getDocIdSet(self, reader):
-        bits = lucene.BitSet(reader.maxDoc())
-        for id in self.ids:
-            bits.set(id)
-        return bits
-    bits = getDocIdSet  # deprecated in Lucene, but still used in PyLucene
+        self._bits = BitSet(ids)
+    def bits(self, reader=None):
+        """Return cached BitSet.
+        Although this method is deprecated in Lucene, it's in use in PyLucene.
+        
+        :param reader: ignored IndexReader, necessary for lucene api."""
+        return self._bits

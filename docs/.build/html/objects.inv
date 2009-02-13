@@ -17,6 +17,7 @@ engine.documents.Document.fields method engine.html
 engine.documents.Document.dict method engine.html
 engine.queries.Query.prefix staticmethod engine.html
 engine.documents.PrefixField.getname method engine.html
+engine.queries.Filter class engine.html
 client.Resource.post method client.html
 engine.documents.PrefixField.items method engine.html
 engine.indexers.IndexSearcher.names method engine.html
@@ -73,6 +74,7 @@ engine.indexers.IndexSearcher.parse method engine.html
 engine.documents.PrefixField class engine.html
 engine.documents.NestedField.join method engine.html
 engine.documents.PrefixField.range method engine.html
+engine.queries.Filter.bits method engine.html
 engine.documents.Field.items method engine.html
 engine.documents.PrefixField.split method engine.html
 client.Resource.get method client.html

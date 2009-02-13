@@ -82,6 +82,8 @@ class TestCase(BaseTest):
         indexer += temp.directory
         indexer += self.tempdir
         assert len(indexer) == 3
+        x, y = engine.Filter([0, 1]).bits(), engine.Filter([1, 2]).bits()
+        assert list(x & y) == [1] and list(x | y) == [0, 1, 2] and list(x -y) == [0]
     
     def test1Basic(self):
         "Text fields and simple searches."
@@ -137,6 +139,10 @@ class TestCase(BaseTest):
         assert set(hit.get('amendment') for hit in hits) > set(amendments)
         hit, = indexer.search(query & engine.Query.term('text', 'vote'))
         assert hit['amendment'] == '19'
+        f = engine.Filter(indexer.docs('text', 'vote'))
+        for n in range(2):  # filters should be reusable
+            hit, = indexer.search(query, filter=f)
+            assert hit['amendment'] == '19'
         hit, = indexer.search(query - engine.Query.terms(text='vote'))
         assert hit['amendment'] == '18'
         hit, = indexer.search(engine.Query.phrase('text', 'persons', None, 'papers'))

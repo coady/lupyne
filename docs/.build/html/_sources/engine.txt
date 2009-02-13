@@ -17,7 +17,7 @@ IndexSearcher
   Provides a mapping interface of ids to document objects.
 
   .. method:: __del__():
-  
+
     Closes index.
 
   .. method:: __len__():
@@ -29,7 +29,7 @@ IndexSearcher
   .. method:: __getitem__(id):
 
   .. method:: __delitem__(id):
-  
+
     Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
 
 
@@ -40,13 +40,13 @@ IndexWriter
   :members:
 
   .. method:: __del__():
-  
+
     Closes index.
 
   .. method:: __len__():
 
   .. method:: __iadd__(directory)
-  
+
     Add directory (or reader, searcher, writer) to index.
 
 Indexer
@@ -126,16 +126,21 @@ Query
   .. automethod:: phrase(name, *values)
 
   .. method:: __and__(self, other):
-  
+
     self AND other
 
   .. method:: __or__(self, other):
-  
+
     self OR other
 
   .. method:: __sub__(self, other):
-  
+
     self NOT other
+
+Filter
+^^^^^^^^^^^^^
+.. autoclass:: engine.queries.Filter
+  :members:
 
 spatial
 ---------

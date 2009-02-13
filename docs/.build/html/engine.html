@@ -645,6 +645,33 @@ static </em><tt class="descname">phrase</tt><big>(</big><em>name</em>, <em>*valu
 </dd></dl>
 
 </div>
+<div class="section" id="filter">
+<h3>Filter<a class="headerlink" href="#filter" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.queries.Filter">
+<!--[engine.queries.Filter]-->class <tt class="descclassname">engine.queries.</tt><tt class="descname">Filter</tt><big>(</big><em>ids</em><big>)</big><a class="headerlink" href="#engine.queries.Filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inherited lucene Filter with a cached BitSet of ids.</p>
+<dl class="method">
+<dt id="engine.queries.Filter.bits">
+<!--[engine.queries.Filter.bits]--><tt class="descname">bits</tt><big>(</big><em>reader=None</em><big>)</big><a class="headerlink" href="#engine.queries.Filter.bits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return cached BitSet.
+Although this method is deprecated in Lucene, it&#8217;s in use in PyLucene.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>reader</em> &#8211; ignored IndexReader, necessary for lucene api.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 </div>
 <div class="section" id="module-engine.spatial">
 <h2>spatial<a class="headerlink" href="#module-engine.spatial" title="Permalink to this headline">¶</a></h2>
@@ -763,6 +790,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 </li>
 <li><a class="reference external" href="#module-engine.queries">queries</a><ul>
 <li><a class="reference external" href="#query">Query</a></li>
+<li><a class="reference external" href="#filter">Filter</a></li>
 </ul>
 </li>
 <li><a class="reference external" href="#module-engine.spatial">spatial</a><ul>
