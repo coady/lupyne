@@ -3,7 +3,6 @@ Query wrappers and search utilities.
 """
 
 import itertools
-import collections
 import lucene
 
 class Query(object):
@@ -18,25 +17,36 @@ class Query(object):
         return getattr(self.q, name)
     def __str__(self):
         return str(self.q)
+    def filter(self, cache=True):
+        "Return lucene CachingWrapperFilter, optionally just QueryWrapperFilter."
+        filter = lucene.QueryWrapperFilter(self.q)
+        return lucene.CachingWrapperFilter(filter) if cache else filter
     @classmethod
     def term(cls, name, value):
         "Create wrapped lucene TermQuery."
         return cls(lucene.TermQuery(lucene.Term(name, value)))
     @classmethod
-    def terms(cls, **terms):
-        "Create wrapped lucene BooleanQuery (AND)."
+    def boolean(cls, occur, *queries, **terms):
         q = lucene.BooleanQuery()
-        for name, value in terms.items():
-            q.add(cls.term(name, value).q, lucene.BooleanClause.Occur.MUST)
+        for query in queries + tuple(map(cls.term, terms, terms.values())):
+            q.add(query.q if isinstance(query, Query) else query, occur)
         return cls(q)
+    @classmethod
+    def any(cls, *queries, **terms):
+        "Return boolean OR query from queries and terms."
+        return cls.boolean(lucene.BooleanClause.Occur.SHOULD, *queries, **terms)
+    @classmethod
+    def all(cls, *queries, **terms):
+        "Return boolean AND query from queries and terms."
+        return cls.boolean(lucene.BooleanClause.Occur.MUST, *queries, **terms)
     @classmethod
     def prefix(cls, name, value):
         "Create wrapped lucene PrefixQuery."
         return cls(lucene.PrefixQuery(lucene.Term(name, value)))
     @classmethod
-    def range(cls, name, lower, upper, inclusive):
-        "Create wrapped lucene RangeQuery."
-        return cls(lucene.RangeQuery(lucene.Term(name, lower), lucene.Term(name, upper), inclusive))
+    def range(cls, name, start, stop):
+        "Create wrapped half-open lucene ConstantScoreRangeQuery."
+        return cls(lucene.ConstantScoreRangeQuery(name, start, stop, True, False))
     @classmethod
     def phrase(cls, name, *values):
         "Create wrapped lucene PhraseQuery.  None may be used as a placeholder."
@@ -46,20 +56,13 @@ class Query(object):
                 q.add(lucene.Term(name, value), index)
         return cls(q)
     def __and__(self, other):
-        q = lucene.BooleanQuery()
-        q.add(self.q, lucene.BooleanClause.Occur.MUST)
-        q.add(other.q if isinstance(other, Query) else other, lucene.BooleanClause.Occur.MUST)
-        return type(self)(q)
+        return self.all(self, other)
     def __or__(self, other):
-        q = lucene.BooleanQuery()
-        q.add(self.q, lucene.BooleanClause.Occur.SHOULD)
-        q.add(other.q if isinstance(other, Query) else other, lucene.BooleanClause.Occur.SHOULD)
-        return type(self)(q)
+        return self.any(self, other)
     def __sub__(self, other):
-        q = lucene.BooleanQuery()
-        q.add(self.q, lucene.BooleanClause.Occur.MUST)
-        q.add(other.q if isinstance(other, Query) else other, lucene.BooleanClause.Occur.MUST_NOT)
-        return type(self)(q)
+        query = self.all(self)
+        query.q.add(other.q if isinstance(other, Query) else other, lucene.BooleanClause.Occur.MUST_NOT)
+        return query
 
 class HitCollector(lucene.PythonHitCollector):
     "Collect all ids and scores efficiently."
@@ -81,7 +84,7 @@ class BitSet(lucene.BitSet):
     __contains__ = lucene.BitSet.get
     add = lucene.BitSet.set
     def __init__(self, ids=()):
-        lucene.BitSet.__init__(self, int(isinstance(ids, collections.Sized)) and len(ids))
+        lucene.BitSet.__init__(self)
         if isinstance(ids, lucene.BitSet):
             self |= ids
         else:
@@ -116,5 +119,6 @@ class Filter(lucene.PythonFilter):
         """Return cached BitSet.
         Although this method is deprecated in Lucene, it's in use in PyLucene.
         
-        :param reader: ignored IndexReader, necessary for lucene api."""
+        :param reader: ignored IndexReader, necessary for lucene api
+        """
         return self._bits

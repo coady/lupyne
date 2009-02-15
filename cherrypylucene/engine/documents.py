@@ -9,7 +9,7 @@ class Field(object):
     """Saved parameters which can generate lucene Fields given values.
     
     :param name: name of field
-    :param store, index, termvector: field parameters, expressed as bools or strs, with lucene defaults.
+    :param store, index, termvector: field parameters, expressed as bools or strs, with lucene defaults
     """
     def __init__(self, name, store=False, index='analyzed', termvector=False):
         self.name = name
@@ -67,7 +67,7 @@ class PrefixField(Field):
 class NestedField(PrefixField):
     """Field which indexes every component into its own field.
     
-    :param sep: field separator used on name and values.
+    :param sep: field separator used on name and values
     """
     def __init__(self, name, sep=':', **kwargs):
         PrefixField.__init__(self, name, **kwargs)
@@ -88,7 +88,7 @@ class Document(object):
     """Delegated lucene Document.
     Provides mapping interface of field names to values, but duplicate field names are allowed.
     
-    :param doc: optional lucene Document.
+    :param doc: optional lucene Document
     """
     def __init__(self, doc=None):
         self.doc = lucene.Document() if doc is None else doc
@@ -127,8 +127,9 @@ class Document(object):
     def dict(self, *names, **defaults):
         """Return dict representation of document.
         
-        :param names: names of multi-valued fields to return as a list.
-        :param defaults: return only given fields, using default values as necessary."""
+        :param names: names of multi-valued fields to return as a list
+        :param defaults: include only given fields, using default values as necessary
+        """
         for name, value in defaults.items():
             defaults[name] = self.get(name, value)
         if not defaults:
@@ -151,10 +152,11 @@ class Hits(object):
     """Search results: lazily evaluated and memory efficient.
     Provides a read-only sequence interface to hit objects.
     
-    :param searcher: `IndexSearcher`_ which can retrieve documents.
-    :param ids: ordered doc ids.
-    :param scores: ordered doc scores.
-    :param count: total number of hits."""
+    :param searcher: `IndexSearcher`_ which can retrieve documents
+    :param ids: ordered doc ids
+    :param scores: ordered doc scores
+    :param count: total number of hits
+    """
     def __init__(self, searcher, ids, scores, count=0):
         self.searcher = searcher
         self.ids, self.scores = ids, scores

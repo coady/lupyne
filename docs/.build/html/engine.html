@@ -143,6 +143,24 @@ abstracting away java lucene primitives.</p>
 <dd>Generate doc ids which contain given term, optionally with frequency counts.</dd></dl>
 
 <dl class="method">
+<dt id="engine.indexers.IndexSearcher.facets">
+<!--[engine.indexers.IndexSearcher.facets]--><tt class="descname">facets</tt><big>(</big><em>ids</em>, <em>*keys</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.facets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return mapping of document counts for the intersection with each facet.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>ids</em> &#8211; document ids</li>
+<li><em>keys</em> &#8211; field names, term tuples, or any keys to previously cached filters</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="engine.indexers.IndexSearcher.names">
 <!--[engine.indexers.IndexSearcher.names]--><tt class="descname">names</tt><big>(</big><em>option='all'</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.names" title="Permalink to this definition">¶</a></dt>
 <dd>Return field names, given option description.</dd></dl>
@@ -172,7 +190,7 @@ abstracting away java lucene primitives.</p>
 
 <dl class="method">
 <dt id="engine.indexers.IndexSearcher.search">
-<!--[engine.indexers.IndexSearcher.search]--><tt class="descname">search</tt><big>(</big><em>query</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.search" title="Permalink to this definition">¶</a></dt>
+<!--[engine.indexers.IndexSearcher.search]--><tt class="descname">search</tt><big>(</big><em>query=None</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return <a class="reference internal" href="#hits">Hits</a>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -213,8 +231,8 @@ Supports setting fields parameters explicitly, so documents can be represented a
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>directory</em> &#8211; directory path or lucene Directory.</li>
-<li><em>mode</em> &#8211; file mode: &#8216;a&#8217; creates if necessary, &#8216;w&#8217; overwrites, &#8216;r&#8217; doesn&#8217;t create</li>
+<li><em>directory</em> &#8211; directory path or lucene Directory</li>
+<li><em>mode</em> &#8211; file mode (rwa), except updating (+) is implied</li>
 <li><em>analyzer</em> &#8211; lucene Analyzer class</li>
 </ul>
 </td>
@@ -351,7 +369,7 @@ Provides mapping interface of field names to values, but duplicate field names a
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>doc</em> &#8211; optional lucene Document.</li>
+<li><em>doc</em> &#8211; optional lucene Document</li>
 </ul>
 </td>
 </tr>
@@ -396,8 +414,8 @@ Provides mapping interface of field names to values, but duplicate field names a
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>names</em> &#8211; names of multi-valued fields to return as a list.</li>
-<li><em>defaults</em> &#8211; return only given fields, using default values as necessary.</li>
+<li><em>names</em> &#8211; names of multi-valued fields to return as a list</li>
+<li><em>defaults</em> &#8211; include only given fields, using default values as necessary</li>
 </ul>
 </td>
 </tr>
@@ -454,10 +472,10 @@ Provides a read-only sequence interface to hit objects.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>searcher</em> &#8211; <a class="reference internal" href="#indexsearcher">IndexSearcher</a> which can retrieve documents.</li>
-<li><em>ids</em> &#8211; ordered doc ids.</li>
-<li><em>scores</em> &#8211; ordered doc scores.</li>
-<li><em>count</em> &#8211; total number of hits.</li>
+<li><em>searcher</em> &#8211; <a class="reference internal" href="#indexsearcher">IndexSearcher</a> which can retrieve documents</li>
+<li><em>ids</em> &#8211; ordered doc ids</li>
+<li><em>scores</em> &#8211; ordered doc scores</li>
+<li><em>count</em> &#8211; total number of hits</li>
 </ul>
 </td>
 </tr>
@@ -493,7 +511,7 @@ Provides a read-only sequence interface to hit objects.</p>
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>name</em> &#8211; name of field</li>
-<li><em>store, index, termvector</em> &#8211; field parameters, expressed as bools or strs, with lucene defaults.</li>
+<li><em>store, index, termvector</em> &#8211; field parameters, expressed as bools or strs, with lucene defaults</li>
 </ul>
 </td>
 </tr>
@@ -562,7 +580,7 @@ Optimized to handle duplicate values.</dd></dl>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>sep</em> &#8211; field separator used on name and values.</li>
+<li><em>sep</em> &#8211; field separator used on name and values</li>
 </ul>
 </td>
 </tr>
@@ -597,36 +615,6 @@ Optimized to handle duplicate values.</dd></dl>
 <!--[engine.queries.Query]-->class <tt class="descclassname">engine.queries.</tt><tt class="descname">Query</tt><big>(</big><em>q</em><big>)</big><a class="headerlink" href="#engine.queries.Query" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delegated lucene Query.
 Uses class methods and operator overloading for convenient query construction.</p>
-<dl class="staticmethod">
-<dt id="engine.queries.Query.term">
-<!--[engine.queries.Query.term]--><em class="property">
-static </em><tt class="descname">term</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.queries.Query.term" title="Permalink to this definition">¶</a></dt>
-<dd>Create wrapped lucene TermQuery.</dd></dl>
-
-<dl class="staticmethod">
-<dt id="engine.queries.Query.terms">
-<!--[engine.queries.Query.terms]--><em class="property">
-static </em><tt class="descname">terms</tt><big>(</big><em>**terms</em><big>)</big><a class="headerlink" href="#engine.queries.Query.terms" title="Permalink to this definition">¶</a></dt>
-<dd>Create wrapped lucene BooleanQuery (AND).</dd></dl>
-
-<dl class="staticmethod">
-<dt id="engine.queries.Query.prefix">
-<!--[engine.queries.Query.prefix]--><em class="property">
-static </em><tt class="descname">prefix</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.queries.Query.prefix" title="Permalink to this definition">¶</a></dt>
-<dd>Create wrapped lucene PrefixQuery.</dd></dl>
-
-<dl class="staticmethod">
-<dt id="engine.queries.Query.range">
-<!--[engine.queries.Query.range]--><em class="property">
-static </em><tt class="descname">range</tt><big>(</big><em>name</em>, <em>lower</em>, <em>upper</em>, <em>inclusive=False</em><big>)</big><a class="headerlink" href="#engine.queries.Query.range" title="Permalink to this definition">¶</a></dt>
-<dd>Create wrapped lucene RangeQuery.</dd></dl>
-
-<dl class="staticmethod">
-<dt id="engine.queries.Query.phrase">
-<!--[engine.queries.Query.phrase]--><em class="property">
-static </em><tt class="descname">phrase</tt><big>(</big><em>name</em>, <em>*values</em><big>)</big><a class="headerlink" href="#engine.queries.Query.phrase" title="Permalink to this definition">¶</a></dt>
-<dd>Create wrapped lucene PhraseQuery.  None may be used as a placeholder.</dd></dl>
-
 <dl class="method">
 <dt>
 <tt class="descname">__and__(self, other):</tt></dt>
@@ -641,6 +629,46 @@ static </em><tt class="descname">phrase</tt><big>(</big><em>name</em>, <em>*valu
 <dt>
 <tt class="descname">__sub__(self, other):</tt></dt>
 <dd>self NOT other</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.all">
+<!--[engine.queries.Query.all]--><tt class="descname">all</tt><a class="headerlink" href="#engine.queries.Query.all" title="Permalink to this definition">¶</a></dt>
+<dd>Return boolean AND query from queries and terms.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.any">
+<!--[engine.queries.Query.any]--><tt class="descname">any</tt><a class="headerlink" href="#engine.queries.Query.any" title="Permalink to this definition">¶</a></dt>
+<dd>Return boolean OR query from queries and terms.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.boolean">
+<!--[engine.queries.Query.boolean]--><tt class="descname">boolean</tt><a class="headerlink" href="#engine.queries.Query.boolean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="engine.queries.Query.filter">
+<!--[engine.queries.Query.filter]--><tt class="descname">filter</tt><big>(</big><em>cache=True</em><big>)</big><a class="headerlink" href="#engine.queries.Query.filter" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene CachingWrapperFilter, optionally just QueryWrapperFilter.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.phrase">
+<!--[engine.queries.Query.phrase]--><tt class="descname">phrase</tt><a class="headerlink" href="#engine.queries.Query.phrase" title="Permalink to this definition">¶</a></dt>
+<dd>Create wrapped lucene PhraseQuery.  None may be used as a placeholder.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.prefix">
+<!--[engine.queries.Query.prefix]--><tt class="descname">prefix</tt><a class="headerlink" href="#engine.queries.Query.prefix" title="Permalink to this definition">¶</a></dt>
+<dd>Create wrapped lucene PrefixQuery.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.range">
+<!--[engine.queries.Query.range]--><tt class="descname">range</tt><a class="headerlink" href="#engine.queries.Query.range" title="Permalink to this definition">¶</a></dt>
+<dd>Create wrapped half-open lucene ConstantScoreRangeQuery.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.term">
+<!--[engine.queries.Query.term]--><tt class="descname">term</tt><a class="headerlink" href="#engine.queries.Query.term" title="Permalink to this definition">¶</a></dt>
+<dd>Create wrapped lucene TermQuery.</dd></dl>
 
 </dd></dl>
 
@@ -661,7 +689,7 @@ Although this method is deprecated in Lucene, it&#8217;s in use in PyLucene.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>reader</em> &#8211; ignored IndexReader, necessary for lucene api.</li>
+<li><em>reader</em> &#8211; ignored IndexReader, necessary for lucene api</li>
 </ul>
 </td>
 </tr>

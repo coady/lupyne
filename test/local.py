@@ -94,7 +94,7 @@ class TestCase(BaseTest):
         for doc in fixture.constitution.docs():
             indexer.add(doc)
         indexer.commit()
-        assert len(indexer)== 35
+        assert len(indexer) == len(indexer.search()) == 35
         assert sorted(indexer.names()) == ['amendment', 'article', 'date', 'text']
         articles = list(indexer.terms('article'))
         articles.remove('Preamble')
@@ -132,7 +132,7 @@ class TestCase(BaseTest):
         hits = indexer.search('date:[1919 TO 1921]')
         amendments = ['18', '19']
         assert sorted(hit['amendment'] for hit in hits) == amendments
-        query = engine.Query.range('date', '1919', '1921', inclusive=True)
+        query = engine.Query.range('date', '1919', '1921')
         hits = indexer.search(query)
         assert sorted(hit['amendment'] for hit in hits) == amendments
         hits = indexer.search(query | engine.Query.term('text', 'vote'))
@@ -143,7 +143,7 @@ class TestCase(BaseTest):
         for n in range(2):  # filters should be reusable
             hit, = indexer.search(query, filter=f)
             assert hit['amendment'] == '19'
-        hit, = indexer.search(query - engine.Query.terms(text='vote'))
+        hit, = indexer.search(query - engine.Query.all(text='vote'))
         assert hit['amendment'] == '18'
         hit, = indexer.search(engine.Query.phrase('text', 'persons', None, 'papers'))
         assert hit['amendment'] == '4'
@@ -194,7 +194,13 @@ class TestCase(BaseTest):
         count = indexer.count(field.prefix(lng[:3]))
         assert count > len(hits)
         self.assertRaises(lucene.JavaError, indexer.search, engine.Query.prefix(longitude, lng[:3]))
-        assert count > indexer.count(engine.Query.term('state', 'CA'), filter=lucene.PrefixFilter(lucene.Term(longitude, lng)))
+        assert count > indexer.count(engine.Query.term('state', 'CA'), filter=engine.Query.term(longitude, lng).filter())
+        hits = indexer.search('zipcode:90*')
+        (field, facets), = indexer.facets(hits.ids, 'state:county').items()
+        assert field == 'state:county'
+        la, orange = sorted(filter(facets.get, facets))
+        assert la == 'CA:Los Angeles' and facets[la] > 100
+        assert orange == 'CA:Orange' and facets[orange] > 10
 
     def test3Spatial(self):
         "Optional spatial test."

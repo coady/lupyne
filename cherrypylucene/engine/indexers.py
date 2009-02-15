@@ -6,8 +6,9 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 
 import itertools, operator
 import contextlib
+from collections import defaultdict
 import lucene
-from queries import HitCollector, Filter, Query
+from queries import Query, HitCollector, Filter
 from documents import Field, Document, Hits
 
 def iterate(jit, positioned=False):
@@ -92,6 +93,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     def __init__(self, directory, analyzer=lucene.StandardAnalyzer):
         lucene.IndexSearcher.__init__(self, directory)
         self.analyzer = analyzer()
+        self.filters = {}
     def __del__(self):
         if str(self) != '<null>':
             self.close()
@@ -105,6 +107,28 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         parser = lucene.QueryParser(field, self.analyzer)
         parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
         return parser.parse(query)
+    def facets(self, ids, *keys):
+        """Return mapping of document counts for the intersection with each facet.
+        
+        :param ids: document ids
+        :param keys: field names, term tuples, or any keys to previously cached filters
+        """
+        counts = defaultdict(dict)
+        bits = Filter(ids).bits()
+        for key in keys:
+            filters = self.filters.get(key)
+            if isinstance(filters, Filter):
+                counts[key] = len(bits & filters.bits(self.indexReader))
+            elif isinstance(key, basestring):
+                values = filters if filters is not None else self.terms(key)
+                counts.update(self.facets(bits, *((key, value) for value in values)))
+            else:
+                name, value = key
+                filters = self.filters.setdefault(name, {})
+                if value not in filters:
+                    filters[value] = Query.term(name, value).filter()
+                counts[name][value] = len(bits & filters[value].bits(self.indexReader))
+        return dict(counts)
     def count(self, *query, **options):
         """Return number of hits for given query or term.
         
@@ -114,7 +138,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         if len(query) == 1:
             return self.search(query[0], count=1, **options).count
         return IndexReader.count(self, *query)
-    def search(self, query, filter=None, count=None, sort=None, reverse=False, **parser):
+    def search(self, query=None, filter=None, count=None, sort=None, reverse=False, **parser):
         """Run query and return `Hits`_.
         
         :param query: query string, `Query`_ object, or lucene Query
@@ -124,6 +148,8 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         :param reverse: reverse flag used with sort
         :param parser: :meth:`parse` options
         """
+        if query is None:
+            query = lucene.MatchAllDocsQuery()
         if not isinstance(query, lucene.Query):
             query = query.q if isinstance(query, Query) else self.parse(query, **parser)
         if not isinstance(filter, (lucene.Filter, type(None))):
@@ -146,8 +172,8 @@ class IndexWriter(lucene.IndexWriter):
     """Inherited lucene IndexWriter.
     Supports setting fields parameters explicitly, so documents can be represented as dictionaries.
 
-    :param directory: directory path or lucene Directory.
-    :param mode: file mode: 'a' creates if necessary, 'w' overwrites, 'r' doesn't create
+    :param directory: directory path or lucene Directory
+    :param mode: file mode (rwa), except updating (+) is implied
     :param analyzer: lucene Analyzer class
     """
     __len__ = lucene.IndexWriter.numDocs

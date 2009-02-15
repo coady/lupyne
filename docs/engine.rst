@@ -114,16 +114,7 @@ queries
 Query
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.Query
-
-  .. automethod:: term(name, value)
-
-  .. automethod:: terms(**terms)
-
-  .. automethod:: prefix(name, value)
-
-  .. automethod:: range(name, lower, upper, inclusive=False)
-
-  .. automethod:: phrase(name, *values)
+  :members:
 
   .. method:: __and__(self, other):
 
