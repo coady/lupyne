@@ -16,6 +16,10 @@ IndexSearcher
 
   Provides a mapping interface of ids to document objects.
 
+  .. attribute:: filters
+
+    Mapping of cached filters, which are also used for facet counts.
+
   .. method:: __del__():
 
     Closes index.

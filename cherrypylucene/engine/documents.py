@@ -58,11 +58,11 @@ class PrefixField(Field):
         "Return lucene TermQuery of the appropriate prefixed field."
         name = self.getname(len(self.split(value)))
         return lucene.TermQuery(lucene.Term(name, value))
-    def range(self, lower, upper, inclusive):
+    def range(self, start, stop):
         "Return lucene RangeQuery of the appropriate prefixed field."
-        lower, upper = (self.prefix(value).term for value in [lower, upper])
-        assert lower.field() == upper.field(), "range bounds should have equal depth"
-        return lucene.RangeQuery(lower, upper, inclusive)
+        start, stop = (self.prefix(value).term for value in [lower, upper])
+        assert start.field() == stop.field(), "range bounds should have equal depth"
+        return lucene.ConstantScoreRangeQuery(name, start, stop, True, False)
 
 class NestedField(PrefixField):
     """Field which indexes every component into its own field.

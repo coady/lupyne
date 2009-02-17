@@ -23,7 +23,7 @@ class Query(object):
         return lucene.CachingWrapperFilter(filter) if cache else filter
     @classmethod
     def term(cls, name, value):
-        "Create wrapped lucene TermQuery."
+        "Return wrapped lucene TermQuery."
         return cls(lucene.TermQuery(lucene.Term(name, value)))
     @classmethod
     def boolean(cls, occur, *queries, **terms):
@@ -33,23 +33,27 @@ class Query(object):
         return cls(q)
     @classmethod
     def any(cls, *queries, **terms):
-        "Return boolean OR query from queries and terms."
+        "Return wrapped boolean OR query from queries and terms."
         return cls.boolean(lucene.BooleanClause.Occur.SHOULD, *queries, **terms)
     @classmethod
     def all(cls, *queries, **terms):
-        "Return boolean AND query from queries and terms."
+        "Return wrapped boolean AND query from queries and terms."
         return cls.boolean(lucene.BooleanClause.Occur.MUST, *queries, **terms)
     @classmethod
+    def terms(cls, name, *values):
+        "Return wrapped boolean OR query to match any value."
+        return cls.any(*(cls.term(name, value) for value in values))
+    @classmethod
     def prefix(cls, name, value):
-        "Create wrapped lucene PrefixQuery."
+        "Return wrapped lucene PrefixQuery."
         return cls(lucene.PrefixQuery(lucene.Term(name, value)))
     @classmethod
     def range(cls, name, start, stop):
-        "Create wrapped half-open lucene ConstantScoreRangeQuery."
+        "Return wrapped half-open lucene ConstantScoreRangeQuery."
         return cls(lucene.ConstantScoreRangeQuery(name, start, stop, True, False))
     @classmethod
     def phrase(cls, name, *values):
-        "Create wrapped lucene PhraseQuery.  None may be used as a placeholder."
+        "Return wrapped lucene PhraseQuery.  None may be used as a placeholder."
         q = lucene.PhraseQuery()
         for index, value in enumerate(values):
             if value is not None:

@@ -77,6 +77,11 @@ abstracting away java lucene primitives.</p>
 </tbody>
 </table>
 <p>Provides a mapping interface of ids to document objects.</p>
+<dl class="attribute">
+<dt id="engine.indexers.IndexSearcher.filters">
+<!--[engine.indexers.IndexSearcher.filters]--><tt class="descname">filters</tt><a class="headerlink" href="#engine.indexers.IndexSearcher.filters" title="Permalink to this definition">¶</a></dt>
+<dd>Mapping of cached filters, which are also used for facet counts.</dd></dl>
+
 <dl class="method">
 <dt>
 <tt class="descname">__del__():</tt></dt>
@@ -557,7 +562,7 @@ Optimized to handle duplicate values.</dd></dl>
 
 <dl class="method">
 <dt id="engine.documents.PrefixField.range">
-<!--[engine.documents.PrefixField.range]--><tt class="descname">range</tt><big>(</big><em>lower</em>, <em>upper</em>, <em>inclusive</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.range" title="Permalink to this definition">¶</a></dt>
+<!--[engine.documents.PrefixField.range]--><tt class="descname">range</tt><big>(</big><em>start</em>, <em>stop</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.range" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene RangeQuery of the appropriate prefixed field.</dd></dl>
 
 <dl class="method">
@@ -633,12 +638,12 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="attribute">
 <dt id="engine.queries.Query.all">
 <!--[engine.queries.Query.all]--><tt class="descname">all</tt><a class="headerlink" href="#engine.queries.Query.all" title="Permalink to this definition">¶</a></dt>
-<dd>Return boolean AND query from queries and terms.</dd></dl>
+<dd>Return wrapped boolean AND query from queries and terms.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.any">
 <!--[engine.queries.Query.any]--><tt class="descname">any</tt><a class="headerlink" href="#engine.queries.Query.any" title="Permalink to this definition">¶</a></dt>
-<dd>Return boolean OR query from queries and terms.</dd></dl>
+<dd>Return wrapped boolean OR query from queries and terms.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.boolean">
@@ -653,22 +658,27 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="attribute">
 <dt id="engine.queries.Query.phrase">
 <!--[engine.queries.Query.phrase]--><tt class="descname">phrase</tt><a class="headerlink" href="#engine.queries.Query.phrase" title="Permalink to this definition">¶</a></dt>
-<dd>Create wrapped lucene PhraseQuery.  None may be used as a placeholder.</dd></dl>
+<dd>Return wrapped lucene PhraseQuery.  None may be used as a placeholder.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.prefix">
 <!--[engine.queries.Query.prefix]--><tt class="descname">prefix</tt><a class="headerlink" href="#engine.queries.Query.prefix" title="Permalink to this definition">¶</a></dt>
-<dd>Create wrapped lucene PrefixQuery.</dd></dl>
+<dd>Return wrapped lucene PrefixQuery.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.range">
 <!--[engine.queries.Query.range]--><tt class="descname">range</tt><a class="headerlink" href="#engine.queries.Query.range" title="Permalink to this definition">¶</a></dt>
-<dd>Create wrapped half-open lucene ConstantScoreRangeQuery.</dd></dl>
+<dd>Return wrapped half-open lucene ConstantScoreRangeQuery.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.term">
 <!--[engine.queries.Query.term]--><tt class="descname">term</tt><a class="headerlink" href="#engine.queries.Query.term" title="Permalink to this definition">¶</a></dt>
-<dd>Create wrapped lucene TermQuery.</dd></dl>
+<dd>Return wrapped lucene TermQuery.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.terms">
+<!--[engine.queries.Query.terms]--><tt class="descname">terms</tt><a class="headerlink" href="#engine.queries.Query.terms" title="Permalink to this definition">¶</a></dt>
+<dd>Return wrapped boolean OR query to match any value.</dd></dl>
 
 </dd></dl>
 
@@ -704,64 +714,50 @@ Although this method is deprecated in Lucene, it&#8217;s in use in PyLucene.</p>
 <div class="section" id="module-engine.spatial">
 <h2>spatial<a class="headerlink" href="#module-engine.spatial" title="Permalink to this headline">¶</a></h2>
 <p>Geospatial fields.</p>
-<p><a class="reference external" href="http://en.wikipedia.org/wiki/Geohash">Geohashing</a> is used to create an efficient index.</p>
-<dl class="docutils">
-<dt>Dependencies:</dt>
-<dd><ul class="first last simple">
-<li>Geohash: required for encoding.</li>
-<li>pyproj: optional for transforming a projected coordinate system back into lat/longs.</li>
-<li>shapely or django&#8217;s geos: recommended for polygon support.</li>
-</ul>
-</dd>
-</dl>
+<p>Latitude/longitude coordinates are encoded into the quadkeys of MS Virtual Earth,
+which are also compatible with Google Maps and OSGEO Tile Map Service.
+See <a class="reference external" href="http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/">http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/</a>.</p>
+<p>The quadkeys are then indexed using a prefix tree, creating a cartesian tier of tiles.</p>
 <div class="section" id="pointfield">
 <h3>PointField<a class="headerlink" href="#pointfield" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.spatial.PointField">
-<!--[engine.spatial.PointField]-->class <tt class="descclassname">engine.spatial.</tt><tt class="descname">PointField</tt><big>(</big><em>name</em>, <em>precision=12</em>, <em>srid=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a></p>
-<p>Geospatial points, with optional projection.
-Geohashes create a tiered index of tiles.
-Points should still be stored if exact distances are required.</p>
+<!--[engine.spatial.PointField]-->class <tt class="descclassname">engine.spatial.</tt><tt class="descname">PointField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a>, <tt class="xref docutils literal"><span class="pre">engine.spatial.Tiler</span></tt></p>
+<p>Geospatial points, which create a tiered index of tiles.
+Points must still be stored if exact distances are required upon retrieval.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>precision</em> &#8211; geohash encoding precision</li>
-<li><em>srid</em> &#8211; projection coordinate system</li>
+<li><em>precision</em> &#8211; zoom level, i.e., length of encoded value</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="engine.spatial.PointField.encode">
-<!--[engine.spatial.PointField.encode]--><tt class="descname">encode</tt><big>(</big><em>x</em>, <em>y</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.encode" title="Permalink to this definition">¶</a></dt>
-<dd>Return geohash from point coordinates.</dd></dl>
-
-<dl class="method">
 <dt id="engine.spatial.PointField.items">
 <!--[engine.spatial.PointField.items]--><tt class="descname">items</tt><big>(</big><em>*points</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.items" title="Permalink to this definition">¶</a></dt>
-<dd>Generate geohashed tiles from points (lng, lat).</dd></dl>
+<dd>Generate tiles from points (lng, lat).</dd></dl>
 
 <dl class="method">
 <dt id="engine.spatial.PointField.near">
-<!--[engine.spatial.PointField.near]--><tt class="descname">near</tt><big>(</big><em>x</em>, <em>y</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.near" title="Permalink to this definition">¶</a></dt>
+<!--[engine.spatial.PointField.near]--><tt class="descname">near</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.near" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene TermQuery for point at given precision.</dd></dl>
 
 <dl class="method">
 <dt id="engine.spatial.PointField.within">
-<!--[engine.spatial.PointField.within]--><tt class="descname">within</tt><big>(</big><em>x</em>, <em>y</em>, <em>distance</em>, <em>maxcount=16</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.within" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return lucene RangeQuery for all tiles which could be within distance of given point.</p>
+<!--[engine.spatial.PointField.within]--><tt class="descname">within</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>distance</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.within" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return lucene OR BooleanQuery for all tiles which could be within distance of given point.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>x, y</em> &#8211; point</li>
-<li><em>distance</em> &#8211; search radius in same units as the geometries</li>
-<li><em>maxcount</em> &#8211; maximum number of tile clauses to include</li>
+<li><em>lng, lat</em> &#8211; point</li>
+<li><em>distance</em> &#8211; search radius in meters</li>
 </ul>
 </td>
 </tr>
@@ -776,15 +772,15 @@ Points should still be stored if exact distances are required.</p>
 <h3>PolygonField<a class="headerlink" href="#polygonfield" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.spatial.PolygonField">
-<!--[engine.spatial.PolygonField]-->class <tt class="descclassname">engine.spatial.</tt><tt class="descname">PolygonField</tt><big>(</big><em>name</em>, <em>precision=12</em>, <em>srid=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PolygonField" title="Permalink to this definition">¶</a></dt>
+<!--[engine.spatial.PolygonField]-->class <tt class="descclassname">engine.spatial.</tt><tt class="descname">PolygonField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PolygonField" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a title="engine.spatial.PointField" class="reference internal" href="#engine.spatial.PointField"><tt class="xref docutils literal"><span class="pre">engine.spatial.PointField</span></tt></a></p>
 <p>PointField which implicitly supports polygons (technically linear rings of points).
-Differs from points in that all necessary hash tiles are included to match the points&#8217; boundary.
+Differs from points in that all necessary tiles are included to match the points&#8217; boundary.
 As with PointField, the tiered tiles are a search optimization, not a distance calculator.</p>
 <dl class="method">
 <dt id="engine.spatial.PolygonField.items">
 <!--[engine.spatial.PolygonField.items]--><tt class="descname">items</tt><big>(</big><em>*polygons</em><big>)</big><a class="headerlink" href="#engine.spatial.PolygonField.items" title="Permalink to this definition">¶</a></dt>
-<dd>Generate all covered geohashed tiles from points.</dd></dl>
+<dd>Generate all covered tiles from polygons.</dd></dl>
 
 </dd></dl>
 

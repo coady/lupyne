@@ -203,37 +203,32 @@ class TestCase(BaseTest):
         assert orange == 'CA:Orange' and facets[orange] > 10
 
     def test3Spatial(self):
-        "Optional spatial test."
-        try:
-            import Geohash
-        except ImportError:
-            if self.verbose:
-                print 'Geohash not installed;  skipping spatial test.'
-            return
-        from cherrypylucene.engine import spatial
+        "Spatial tile test."
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
-        indexer.fields['location'] = spatial.PointField('location', precision=6, store=True)
+        indexer.fields['tile'] = engine.PointField('tile', precision=15, store=True)
         for doc in fixture.zipcodes.docs():
             if doc['state'] == 'CA':
                 lat, lng = doc.pop('latitude'), doc.pop('longitude')
-                indexer.add(doc, location=[(lng, lat)], latitude=str(lat), longitude=str(lng))
+                indexer.add(doc, tile=[(lng, lat)], latitude=str(lat), longitude=str(lng))
         indexer.commit()
-        field = indexer.fields['location']
-        city, zipcode, location = 'Beverly Hills', '90210', '9q5cct'
+        field = indexer.fields['tile']
+        city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
         hit, = indexer.search('zipcode:' + zipcode)
-        assert hit['location'] == location and hit['city'] == city
-        hit, = indexer.search(field.prefix(location))
+        assert hit['tile'] == tile and hit['city'] == city
+        hit, = indexer.search(field.prefix(tile))
         assert hit['zipcode'] == zipcode and hit['city'] == city
         x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
-        hits = indexer.search(field.near(x, y, precision=5))
+        bottom, left, top, right = field.decode(tile)
+        assert left < x < right and bottom < y < top
+        hits = indexer.search(field.near(x, y))
         cities = set(hit['city'] for hit in hits)
         assert set([city]) == cities
-        hits = indexer.search(field.near(x, y, precision=4))
+        hits = indexer.search(field.near(x, y, precision=10))
         cities = set(hit['city'] for hit in hits)
         assert city in cities and len(cities) > 10
-        hits = indexer.search(field.within(x, y, 0.1))
+        hits = indexer.search(field.within(x, y, 10**4))
         cities = set(hit['city'] for hit in hits)
         assert city in cities and len(cities) > 50
 

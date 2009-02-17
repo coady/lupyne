@@ -8,13 +8,13 @@ import itertools, operator
 import contextlib
 from collections import defaultdict
 import lucene
-from queries import Query, HitCollector, Filter
-from documents import Field, Document, Hits
+from .queries import Query, HitCollector, Filter
+from .documents import Field, Document, Hits
 
 def iterate(jit, positioned=False):
     """Transform java iterator into python iterator.
     
-    :positioned: current iterator position is valid
+    :param positioned: current iterator position is valid
     """
     with contextlib.closing(jit):
         if positioned:
@@ -25,7 +25,7 @@ def iterate(jit, positioned=False):
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
 
-    :directory: lucene IndexReader or directory.
+    :param directory: lucene IndexReader or directory
     """
     def __init__(self, directory):
         self.indexReader = directory if isinstance(directory, lucene.IndexReader) else lucene.IndexReader.open(directory)
