@@ -534,14 +534,25 @@ Provides a read-only sequence interface to hit objects.</p>
 <h3>PrefixField<a class="headerlink" href="#prefixfield" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.documents.PrefixField">
-<!--[engine.documents.PrefixField]-->class <tt class="descclassname">engine.documents.</tt><tt class="descname">PrefixField</tt><big>(</big><em>name</em>, <em>store=False</em>, <em>index=True</em>, <em>termvector=False</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField" title="Permalink to this definition">¶</a></dt>
+<!--[engine.documents.PrefixField]-->class <tt class="descclassname">engine.documents.</tt><tt class="descname">PrefixField</tt><big>(</big><em>name</em>, <em>start=1</em>, <em>stop=None</em>, <em>step=1</em>, <em>store=False</em>, <em>index=True</em>, <em>termvector=False</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a title="engine.documents.Field" class="reference internal" href="#engine.documents.Field"><tt class="xref docutils literal"><span class="pre">engine.documents.Field</span></tt></a></p>
 <p>Field which indexes every prefix of a value into a separate component field.
 The customizable component field names are expressed as slices.
 Original value may be stored only for convenience.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>start, stop, step</em> &#8211; optional slice parameters of the prefix depths (not indices)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="engine.documents.PrefixField.getname">
-<!--[engine.documents.PrefixField.getname]--><tt class="descname">getname</tt><big>(</big><em>stop</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.getname" title="Permalink to this definition">¶</a></dt>
+<!--[engine.documents.PrefixField.getname]--><tt class="descname">getname</tt><big>(</big><em>depth</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.getname" title="Permalink to this definition">¶</a></dt>
 <dd>Return prefix field name for given depth.</dd></dl>
 
 <dl class="method">
@@ -593,7 +604,7 @@ Optimized to handle duplicate values.</dd></dl>
 </table>
 <dl class="method">
 <dt id="engine.documents.NestedField.getname">
-<!--[engine.documents.NestedField.getname]--><tt class="descname">getname</tt><big>(</big><em>stop</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.getname" title="Permalink to this definition">¶</a></dt>
+<!--[engine.documents.NestedField.getname]--><tt class="descname">getname</tt><big>(</big><em>depth</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.getname" title="Permalink to this definition">¶</a></dt>
 <dd>Return component field name for given depth.</dd></dl>
 
 <dl class="method">

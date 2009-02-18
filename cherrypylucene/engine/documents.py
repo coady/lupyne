@@ -30,18 +30,21 @@ class PrefixField(Field):
     """Field which indexes every prefix of a value into a separate component field.
     The customizable component field names are expressed as slices.
     Original value may be stored only for convenience.
+    
+    :param start, stop, step: optional slice parameters of the prefix depths (not indices)
     """
-    def __init__(self, name, store=False, index=True, termvector=False):
+    def __init__(self, name, start=1, stop=None, step=1, store=False, index=True, termvector=False):
         Field.__init__(self, name, store, index, termvector)
+        self.depths = slice(start, stop, step)
     def split(self, text):
         "Return immutable sequence of words from name or value."
         return text
     def join(self, words):
         "Return text from separate words."
         return words
-    def getname(self, stop):
+    def getname(self, depth):
         "Return prefix field name for given depth."
-        return '%s[:%i]' % (self.name, stop)
+        return '{0}[:{1:n}]'.format(self.name, depth)
     def items(self, *values):
         """Generate indexed component fields.
         Optimized to handle duplicate values.
@@ -50,9 +53,9 @@ class PrefixField(Field):
             for value in values:
                 yield lucene.Field(self.name, value, self.store, lucene.Field.Index.NO)
         values = map(self.split, values)
-        for stop in range(1, max(map(len, values))+1):
-            name = self.getname(stop)
-            for value in sorted(set(value[:stop] for value in values if len(value) >= stop)):
+        for depth in range(*self.depths.indices(max(map(len, values))+1)):
+            name = self.getname(depth)
+            for value in sorted(set(value[:depth] for value in values if len(value) >= depth)):
                 yield lucene.Field(name, self.join(value), lucene.Field.Store.NO, self.index, self.termvector)
     def prefix(self, value):
         "Return lucene TermQuery of the appropriate prefixed field."
@@ -73,16 +76,16 @@ class NestedField(PrefixField):
         PrefixField.__init__(self, name, **kwargs)
         self.sep = sep
         names = self.split(name)
-        self.names = [self.join(names[:stop]) for stop in range(len(names)+1)]
+        self.names = [self.join(names[:depth]) for depth in range(len(names)+1)]
     def split(self, text):
         "Return immutable sequence of words from name or value."
         return tuple(text.split(self.sep))
     def join(self, words):
         "Return text from separate words."
         return self.sep.join(words)
-    def getname(self, stop):
+    def getname(self, depth):
         "Return component field name for given depth."
-        return self.names[stop]
+        return self.names[depth]
 
 class Document(object):
     """Delegated lucene Document.

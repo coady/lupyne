@@ -159,7 +159,7 @@ class TestCase(BaseTest):
         indexer.fields['location'] = engine.NestedField('state:county:city')
         for doc in fixture.zipcodes.docs():
             if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
-                lat, lng = ('%08.3f' % doc.pop(l) for l in ['latitude', 'longitude'])
+                lat, lng = ('{0:08.3f}'.format(doc.pop(l)) for l in ['latitude', 'longitude'])
                 location = ':'.join(doc[name] for name in ['state', 'county', 'city'])
                 indexer.add(doc, latitude=lat, longitude=lng, location=location)
         indexer.commit()
@@ -207,7 +207,7 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
-        indexer.fields['tile'] = engine.PointField('tile', precision=15, store=True)
+        indexer.fields['tile'] = engine.PointField('tile', precision=15, start=10, store=True)
         for doc in fixture.zipcodes.docs():
             if doc['state'] == 'CA':
                 lat, lng = doc.pop('latitude'), doc.pop('longitude')
