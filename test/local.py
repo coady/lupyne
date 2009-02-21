@@ -207,13 +207,12 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
-        indexer.fields['tile'] = engine.PointField('tile', precision=15, start=10, store=True)
+        field = indexer.fields['tile'] = engine.PointField('tile', precision=15, start=10, step=2, store=True)
         for doc in fixture.zipcodes.docs():
             if doc['state'] == 'CA':
                 lat, lng = doc.pop('latitude'), doc.pop('longitude')
                 indexer.add(doc, tile=[(lng, lat)], latitude=str(lat), longitude=str(lng))
         indexer.commit()
-        field = indexer.fields['tile']
         city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
         hit, = indexer.search('zipcode:' + zipcode)
         assert hit['tile'] == tile and hit['city'] == city
@@ -230,7 +229,10 @@ class TestCase(BaseTest):
         assert city in cities and len(cities) > 10
         hits = indexer.search(field.within(x, y, 10**4))
         cities = set(hit['city'] for hit in hits)
-        assert city in cities and len(cities) > 50
+        assert city in cities and 100 > len(cities) > 50
+        hits = indexer.search(field.within(x, y, 10**5))
+        cities = set(hit['city'] for hit in hits)
+        assert city in cities and len(cities) > 100
 
 if __name__ == '__main__':
     unittest.main()

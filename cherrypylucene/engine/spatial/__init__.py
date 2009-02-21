@@ -40,6 +40,7 @@ class Tiler(GlobalMercator):
             (left, bottom), (right, top) = (self.MetersToTile(x, y, precision) for x, y in corners)
             if (right+1-left) * (top+1-bottom) <= limit:
                 break
+        assert left >= 0 and bottom >= 0, "bounding box out of global range: {0}".format(corners)
         for x in range(left, right+1):
             for y in range(bottom, top+1):
                 yield self.QuadTree(x, y, precision)
@@ -70,8 +71,7 @@ class PointField(PrefixField, Tiler):
         x, y = self.project(lat, lng)
         corners = (x-distance, y-distance), (x+distance, y+distance)
         tiles = sorted(self.walk(*corners, precision=self.precision, limit=self.base))
-        precision, = set(map(len, tiles))
-        return Query.terms(self.getname(precision), *tiles).q
+        return Query.any(*map(self.prefix, tiles)).q
 
 class PolygonField(PointField):
     """PointField which implicitly supports polygons (technically linear rings of points).

@@ -45,6 +45,9 @@ class PrefixField(Field):
     def getname(self, depth):
         "Return prefix field name for given depth."
         return '{0}[:{1:n}]'.format(self.name, depth)
+    def indices(self, depth):
+        "Return range of valid depth indices."
+        return xrange(*self.depths.indices(depth + self.depths.step))
     def items(self, *values):
         """Generate indexed component fields.
         Optimized to handle duplicate values.
@@ -53,14 +56,15 @@ class PrefixField(Field):
             for value in values:
                 yield lucene.Field(self.name, value, self.store, lucene.Field.Index.NO)
         values = map(self.split, values)
-        for depth in range(*self.depths.indices(max(map(len, values))+1)):
+        for depth in self.indices(max(map(len, values))):
             name = self.getname(depth)
-            for value in sorted(set(value[:depth] for value in values if len(value) >= depth)):
+            for value in sorted(set(value[:depth] for value in values if len(value) > (depth-self.depths.step))):
                 yield lucene.Field(name, self.join(value), lucene.Field.Store.NO, self.index, self.termvector)
     def prefix(self, value):
-        "Return lucene TermQuery of the appropriate prefixed field."
-        name = self.getname(len(self.split(value)))
-        return lucene.TermQuery(lucene.Term(name, value))
+        "Return lucene PrefixQuery of the closest possible prefixed field."
+        depths = self.indices(len(self.split(value)))
+        depth = depths[-1] if depths else self.depths.start
+        return lucene.PrefixQuery(lucene.Term(self.getname(depth), value))
     def range(self, start, stop):
         "Return lucene RangeQuery of the appropriate prefixed field."
         start, stop = (self.prefix(value).term for value in [lower, upper])
