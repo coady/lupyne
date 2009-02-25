@@ -133,6 +133,8 @@ class TestCase(BaseTest):
         amendments = ['18', '19']
         assert sorted(hit['amendment'] for hit in hits) == amendments
         query = engine.Query.range('date', '1919', '1921')
+        query.boost = 2.0
+        assert query.boost == 2.0
         hits = indexer.search(query)
         assert sorted(hit['amendment'] for hit in hits) == amendments
         hits = indexer.search(query | engine.Query.term('text', 'vote'))
@@ -145,6 +147,8 @@ class TestCase(BaseTest):
             assert hit['amendment'] == '19'
         hit, = indexer.search(query - engine.Query.all(text='vote'))
         assert hit['amendment'] == '18'
+        hit, = indexer.search(engine.Query.all(text=['persons', 'papers']))
+        assert hit['amendment'] == '4'
         hit, = indexer.search(engine.Query.phrase('text', 'persons', None, 'papers'))
         assert hit['amendment'] == '4'
         del indexer

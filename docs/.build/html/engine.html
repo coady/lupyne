@@ -556,6 +556,11 @@ Original value may be stored only for convenience.</p>
 <dd>Return prefix field name for given depth.</dd></dl>
 
 <dl class="method">
+<dt id="engine.documents.PrefixField.indices">
+<!--[engine.documents.PrefixField.indices]--><tt class="descname">indices</tt><big>(</big><em>depth</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.indices" title="Permalink to this definition">¶</a></dt>
+<dd>Return range of valid depth indices.</dd></dl>
+
+<dl class="method">
 <dt id="engine.documents.PrefixField.items">
 <!--[engine.documents.PrefixField.items]--><tt class="descname">items</tt><big>(</big><em>*values</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.items" title="Permalink to this definition">¶</a></dt>
 <dd>Generate indexed component fields.
@@ -569,7 +574,7 @@ Optimized to handle duplicate values.</dd></dl>
 <dl class="method">
 <dt id="engine.documents.PrefixField.prefix">
 <!--[engine.documents.PrefixField.prefix]--><tt class="descname">prefix</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.prefix" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene TermQuery of the appropriate prefixed field.</dd></dl>
+<dd>Return lucene PrefixQuery of the closest possible prefixed field.</dd></dl>
 
 <dl class="method">
 <dt id="engine.documents.PrefixField.range">
@@ -628,8 +633,8 @@ Optimized to handle duplicate values.</dd></dl>
 <h3>Query<a class="headerlink" href="#query" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.queries.Query">
-<!--[engine.queries.Query]-->class <tt class="descclassname">engine.queries.</tt><tt class="descname">Query</tt><big>(</big><em>q</em><big>)</big><a class="headerlink" href="#engine.queries.Query" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delegated lucene Query.
+<!--[engine.queries.Query]-->class <tt class="descclassname">engine.queries.</tt><tt class="descname">Query</tt><big>(</big><em>base</em>, <em>*args</em><big>)</big><a class="headerlink" href="#engine.queries.Query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inherited lucene Query, with dynamic base class acquisition.
 Uses class methods and operator overloading for convenient query construction.</p>
 <dl class="method">
 <dt>
@@ -649,12 +654,12 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="attribute">
 <dt id="engine.queries.Query.all">
 <!--[engine.queries.Query.all]--><tt class="descname">all</tt><a class="headerlink" href="#engine.queries.Query.all" title="Permalink to this definition">¶</a></dt>
-<dd>Return wrapped boolean AND query from queries and terms.</dd></dl>
+<dd>Return lucene BooleanQuery (AND) from queries and terms.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.any">
 <!--[engine.queries.Query.any]--><tt class="descname">any</tt><a class="headerlink" href="#engine.queries.Query.any" title="Permalink to this definition">¶</a></dt>
-<dd>Return wrapped boolean OR query from queries and terms.</dd></dl>
+<dd>Return lucene BooleanQuery (OR) from queries and terms.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.boolean">
@@ -669,27 +674,22 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="attribute">
 <dt id="engine.queries.Query.phrase">
 <!--[engine.queries.Query.phrase]--><tt class="descname">phrase</tt><a class="headerlink" href="#engine.queries.Query.phrase" title="Permalink to this definition">¶</a></dt>
-<dd>Return wrapped lucene PhraseQuery.  None may be used as a placeholder.</dd></dl>
+<dd>Return lucene PhraseQuery.  None may be used as a placeholder.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.prefix">
 <!--[engine.queries.Query.prefix]--><tt class="descname">prefix</tt><a class="headerlink" href="#engine.queries.Query.prefix" title="Permalink to this definition">¶</a></dt>
-<dd>Return wrapped lucene PrefixQuery.</dd></dl>
+<dd>Return lucene PrefixQuery.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.range">
 <!--[engine.queries.Query.range]--><tt class="descname">range</tt><a class="headerlink" href="#engine.queries.Query.range" title="Permalink to this definition">¶</a></dt>
-<dd>Return wrapped half-open lucene ConstantScoreRangeQuery.</dd></dl>
+<dd>Return lucene ConstantScoreRangeQuery, by default with a half-open interval.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.term">
 <!--[engine.queries.Query.term]--><tt class="descname">term</tt><a class="headerlink" href="#engine.queries.Query.term" title="Permalink to this definition">¶</a></dt>
-<dd>Return wrapped lucene TermQuery.</dd></dl>
-
-<dl class="attribute">
-<dt id="engine.queries.Query.terms">
-<!--[engine.queries.Query.terms]--><tt class="descname">terms</tt><a class="headerlink" href="#engine.queries.Query.terms" title="Permalink to this definition">¶</a></dt>
-<dd>Return wrapped boolean OR query to match any value.</dd></dl>
+<dd>Return lucene TermQuery.</dd></dl>
 
 </dd></dl>
 

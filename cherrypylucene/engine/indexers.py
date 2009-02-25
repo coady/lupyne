@@ -120,7 +120,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
             if isinstance(filters, Filter):
                 counts[key] = len(bits & filters.bits(self.indexReader))
             elif isinstance(key, basestring):
-                values = filters if filters is not None else self.terms(key)
+                values = self.terms(key) if filters is None else filters
                 counts.update(self.facets(bits, *((key, value) for value in values)))
             else:
                 name, value = key
@@ -150,8 +150,8 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         """
         if query is None:
             query = lucene.MatchAllDocsQuery()
-        if not isinstance(query, lucene.Query):
-            query = query.q if isinstance(query, Query) else self.parse(query, **parser)
+        elif not isinstance(query, lucene.Query):
+            query = self.parse(query, **parser)
         if not isinstance(filter, (lucene.Filter, type(None))):
             filter = Filter(filter)
         # use custom HitCollector if all results are necessary, otherwise let lucene's TopDocs handle it
@@ -162,8 +162,10 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         if sort is None:
             topdocs = lucene.IndexSearcher.search(self, query, filter, count)
         else:
-            if not isinstance(sort, lucene.Sort):
-                sort = lucene.Sort(sort, reverse) if isinstance(sort, basestring) else lucene.Sort(sort)
+            if isinstance(sort, basestring):
+                sort = lucene.Sort(sort, reverse)
+            elif not isinstance(sort, lucene.Sort):
+                sort = lucene.Sort(sort)
             topdocs = lucene.IndexSearcher.search(self, query, filter, count, sort)
         ids, scores = (map(operator.attrgetter(name), topdocs.scoreDocs) for name in ['doc', 'score'])
         return Hits(self, ids, scores, topdocs.totalHits)
@@ -218,9 +220,9 @@ class IndexWriter(lucene.IndexWriter):
         :param options: additional :meth:`parse` options
         """
         if len(query) == 1:
-            query = query[0]
+            query, = query
             if not isinstance(query, lucene.Query):
-                query = query.q if isinstance(query, Query) else self.parse(query, **options)
+                query = self.parse(query, **options)
             self.deleteDocuments(query)
         else:
             self.deleteDocuments(lucene.Term(*query))

@@ -71,7 +71,7 @@ class PointField(PrefixField, Tiler):
         x, y = self.project(lat, lng)
         corners = (x-distance, y-distance), (x+distance, y+distance)
         tiles = sorted(self.walk(*corners, precision=self.precision, limit=self.base))
-        return Query.any(*map(self.prefix, tiles)).q
+        return Query.any(*map(self.prefix, tiles))
 
 class PolygonField(PointField):
     """PointField which implicitly supports polygons (technically linear rings of points).
