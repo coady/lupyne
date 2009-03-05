@@ -4,6 +4,7 @@ Wrappers for lucene Fields and Documents.
 
 import itertools
 import lucene
+from .queries import Query
 
 class Field(object):
     """Saved parameters which can generate lucene Fields given values.
@@ -61,15 +62,15 @@ class PrefixField(Field):
             for value in sorted(set(value[:depth] for value in values if len(value) > (depth-self.depths.step))):
                 yield lucene.Field(name, self.join(value), lucene.Field.Store.NO, self.index, self.termvector)
     def prefix(self, value):
-        "Return lucene PrefixQuery of the closest possible prefixed field."
+        "Return prefix query of the closest possible prefixed field."
         depths = self.indices(len(self.split(value)))
         depth = depths[-1] if depths else self.depths.start
-        return lucene.PrefixQuery(lucene.Term(self.getname(depth), value))
-    def range(self, start, stop):
-        "Return lucene RangeQuery of the appropriate prefixed field."
-        start, stop = (self.prefix(value).term for value in [lower, upper])
-        assert start.field() == stop.field(), "range bounds should have equal depth"
-        return lucene.ConstantScoreRangeQuery(name, start, stop, True, False)
+        return Query.prefix(self.getname(depth), value)
+    def range(self, start, stop, lower=True, upper=False):
+        "Return range query of the closest possible prefixed field."
+        depths = self.indices(max(len(self.split(value)) for value in (start, stop)))
+        depth = depths[-1] if depths else self.depths.start
+        return Query.range(self.getname(depth), start, stop, lower, upper)
 
 class NestedField(PrefixField):
     """Field which indexes every component into its own field.

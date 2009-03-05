@@ -197,6 +197,7 @@ class TestCase(BaseTest):
         assert len(hits) == indexer.count(engine.Query.prefix(longitude, lng))
         count = indexer.count(field.prefix(lng[:3]))
         assert count > len(hits)
+        assert count == indexer.count(field.range(lng[:3], lng[:3]+'~'))
         self.assertRaises(lucene.JavaError, indexer.search, engine.Query.prefix(longitude, lng[:3]))
         assert count > indexer.count(engine.Query.term('state', 'CA'), filter=engine.Query.term(longitude, lng).filter())
         hits = indexer.search('zipcode:90*')

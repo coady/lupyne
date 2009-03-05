@@ -202,7 +202,7 @@ abstracting away java lucene primitives.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>query</em> &#8211; query string, <a class="reference internal" href="#query">Query</a> object, or lucene Query</li>
+<li><em>query</em> &#8211; query string or lucene Query</li>
 <li><em>filter</em> &#8211; doc ids or lucene Filter</li>
 <li><em>count</em> &#8211; maximum number of hits to retrieve</li>
 <li><em>sort</em> &#8211; field name, names, or lucene Sort</li>
@@ -574,12 +574,12 @@ Optimized to handle duplicate values.</dd></dl>
 <dl class="method">
 <dt id="engine.documents.PrefixField.prefix">
 <!--[engine.documents.PrefixField.prefix]--><tt class="descname">prefix</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.prefix" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene PrefixQuery of the closest possible prefixed field.</dd></dl>
+<dd>Return prefix query of the closest possible prefixed field.</dd></dl>
 
 <dl class="method">
 <dt id="engine.documents.PrefixField.range">
-<!--[engine.documents.PrefixField.range]--><tt class="descname">range</tt><big>(</big><em>start</em>, <em>stop</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.range" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene RangeQuery of the appropriate prefixed field.</dd></dl>
+<!--[engine.documents.PrefixField.range]--><tt class="descname">range</tt><big>(</big><em>start</em>, <em>stop</em>, <em>lower=True</em>, <em>upper=False</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.range" title="Permalink to this definition">¶</a></dt>
+<dd>Return range query of the closest possible prefixed field.</dd></dl>
 
 <dl class="method">
 <dt id="engine.documents.PrefixField.split">

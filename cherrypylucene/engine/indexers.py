@@ -39,11 +39,14 @@ class IndexReader(object):
         return 0 <= id < self.maxDoc() and not self.isDeleted(id)
     def __iter__(self):
         return itertools.ifilterfalse(self.isDeleted, xrange(self.maxDoc()))
+    def doc(self, id):
+        return self.indexReader.document(id)
     def __getitem__(self, id):
         try:
-            return Document(self.document(id))
+            doc = self.doc(id)
         except lucene.JavaError:
             raise KeyError(id)
+        return Document(doc)
     def __delitem__(self, id):
         self.deleteDocument(id)
     @property
@@ -141,7 +144,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     def search(self, query=None, filter=None, count=None, sort=None, reverse=False, **parser):
         """Run query and return `Hits`_.
         
-        :param query: query string, `Query`_ object, or lucene Query
+        :param query: query string or lucene Query
         :param filter: doc ids or lucene Filter
         :param count: maximum number of hits to retrieve
         :param sort: field name, names, or lucene Sort
