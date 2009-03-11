@@ -119,6 +119,12 @@ class TestCase(BaseTest):
         assert len(hits) == 5 and hits.count == 8
         hits = indexer.search('text:people', count=5, sort='amendment')
         assert sorted(hits.ids) == hits.ids and hits.ids != ids[:len(hits)]
+        comparator = [value and int(value) for value in indexer.comparator('amendment')]
+        hits = indexer.search('text:people', sort=comparator.__getitem__)
+        assert sorted(hits.ids) == hits.ids and hits.ids != ids
+        comparator = indexer.comparator('article', 'amendment')
+        hits = indexer.search('text:people', sort=comparator.__getitem__)
+        assert sorted(hits.ids) != hits.ids
         hits = indexer.search('text:people', count=5, sort='amendment', reverse=True)
         assert sorted(hits.ids, reverse=True) == hits.ids and hits.ids != ids[:len(hits)]
         hit, = indexer.search('freedom', field='text')

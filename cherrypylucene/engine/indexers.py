@@ -86,6 +86,15 @@ class IndexReader(object):
         for termpositions in iterate(self.termPositions(lucene.Term(name, value))):
             positions = [termpositions.nextPosition() for n in xrange(termpositions.freq())]
             yield termpositions.doc(), positions
+    def comparator(self, name, *names):
+        "Return sequence of documents' field values suitable for sorting."
+        if names:
+            return zip(*map(self.comparator, (name,)+names))
+        values = [None] * self.maxDoc()
+        for value in self.terms(name):
+            for id in self.docs(name, value):
+                values[id] = value
+        return values
 
 class IndexSearcher(lucene.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher, with a delegated IndexReader as well.

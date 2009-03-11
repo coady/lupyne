@@ -13,6 +13,5 @@ if lucene.getVMEnv() is None:
 
 from .queries import Query, Filter
 from .documents import Document, Field, PrefixField, NestedField
-from .indexers import Indexer, IndexSearcher
+from .indexers import IndexSearcher, IndexWriter, Indexer
 from .spatial import PointField, PolygonField
-

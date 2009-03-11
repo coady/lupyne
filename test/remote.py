@@ -92,18 +92,18 @@ class TestCase(BaseTest):
         assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
         positions = dict(resource.get('/terms/text/people/docs/positions'))
         assert sorted(positions) == docs and map(len, positions.values()) == counts.values()
-        result = resource.get('search', q='text:"We the People"')
+        result = resource.get('/search', q='text:"We the People"')
         assert sorted(result) == ['count', 'docs'] and result['count'] == 1
         doc, = result['docs']
         assert sorted(doc) == ['__id__', '__score__', 'article']
         assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__'] < 1
-        result = resource.get('search', q='text:people')
+        result = resource.get('/search', q='text:people')
         docs = result['docs']
         assert sorted(docs, key=operator.itemgetter('__score__'), reverse=True) == docs
         assert len(docs) == result['count'] == 8
-        result = resource.get('search', q='text:people', count=5)
+        result = resource.get('/search', q='text:people', count=5)
         assert docs[:5] == result['docs'] and result['count'] == len(docs)
-        result = resource.get('search', q='text:freedom')
+        result = resource.get('/search', q='text:freedom')
         assert result['count'] == 1
         doc, = result['docs']
         assert doc['amendment'] == '1'

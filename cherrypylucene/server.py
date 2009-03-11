@@ -9,9 +9,11 @@ CherryPy and Lucene VM integration issues:
  * Also recommended that the VM ignores keyboard interrupts for clean server shutdown.
 """
 
-import json
-import thread
-from functools import partial
+try:    # optimization
+    import simplejson as json
+except ImportError:
+    import json
+import threading
 from contextlib import contextmanager
 import lucene
 import cherrypy
@@ -45,7 +47,7 @@ class Root(object):
     _cp_config = {'tools.json.on': True}
     def __init__(self, *args, **kwargs):
         self.indexer = Indexer(*args, **kwargs)
-        self.lock = thread.allocate_lock()
+        self.lock = threading.Lock()
     @cherrypy.expose
     def index(self):
         """Return index information.
@@ -216,14 +218,14 @@ class Root(object):
                 return list(self.indexer.docs(name, value, counts=bool(stats)))
         raise cherrypy.NotFound('/'.join(args))
 
-def main(root):
+def main(root, path='', config=None):
     "Attach root and run server."
     cherrypy.wsgiserver.WorkerThread = AttachedThread
     cherrypy.engine.subscribe('stop', root.indexer.close)
     cherrypy.config['engine.autoreload.on'] = False
     cherrypy.config['checker.on'] = False # python2.6 incompatibility
     cherrypy.server.socket_host = '0.0.0.0'
-    cherrypy.quickstart(root)
+    cherrypy.quickstart(root, path, config)
 
 if __name__ == '__main__':
     import sys
