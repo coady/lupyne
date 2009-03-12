@@ -60,10 +60,10 @@ class PointField(PrefixField, Tiler):
         tiles = set(self.encode(lat, lng, self.precision) for lng, lat in points)
         return PrefixField.items(self, *sorted(tiles))
     def near(self, lng, lat, precision=None):
-        "Return lucene TermQuery for point at given precision."
+        "Return prefix query for point at given precision."
         return self.prefix(self.encode(lat, lng, precision or self.precision))
     def within(self, lng, lat, distance):
-        """Return lucene OR BooleanQuery for all tiles which could be within distance of given point.
+        """Return prefix queries for any tiles which could be within distance of given point.
         
         :param lng, lat: point
         :param distance: search radius in meters
@@ -71,6 +71,9 @@ class PointField(PrefixField, Tiler):
         x, y = self.project(lat, lng)
         corners = (x-distance, y-distance), (x+distance, y+distance)
         tiles = sorted(self.walk(*corners, precision=self.precision, limit=self.base))
+        parents = set(tile[:-1] for tile in tiles)
+        if len(tiles) == self.base and len(parents) == 1:
+            tiles = parents
         return Query.any(*map(self.prefix, tiles))
 
 class PolygonField(PointField):

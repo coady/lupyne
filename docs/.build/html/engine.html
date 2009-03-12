@@ -113,6 +113,11 @@ abstracting away java lucene primitives.</p>
 <dd>Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</dd></dl>
 
 <dl class="method">
+<dt id="engine.indexers.IndexSearcher.comparator">
+<!--[engine.indexers.IndexSearcher.comparator]--><tt class="descname">comparator</tt><big>(</big><em>name</em>, <em>*names</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.comparator" title="Permalink to this definition">¶</a></dt>
+<dd>Return sequence of documents&#8217; field values suitable for sorting.</dd></dl>
+
+<dl class="method">
 <dt id="engine.indexers.IndexSearcher.count">
 <!--[engine.indexers.IndexSearcher.count]--><tt class="descname">count</tt><big>(</big><em>*query</em>, <em>**options</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.count" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return number of hits for given query or term.</p>
@@ -756,12 +761,12 @@ Points must still be stored if exact distances are required upon retrieval.</p>
 <dl class="method">
 <dt id="engine.spatial.PointField.near">
 <!--[engine.spatial.PointField.near]--><tt class="descname">near</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.near" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene TermQuery for point at given precision.</dd></dl>
+<dd>Return prefix query for point at given precision.</dd></dl>
 
 <dl class="method">
 <dt id="engine.spatial.PointField.within">
 <!--[engine.spatial.PointField.within]--><tt class="descname">within</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>distance</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.within" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return lucene OR BooleanQuery for all tiles which could be within distance of given point.</p>
+<dd><p>Return prefix queries for any tiles which could be within distance of given point.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
