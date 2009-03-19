@@ -24,7 +24,7 @@ def iterate(jit, positioned=False):
 
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
-
+    
     :param directory: lucene IndexReader or directory
     """
     def __init__(self, directory):
@@ -97,7 +97,7 @@ class IndexReader(object):
         return values
 
 class IndexSearcher(lucene.IndexSearcher, IndexReader):
-    """Inherited lucene IndexSearcher, with a delegated IndexReader as well.
+    """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
     
     :param directory: directory path or lucene Directory
     :param analyzer: lucene Analyzer class
@@ -156,7 +156,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         :param query: query string or lucene Query
         :param filter: doc ids or lucene Filter
         :param count: maximum number of hits to retrieve
-        :param sort: field name, names, or lucene Sort
+        :param sort: if count is given, lucene Sort parameters, else a callable key
         :param reverse: reverse flag used with sort
         :param parser: :meth:`parse` options
         """
@@ -179,13 +179,14 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
             elif not isinstance(sort, lucene.Sort):
                 sort = lucene.Sort(sort)
             topdocs = lucene.IndexSearcher.search(self, query, filter, count, sort)
-        ids, scores = (map(operator.attrgetter(name), topdocs.scoreDocs) for name in ['doc', 'score'])
+        scoredocs = list(topdocs.scoreDocs)
+        ids, scores = (map(operator.attrgetter(name), scoredocs) for name in ('doc', 'score'))
         return Hits(self, ids, scores, topdocs.totalHits)
 
 class IndexWriter(lucene.IndexWriter):
     """Inherited lucene IndexWriter.
     Supports setting fields parameters explicitly, so documents can be represented as dictionaries.
-
+    
     :param directory: directory path or lucene Directory
     :param mode: file mode (rwa), except updating (+) is implied
     :param analyzer: lucene Analyzer class

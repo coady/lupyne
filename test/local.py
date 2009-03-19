@@ -157,6 +157,18 @@ class TestCase(BaseTest):
         assert hit['amendment'] == '4'
         hit, = indexer.search(engine.Query.phrase('text', 'persons', None, 'papers'))
         assert hit['amendment'] == '4'
+        query = engine.Query.term('text', 'persons')
+        assert str(-query) == '-text:persons'
+        query = +query
+        query -= engine.Query.term('text', 'papers')
+        assert str(query) == '+text:persons -text:papers'
+        queries = [engine.Query.span('text', word) for word in ('persons', 'papers', 'things')]
+        count = indexer.count(queries[0])
+        near = engine.Query.near(queries[:2], slop=1)
+        assert indexer.count(queries[0] - near) == count
+        near = engine.Query.near([queries[0], queries[1]|queries[2]], slop=1)
+        assert indexer.count(queries[0] - near) == count - 1
+        assert indexer.count(queries[0][:100]) == count - 1
         del indexer
         assert engine.Indexer(self.tempdir)
 

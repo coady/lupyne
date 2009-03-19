@@ -23,7 +23,7 @@ class Query(object):
         return cls(lucene.TermQuery, lucene.Term(name, value))
     @classmethod
     def boolean(cls, occur, *queries, **terms):
-        self = cls(lucene.BooleanQuery)
+        self = BooleanQuery(lucene.BooleanQuery)
         for query in queries:
             self.add(query, occur)
         for name, values in terms.items():
@@ -38,6 +38,14 @@ class Query(object):
     def all(cls, *queries, **terms):
         "Return lucene BooleanQuery (AND) from queries and terms."
         return cls.boolean(lucene.BooleanClause.Occur.MUST, *queries, **terms)
+    @staticmethod
+    def span(name, value):
+        "Return lucene SpanTermQuery."
+        return SpanQuery(lucene.SpanTermQuery, lucene.Term(name, value))
+    @staticmethod
+    def near(spans, slop=0, inOrder=True):
+        "Return lucene SpanNearQuery."
+        return SpanQuery(lucene.SpanNearQuery, spans, slop, inOrder)
     @classmethod
     def prefix(cls, name, value):
         "Return lucene PrefixQuery."
@@ -54,14 +62,44 @@ class Query(object):
             if value is not None:
                 self.add(lucene.Term(name, value), index)
         return self
+    @classmethod
+    def wildcard(cls, name, value):
+        "Return lucene WildcardQuery."
+        return cls(lucene.WildcardQuery, lucene.Term(name, value))
+    @classmethod
+    def fuzzy(cls, name, value, minimumSimilarity=0.5, prefixLength=0):
+        "Return lucene FuzzyQuery."
+        return cls(lucene.FuzzyQuery, lucene.Term(name, value), minimumSimilarity, prefixLength)
+    def __pos__(self):
+        return Query.all(self)
+    def __neg__(self):
+        return Query.boolean(lucene.BooleanClause.Occur.MUST_NOT, self)
     def __and__(self, other):
         return Query.all(self, other)
     def __or__(self, other):
         return Query.any(self, other)
     def __sub__(self, other):
-        query = Query.all(self)
-        query.add(other, lucene.BooleanClause.Occur.MUST_NOT)
-        return query
+        return Query.any(self).__isub__(other)
+
+class BooleanQuery(Query):
+    def __iand__(self, other):
+        self.add(other, lucene.BooleanClause.Occur.MUST)
+        return self
+    def __ior__(self, other):
+        self.add(other, lucene.BooleanClause.Occur.SHOULD)
+        return self
+    def __isub__(self, other):
+        self.add(other, lucene.BooleanClause.Occur.MUST_NOT)
+        return self
+
+class SpanQuery(Query):
+    def __getitem__(self, slc):
+        assert slc.start is slc.step is None, 'only prefix slice supported'
+        return SpanQuery(lucene.SpanFirstQuery, self, slc.stop)
+    def __or__(self, other):
+        return SpanQuery(lucene.SpanOrQuery, (self, other))
+    def __sub__(self, other):
+        return SpanQuery(lucene.SpanNotQuery, self, other)
 
 class HitCollector(lucene.PythonHitCollector):
     "Collect all ids and scores efficiently."

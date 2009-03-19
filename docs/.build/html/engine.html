@@ -57,36 +57,24 @@ abstracting away java lucene primitives.</p>
 <h2>indexers<a class="headerlink" href="#module-engine.indexers" title="Permalink to this headline">¶</a></h2>
 <p>Wrappers for lucene Index{Read,Search,Writ}ers.</p>
 <p>The final <a class="reference internal" href="#indexer">Indexer</a> classes exposes a high-level Searcher and Writer.</p>
-<div class="section" id="indexsearcher">
-<h3>IndexSearcher<a class="headerlink" href="#indexsearcher" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="indexreader">
+<h3>IndexReader<a class="headerlink" href="#indexreader" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
-<dt id="engine.indexers.IndexSearcher">
-<!--[engine.indexers.IndexSearcher]-->class <tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexSearcher</tt><big>(</big><em>directory</em>, <em>analyzer=&lt;type 'StandardAnalyzer'&gt;</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a title="engine.indexers.IndexSearcher" class="reference internal" href="#engine.indexers.IndexSearcher"><tt class="xref docutils literal"><span class="pre">IndexSearcher</span></tt></a>, <tt class="xref docutils literal"><span class="pre">engine.indexers.IndexReader</span></tt></p>
-<p>Inherited lucene IndexSearcher, with a delegated IndexReader as well.</p>
+<dt id="engine.indexers.IndexReader">
+<!--[engine.indexers.IndexReader]-->class <tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexReader</tt><big>(</big><em>directory</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delegated lucene IndexReader, with a mapping interface of ids to document objects.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>directory</em> &#8211; directory path or lucene Directory</li>
-<li><em>analyzer</em> &#8211; lucene Analyzer class</li>
+<li><em>directory</em> &#8211; lucene IndexReader or directory</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
 <p>Provides a mapping interface of ids to document objects.</p>
-<dl class="attribute">
-<dt id="engine.indexers.IndexSearcher.filters">
-<!--[engine.indexers.IndexSearcher.filters]--><tt class="descname">filters</tt><a class="headerlink" href="#engine.indexers.IndexSearcher.filters" title="Permalink to this definition">¶</a></dt>
-<dd>Mapping of cached filters, which are also used for facet counts.</dd></dl>
-
-<dl class="method">
-<dt>
-<tt class="descname">__del__():</tt></dt>
-<dd>Closes index.</dd></dl>
-
 <dl class="method">
 <dt>
 <tt class="descname">__len__():</tt></dt>
@@ -113,9 +101,79 @@ abstracting away java lucene primitives.</p>
 <dd>Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</dd></dl>
 
 <dl class="method">
-<dt id="engine.indexers.IndexSearcher.comparator">
-<!--[engine.indexers.IndexSearcher.comparator]--><tt class="descname">comparator</tt><big>(</big><em>name</em>, <em>*names</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.comparator" title="Permalink to this definition">¶</a></dt>
+<dt id="engine.indexers.IndexReader.comparator">
+<!--[engine.indexers.IndexReader.comparator]--><tt class="descname">comparator</tt><big>(</big><em>name</em>, <em>*names</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.comparator" title="Permalink to this definition">¶</a></dt>
 <dd>Return sequence of documents&#8217; field values suitable for sorting.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexReader.count">
+<!--[engine.indexers.IndexReader.count]--><tt class="descname">count</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.count" title="Permalink to this definition">¶</a></dt>
+<dd>Return number of documents with given term.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexReader.delete">
+<!--[engine.indexers.IndexReader.delete]--><tt class="descname">delete</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete documents with given term.</p>
+<p>Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.indexers.IndexReader.directory">
+<!--[engine.indexers.IndexReader.directory]--><tt class="descname">directory</tt><a class="headerlink" href="#engine.indexers.IndexReader.directory" title="Permalink to this definition">¶</a></dt>
+<dd>reader&#8217;s lucene Directory</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexReader.docs">
+<!--[engine.indexers.IndexReader.docs]--><tt class="descname">docs</tt><big>(</big><em>name</em>, <em>value</em>, <em>counts=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.docs" title="Permalink to this definition">¶</a></dt>
+<dd>Generate doc ids which contain given term, optionally with frequency counts.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexReader.names">
+<!--[engine.indexers.IndexReader.names]--><tt class="descname">names</tt><big>(</big><em>option='all'</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.names" title="Permalink to this definition">¶</a></dt>
+<dd>Return field names, given option description.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexReader.positions">
+<!--[engine.indexers.IndexReader.positions]--><tt class="descname">positions</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.positions" title="Permalink to this definition">¶</a></dt>
+<dd>Generate doc ids which contain given term, with their positions.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexReader.terms">
+<!--[engine.indexers.IndexReader.terms]--><tt class="descname">terms</tt><big>(</big><em>name</em>, <em>start=''</em>, <em>stop=None</em>, <em>counts=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.terms" title="Permalink to this definition">¶</a></dt>
+<dd>Generate a slice of term values, optionally with frequency counts.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="indexsearcher">
+<h3>IndexSearcher<a class="headerlink" href="#indexsearcher" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.indexers.IndexSearcher">
+<!--[engine.indexers.IndexSearcher]-->class <tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexSearcher</tt><big>(</big><em>directory</em>, <em>analyzer=&lt;type 'StandardAnalyzer'&gt;</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.indexers.IndexSearcher" class="reference internal" href="#engine.indexers.IndexSearcher"><tt class="xref docutils literal"><span class="pre">IndexSearcher</span></tt></a>, <a title="engine.indexers.IndexReader" class="reference internal" href="#engine.indexers.IndexReader"><tt class="xref docutils literal"><span class="pre">engine.indexers.IndexReader</span></tt></a></p>
+<p>Inherited lucene IndexSearcher, with a mixed-in IndexReader.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>directory</em> &#8211; directory path or lucene Directory</li>
+<li><em>analyzer</em> &#8211; lucene Analyzer class</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Provides a mapping interface of ids to document objects.</p>
+<dl class="attribute">
+<dt id="engine.indexers.IndexSearcher.filters">
+<!--[engine.indexers.IndexSearcher.filters]--><tt class="descname">filters</tt><a class="headerlink" href="#engine.indexers.IndexSearcher.filters" title="Permalink to this definition">¶</a></dt>
+<dd>Mapping of cached filters, which are also used for facet counts.</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__del__():</tt></dt>
+<dd>Closes index.</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.IndexSearcher.count">
@@ -136,23 +194,6 @@ abstracting away java lucene primitives.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="engine.indexers.IndexSearcher.delete">
-<!--[engine.indexers.IndexSearcher.delete]--><tt class="descname">delete</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.delete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete documents with given term.</p>
-<p>Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="engine.indexers.IndexSearcher.directory">
-<!--[engine.indexers.IndexSearcher.directory]--><tt class="descname">directory</tt><a class="headerlink" href="#engine.indexers.IndexSearcher.directory" title="Permalink to this definition">¶</a></dt>
-<dd>reader&#8217;s lucene Directory</dd></dl>
-
-<dl class="method">
-<dt id="engine.indexers.IndexSearcher.docs">
-<!--[engine.indexers.IndexSearcher.docs]--><tt class="descname">docs</tt><big>(</big><em>name</em>, <em>value</em>, <em>counts=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.docs" title="Permalink to this definition">¶</a></dt>
-<dd>Generate doc ids which contain given term, optionally with frequency counts.</dd></dl>
-
-<dl class="method">
 <dt id="engine.indexers.IndexSearcher.facets">
 <!--[engine.indexers.IndexSearcher.facets]--><tt class="descname">facets</tt><big>(</big><em>ids</em>, <em>*keys</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.facets" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return mapping of document counts for the intersection with each facet.</p>
@@ -169,11 +210,6 @@ abstracting away java lucene primitives.</p>
 </tbody>
 </table>
 </dd></dl>
-
-<dl class="method">
-<dt id="engine.indexers.IndexSearcher.names">
-<!--[engine.indexers.IndexSearcher.names]--><tt class="descname">names</tt><big>(</big><em>option='all'</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.names" title="Permalink to this definition">¶</a></dt>
-<dd>Return field names, given option description.</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.IndexSearcher.parse">
@@ -194,11 +230,6 @@ abstracting away java lucene primitives.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="engine.indexers.IndexSearcher.positions">
-<!--[engine.indexers.IndexSearcher.positions]--><tt class="descname">positions</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.positions" title="Permalink to this definition">¶</a></dt>
-<dd>Generate doc ids which contain given term, with their positions.</dd></dl>
-
-<dl class="method">
 <dt id="engine.indexers.IndexSearcher.search">
 <!--[engine.indexers.IndexSearcher.search]--><tt class="descname">search</tt><big>(</big><em>query=None</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return <a class="reference internal" href="#hits">Hits</a>.</p>
@@ -210,7 +241,7 @@ abstracting away java lucene primitives.</p>
 <li><em>query</em> &#8211; query string or lucene Query</li>
 <li><em>filter</em> &#8211; doc ids or lucene Filter</li>
 <li><em>count</em> &#8211; maximum number of hits to retrieve</li>
-<li><em>sort</em> &#8211; field name, names, or lucene Sort</li>
+<li><em>sort</em> &#8211; if count is given, lucene Sort parameters, else a callable key</li>
 <li><em>reverse</em> &#8211; reverse flag used with sort</li>
 <li><em>parser</em> &#8211; <a title="engine.indexers.IndexSearcher.parse" class="reference internal" href="#engine.indexers.IndexSearcher.parse"><tt class="xref docutils literal"><span class="pre">parse()</span></tt></a> options</li>
 </ul>
@@ -219,11 +250,6 @@ abstracting away java lucene primitives.</p>
 </tbody>
 </table>
 </dd></dl>
-
-<dl class="method">
-<dt id="engine.indexers.IndexSearcher.terms">
-<!--[engine.indexers.IndexSearcher.terms]--><tt class="descname">terms</tt><big>(</big><em>name</em>, <em>start=''</em>, <em>stop=None</em>, <em>counts=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.terms" title="Permalink to this definition">¶</a></dt>
-<dd>Generate a slice of term values, optionally with frequency counts.</dd></dl>
 
 </dd></dl>
 
@@ -644,17 +670,17 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="method">
 <dt>
 <tt class="descname">__and__(self, other):</tt></dt>
-<dd>self AND other</dd></dl>
+<dd>&lt;BooleanQuery +self +other&gt;</dd></dl>
 
 <dl class="method">
 <dt>
 <tt class="descname">__or__(self, other):</tt></dt>
-<dd>self OR other</dd></dl>
+<dd>&lt;BooleanQuery self other&gt;</dd></dl>
 
 <dl class="method">
 <dt>
 <tt class="descname">__sub__(self, other):</tt></dt>
-<dd>self NOT other</dd></dl>
+<dd>&lt;BooleanQuery self -other&gt;</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.queries.Query.all">
@@ -677,6 +703,16 @@ Uses class methods and operator overloading for convenient query construction.</
 <dd>Return lucene CachingWrapperFilter, optionally just QueryWrapperFilter.</dd></dl>
 
 <dl class="attribute">
+<dt id="engine.queries.Query.fuzzy">
+<!--[engine.queries.Query.fuzzy]--><tt class="descname">fuzzy</tt><a class="headerlink" href="#engine.queries.Query.fuzzy" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene FuzzyQuery.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.near">
+<!--[engine.queries.Query.near]--><tt class="descname">near</tt><a class="headerlink" href="#engine.queries.Query.near" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene SpanNearQuery.</dd></dl>
+
+<dl class="attribute">
 <dt id="engine.queries.Query.phrase">
 <!--[engine.queries.Query.phrase]--><tt class="descname">phrase</tt><a class="headerlink" href="#engine.queries.Query.phrase" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene PhraseQuery.  None may be used as a placeholder.</dd></dl>
@@ -692,9 +728,65 @@ Uses class methods and operator overloading for convenient query construction.</
 <dd>Return lucene ConstantScoreRangeQuery, by default with a half-open interval.</dd></dl>
 
 <dl class="attribute">
+<dt id="engine.queries.Query.span">
+<!--[engine.queries.Query.span]--><tt class="descname">span</tt><a class="headerlink" href="#engine.queries.Query.span" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene SpanTermQuery.</dd></dl>
+
+<dl class="attribute">
 <dt id="engine.queries.Query.term">
 <!--[engine.queries.Query.term]--><tt class="descname">term</tt><a class="headerlink" href="#engine.queries.Query.term" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene TermQuery.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.queries.Query.wildcard">
+<!--[engine.queries.Query.wildcard]--><tt class="descname">wildcard</tt><a class="headerlink" href="#engine.queries.Query.wildcard" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene WildcardQuery.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="booleanquery">
+<h3>BooleanQuery<a class="headerlink" href="#booleanquery" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.queries.BooleanQuery">
+<!--[engine.queries.BooleanQuery]-->class <tt class="descclassname">engine.queries.</tt><tt class="descname">BooleanQuery</tt><big>(</big><em>base</em>, <em>*args</em><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt>
+<tt class="descname">__iand__(self, other):</tt></dt>
+<dd>add +other</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__ior__(self, other):</tt></dt>
+<dd>add other</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__isub__(self, other):</tt></dt>
+<dd>add -other</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="spanquery">
+<h3>SpanQuery<a class="headerlink" href="#spanquery" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.queries.SpanQuery">
+<!--[engine.queries.SpanQuery]-->class <tt class="descclassname">engine.queries.</tt><tt class="descname">SpanQuery</tt><big>(</big><em>base</em>, <em>*args</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt>
+<tt class="descname">__getitem__(self, other):</tt></dt>
+<dd>&lt;SpanFirstQuery: spanFirst(self, other.stop)&gt;</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__or__(self, other):</tt></dt>
+<dd>&lt;SpanOrQuery: spanOr([self, other])&gt;</dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__sub__(self, other):</tt></dt>
+<dd>&lt;SpanNotQuery: spanNot(self, other)&gt;</dd></dl>
 
 </dd></dl>
 
@@ -814,6 +906,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
             <ul>
 <li><a class="reference external" href="">engine</a><ul>
 <li><a class="reference external" href="#module-engine.indexers">indexers</a><ul>
+<li><a class="reference external" href="#indexreader">IndexReader</a></li>
 <li><a class="reference external" href="#indexsearcher">IndexSearcher</a></li>
 <li><a class="reference external" href="#indexwriter">IndexWriter</a></li>
 <li><a class="reference external" href="#indexer">Indexer</a></li>
@@ -830,6 +923,8 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 </li>
 <li><a class="reference external" href="#module-engine.queries">queries</a><ul>
 <li><a class="reference external" href="#query">Query</a></li>
+<li><a class="reference external" href="#booleanquery">BooleanQuery</a></li>
+<li><a class="reference external" href="#spanquery">SpanQuery</a></li>
 <li><a class="reference external" href="#filter">Filter</a></li>
 </ul>
 </li>

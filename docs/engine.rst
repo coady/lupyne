@@ -7,22 +7,12 @@ indexers
 ---------
 .. automodule:: engine.indexers
 
-IndexSearcher
+IndexReader
 ^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.IndexSearcher
-  :show-inheritance:
+.. autoclass:: engine.indexers.IndexReader
   :members:
-  :inherited-members:
 
   Provides a mapping interface of ids to document objects.
-
-  .. attribute:: filters
-
-    Mapping of cached filters, which are also used for facet counts.
-
-  .. method:: __del__():
-
-    Closes index.
 
   .. method:: __len__():
 
@@ -35,6 +25,23 @@ IndexSearcher
   .. method:: __delitem__(id):
 
     Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
+
+
+IndexSearcher
+^^^^^^^^^^^^^
+.. autoclass:: engine.indexers.IndexSearcher
+  :show-inheritance:
+  :members:
+
+  Provides a mapping interface of ids to document objects.
+
+  .. attribute:: filters
+
+    Mapping of cached filters, which are also used for facet counts.
+
+  .. method:: __del__():
+
+    Closes index.
 
 
 IndexWriter
@@ -122,15 +129,49 @@ Query
 
   .. method:: __and__(self, other):
 
-    self AND other
+    <BooleanQuery +self +other>
 
   .. method:: __or__(self, other):
 
-    self OR other
+    <BooleanQuery self other>
 
   .. method:: __sub__(self, other):
 
-    self NOT other
+    <BooleanQuery self -other>
+
+BooleanQuery
+^^^^^^^^^^^^^
+.. autoclass:: engine.queries.BooleanQuery
+  :members:
+
+  .. method:: __iand__(self, other):
+
+    add +other
+
+  .. method:: __ior__(self, other):
+
+    add other
+
+  .. method:: __isub__(self, other):
+
+    add -other
+
+SpanQuery
+^^^^^^^^^^^^^
+.. autoclass:: engine.queries.SpanQuery
+  :members:
+
+  .. method:: __getitem__(self, other):
+
+    <SpanFirstQuery: spanFirst(self, other.stop)>
+
+  .. method:: __or__(self, other):
+
+    <SpanOrQuery: spanOr([self, other])>
+
+  .. method:: __sub__(self, other):
+
+    <SpanNotQuery: spanNot(self, other)>
 
 Filter
 ^^^^^^^^^^^^^
