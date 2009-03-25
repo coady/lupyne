@@ -857,7 +857,7 @@ Points must still be stored if exact distances are required upon retrieval.</p>
 
 <dl class="method">
 <dt id="engine.spatial.PointField.within">
-<!--[engine.spatial.PointField.within]--><tt class="descname">within</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>distance</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.within" title="Permalink to this definition">¶</a></dt>
+<!--[engine.spatial.PointField.within]--><tt class="descname">within</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>distance</em>, <em>limit=4</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.within" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return prefix queries for any tiles which could be within distance of given point.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -866,6 +866,7 @@ Points must still be stored if exact distances are required upon retrieval.</p>
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>lng, lat</em> &#8211; point</li>
 <li><em>distance</em> &#8211; search radius in meters</li>
+<li><em>limit</em> &#8211; maximum number of tiles to consider</li>
 </ul>
 </td>
 </tr>

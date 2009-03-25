@@ -8,6 +8,7 @@ See http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/.
 The quadkeys are then indexed using a prefix tree, creating a cartesian tier of tiles.
 """
 
+import itertools
 import lucene
 from .globalmaptiles import GlobalMercator
 from ..queries import Query
@@ -44,6 +45,16 @@ class Tiler(GlobalMercator):
         for x in range(left, right+1):
             for y in range(bottom, top+1):
                 yield self.QuadTree(x, y, precision)
+    def zoom(self, tiles):
+        "Return reduced number of tiles, by zooming out where all sub-tiles are present."
+        result, keys = [], []
+        for key, values in itertools.groupby(sorted(tiles), lambda tile: tile[:-1]):
+            values = list(values)
+            if len(values) >= self.base:
+                keys.append(key)
+            else:
+                result += values
+        return result + (keys and self.zoom(keys))
 
 class PointField(PrefixField, Tiler):
     """Geospatial points, which create a tiered index of tiles.
@@ -62,18 +73,16 @@ class PointField(PrefixField, Tiler):
     def near(self, lng, lat, precision=None):
         "Return prefix query for point at given precision."
         return self.prefix(self.encode(lat, lng, precision or self.precision))
-    def within(self, lng, lat, distance):
+    def within(self, lng, lat, distance, limit=Tiler.base):
         """Return prefix queries for any tiles which could be within distance of given point.
         
         :param lng, lat: point
         :param distance: search radius in meters
+        :param limit: maximum number of tiles to consider
         """
         x, y = self.project(lat, lng)
         corners = (x-distance, y-distance), (x+distance, y+distance)
-        tiles = sorted(self.walk(*corners, precision=self.precision, limit=self.base))
-        parents = set(tile[:-1] for tile in tiles)
-        if len(tiles) == self.base and len(parents) == 1:
-            tiles = parents
+        tiles = self.zoom(self.walk(*corners, precision=self.precision, limit=limit))
         return Query.any(*map(self.prefix, tiles))
 
 class PolygonField(PointField):

@@ -82,6 +82,12 @@ class Query(object):
         return Query.any(self).__isub__(other)
 
 class BooleanQuery(Query):
+    def __len__(self):
+        return len(self.getClauses())
+    def __iter__(self):
+        return iter(self.getClauses())
+    def __getitem__(self, index):
+        return self.getClauses()[index]
     def __iand__(self, other):
         self.add(other, lucene.BooleanClause.Occur.MUST)
         return self

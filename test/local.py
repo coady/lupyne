@@ -161,7 +161,8 @@ class TestCase(BaseTest):
         assert str(-query) == '-text:persons'
         query = +query
         query -= engine.Query.term('text', 'papers')
-        assert str(query) == '+text:persons -text:papers'
+        assert str(query[-1]) == '-text:papers'
+        assert len(query) == len(list(query)) == 2
         queries = [engine.Query.span('text', word) for word in ('persons', 'papers', 'things')]
         count = indexer.count(queries[0])
         near = engine.Query.near(queries[:2], slop=1)
