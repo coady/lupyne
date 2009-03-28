@@ -1,5 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
@@ -17,8 +19,6 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
     <link rel="top" title="CherryPyLucene v0.1a0 documentation" href="index.html" />
     <link rel="next" title="client" href="client.html" />
     <link rel="prev" title="engine" href="engine.html" /> 
@@ -42,12 +42,12 @@
         <li><a href="index.html">CherryPyLucene v0.1a0 documentation</a> &raquo;</li> 
       </ul>
     </div>  
+
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body">
             
-  
   <div class="section" id="module-server">
 <h1>server<a class="headerlink" href="#module-server" title="Permalink to this headline">¶</a></h1>
 <p>Restful json <a class="reference external" href="http://cherrypy.org/">CherryPy</a> server.</p>
@@ -66,18 +66,19 @@ $ python server.py <cite>directory</cite></blockquote>
 <h2>Root<a class="headerlink" href="#root" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="server.Root">
-<!--[server.Root]-->class <tt class="descclassname">server.</tt><tt class="descname">Root</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.Root" title="Permalink to this definition">¶</a></dt>
+<em class="property">
+class </em><tt class="descclassname">server.</tt><tt class="descname">Root</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.Root" title="Permalink to this definition">¶</a></dt>
 <dd><p>Dispatch root with a delegated Indexer.</p>
 <dl class="method">
 <dt id="server.Root.commit">
-<!--[server.Root.commit]--><tt class="descname">commit</tt><big>(</big><big>)</big><a class="headerlink" href="#server.Root.commit" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">commit</tt><big>(</big><big>)</big><a class="headerlink" href="#server.Root.commit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Commit write operations.</p>
 <p><strong>POST</strong> /commit</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="server.Root.docs">
-<!--[server.Root.docs]--><tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>docs='</em><span class="optional">[</span><span class="optional">]</span>, <em>'</em>, <em>fields=''</em>, <em>multifields=''</em><big>)</big><a class="headerlink" href="#server.Root.docs" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>docs='</em><span class="optional">[</span><span class="optional">]</span>, <em>'</em>, <em>fields=''</em>, <em>multifields=''</em><big>)</big><a class="headerlink" href="#server.Root.docs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return and index documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /docs</dt>
@@ -113,7 +114,7 @@ $ python server.py <cite>directory</cite></blockquote>
 
 <dl class="method">
 <dt id="server.Root.fields">
-<!--[server.Root.fields]--><tt class="descname">fields</tt><big>(</big><em>name=''</em>, <em>**params</em><big>)</big><a class="headerlink" href="#server.Root.fields" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">fields</tt><big>(</big><em>name=''</em>, <em>**params</em><big>)</big><a class="headerlink" href="#server.Root.fields" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return and store a field&#8217;s parameters.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /fields</dt>
@@ -149,7 +150,7 @@ $ python server.py <cite>directory</cite></blockquote>
 
 <dl class="method">
 <dt id="server.Root.index">
-<!--[server.Root.index]--><tt class="descname">index</tt><big>(</big><big>)</big><a class="headerlink" href="#server.Root.index" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">index</tt><big>(</big><big>)</big><a class="headerlink" href="#server.Root.index" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return index information.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /</dt>
@@ -168,7 +169,7 @@ $ python server.py <cite>directory</cite></blockquote>
 
 <dl class="method">
 <dt id="server.Root.search">
-<!--[server.Root.search]--><tt class="descname">search</tt><big>(</big><em>q</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.Root.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.Root.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run or delete a query.</p>
 <dl class="docutils">
 <dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>
@@ -194,7 +195,7 @@ $ python server.py <cite>directory</cite></blockquote>
 
 <dl class="method">
 <dt id="server.Root.terms">
-<!--[server.Root.terms]--><tt class="descname">terms</tt><big>(</big><em>name=''</em>, <em>value=':'</em>, <em>*args</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.Root.terms" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">terms</tt><big>(</big><em>name=''</em>, <em>value=':'</em>, <em>*args</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.Root.terms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return data about indexed terms.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /terms?</dt>
@@ -282,7 +283,7 @@ $ python server.py <cite>directory</cite></blockquote>
 
 <dl class="function">
 <dt id="server.main">
-<!--[server.main]--><tt class="descclassname">server.</tt><tt class="descname">main</tt><big>(</big><em>root</em>, <em>path=''</em>, <em>config=None</em><big>)</big><a class="headerlink" href="#server.main" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">server.</tt><tt class="descname">main</tt><big>(</big><em>root</em>, <em>path=''</em>, <em>config=None</em><big>)</big><a class="headerlink" href="#server.main" title="Permalink to this definition">¶</a></dt>
 <dd>Attach root and run server.</dd></dl>
 
 </div>
@@ -303,19 +304,29 @@ $ python server.py <cite>directory</cite></blockquote>
 </ul>
 
             <h4>Previous topic</h4>
-            <p class="topless"><a href="engine.html" title="previous chapter">engine</a></p>
+            <p class="topless"><a href="engine.html"
+                                  title="previous chapter">engine</a></p>
             <h4>Next topic</h4>
-            <p class="topless"><a href="client.html" title="next chapter">client</a></p>
+            <p class="topless"><a href="client.html"
+                                  title="next chapter">client</a></p>
             <h3>This Page</h3>
             <ul class="this-page-menu">
-              <li><a href="_sources/server.txt">Show Source</a></li>
+              <li><a href="_sources/server.txt"
+                     rel="nofollow">Show Source</a></li>
             </ul>
-          <h3>Quick search</h3>
-            <form class="search" action="search.html" method="get">
-              <input type="text" name="q" size="18" /> <input type="submit" value="Go" />
-              <input type="hidden" name="check_keywords" value="yes" />
-              <input type="hidden" name="area" value="default" />
-            </form>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -325,22 +336,22 @@ $ python server.py <cite>directory</cite></blockquote>
       <ul>
         <li class="right" style="margin-right: 10px">
           <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
+             >index</a></li>
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
-             accesskey="M">modules</a> |</li>
+             >modules</a> |</li>
         <li class="right" >
           <a href="client.html" title="client"
-             accesskey="N">next</a> |</li>
+             >next</a> |</li>
         <li class="right" >
           <a href="engine.html" title="engine"
-             accesskey="P">previous</a> |</li>
+             >previous</a> |</li>
         <li><a href="index.html">CherryPyLucene v0.1a0 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.5.1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.1.
     </div>
   </body>
 </html>

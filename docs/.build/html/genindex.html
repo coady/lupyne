@@ -1,5 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
@@ -17,8 +19,6 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="index" title="Index" href="" />
-    <link rel="search" title="Search" href="search.html" />
     <link rel="top" title="CherryPyLucene v0.1a0 documentation" href="index.html" /> 
   </head>
   <body>
@@ -34,6 +34,7 @@
         <li><a href="index.html">CherryPyLucene v0.1a0 documentation</a> &raquo;</li> 
       </ul>
     </div>  
+
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
@@ -62,8 +63,8 @@
   <dd><dl>
     <dt><a href="engine.html#engine.indexers.IndexWriter.add">(engine.indexers.IndexWriter method)</a></dt>
   </dl></dd>
-<dt><a href="engine.html#engine.queries.Query.all">all (engine.queries.Query attribute)</a></dt></dl></td><td width="33%" valign="top"><dl>
-<dt><a href="engine.html#engine.queries.Query.any">any (engine.queries.Query attribute)</a></dt>
+<dt><a href="engine.html#engine.queries.Query.all">all() (engine.queries.Query class method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.queries.Query.any">any() (engine.queries.Query class method)</a></dt>
 </dl></td></tr></table>
 
 <h2 id="B">B</h2>
@@ -71,8 +72,7 @@
 <dl>
 
 <dt><a href="engine.html#engine.queries.Filter.bits">bits() (engine.queries.Filter method)</a></dt>
-<dt><a href="engine.html#engine.queries.Query.boolean">boolean (engine.queries.Query attribute)</a></dt></dl></td><td width="33%" valign="top"><dl>
-<dt><a href="engine.html#engine.queries.BooleanQuery">BooleanQuery (class in engine.queries)</a></dt>
+<dt><a href="engine.html#engine.queries.BooleanQuery">BooleanQuery (class in engine.queries)</a></dt></dl></td><td width="33%" valign="top"><dl>
 </dl></td></tr></table>
 
 <h2 id="C">C</h2>
@@ -136,7 +136,7 @@
 <dt><a href="engine.html#engine.queries.Filter">Filter (class in engine.queries)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.queries.Query.filter">filter() (engine.queries.Query method)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexSearcher.filters">filters (engine.indexers.IndexSearcher attribute)</a></dt>
-<dt><a href="engine.html#engine.queries.Query.fuzzy">fuzzy (engine.queries.Query attribute)</a></dt>
+<dt><a href="engine.html#engine.queries.Query.fuzzy">fuzzy() (engine.queries.Query class method)</a></dt>
 </dl></td></tr></table>
 
 <h2 id="G">G</h2>
@@ -204,8 +204,10 @@
 <dl>
 
 <dt><a href="engine.html#engine.indexers.IndexReader.names">names() (engine.indexers.IndexReader method)</a></dt>
-<dt><a href="engine.html#engine.queries.Query.near">near (engine.queries.Query attribute)</a></dt>
-<dt><a href="engine.html#engine.spatial.PointField.near">near() (engine.spatial.PointField method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.queries.Query.near">near() (engine.queries.Query static method)</a></dt>
+  <dd><dl>
+    <dt><a href="engine.html#engine.spatial.PointField.near">(engine.spatial.PointField method)</a></dt>
+  </dl></dd></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.documents.NestedField">NestedField (class in engine.documents)</a></dt>
 </dl></td></tr></table>
 
@@ -217,13 +219,15 @@
   <dd><dl>
     <dt><a href="engine.html#engine.indexers.IndexWriter.parse">(engine.indexers.IndexWriter method)</a></dt>
   </dl></dd>
-<dt><a href="engine.html#engine.queries.Query.phrase">phrase (engine.queries.Query attribute)</a></dt>
+<dt><a href="engine.html#engine.queries.Query.phrase">phrase() (engine.queries.Query class method)</a></dt>
 <dt><a href="engine.html#engine.spatial.PointField">PointField (class in engine.spatial)</a></dt>
 <dt><a href="engine.html#engine.spatial.PolygonField">PolygonField (class in engine.spatial)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexReader.positions">positions() (engine.indexers.IndexReader method)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="client.html#client.Resource.post">post() (client.Resource method)</a></dt>
-<dt><a href="engine.html#engine.queries.Query.prefix">prefix (engine.queries.Query attribute)</a></dt>
 <dt><a href="engine.html#engine.documents.PrefixField.prefix">prefix() (engine.documents.PrefixField method)</a></dt>
+  <dd><dl>
+    <dt><a href="engine.html#engine.queries.Query.prefix">(engine.queries.Query class method)</a></dt>
+  </dl></dd>
 <dt><a href="engine.html#engine.documents.PrefixField">PrefixField (class in engine.documents)</a></dt>
 <dt><a href="client.html#client.Resource.put">put() (client.Resource method)</a></dt>
 </dl></td></tr></table>
@@ -239,8 +243,10 @@
 <table width="100%" class="indextable"><tr><td width="33%" valign="top">
 <dl>
 
-<dt><a href="engine.html#engine.queries.Query.range">range (engine.queries.Query attribute)</a></dt>
 <dt><a href="engine.html#engine.documents.PrefixField.range">range() (engine.documents.PrefixField method)</a></dt>
+  <dd><dl>
+    <dt><a href="engine.html#engine.queries.Query.range">(engine.queries.Query class method)</a></dt>
+  </dl></dd>
 <dt><a href="client.html#client.Resource">Resource (class in client)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="server.html#server.Root">Root (class in server)</a></dt>
 </dl></td></tr></table>
@@ -256,7 +262,7 @@
 <dt><a href="engine.html#engine.indexers.IndexWriter.segments">segments (engine.indexers.IndexWriter attribute)</a></dt>
 <dt><a href="server.html#module-server">server (module)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexWriter.set">set() (engine.indexers.IndexWriter method)</a></dt></dl></td><td width="33%" valign="top"><dl>
-<dt><a href="engine.html#engine.queries.Query.span">span (engine.queries.Query attribute)</a></dt>
+<dt><a href="engine.html#engine.queries.Query.span">span() (engine.queries.Query static method)</a></dt>
 <dt><a href="engine.html#engine.queries.SpanQuery">SpanQuery (class in engine.queries)</a></dt>
 <dt><a href="engine.html#engine.documents.NestedField.split">split() (engine.documents.NestedField method)</a></dt>
   <dd><dl>
@@ -268,7 +274,7 @@
 <table width="100%" class="indextable"><tr><td width="33%" valign="top">
 <dl>
 
-<dt><a href="engine.html#engine.queries.Query.term">term (engine.queries.Query attribute)</a></dt>
+<dt><a href="engine.html#engine.queries.Query.term">term() (engine.queries.Query class method)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexReader.terms">terms() (engine.indexers.IndexReader method)</a></dt>
   <dd><dl>
     <dt><a href="server.html#server.Root.terms">(server.Root method)</a></dt>
@@ -279,7 +285,7 @@
 <table width="100%" class="indextable"><tr><td width="33%" valign="top">
 <dl>
 
-<dt><a href="engine.html#engine.queries.Query.wildcard">wildcard (engine.queries.Query attribute)</a></dt>
+<dt><a href="engine.html#engine.queries.Query.wildcard">wildcard() (engine.queries.Query class method)</a></dt>
 <dt><a href="engine.html#engine.spatial.PointField.within">within() (engine.spatial.PointField method)</a></dt></dl></td><td width="33%" valign="top"><dl>
 </dl></td></tr></table>
 
@@ -293,12 +299,19 @@
 
    
 
-          <h3>Quick search</h3>
-            <form class="search" action="search.html" method="get">
-              <input type="text" name="q" size="18" /> <input type="submit" value="Go" />
-              <input type="hidden" name="check_keywords" value="yes" />
-              <input type="hidden" name="area" value="default" />
-            </form>
+          <div id="searchbox" style="display: none">
+            <h3>Quick search</h3>
+              <form class="search" action="search.html" method="get">
+                <input type="text" name="q" size="18" />
+                <input type="submit" value="Go" />
+                <input type="hidden" name="check_keywords" value="yes" />
+                <input type="hidden" name="area" value="default" />
+              </form>
+              <p class="searchtip" style="font-size: 90%">
+              Enter search terms or a module, class or function name.
+              </p>
+          </div>
+          <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -308,16 +321,16 @@
       <ul>
         <li class="right" style="margin-right: 10px">
           <a href="" title="General Index"
-             accesskey="I">index</a></li>
+             >index</a></li>
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
-             accesskey="M">modules</a> |</li>
+             >modules</a> |</li>
         <li><a href="index.html">CherryPyLucene v0.1a0 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.5.1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.1.
     </div>
   </body>
 </html>
