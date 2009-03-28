@@ -86,14 +86,20 @@ class IndexReader(object):
         for termpositions in iterate(self.termPositions(lucene.Term(name, value))):
             positions = [termpositions.nextPosition() for n in xrange(termpositions.freq())]
             yield termpositions.doc(), positions
-    def comparator(self, name, *names):
-        "Return sequence of documents' field values suitable for sorting."
+    def comparator(self, name, *names, **kwargs):
+        """Return sequence of documents' field values suitable for sorting.
+
+        :param names: additional names return tuples of values
+        :param default: keyword only default value
+        """
         if names:
-            return zip(*map(self.comparator, (name,)+names))
-        values = [None] * self.maxDoc()
-        for value in self.terms(name):
-            for id in self.docs(name, value):
-                values[id] = value
+            return zip(*(self.comparator(name, **kwargs) for name in (name,)+names))
+        values = [kwargs.get('default')] * self.maxDoc()
+        with contextlib.closing(self.termDocs()) as termdocs:
+            for value in self.terms(name):
+                termdocs.seek(lucene.Term(name, value))
+                while termdocs.next():
+                    values[termdocs.doc()] = value
         return values
 
 class IndexSearcher(lucene.IndexSearcher, IndexReader):
