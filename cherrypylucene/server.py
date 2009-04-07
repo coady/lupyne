@@ -24,7 +24,7 @@ def json_tool():
     "Transform responses into json format."
     response = cherrypy.response
     if response.status is None:
-        response.headers['Content-Type'] = 'text/json'
+        response.headers['content-type'] = 'text/plain'
         response.body = json.dumps(response.body)
 cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
 
@@ -44,7 +44,7 @@ def handle404(exc):
 
 class Root(object):
     "Dispatch root with a delegated Indexer."
-    _cp_config = {'tools.json.on': True}
+    _cp_config = {'tools.json.on': True, 'tools.gzip.on': True}
     def __init__(self, *args, **kwargs):
         self.indexer = Indexer(*args, **kwargs)
         self.lock = threading.Lock()

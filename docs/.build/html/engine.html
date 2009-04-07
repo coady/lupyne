@@ -717,10 +717,10 @@ classmethod </em><tt class="descname">any</tt><big>(</big><em>*queries</em>, <em
 classmethod </em><tt class="descname">fuzzy</tt><big>(</big><em>name</em>, <em>value</em>, <em>minimumSimilarity=0.5</em>, <em>prefixLength=0</em><big>)</big><a class="headerlink" href="#engine.queries.Query.fuzzy" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene FuzzyQuery.</dd></dl>
 
-<dl class="staticmethod">
+<dl class="classmethod">
 <dt id="engine.queries.Query.near">
 <em class="property">
-static </em><tt class="descname">near</tt><big>(</big><em>spans</em>, <em>slop=0</em>, <em>inOrder=True</em><big>)</big><a class="headerlink" href="#engine.queries.Query.near" title="Permalink to this definition">¶</a></dt>
+classmethod </em><tt class="descname">near</tt><big>(</big><em>spans</em>, <em>slop=0</em>, <em>inOrder=True</em><big>)</big><a class="headerlink" href="#engine.queries.Query.near" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene SpanNearQuery.</dd></dl>
 
 <dl class="classmethod">
@@ -741,10 +741,10 @@ classmethod </em><tt class="descname">prefix</tt><big>(</big><em>name</em>, <em>
 classmethod </em><tt class="descname">range</tt><big>(</big><em>name</em>, <em>start</em>, <em>stop</em>, <em>lower=True</em>, <em>upper=False</em><big>)</big><a class="headerlink" href="#engine.queries.Query.range" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene ConstantScoreRangeQuery, by default with a half-open interval.</dd></dl>
 
-<dl class="staticmethod">
+<dl class="classmethod">
 <dt id="engine.queries.Query.span">
 <em class="property">
-static </em><tt class="descname">span</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.queries.Query.span" title="Permalink to this definition">¶</a></dt>
+classmethod </em><tt class="descname">span</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.queries.Query.span" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene SpanTermQuery.</dd></dl>
 
 <dl class="classmethod">
@@ -769,6 +769,21 @@ classmethod </em><tt class="descname">wildcard</tt><big>(</big><em>name</em>, <e
 <em class="property">
 class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">BooleanQuery</tt><big>(</big><em>base</em>, <em>*args</em><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
+<dt>
+<tt class="descname">__len__():</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__iter__():</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt>
+<tt class="descname">__getitem__(index):</tt></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt>
 <tt class="descname">__iand__(self, other):</tt></dt>
 <dd>add +other</dd></dl>

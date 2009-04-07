@@ -144,6 +144,12 @@ BooleanQuery
 .. autoclass:: engine.queries.BooleanQuery
   :members:
 
+  .. method:: __len__():
+
+  .. method:: __iter__():
+
+  .. method:: __getitem__(index):
+
   .. method:: __iand__(self, other):
 
     add +other
@@ -177,6 +183,7 @@ Filter
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.Filter
   :members:
+
 
 spatial
 ---------

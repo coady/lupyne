@@ -38,12 +38,12 @@ class Query(object):
     def all(cls, *queries, **terms):
         "Return lucene BooleanQuery (AND) from queries and terms."
         return cls.boolean(lucene.BooleanClause.Occur.MUST, *queries, **terms)
-    @staticmethod
-    def span(name, value):
+    @classmethod
+    def span(cls, name, value):
         "Return lucene SpanTermQuery."
         return SpanQuery(lucene.SpanTermQuery, lucene.Term(name, value))
-    @staticmethod
-    def near(spans, slop=0, inOrder=True):
+    @classmethod
+    def near(cls, spans, slop=0, inOrder=True):
         "Return lucene SpanNearQuery."
         return SpanQuery(lucene.SpanNearQuery, spans, slop, inOrder)
     @classmethod
