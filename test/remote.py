@@ -20,7 +20,8 @@ class TestCase(BaseTest):
     
     def test0Interface(self):
         "Remote reading and writing."
-        resource = client.Resource('localhost:8080')
+        resource = client.Resource('127.0.0.1:8080')
+        self.assertRaises(ValueError, resource.get, '/favicon.ico')
         (directory, count), = resource.get('/').items()
         assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
         assert resource.get('/docs') == []

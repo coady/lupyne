@@ -12,7 +12,7 @@ except ImportError:
 
 class Resource(httplib.HTTPConnection):
     "Synchronous connection which handles json responses."
-    def __call__(self, method, path, body=None, headers=()):
+    def __call__(self, method, path, body=None):
         headers = {'accept-encoding': 'compress, gzip'}
         if body is not None:
             body = urllib.urlencode(dict((name, value if isinstance(value, basestring) else json.dumps(value)) \

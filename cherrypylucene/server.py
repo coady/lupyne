@@ -23,7 +23,7 @@ from engine import Indexer
 def json_tool():
     "Transform responses into json format."
     response = cherrypy.response
-    if response.status is None:
+    if response.status is None and cherrypy.request.path_info != '/favicon.ico':
         response.headers['content-type'] = 'text/plain'
         response.body = json.dumps(response.body)
 cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
@@ -223,12 +223,10 @@ def main(root, path='', config=None):
     cherrypy.wsgiserver.WorkerThread = AttachedThread
     cherrypy.engine.subscribe('stop', root.indexer.close)
     cherrypy.config['engine.autoreload.on'] = False
-    cherrypy.config['checker.on'] = False # python2.6 incompatibility
-    cherrypy.server.socket_host = '0.0.0.0'
     cherrypy.quickstart(root, path, config)
 
 if __name__ == '__main__':
     import sys
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
-    main(Root(*sys.argv[1:]))
+    main(Root(*sys.argv[1:]), config={'global': {'server.socket_host': '0.0.0.0'}})
