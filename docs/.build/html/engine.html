@@ -225,7 +225,7 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">I
 
 <dl class="method">
 <dt id="engine.indexers.IndexSearcher.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op='or'</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.parse" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return lucene parsed Query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -233,7 +233,7 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">I
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>field</em> &#8211; default query field name</li>
-<li><em>op</em> &#8211; default query operator</li>
+<li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
 </ul>
 </td>
 </tr>
@@ -342,7 +342,7 @@ Document is comprised of name: value pairs, where the values may be one or multi
 
 <dl class="method">
 <dt id="engine.indexers.IndexWriter.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op='or'</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.parse" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return lucene parsed Query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -350,7 +350,7 @@ Document is comprised of name: value pairs, where the values may be one or multi
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>field</em> &#8211; default query field name</li>
-<li><em>op</em> &#8211; default query operator</li>
+<li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
 </ul>
 </td>
 </tr>
@@ -716,6 +716,12 @@ classmethod </em><tt class="descname">any</tt><big>(</big><em>*queries</em>, <em
 <em class="property">
 classmethod </em><tt class="descname">fuzzy</tt><big>(</big><em>name</em>, <em>value</em>, <em>minimumSimilarity=0.5</em>, <em>prefixLength=0</em><big>)</big><a class="headerlink" href="#engine.queries.Query.fuzzy" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene FuzzyQuery.</dd></dl>
+
+<dl class="classmethod">
+<dt id="engine.queries.Query.multiphrase">
+<em class="property">
+classmethod </em><tt class="descname">multiphrase</tt><big>(</big><em>name</em>, <em>*values</em><big>)</big><a class="headerlink" href="#engine.queries.Query.multiphrase" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene MultiPhraseQuery.  None may be used as a placeholder.</dd></dl>
 
 <dl class="classmethod">
 <dt id="engine.queries.Query.near">

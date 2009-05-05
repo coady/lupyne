@@ -63,6 +63,16 @@ class Query(object):
                 self.add(lucene.Term(name, value), index)
         return self
     @classmethod
+    def multiphrase(cls, name, *values):
+        "Return lucene MultiPhraseQuery.  None may be used as a placeholder."
+        self = cls(lucene.MultiPhraseQuery)
+        for index, words in enumerate(values):
+            if isinstance(words, basestring):
+                words = [words]
+            if words is not None:
+                self.add([lucene.Term(name, word) for word in words], index)
+        return self
+    @classmethod
     def wildcard(cls, name, value):
         "Return lucene WildcardQuery."
         return cls(lucene.WildcardQuery, lucene.Term(name, value))

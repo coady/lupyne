@@ -40,6 +40,7 @@ engine.queries.Query.filter method engine.html
 engine.queries.Query.phrase classmethod engine.html
 engine.indexers.IndexSearcher class engine.html
 engine.indexers.IndexWriter class engine.html
+engine.queries.Query.multiphrase classmethod engine.html
 engine.spatial.PointField class engine.html
 engine.queries.SpanQuery class engine.html
 client.Resource class client.html

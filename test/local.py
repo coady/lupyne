@@ -157,6 +157,8 @@ class TestCase(BaseTest):
         assert hit['amendment'] == '4'
         hit, = indexer.search(engine.Query.phrase('text', 'persons', None, 'papers'))
         assert hit['amendment'] == '4'
+        hit, = indexer.search(engine.Query.multiphrase('text', 'persons', ['houses', 'papers']))
+        assert hit['amendment'] == '4'
         query = engine.Query.term('text', 'persons')
         assert str(-query) == '-text:persons'
         query = +query

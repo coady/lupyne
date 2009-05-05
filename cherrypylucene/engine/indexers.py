@@ -115,15 +115,16 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     def __del__(self):
         if str(self) != '<null>':
             self.close()
-    def parse(self, query, field='', op='or'):
+    def parse(self, query, field='', op=''):
         """Return lucene parsed Query.
         
         :param field: default query field name
-        :param op: default query operator
+        :param op: default query operator ('or', 'and')
         """
         # parser's aren't thread-safe (nor slow), so create one each time
         parser = lucene.QueryParser(field, self.analyzer)
-        parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
+        if op:
+            parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
         return parser.parse(query)
     def facets(self, ids, *keys):
         """Return mapping of document counts for the intersection with each facet.

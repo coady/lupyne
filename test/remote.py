@@ -3,16 +3,21 @@ import os, sys
 import subprocess, time
 import operator
 import httplib
+import cherrypy
 from cherrypylucene import client
 import fixture
 from local import BaseTest
 
 class TestCase(BaseTest):
+    host = 'localhost:8080'
     def setUp(self):
         BaseTest.setUp(self)
         stderr = None if self.verbose else subprocess.PIPE
+        host, port = self.host.split(':')
+        cherrypy.process.servers.wait_for_free_port(host, port)
         self.server = subprocess.Popen([sys.executable, '-m', 'cherrypylucene.server', self.tempdir], stderr=stderr)
-        time.sleep(1)   # give server a chance to start
+        cherrypy.process.servers.wait_for_occupied_port(host, port)
+        assert self.server.poll() is None
     def tearDown(self):
         self.server.terminate()
         assert self.server.wait() == 0
@@ -20,7 +25,7 @@ class TestCase(BaseTest):
     
     def test0Interface(self):
         "Remote reading and writing."
-        resource = client.Resource('127.0.0.1:8080')
+        resource = client.Resource(self.host)
         self.assertRaises(ValueError, resource.get, '/favicon.ico')
         (directory, count), = resource.get('/').items()
         assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
@@ -69,7 +74,7 @@ class TestCase(BaseTest):
 
     def test1Basic(self):
         "Remote text indexing and searching."
-        resource = client.Resource('localhost:8080')
+        resource = client.Resource(self.host)
         assert resource.get('/fields') == []
         for name, settings in fixture.constitution.fields.items():
             assert resource.put('/fields/' + name, **settings)
