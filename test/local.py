@@ -3,7 +3,7 @@ import tempfile, shutil
 import itertools
 import lucene
 lucene.initVM(lucene.CLASSPATH)
-from cherrypylucene import engine
+from lupyne import engine
 import fixture
 
 class BaseTest(unittest.TestCase):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# CherryPyLucene documentation build configuration file, created by
+# LuPyne documentation build configuration file, created by
 # sphinx-quickstart on Sun Jan 25 12:46:46 2009.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -19,7 +19,7 @@ import sys, os
 # If your extensions are in another directory, add it here. If the directory
 # is relative to the documentation root, use os.path.abspath to make it
 # absolute, like shown here.
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'cherrypylucene'))
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lupyne'))
 
 # General configuration
 # ---------------------
@@ -41,7 +41,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'CherryPyLucene'
+project = u'LuPyne'
 copyright = u'2009, Aric Coady'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -153,7 +153,7 @@ html_static_path = ['.static']
 html_file_suffix = '.html'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'CherryPyLucenedoc'
+htmlhelp_basename = 'LuPynedoc'
 
 
 # Options for LaTeX output
@@ -168,7 +168,7 @@ htmlhelp_basename = 'CherryPyLucenedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, document class [howto/manual]).
 latex_documents = [
-  ('index', 'CherryPyLucene.tex', ur'CherryPyLucene Documentation',
+  ('index', 'LuPyne.tex', ur'LuPyne Documentation',
    ur'Aric Coady', 'manual'),
 ]
 

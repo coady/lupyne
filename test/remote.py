@@ -4,7 +4,7 @@ import subprocess, time
 import operator
 import httplib
 import cherrypy
-from cherrypylucene import client
+from lupyne import client
 import fixture
 from local import BaseTest
 
@@ -15,7 +15,7 @@ class TestCase(BaseTest):
         stderr = None if self.verbose else subprocess.PIPE
         host, port = self.host.split(':')
         cherrypy.process.servers.wait_for_free_port(host, port)
-        self.server = subprocess.Popen([sys.executable, '-m', 'cherrypylucene.server', self.tempdir], stderr=stderr)
+        self.server = subprocess.Popen([sys.executable, '-m', 'lupyne.server', self.tempdir], stderr=stderr)
         cherrypy.process.servers.wait_for_occupied_port(host, port)
         assert self.server.poll() is None
     def tearDown(self):
