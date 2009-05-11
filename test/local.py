@@ -1,8 +1,8 @@
-import unittest, os, optparse
+import unittest
+import os, optparse
 import tempfile, shutil
 import itertools
 import lucene
-lucene.initVM(lucene.CLASSPATH)
 from lupyne import engine
 import fixture
 
@@ -261,4 +261,5 @@ class TestCase(BaseTest):
         assert city in cities and len(cities) > 100
 
 if __name__ == '__main__':
+    lucene.initVM(lucene.CLASSPATH)
     unittest.main()

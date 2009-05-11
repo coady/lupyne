@@ -1,6 +1,6 @@
 import unittest
 import os, sys
-import subprocess, time
+import subprocess
 import operator
 import httplib
 import cherrypy
