@@ -117,6 +117,12 @@ NestedField
   :show-inheritance:
   :members:
 
+DateTimeField
+^^^^^^^^^^^^^
+.. autoclass:: engine.documents.DateTimeField
+  :show-inheritance:
+  :members:
+
 
 queries
 ---------

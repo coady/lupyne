@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>engine &mdash; LuPyne v0.1a0 documentation</title>
+    <title>engine &mdash; LuPyne v0.1+ documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.1a0',
+        VERSION:     '0.1+',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.1a0 documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.1+ documentation" href="index.html" />
     <link rel="next" title="server" href="server.html" />
     <link rel="prev" title="Welcome to LuPyne’s documentation!" href="index.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.1a0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.1+ documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -585,7 +585,7 @@ class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">
 <dd><p>Bases: <a title="engine.documents.Field" class="reference internal" href="#engine.documents.Field"><tt class="xref docutils literal"><span class="pre">engine.documents.Field</span></tt></a></p>
 <p>Field which indexes every prefix of a value into a separate component field.
 The customizable component field names are expressed as slices.
-Original value may be stored only for convenience.</p>
+Original value may be stored for convenience.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -663,6 +663,44 @@ class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">
 <dt id="engine.documents.NestedField.split">
 <tt class="descname">split</tt><big>(</big><em>text</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.split" title="Permalink to this definition">¶</a></dt>
 <dd>Return immutable sequence of words from name or value.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="datetimefield">
+<h3>DateTimeField<a class="headerlink" href="#datetimefield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.documents.DateTimeField">
+<em class="property">
+class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">DateTimeField</tt><big>(</big><em>name</em>, <em>start=1</em>, <em>stop=None</em>, <em>step=1</em>, <em>store=False</em>, <em>index=True</em>, <em>termvector=False</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a></p>
+<p>Field which indexes each datetime component in sortable ISO format: Y-m-d H:M:S.
+Works with datetimes, dates, and any object whose string form is a prefix of ISO.</p>
+<dl class="method">
+<dt id="engine.documents.DateTimeField.getname">
+<tt class="descname">getname</tt><big>(</big><em>depth</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField.getname" title="Permalink to this definition">¶</a></dt>
+<dd>Return component field name for given depth.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.DateTimeField.join">
+<tt class="descname">join</tt><big>(</big><em>words</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField.join" title="Permalink to this definition">¶</a></dt>
+<dd>Return datetime components in ISO format.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.DateTimeField.prefix">
+<tt class="descname">prefix</tt><big>(</big><em>date</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField.prefix" title="Permalink to this definition">¶</a></dt>
+<dd>Return prefix query of the datetime.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.DateTimeField.range">
+<tt class="descname">range</tt><big>(</big><em>start</em>, <em>stop</em>, <em>lower=True</em>, <em>upper=False</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField.range" title="Permalink to this definition">¶</a></dt>
+<dd>Return optimal union of date range queries.
+May produce invalid dates, but the query is still correct.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.DateTimeField.split">
+<tt class="descname">split</tt><big>(</big><em>text</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField.split" title="Permalink to this definition">¶</a></dt>
+<dd>Return immutable sequence of datetime components.</dd></dl>
 
 </dd></dl>
 
@@ -957,6 +995,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 <li><a class="reference external" href="#field">Field</a></li>
 <li><a class="reference external" href="#prefixfield">PrefixField</a></li>
 <li><a class="reference external" href="#nestedfield">NestedField</a></li>
+<li><a class="reference external" href="#datetimefield">DateTimeField</a></li>
 </ul>
 </li>
 <li><a class="reference external" href="#module-engine.queries">queries</a><ul>
@@ -1018,7 +1057,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.1a0 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.1+ documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

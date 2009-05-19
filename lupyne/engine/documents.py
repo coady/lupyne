@@ -30,7 +30,7 @@ class Field(object):
 class PrefixField(Field):
     """Field which indexes every prefix of a value into a separate component field.
     The customizable component field names are expressed as slices.
-    Original value may be stored only for convenience.
+    Original value may be stored for convenience.
     
     :param start, stop, step: optional slice parameters of the prefix depths (not indices)
     """
@@ -91,6 +91,52 @@ class NestedField(PrefixField):
     def getname(self, depth):
         "Return component field name for given depth."
         return self.names[depth]
+
+class DateTimeField(PrefixField):
+    """Field which indexes each datetime component in sortable ISO format: Y-m-d H:M:S.
+    Works with datetimes, dates, and any object whose string form is a prefix of ISO.
+    """
+    def split(self, text):
+        "Return immutable sequence of datetime components."
+        words = (words.split(char) for words, char in zip(text.split(), '-:'))
+        return tuple(itertools.chain(*words))
+    def join(self, words):
+        "Return datetime components in ISO format."
+        return ' '.join(filter(None, ['-'.join(words[:3]), ':'.join(words[3:])]))
+    def getname(self, depth):
+        "Return component field name for given depth."
+        return '{0}:{1}'.format(self.name, 'YmdHMS'[:depth])
+    def items(self, *dates):
+        return PrefixField.items(self, *map(str, dates))
+    def prefix(self, date):
+        "Return prefix query of the datetime."
+        return PrefixField.prefix(self, str(date))
+    def _range(self, start, stop):
+        depth = max(map(len, (start, stop))) - 1
+        lower, upper = start[:depth], stop[:depth]
+        if lower and lower < start:
+            lower[-1] += 1
+        if lower < upper:
+            if start < lower:
+                yield start, lower
+            for item in self._range(lower, upper):
+                yield item
+            if upper < stop:
+                yield upper, stop
+        else:
+            yield start, stop
+    def range(self, start, stop, lower=True, upper=False):
+        """Return optimal union of date range queries.
+        May produce invalid dates, but the query is still correct.
+        """
+        dates = (map(int, self.split(str(date))) for date in (start, stop))
+        queries = []
+        for dates in self._range(*dates):
+            begin, end = (self.join(map('{0:02d}'.format, date)) for date in dates)
+            queries.append(PrefixField.range(self, begin, end))
+        queries[0] = PrefixField.range(self, queries[0].lowerVal or '', queries[0].upperVal, lower=lower)
+        queries[-1] = PrefixField.range(self, queries[-1].lowerVal or '', queries[-1].upperVal, upper=upper)
+        return Query.any(*queries)
 
 class Document(object):
     """Delegated lucene Document.

@@ -1,5 +1,5 @@
 import unittest
-import os, sys
+import sys
 import subprocess
 import operator
 import httplib
@@ -23,7 +23,7 @@ class TestCase(BaseTest):
         assert self.server.wait() == 0
         BaseTest.tearDown(self)
     
-    def test0Interface(self):
+    def testInterface(self):
         "Remote reading and writing."
         resource = client.Resource(self.host)
         self.assertRaises(ValueError, resource.get, '/favicon.ico')
@@ -71,8 +71,8 @@ class TestCase(BaseTest):
         assert resource.get('/docs') == [0]
         resource.post('/commit')
         assert resource.get('/docs') == []
-
-    def test1Basic(self):
+    
+    def testBasic(self):
         "Remote text indexing and searching."
         resource = client.Resource(self.host)
         assert resource.get('/fields') == []

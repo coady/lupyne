@@ -2,6 +2,7 @@ import unittest
 import os, optparse
 import tempfile, shutil
 import itertools
+from datetime import date
 import lucene
 from lupyne import engine
 import fixture
@@ -18,7 +19,7 @@ class BaseTest(unittest.TestCase):
 
 class TestCase(BaseTest):
     
-    def test0Interface(self):
+    def testInterface(self):
         "Indexer and document interfaces."
         indexer = engine.Indexer()
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
@@ -85,7 +86,7 @@ class TestCase(BaseTest):
         x, y = engine.Filter([0, 1]).bits(), engine.Filter([1, 2]).bits()
         assert list(x & y) == [1] and list(x | y) == [0, 1, 2] and list(x -y) == [0]
     
-    def test1Basic(self):
+    def testBasic(self):
         "Text fields and simple searches."
         self.assertRaises(lucene.JavaError, engine.Indexer, self.tempdir, 'r')
         indexer = engine.Indexer(self.tempdir)
@@ -174,8 +175,8 @@ class TestCase(BaseTest):
         assert indexer.count(queries[0][:100]) == count - 1
         del indexer
         assert engine.Indexer(self.tempdir)
-
-    def test2Advanced(self):
+    
+    def testAdvanced(self):
         "Large data set with hierarchical fields."
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
@@ -227,8 +228,8 @@ class TestCase(BaseTest):
         la, orange = sorted(filter(facets.get, facets))
         assert la == 'CA:Los Angeles' and facets[la] > 100
         assert orange == 'CA:Orange' and facets[orange] > 10
-
-    def test3Spatial(self):
+    
+    def testSpatial(self):
         "Spatial tile test."
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
@@ -259,6 +260,25 @@ class TestCase(BaseTest):
         hits = indexer.search(field.within(x, y, 10**5))
         cities = set(hit['city'] for hit in hits)
         assert city in cities and len(cities) > 100
+    
+    def testDate(self):
+        "DateTime field test."
+        indexer = engine.Indexer(self.tempdir)
+        indexer.set('amendment', store=True, index=False)
+        indexer.set('date', engine.DateTimeField, store=True)
+        for doc in fixture.constitution.docs():
+            if 'amendment' in doc:
+                indexer.add(amendment=doc['amendment'], date=doc['date'])
+        indexer.commit()
+        query = indexer.fields['date'].range('', '1921-12', lower=False, upper=True)
+        assert str(query) == 'date:Y:{ TO 1921} date:Ym:[1921 TO 1921-12]'
+        assert indexer.count(query) == 19
+        query = indexer.fields['date'].range(date(1919, 1, 1), date(1921, 12, 31))
+        fields = [lucene.ConstantScoreRangeQuery.cast_(clause.query).field for clause in query]
+        assert fields == ['date:Ymd', 'date:Ym', 'date:Y', 'date:Ym', 'date:Ymd']
+        hits = indexer.search(query)
+        assert [hit['amendment'] for hit in hits] == ['18', '19']
+        assert [hit['date'].split('-')[0] for hit in hits] == ['1919', '1920']
 
 if __name__ == '__main__':
     lucene.initVM(lucene.CLASSPATH)
