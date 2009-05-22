@@ -1,7 +1,7 @@
 """
 Restful json `CherryPy <http://cherrypy.org/>`_ server.
 
-    $ python server.py `directory`
+    $ python server.py `directory` [-r|--read-only]
 
 CherryPy and Lucene VM integration issues:
  * Autoreload is not compatible with the VM initialization.
@@ -13,20 +13,30 @@ try:    # optimization
     import simplejson as json
 except ImportError:
     import json
+import httplib
 import threading
 from contextlib import contextmanager
 import lucene
 import cherrypy
 from cherrypy.wsgiserver import WorkerThread
-from engine import Indexer
+from engine import Indexer, IndexSearcher
 
 def json_tool():
     "Transform responses into json format."
     response = cherrypy.response
-    if response.status is None and cherrypy.request.path_info != '/favicon.ico':
-        response.headers['content-type'] = 'text/plain'
+    if response.status is None and cherrypy.response.headers['content-type'].startswith('text/'):
+        response.headers['content-type'] = 'text/x-json'
         response.body = json.dumps(response.body)
 cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
+# make content-type text/x-json compatible with gzip
+cherrypy.tools.gzip.callable.func_defaults[-1].append('text/x-json')
+
+def allow_tool(methods=['GET', 'HEAD']):
+    if cherrypy.request.method not in methods:
+        cherrypy.response.headers['Allow'] = ', '.join(methods)
+        message = "The path {0} does not allow {1}.".format(cherrypy.request.path_info, cherrypy.request.method)
+        raise cherrypy.HTTPError(httplib.METHOD_NOT_ALLOWED, message)
+cherrypy.tools.allow = cherrypy.Tool('on_start_resource', allow_tool)
 
 class AttachedThread(WorkerThread):
     "Attach cherrypy threads to lucene VM."
@@ -35,19 +45,26 @@ class AttachedThread(WorkerThread):
         WorkerThread.run(self)
 
 @contextmanager
-def handle404(exc):
-    "Translate given exception into 404 Not Found."
+def handleNotFound(exc):
+    "Interpret given exception as 404 Not Found."
     try:
         yield
     except exc:
         raise cherrypy.NotFound(cherrypy.request.path_info)
 
-class Root(object):
+@contextmanager
+def handleBadRequest(exc):
+    "Interpret given exception as 400 Bad Request."
+    try:
+        yield
+    except exc:
+        raise cherrypy.HTTPError(httplib.BAD_REQUEST, str(exc))
+
+class WebSearcher(object):
     "Dispatch root with a delegated Indexer."
-    _cp_config = {'tools.json.on': True, 'tools.gzip.on': True}
+    _cp_config = {'tools.json.on': True, 'tools.gzip.on': True, 'tools.allow.on': True}
     def __init__(self, *args, **kwargs):
-        self.indexer = Indexer(*args, **kwargs)
-        self.lock = threading.Lock()
+        self.indexer = IndexSearcher(*args, **kwargs)
     @cherrypy.expose
     def index(self):
         """Return index information.
@@ -59,16 +76,8 @@ class Root(object):
         """
         return {str(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
-    def commit(self):
-        """Commit write operations.
-        
-        **POST** /commit
-        """
-        with self.lock:
-            self.indexer.commit()
-    @cherrypy.expose
-    def docs(self, id=None, docs='[]', fields='', multifields=''):
-        """Return and index documents.
+    def docs(self, id=None, fields='', multifields=''):
+        """Return ids or documents.
         
         **GET** /docs
             Return list of doc ids.
@@ -83,28 +92,19 @@ class Root(object):
             &multifields=\ *chars*,...
             
             :return: {*string*: *string*\|\ *array*,... }
-        
-        **POST** /docs
-            Add documents to index.
-            
-            docs=[{*string*: *string*\|\ *array*,... },... ]
         """
+        if id is None:
+            return list(self.indexer)
+        with handleBadRequest(ValueError):
+            id = int(id)
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
-        if cherrypy.request.method == 'GET':
-            if id is None:
-                return list(self.indexer)
-            with handle404(KeyError):
-                doc = self.indexer[int(id)]
-            return doc.dict(*multifields, **fields)
-        for doc in json.loads(docs):
-            self.indexer.add(doc)
+        with handleNotFound(KeyError):
+            doc = self.indexer[id]
+        return doc.dict(*multifields, **fields)
     @cherrypy.expose
     def search(self, q, count=None, fields='', multifields='', sort=None, reverse='false'):
-        """Run or delete a query.
-        
-        **DELETE** /search?q=\ *chars*
-            Delete documents which match query.
+        """Run query and return documents.
         
         **GET** /search?q=\ *chars*,
             Return list document mappings and total doc count.
@@ -121,20 +121,19 @@ class Root(object):
             
             :return: {"count": *int*, "docs": [{"__id__": *int*, "__score__": *number*, *string*: *string*\|\ *array*,... },... ]}
         """
-        if cherrypy.request.method == 'DELETE':
-            return self.indexer.delete(q)
-        if count is not None:
-            count = int(count)
+        with handleBadRequest(ValueError):
+            count = count and int(count)
+            reverse = json.loads(reverse)
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
         if sort is not None and ',' in sort:
             sort = fields.split(',')
-        hits = self.indexer.search(q, count=count, sort=sort, reverse=json.loads(reverse))
+        hits = self.indexer.search(q, count=count, sort=sort, reverse=reverse)
         docs = [hit.dict(*multifields, **fields) for hit in hits]
         return {'count': hits.count, 'docs': docs}
     @cherrypy.expose
-    def fields(self, name='', **params):
-        """Return and store a field's parameters.
+    def fields(self, name=''):
+        """Return a field's parameters.
         
         **GET** /fields
             Return known field names.
@@ -145,21 +144,10 @@ class Root(object):
             Return parameters for given field name.
             
             :return: {"store": *string*, "index": *string*, "termvector": *string*}
-        
-        **PUT** /fields/*chars*
-            Set parameters for given field name.
-            
-            store=\ *chars*
-            
-            index=\ *chars*
-            
-            termvector=\ *chars*
         """
         if not name:
             return sorted(self.indexer.fields)
-        if cherrypy.request.method in ('PUT', 'POST'):
-            self.indexer.set(name, **params)
-        with handle404(KeyError):
+        with handleNotFound(KeyError):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
     @cherrypy.expose
@@ -218,6 +206,68 @@ class Root(object):
                 return list(self.indexer.docs(name, value, counts=bool(stats)))
         raise cherrypy.NotFound('/'.join(args))
 
+class WebIndexer(WebSearcher):
+    "Dispatch root which extends searcher to include write methods."
+    def __init__(self, *args, **kwargs):
+        self.indexer = Indexer(*args, **kwargs)
+        self.lock = threading.Lock()
+    @cherrypy.expose
+    @cherrypy.tools.allow(methods=['POST'])
+    def commit(self):
+        """Commit write operations.
+        
+        **POST** /commit
+        """
+        with self.lock:
+            self.indexer.commit()
+        return len(self.indexer)
+    @cherrypy.expose
+    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
+    def docs(self, id=None, fields='', multifields='', docs='[]'):
+        """Index documents.
+        
+        **POST** /docs
+            Add documents to index.
+            
+            docs=[{*string*: *string*\|\ *array*,... },... ]
+        """
+        if cherrypy.request.method != 'POST':
+            return WebSearcher.docs(self, id, fields, multifields)
+        with handleBadRequest(ValueError):
+            docs = json.loads(docs)
+        for doc in docs:
+            self.indexer.add(doc)
+        cherrypy.response.status = httplib.ACCEPTED
+    @cherrypy.expose
+    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
+    def search(self, q, count=None, fields='', multifields='', sort=None, reverse='false'):
+        """Delete a query.
+        
+        **DELETE** /search?q=\ *chars*
+            Delete documents which match query.
+        """
+        if cherrypy.request.method != 'DELETE':
+            return WebSearcher.search(self, q, count, fields, multifields, sort, reverse)
+        self.indexer.delete(q)
+        cherrypy.response.status = httplib.ACCEPTED
+    @cherrypy.expose
+    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT', 'POST'])
+    def fields(self, name='', **params):
+        """Store a field's parameters.
+        
+        **PUT** /fields/*chars*
+            Set parameters for given field name.
+            
+            store=\ *chars*
+            
+            index=\ *chars*
+            
+            termvector=\ *chars*
+        """
+        if cherrypy.request.method in ('PUT', 'POST'):
+            self.indexer.set(name, **params)
+        return WebSearcher.fields(self, name)
+
 def main(root, path='', config=None):
     "Attach root and run server."
     cherrypy.wsgiserver.WorkerThread = AttachedThread
@@ -226,7 +276,12 @@ def main(root, path='', config=None):
     cherrypy.quickstart(root, path, config)
 
 if __name__ == '__main__':
-    import sys
+    import optparse
+    parser = optparse.OptionParser()
+    parser.add_option("-r", "--read-only", action="store_true", dest="read",
+        help="expose only search methods, without acquiring a write lock")
+    options, args = parser.parse_args()
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
-    main(Root(*sys.argv[1:]), config={'global': {'server.socket_host': '0.0.0.0'}})
+    root = (WebSearcher if options.read else WebIndexer)(*args)
+    main(root, config={'global': {'server.socket_host': '0.0.0.0'}})

@@ -82,7 +82,7 @@
 <dt><a href="client.html#module-client">client (module)</a></dt>
 <dt><a href="engine.html#engine.indexers.Indexer.commit">commit() (engine.indexers.Indexer method)</a></dt>
   <dd><dl>
-    <dt><a href="server.html#server.Root.commit">(server.Root method)</a></dt>
+    <dt><a href="server.html#server.WebIndexer.commit">(server.WebIndexer method)</a></dt>
   </dl></dd>
 <dt><a href="engine.html#engine.indexers.IndexReader.comparator">comparator() (engine.indexers.IndexReader method)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.indexers.IndexReader.count">count() (engine.indexers.IndexReader method)</a></dt>
@@ -108,7 +108,8 @@
 <dt><a href="engine.html#engine.indexers.IndexReader.directory">directory (engine.indexers.IndexReader attribute)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexReader.docs">docs() (engine.indexers.IndexReader method)</a></dt>
   <dd><dl>
-    <dt><a href="server.html#server.Root.docs">(server.Root method)</a></dt>
+    <dt><a href="server.html#server.WebIndexer.docs">(server.WebIndexer method)</a></dt>
+    <dt><a href="server.html#server.WebSearcher.docs">(server.WebSearcher method)</a></dt>
   </dl></dd>
 <dt><a href="engine.html#engine.documents.Document">Document (class in engine.documents)</a></dt>
 </dl></td></tr></table>
@@ -132,9 +133,10 @@
 <dt><a href="engine.html#engine.documents.Field">Field (class in engine.documents)</a></dt>
 <dt><a href="engine.html#engine.documents.Document.fields">fields() (engine.documents.Document method)</a></dt>
   <dd><dl>
-    <dt><a href="server.html#server.Root.fields">(server.Root method)</a></dt>
-  </dl></dd>
-<dt><a href="engine.html#engine.queries.Filter">Filter (class in engine.queries)</a></dt></dl></td><td width="33%" valign="top"><dl>
+    <dt><a href="server.html#server.WebIndexer.fields">(server.WebIndexer method)</a></dt>
+    <dt><a href="server.html#server.WebSearcher.fields">(server.WebSearcher method)</a></dt>
+  </dl></dd></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.queries.Filter">Filter (class in engine.queries)</a></dt>
 <dt><a href="engine.html#engine.queries.Query.filter">filter() (engine.queries.Query method)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexSearcher.filters">filters (engine.indexers.IndexSearcher attribute)</a></dt>
 <dt><a href="engine.html#engine.queries.Query.fuzzy">fuzzy() (engine.queries.Query class method)</a></dt>
@@ -168,7 +170,7 @@
 <table width="100%" class="indextable"><tr><td width="33%" valign="top">
 <dl>
 
-<dt><a href="server.html#server.Root.index">index() (server.Root method)</a></dt>
+<dt><a href="server.html#server.WebSearcher.index">index() (server.WebSearcher method)</a></dt>
 <dt><a href="engine.html#engine.indexers.Indexer">Indexer (class in engine.indexers)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexReader">IndexReader (class in engine.indexers)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexSearcher">IndexSearcher (class in engine.indexers)</a></dt>
@@ -254,7 +256,6 @@
     <dt><a href="engine.html#engine.queries.Query.range">(engine.queries.Query class method)</a></dt>
   </dl></dd></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="client.html#client.Resource">Resource (class in client)</a></dt>
-<dt><a href="server.html#server.Root">Root (class in server)</a></dt>
 </dl></td></tr></table>
 
 <h2 id="S">S</h2>
@@ -263,12 +264,13 @@
 
 <dt><a href="engine.html#engine.indexers.IndexSearcher.search">search() (engine.indexers.IndexSearcher method)</a></dt>
   <dd><dl>
-    <dt><a href="server.html#server.Root.search">(server.Root method)</a></dt>
+    <dt><a href="server.html#server.WebIndexer.search">(server.WebIndexer method)</a></dt>
+    <dt><a href="server.html#server.WebSearcher.search">(server.WebSearcher method)</a></dt>
   </dl></dd>
 <dt><a href="engine.html#engine.indexers.IndexWriter.segments">segments (engine.indexers.IndexWriter attribute)</a></dt>
 <dt><a href="server.html#module-server">server (module)</a></dt>
-<dt><a href="engine.html#engine.indexers.IndexWriter.set">set() (engine.indexers.IndexWriter method)</a></dt>
-<dt><a href="engine.html#engine.queries.Query.span">span() (engine.queries.Query class method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.indexers.IndexWriter.set">set() (engine.indexers.IndexWriter method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.queries.Query.span">span() (engine.queries.Query class method)</a></dt>
 <dt><a href="engine.html#engine.queries.SpanQuery">SpanQuery (class in engine.queries)</a></dt>
 <dt><a href="engine.html#engine.documents.DateTimeField.split">split() (engine.documents.DateTimeField method)</a></dt>
   <dd><dl>
@@ -284,7 +286,7 @@
 <dt><a href="engine.html#engine.queries.Query.term">term() (engine.queries.Query class method)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexReader.terms">terms() (engine.indexers.IndexReader method)</a></dt>
   <dd><dl>
-    <dt><a href="server.html#server.Root.terms">(server.Root method)</a></dt>
+    <dt><a href="server.html#server.WebSearcher.terms">(server.WebSearcher method)</a></dt>
   </dl></dd></dl></td><td width="33%" valign="top"><dl>
 </dl></td></tr></table>
 
@@ -292,8 +294,10 @@
 <table width="100%" class="indextable"><tr><td width="33%" valign="top">
 <dl>
 
-<dt><a href="engine.html#engine.queries.Query.wildcard">wildcard() (engine.queries.Query class method)</a></dt>
-<dt><a href="engine.html#engine.spatial.PointField.within">within() (engine.spatial.PointField method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="server.html#server.WebIndexer">WebIndexer (class in server)</a></dt>
+<dt><a href="server.html#server.WebSearcher">WebSearcher (class in server)</a></dt>
+<dt><a href="engine.html#engine.queries.Query.wildcard">wildcard() (engine.queries.Query class method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.spatial.PointField.within">within() (engine.spatial.PointField method)</a></dt>
 </dl></td></tr></table>
 
 

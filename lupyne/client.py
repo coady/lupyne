@@ -20,11 +20,14 @@ class Resource(httplib.HTTPConnection):
             headers.update({'content-length': len(body), 'content-type': 'application/x-www-form-urlencoded'})
         self.request(method, path, body, headers)
         response = self.getresponse()
-        if response.status not in (httplib.OK, httplib.CREATED):
-            raise httplib.HTTPException(response.status, response.reason, response.read())
+        content = response.read()
         if response.getheader('content-encoding') == 'gzip':
-            response = gzip.GzipFile(fileobj=StringIO(response.read()))
-        return json.load(response)
+            content = gzip.GzipFile(fileobj=StringIO(content)).read()
+        if content and response.getheader('content-type') == 'text/x-json':
+            content = json.loads(content)
+        if httplib.OK <= response.status < httplib.MULTIPLE_CHOICES:
+            return content
+        raise httplib.HTTPException(response.status, response.reason, content)
     def get(self, path='/', **params):
         if params:
             path += '?' + urllib.urlencode(params)

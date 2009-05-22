@@ -393,8 +393,7 @@ Document is comprised of name: value pairs, where the values may be one or multi
 class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">Indexer</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.indexers.Indexer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a title="engine.indexers.IndexWriter" class="reference internal" href="#engine.indexers.IndexWriter"><tt class="xref docutils literal"><span class="pre">engine.indexers.IndexWriter</span></tt></a></p>
 <p>An all-purpose interface to an index.
-Opening in read mode returns an <a class="reference internal" href="#indexsearcher">IndexSearcher</a>.
-Opening in write mode (the default) returns an <a class="reference internal" href="#indexwriter">IndexWriter</a> with a delegated <a class="reference internal" href="#indexsearcher">IndexSearcher</a>.</p>
+Creates an <a class="reference internal" href="#indexwriter">IndexWriter</a> with a delegated <a class="reference internal" href="#indexsearcher">IndexSearcher</a>.</p>
 <dl class="method">
 <dt id="engine.indexers.Indexer.commit">
 <tt class="descname">commit</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.Indexer.commit" title="Permalink to this definition">¶</a></dt>

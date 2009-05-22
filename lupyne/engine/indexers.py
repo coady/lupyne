@@ -257,13 +257,8 @@ class IndexWriter(lucene.IndexWriter):
 
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.
-    Opening in read mode returns an `IndexSearcher`_.
-    Opening in write mode (the default) returns an `IndexWriter`_ with a delegated `IndexSearcher`_.
+    Creates an `IndexWriter`_ with a delegated `IndexSearcher`_.
     """
-    def __new__(cls, directory=None, mode='a', analyzer=lucene.StandardAnalyzer):
-        if mode == 'r':
-            return IndexSearcher(directory, analyzer)
-        return IndexWriter.__new__(cls)
     def __init__(self, *args, **kwargs):
         IndexWriter.__init__(self, *args, **kwargs)
         self.indexSearcher = IndexSearcher(self.directory, self.getAnalyzer)

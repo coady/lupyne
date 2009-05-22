@@ -23,9 +23,6 @@ class TestCase(BaseTest):
         "Indexer and document interfaces."
         indexer = engine.Indexer()
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
-        searcher = engine.Indexer(indexer.directory, mode='r')
-        assert not hasattr(searcher, 'commit')
-        assert len(searcher) == 0 and list(searcher) == []
         indexer.set('text')
         indexer.set('name', store=True, index=False)
         indexer.set('tag', store=True, index=True)

@@ -3,10 +3,21 @@ import sys
 import subprocess
 import operator
 import httplib
+from contextlib import contextmanager
 import cherrypy
 from lupyne import client
 import fixture
 from local import BaseTest
+
+@contextmanager
+def assertRaises(code):
+    "Assert HTTPException is raised with specific status code."
+    try:
+        yield
+    except httplib.HTTPException as exc:
+        assert exc[0] == code
+    else:
+        raise AssertionError('HTTPException not raised')
 
 class TestCase(BaseTest):
     host = 'localhost:8080'
@@ -26,13 +37,20 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Remote reading and writing."
         resource = client.Resource(self.host)
-        self.assertRaises(ValueError, resource.get, '/favicon.ico')
+        assert resource.get('/favicon.ico')
         (directory, count), = resource.get('/').items()
+        assert not resource('HEAD', '/')
+        with assertRaises(httplib.METHOD_NOT_ALLOWED):
+            resource.put('/')
         assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
         assert resource.get('/docs') == []
-        self.assertRaises(httplib.HTTPException, resource.get, '/docs/0')
+        with assertRaises(httplib.NOT_FOUND):
+            resource.get('/docs/0')
+        with assertRaises(httplib.BAD_REQUEST):
+            resource.get('/docs/~')
         assert resource.get('/fields') == []
-        self.assertRaises(httplib.HTTPException, resource.get, '/fields/name')
+        with assertRaises(httplib.NOT_FOUND):
+            resource.get('/fields/name')
         assert resource.get('/terms') == []
         assert resource.get('/terms/x') == []
         assert resource.get('/terms/x/:') == []
@@ -40,16 +58,16 @@ class TestCase(BaseTest):
         assert resource.get('/terms/x/y/docs') == []
         assert resource.get('/terms/x/y/docs/counts') == []
         assert resource.get('/terms/x/y/docs/positions') == []
-        resource.put('/fields/text')
-        resource.put('/fields/name', store='yes', index='not_analyzed')
+        assert resource.put('/fields/text') == {'index': 'ANALYZED', 'store': 'NO', 'termvector': 'NO'}
+        assert resource.put('/fields/name', store='yes', index='not_analyzed')
         assert sorted(resource.get('/fields')) == ['name', 'text']
         assert resource.get('/fields/text')['index'] == 'ANALYZED'
-        resource.post('/docs', docs=[{'name': 'sample', 'text': 'hello world'}])
+        assert not resource.post('/docs', docs=[{'name': 'sample', 'text': 'hello world'}])
         (directory, count), = resource.get('/').items()
         assert count == 1
         assert resource.get('/docs') == []
         assert resource.get('/search/?q=text:hello') == {'count': 0, 'docs': []}
-        resource.post('/commit')
+        assert resource.post('/commit')
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
         assert resource.get('/docs/0?fields=missing') == {'missing': None}
@@ -67,9 +85,9 @@ class TestCase(BaseTest):
         doc, = hits['docs']
         assert sorted(doc) == ['__id__', '__score__', 'name']
         assert doc['__id__'] == 0 and doc['__score__'] > 0 and doc['name'] == 'sample' 
-        resource.delete('/search/?q=name:sample')
+        assert not resource.delete('/search/?q=name:sample')
         assert resource.get('/docs') == [0]
-        resource.post('/commit')
+        assert not resource.post('/commit')
         assert resource.get('/docs') == []
     
     def testBasic(self):

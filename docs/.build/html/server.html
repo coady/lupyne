@@ -52,7 +52,7 @@
 <h1>server<a class="headerlink" href="#module-server" title="Permalink to this headline">¶</a></h1>
 <p>Restful json <a class="reference external" href="http://cherrypy.org/">CherryPy</a> server.</p>
 <blockquote>
-$ python server.py <cite>directory</cite></blockquote>
+$ python server.py <cite>directory</cite> [-r|&#8211;read-only]</blockquote>
 <dl class="docutils">
 <dt>CherryPy and Lucene VM integration issues:</dt>
 <dd><ul class="first last simple">
@@ -62,24 +62,17 @@ $ python server.py <cite>directory</cite></blockquote>
 </ul>
 </dd>
 </dl>
-<div class="section" id="root">
-<h2>Root<a class="headerlink" href="#root" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="websearcher">
+<h2>WebSearcher<a class="headerlink" href="#websearcher" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="server.Root">
+<dt id="server.WebSearcher">
 <em class="property">
-class </em><tt class="descclassname">server.</tt><tt class="descname">Root</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.Root" title="Permalink to this definition">¶</a></dt>
+class </em><tt class="descclassname">server.</tt><tt class="descname">WebSearcher</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.WebSearcher" title="Permalink to this definition">¶</a></dt>
 <dd><p>Dispatch root with a delegated Indexer.</p>
 <dl class="method">
-<dt id="server.Root.commit">
-<tt class="descname">commit</tt><big>(</big><big>)</big><a class="headerlink" href="#server.Root.commit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Commit write operations.</p>
-<p><strong>POST</strong> /commit</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="server.Root.docs">
-<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>docs='</em><span class="optional">[</span><span class="optional">]</span>, <em>'</em>, <em>fields=''</em>, <em>multifields=''</em><big>)</big><a class="headerlink" href="#server.Root.docs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return and index documents.</p>
+<dt id="server.WebSearcher.docs">
+<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=''</em>, <em>multifields=''</em><big>)</big><a class="headerlink" href="#server.WebSearcher.docs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return ids or documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /docs</dt>
 <dd><p class="first">Return list of doc ids.</p>
@@ -105,17 +98,13 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">Root</tt><
 </tbody>
 </table>
 </dd>
-<dt><strong>POST</strong> /docs</dt>
-<dd><p class="first">Add documents to index.</p>
-<p class="last">docs=[{<em>string</em>: <em>string</em>|<em>array</em>,... },... ]</p>
-</dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="server.Root.fields">
-<tt class="descname">fields</tt><big>(</big><em>name=''</em>, <em>**params</em><big>)</big><a class="headerlink" href="#server.Root.fields" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return and store a field&#8217;s parameters.</p>
+<dt id="server.WebSearcher.fields">
+<tt class="descname">fields</tt><big>(</big><em>name=''</em><big>)</big><a class="headerlink" href="#server.WebSearcher.fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a field&#8217;s parameters.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /fields</dt>
 <dd><p class="first">Return known field names.</p>
@@ -139,18 +128,12 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">Root</tt><
 </tbody>
 </table>
 </dd>
-<dt><strong>PUT</strong> /fields/<em>chars</em></dt>
-<dd><p class="first">Set parameters for given field name.</p>
-<p>store=<em>chars</em></p>
-<p>index=<em>chars</em></p>
-<p class="last">termvector=<em>chars</em></p>
-</dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
-<dt id="server.Root.index">
-<tt class="descname">index</tt><big>(</big><big>)</big><a class="headerlink" href="#server.Root.index" title="Permalink to this definition">¶</a></dt>
+<dt id="server.WebSearcher.index">
+<tt class="descname">index</tt><big>(</big><big>)</big><a class="headerlink" href="#server.WebSearcher.index" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return index information.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /</dt>
@@ -168,12 +151,10 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">Root</tt><
 </dd></dl>
 
 <dl class="method">
-<dt id="server.Root.search">
-<tt class="descname">search</tt><big>(</big><em>q</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.Root.search" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run or delete a query.</p>
+<dt id="server.WebSearcher.search">
+<tt class="descname">search</tt><big>(</big><em>q</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run query and return documents.</p>
 <dl class="docutils">
-<dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>
-<dd>Delete documents which match query.</dd>
 <dt><strong>GET</strong> /search?q=<em>chars</em>,</dt>
 <dd><p class="first">Return list document mappings and total doc count.</p>
 <p>&amp;count=<em>int</em></p>
@@ -194,8 +175,8 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">Root</tt><
 </dd></dl>
 
 <dl class="method">
-<dt id="server.Root.terms">
-<tt class="descname">terms</tt><big>(</big><em>name=''</em>, <em>value=':'</em>, <em>*args</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.Root.terms" title="Permalink to this definition">¶</a></dt>
+<dt id="server.WebSearcher.terms">
+<tt class="descname">terms</tt><big>(</big><em>name=''</em>, <em>value=':'</em>, <em>*args</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.terms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return data about indexed terms.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /terms?</dt>
@@ -281,6 +262,60 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">Root</tt><
 
 </dd></dl>
 
+</div>
+<div class="section" id="webindexer">
+<h2>WebIndexer<a class="headerlink" href="#webindexer" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="server.WebIndexer">
+<em class="property">
+class </em><tt class="descclassname">server.</tt><tt class="descname">WebIndexer</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.WebIndexer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="server.WebSearcher" class="reference internal" href="#server.WebSearcher"><tt class="xref docutils literal"><span class="pre">server.WebSearcher</span></tt></a></p>
+<p>Dispatch root which extends searcher to include write methods.</p>
+<dl class="method">
+<dt id="server.WebIndexer.commit">
+<tt class="descname">commit</tt><big>(</big><big>)</big><a class="headerlink" href="#server.WebIndexer.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Commit write operations.</p>
+<p><strong>POST</strong> /commit</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="server.WebIndexer.docs">
+<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>docs='</em><span class="optional">[</span><span class="optional">]</span>, <em>'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.docs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index documents.</p>
+<dl class="docutils">
+<dt><strong>POST</strong> /docs</dt>
+<dd><p class="first">Add documents to index.</p>
+<p class="last">docs=[{<em>string</em>: <em>string</em>|<em>array</em>,... },... ]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="server.WebIndexer.fields">
+<tt class="descname">fields</tt><big>(</big><em>name=''</em>, <em>**params</em><big>)</big><a class="headerlink" href="#server.WebIndexer.fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store a field&#8217;s parameters.</p>
+<dl class="docutils">
+<dt><strong>PUT</strong> /fields/<em>chars</em></dt>
+<dd><p class="first">Set parameters for given field name.</p>
+<p>store=<em>chars</em></p>
+<p>index=<em>chars</em></p>
+<p class="last">termvector=<em>chars</em></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="server.WebIndexer.search">
+<tt class="descname">search</tt><big>(</big><em>q</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete a query.</p>
+<dl class="docutils">
+<dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>
+<dd>Delete documents which match query.</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="server.main">
 <tt class="descclassname">server.</tt><tt class="descname">main</tt><big>(</big><em>root</em>, <em>path=''</em>, <em>config=None</em><big>)</big><a class="headerlink" href="#server.main" title="Permalink to this definition">¶</a></dt>
@@ -298,7 +333,8 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">Root</tt><
             <h3><a href="index.html">Table Of Contents</a></h3>
             <ul>
 <li><a class="reference external" href="">server</a><ul>
-<li><a class="reference external" href="#root">Root</a></li>
+<li><a class="reference external" href="#websearcher">WebSearcher</a></li>
+<li><a class="reference external" href="#webindexer">WebIndexer</a></li>
 </ul>
 </li>
 </ul>
