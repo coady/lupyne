@@ -24,7 +24,7 @@ from engine import Indexer, IndexSearcher
 def json_tool():
     "Transform responses into json format."
     response = cherrypy.response
-    if response.status is None and cherrypy.response.headers['content-type'].startswith('text/'):
+    if response.status is None and response.headers['content-type'].startswith('text/'):
         response.headers['content-type'] = 'text/x-json'
         response.body = json.dumps(response.body)
 cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
@@ -34,7 +34,7 @@ cherrypy.tools.gzip.callable.func_defaults[-1].append('text/x-json')
 def allow_tool(methods=['GET', 'HEAD']):
     if cherrypy.request.method not in methods:
         cherrypy.response.headers['Allow'] = ', '.join(methods)
-        message = "The path {0} does not allow {1}.".format(cherrypy.request.path_info, cherrypy.request.method)
+        message = "The path {0!r} does not allow {1}.".format(cherrypy.request.path_info, cherrypy.request.method)
         raise cherrypy.HTTPError(httplib.METHOD_NOT_ALLOWED, message)
 cherrypy.tools.allow = cherrypy.Tool('on_start_resource', allow_tool)
 
@@ -45,19 +45,19 @@ class AttachedThread(WorkerThread):
         WorkerThread.run(self)
 
 @contextmanager
-def handleNotFound(exc):
+def handleNotFound(exception):
     "Interpret given exception as 404 Not Found."
     try:
         yield
-    except exc:
+    except exception:
         raise cherrypy.NotFound(cherrypy.request.path_info)
 
 @contextmanager
-def handleBadRequest(exc):
+def handleBadRequest(exception):
     "Interpret given exception as 400 Bad Request."
     try:
         yield
-    except exc:
+    except exception as exc:
         raise cherrypy.HTTPError(httplib.BAD_REQUEST, str(exc))
 
 class WebSearcher(object):

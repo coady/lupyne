@@ -93,7 +93,7 @@ class PolygonField(PointField):
     def items(self, *polygons):
         "Generate all covered tiles from polygons."
         for points in polygons:
-            xs, ys = zip(*(self.project(lat, lng) for lng, lat in set(points)))
+            xs, ys = zip(*(self.project(lat, lng) for lng, lat in points))
             corners = (min(xs), min(ys)), (max(xs), max(ys))
             tiles = self.walk(*corners, precision=self.precision)
             for field in PrefixField.items(self, *tiles):

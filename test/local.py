@@ -276,6 +276,11 @@ class TestCase(BaseTest):
         hits = indexer.search(query)
         assert [hit['amendment'] for hit in hits] == ['18', '19']
         assert [hit['date'].split('-')[0] for hit in hits] == ['1919', '1920']
+        query = indexer.fields['date'].within(seconds=100)
+        assert indexer.count(query) == 0
+        query = indexer.fields['date'].within(-100*365)
+        assert 0 < len(query) <= 5
+        assert 0 < indexer.count(query) <= 12
 
 if __name__ == '__main__':
     lucene.initVM(lucene.CLASSPATH)

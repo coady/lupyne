@@ -3,6 +3,7 @@ Wrappers for lucene Fields and Documents.
 """
 
 import itertools
+import datetime
 import lucene
 from .queries import Query
 
@@ -129,14 +130,19 @@ class DateTimeField(PrefixField):
         """Return optimal union of date range queries.
         May produce invalid dates, but the query is still correct.
         """
-        dates = (map(int, self.split(str(date))) for date in (start, stop))
+        dates = (map(float, self.split(str(date))) for date in (start, stop))
         queries = []
         for dates in self._range(*dates):
-            begin, end = (self.join(map('{0:02d}'.format, date)) for date in dates)
+            begin, end = (self.join(map('{0:02n}'.format, date)) for date in dates)
             queries.append(PrefixField.range(self, begin, end))
-        queries[0] = PrefixField.range(self, queries[0].lowerVal or '', queries[0].upperVal, lower=lower)
-        queries[-1] = PrefixField.range(self, queries[-1].lowerVal or '', queries[-1].upperVal, upper=upper)
+        queries[0] = PrefixField.range(self, str(start), queries[0].upperVal, lower=lower)
+        queries[-1] = PrefixField.range(self, queries[-1].lowerVal, str(stop), upper=upper)
         return Query.any(*queries)
+    def within(self, days=0, seconds=0, microseconds=0):
+        "Return date range query within current time and delta."
+        now = datetime.datetime.now() if (seconds or microseconds) else datetime.date.today()
+        delta = now + datetime.timedelta(days, seconds, microseconds)
+        return self.range(*sorted([now, delta]), upper=True)
 
 class Document(object):
     """Delegated lucene Document.
