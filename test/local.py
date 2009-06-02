@@ -281,6 +281,9 @@ class TestCase(BaseTest):
         query = indexer.fields['date'].within(-100*365)
         assert 0 < len(query) <= 5
         assert 0 < indexer.count(query) <= 12
+        assert len(indexer.fields['date'].within(-100)) <= 3
+        assert len(indexer.fields['date'].within(-100.0)) > 3
+        assert len(indexer.fields['date'].within(-100, 1)) > 3
 
 if __name__ == '__main__':
     lucene.initVM(lucene.CLASSPATH)

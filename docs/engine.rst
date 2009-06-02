@@ -14,15 +14,15 @@ IndexReader
 
   Provides a mapping interface of ids to document objects.
 
-  .. method:: __len__():
+  .. method:: __len__()
 
-  .. method:: __contains__(id):
+  .. method:: __contains__(id)
 
-  .. method:: __iter__():
+  .. method:: __iter__()
 
-  .. method:: __getitem__(id):
+  .. method:: __getitem__(id)
 
-  .. method:: __delitem__(id):
+  .. method:: __delitem__(id)
 
     Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
 
@@ -39,7 +39,7 @@ IndexSearcher
 
     Mapping of cached filters, which are also used for facet counts.
 
-  .. method:: __del__():
+  .. method:: __del__()
 
     Closes index.
 
@@ -50,11 +50,11 @@ IndexWriter
   :show-inheritance:
   :members:
 
-  .. method:: __del__():
+  .. method:: __del__()
 
     Closes index.
 
-  .. method:: __len__():
+  .. method:: __len__()
 
   .. method:: __iadd__(directory)
 
@@ -76,15 +76,15 @@ Document
 .. autoclass:: engine.documents.Document
   :members:
 
-  .. method:: __len__():
+  .. method:: __len__()
 
-  .. method:: __contains__(name):
+  .. method:: __contains__(name)
 
-  .. method:: __iter__():
+  .. method:: __iter__()
 
-  .. method:: __getitem__(name):
+  .. method:: __getitem__(name)
 
-  .. method:: __delitem__(name):
+  .. method:: __delitem__(name)
 
 Hit
 ^^^^^^^^^^^^^
@@ -96,9 +96,9 @@ Hits
 .. autoclass:: engine.documents.Hits
   :members:
 
-  .. method:: __len__():
+  .. method:: __len__()
 
-  .. method:: __getitem__(index):
+  .. method:: __getitem__(index)
 
 Field
 ^^^^^^^^^^^^^
@@ -133,15 +133,15 @@ Query
 .. autoclass:: engine.queries.Query
   :members:
 
-  .. method:: __and__(self, other):
+  .. method:: __and__(self, other)
 
     <BooleanQuery +self +other>
 
-  .. method:: __or__(self, other):
+  .. method:: __or__(self, other)
 
     <BooleanQuery self other>
 
-  .. method:: __sub__(self, other):
+  .. method:: __sub__(self, other)
 
     <BooleanQuery self -other>
 
@@ -150,21 +150,21 @@ BooleanQuery
 .. autoclass:: engine.queries.BooleanQuery
   :members:
 
-  .. method:: __len__():
+  .. method:: __len__()
 
-  .. method:: __iter__():
+  .. method:: __iter__()
 
-  .. method:: __getitem__(index):
+  .. method:: __getitem__(index)
 
-  .. method:: __iand__(self, other):
+  .. method:: __iand__(self, other)
 
     add +other
 
-  .. method:: __ior__(self, other):
+  .. method:: __ior__(self, other)
 
     add other
 
-  .. method:: __isub__(self, other):
+  .. method:: __isub__(self, other)
 
     add -other
 
@@ -173,15 +173,15 @@ SpanQuery
 .. autoclass:: engine.queries.SpanQuery
   :members:
 
-  .. method:: __getitem__(self, other):
+  .. method:: __getitem__(self, other)
 
     <SpanFirstQuery: spanFirst(self, other.stop)>
 
-  .. method:: __or__(self, other):
+  .. method:: __or__(self, other)
 
     <SpanOrQuery: spanOr([self, other])>
 
-  .. method:: __sub__(self, other):
+  .. method:: __sub__(self, other)
 
     <SpanNotQuery: spanNot(self, other)>
 

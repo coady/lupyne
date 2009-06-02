@@ -1,7 +1,7 @@
 """
 Restful json `CherryPy <http://cherrypy.org/>`_ server.
 
-    $ python server.py `directory` [-r|--read-only]
+    $ python server.py `directory` [-r|--read-only] [-c|--config filename]
 
 CherryPy and Lucene VM integration issues:
  * Autoreload is not compatible with the VM initialization.
@@ -32,9 +32,10 @@ cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
 cherrypy.tools.gzip.callable.func_defaults[-1].append('text/x-json')
 
 def allow_tool(methods=['GET', 'HEAD']):
-    if cherrypy.request.method not in methods:
-        cherrypy.response.headers['Allow'] = ', '.join(methods)
-        message = "The path {0!r} does not allow {1}.".format(cherrypy.request.path_info, cherrypy.request.method)
+    request = cherrypy.request
+    if request.method not in methods:
+        cherrypy.response.headers['allow'] = ', '.join(methods)
+        message = "The path {0!r} does not allow {1}.".format(request.path_info, request.method)
         raise cherrypy.HTTPError(httplib.METHOD_NOT_ALLOWED, message)
 cherrypy.tools.allow = cherrypy.Tool('on_start_resource', allow_tool)
 
@@ -50,7 +51,7 @@ def handleNotFound(exception):
     try:
         yield
     except exception:
-        raise cherrypy.NotFound(cherrypy.request.path_info)
+        raise cherrypy.NotFound()
 
 @contextmanager
 def handleBadRequest(exception):
@@ -204,7 +205,7 @@ class WebSearcher(object):
                 return list(self.indexer.positions(name, value))
             if stats in ('', 'counts'):
                 return list(self.indexer.docs(name, value, counts=bool(stats)))
-        raise cherrypy.NotFound('/'.join(args))
+        raise cherrypy.NotFound()
 
 class WebIndexer(WebSearcher):
     "Dispatch root which extends searcher to include write methods."
@@ -280,8 +281,10 @@ if __name__ == '__main__':
     parser = optparse.OptionParser()
     parser.add_option("-r", "--read-only", action="store_true", dest="read",
         help="expose only search methods, without acquiring a write lock")
+    parser.add_option("-c", "--config", dest="config",
+        help="optional configuration file")
     options, args = parser.parse_args()
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
     root = (WebSearcher if options.read else WebIndexer)(*args)
-    main(root, config={'global': {'server.socket_host': '0.0.0.0'}})
+    main(root, config=options.config)

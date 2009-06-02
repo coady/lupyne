@@ -47,13 +47,37 @@
   <div class="section" id="module-client">
 <h1>client<a class="headerlink" href="#module-client" title="Permalink to this headline">¶</a></h1>
 <p>Restful json client.</p>
+<div class="section" id="response">
+<h2>Response<a class="headerlink" href="#response" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="client.Response">
+<em class="property">
+class </em><tt class="descclassname">client.</tt><tt class="descname">Response</tt><big>(</big><em>sock</em>, <em>debuglevel=0</em>, <em>strict=0</em>, <em>method=None</em><big>)</big><a class="headerlink" href="#client.Response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">httplib.HTTPResponse</span></tt></p>
+<p>A closed response which handles json and caches its body.</p>
+<dl class="method">
+<dt id="client.Response.__call__">
+<tt class="descname">__call__</tt><big>(</big><big>)</big><a class="headerlink" href="#client.Response.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>Return evaluated response body or raise exception.</p>
+</dd></dl>
+
+</div>
 <div class="section" id="resource">
 <h2>Resource<a class="headerlink" href="#resource" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="client.Resource">
 <em class="property">
 class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x17600&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Synchronous connection which handles json responses.</p>
+<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">httplib.HTTPConnection</span></tt></p>
+<p>Synchronous connection which handles json responses.</p>
+<dl class="method">
+<dt id="client.Resource.__call__">
+<tt class="descname">__call__</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resource.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p>Send request and return evaluated response body.</p>
 <dl class="method">
 <dt id="client.Resource.delete">
 <tt class="descname">delete</tt><big>(</big><em>path</em><big>)</big><a class="headerlink" href="#client.Resource.delete" title="Permalink to this definition">¶</a></dt>
@@ -74,6 +98,51 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</
 <tt class="descname">put</tt><big>(</big><em>path</em>, <em>**body</em><big>)</big><a class="headerlink" href="#client.Resource.put" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="client.Resource.request">
+<tt class="descname">request</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resource.request" title="Permalink to this definition">¶</a></dt>
+<dd>Send request after handling body and headers.</dd></dl>
+
+<dl class="attribute">
+<dt id="client.Resource.response_class">
+<tt class="descname">response_class</tt><a class="headerlink" href="#client.Resource.response_class" title="Permalink to this definition">¶</a></dt>
+<dd>alias of <a title="client.Response" class="reference internal" href="#client.Response"><tt class="xref docutils literal"><span class="pre">Response</span></tt></a></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="resources">
+<h2>Resources<a class="headerlink" href="#resources" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="client.Resources">
+<em class="property">
+class </em><tt class="descclassname">client.</tt><tt class="descname">Resources</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Resources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Persistent thread-safe http connections with support for redundancy and partitioning.</p>
+<dl class="method">
+<dt id="client.Resources.broadcast">
+<tt class="descname">broadcast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.broadcast" title="Permalink to this definition">¶</a></dt>
+<dd>Send requests and return responses from all hosts, optionally from given subset.</dd></dl>
+
+<dl class="method">
+<dt id="client.Resources.pop">
+<tt class="descname">pop</tt><big>(</big><em>host</em><big>)</big><a class="headerlink" href="#client.Resources.pop" title="Permalink to this definition">¶</a></dt>
+<dd>Return an exclusive resource for given host.</dd></dl>
+
+<dl class="method">
+<dt id="client.Resources.push">
+<tt class="descname">push</tt><big>(</big><em>host</em>, <em>resource</em><big>)</big><a class="headerlink" href="#client.Resources.push" title="Permalink to this definition">¶</a></dt>
+<dd>Put resource back into available pool.</dd></dl>
+
+<dl class="method">
+<dt id="client.Resources.request">
+<tt class="descname">request</tt><big>(</big><em>host</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resources.request" title="Permalink to this definition">¶</a></dt>
+<dd>Send request to given host and return resource.</dd></dl>
+
+<dl class="method">
+<dt id="client.Resources.unicast">
+<tt class="descname">unicast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.unicast" title="Permalink to this definition">¶</a></dt>
+<dd>Send request and return response from any host, optionally from given subset.</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -88,7 +157,9 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</
             <h3><a href="index.html">Table Of Contents</a></h3>
             <ul>
 <li><a class="reference external" href="">client</a><ul>
+<li><a class="reference external" href="#response">Response</a></li>
 <li><a class="reference external" href="#resource">Resource</a></li>
+<li><a class="reference external" href="#resources">Resources</a></li>
 </ul>
 </li>
 </ul>

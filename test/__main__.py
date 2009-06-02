@@ -7,6 +7,7 @@ if __package__ == '':   # support testing in-place
 
 from local import TestCase as local
 from remote import TestCase as remote
+from distributed import TestCase as distributed
 
 if __name__ == '__main__':
     lucene.initVM(lucene.CLASSPATH)

@@ -1,13 +1,13 @@
+from __future__ import print_function
 import unittest
-import sys
+import os, sys
 import subprocess
 import operator
 import httplib
 from contextlib import contextmanager
 import cherrypy
 from lupyne import client
-import fixture
-from local import BaseTest
+import fixture, local
 
 @contextmanager
 def assertRaises(code):
@@ -19,30 +19,42 @@ def assertRaises(code):
     else:
         raise AssertionError('HTTPException not raised')
 
-class TestCase(BaseTest):
-    host = 'localhost:8080'
-    def setUp(self):
-        BaseTest.setUp(self)
+class BaseTest(local.BaseTest):
+    def start(self, port, *args):
+        "Start server in separate process on given port."
+        with open(os.path.join(self.tempdir, str(port)), 'w') as conf:
+            print('[global]', file=conf)
+            print('server.socket_port: {0:n}'.format(port), file=conf)
+        params = sys.executable, '-m', 'lupyne.server', '-c', conf.name
         stderr = None if self.verbose else subprocess.PIPE
-        host, port = self.host.split(':')
-        cherrypy.process.servers.wait_for_free_port(host, port)
-        self.server = subprocess.Popen([sys.executable, '-m', 'lupyne.server', self.tempdir], stderr=stderr)
-        cherrypy.process.servers.wait_for_occupied_port(host, port)
-        assert self.server.poll() is None
+        cherrypy.process.servers.wait_for_free_port('localhost', port)
+        server = subprocess.Popen(params + args, stderr=stderr)
+        cherrypy.process.servers.wait_for_occupied_port('localhost', port)
+        assert server.poll() is None
+        return server
+    def stop(self, server):
+        "Terminate server."
+        server.terminate()
+        assert server.wait() == 0
+
+class TestCase(BaseTest):
+    port = 8080
+    def setUp(self):
+        local.BaseTest.setUp(self)
+        self.server = self.start(self.port, self.tempdir)
     def tearDown(self):
-        self.server.terminate()
-        assert self.server.wait() == 0
-        BaseTest.tearDown(self)
+        self.stop(self.server)
+        local.BaseTest.tearDown(self)
     
     def testInterface(self):
         "Remote reading and writing."
-        resource = client.Resource(self.host)
+        resource = client.Resource('localhost', self.port)
         assert resource.get('/favicon.ico')
         (directory, count), = resource.get('/').items()
+        assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
         assert not resource('HEAD', '/')
         with assertRaises(httplib.METHOD_NOT_ALLOWED):
             resource.put('/')
-        assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
         assert resource.get('/docs') == []
         with assertRaises(httplib.NOT_FOUND):
             resource.get('/docs/0')
@@ -92,7 +104,7 @@ class TestCase(BaseTest):
     
     def testBasic(self):
         "Remote text indexing and searching."
-        resource = client.Resource(self.host)
+        resource = client.Resource('localhost', str(self.port))
         assert resource.get('/fields') == []
         for name, settings in fixture.constitution.fields.items():
             assert resource.put('/fields/' + name, **settings)
