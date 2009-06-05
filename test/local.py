@@ -165,9 +165,9 @@ class TestCase(BaseTest):
         assert len(query) == len(list(query)) == 2
         queries = [engine.Query.span('text', word) for word in ('persons', 'papers', 'things')]
         count = indexer.count(queries[0])
-        near = engine.Query.near(queries[:2], slop=1)
+        near = queries[0].near(queries[1], slop=1)
         assert indexer.count(queries[0] - near) == count
-        near = engine.Query.near([queries[0], queries[1]|queries[2]], slop=1)
+        near = queries[0].near(queries[1] | queries[2], slop=1)
         assert indexer.count(queries[0] - near) == count - 1
         assert indexer.count(queries[0][:100]) == count - 1
         del indexer

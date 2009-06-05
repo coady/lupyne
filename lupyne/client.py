@@ -32,7 +32,7 @@ class Resource(httplib.HTTPConnection):
     response_class = Response
     def request(self, method, path, body=None):
         "Send request after handling body and headers."
-        headers = {'accept-encoding': 'compress, gzip'}
+        headers = {'accept-encoding': 'compress, gzip', 'content-length': 0}
         if body is not None:
             body = urllib.urlencode(dict((name, value if isinstance(value, basestring) else json.dumps(value)) \
                 for name, value in body.items()))

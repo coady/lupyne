@@ -4,7 +4,7 @@ from distutils.core import setup
 packages = []
 for dirpath, dirnames, filenames in os.walk('lupyne'):
     dirnames[:] = [dirname for dirname in dirnames if not dirname.startswith('.')]
-    packages.append(dirpath.replace('/', '.'))
+    packages.append(dirpath.replace(os.sep, '.'))
 
 setup(
     name='lupyne',

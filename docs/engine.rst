@@ -177,13 +177,13 @@ SpanQuery
 
     <SpanFirstQuery: spanFirst(self, other.stop)>
 
-  .. method:: __or__(self, other)
-
-    <SpanOrQuery: spanOr([self, other])>
-
   .. method:: __sub__(self, other)
 
     <SpanNotQuery: spanNot(self, other)>
+
+  .. method:: __or__(*spans)
+
+    <SpanOrQuery: spanOr(spans)>
 
 Filter
 ^^^^^^^^^^^^^

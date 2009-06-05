@@ -20,7 +20,7 @@ class TestCase(remote.BaseTest):
         for response in responses:
             (directory, count), = response().items()
             assert count == 0 and directory.startswith('org.apache.lucene.store.RAMDirectory@')
-        responses = resources.broadcast('PUT', '/fields/text', {})
+        responses = resources.broadcast('PUT', '/fields/text')
         assert all(response() == {'index': 'ANALYZED', 'store': 'NO', 'termvector': 'NO'} for response in responses)
         responses = resources.broadcast('PUT', '/fields/name', {'store': 'yes', 'index': 'not_analyzed'})
         assert all(response() == {'index': 'NOT_ANALYZED', 'store': 'YES', 'termvector': 'NO'} for response in responses)
@@ -29,7 +29,7 @@ class TestCase(remote.BaseTest):
         assert all(response() == '' for response in responses)
         response = resources.unicast('POST', '/docs', {'docs': [doc]})
         assert response() == ''
-        responses = resources.broadcast('POST', '/commit', {})
+        responses = resources.broadcast('POST', '/commit')
         assert all(response() >= 1 for response in responses)
         responses = resources.broadcast('GET', '/search/?q=text:hello')
         docs = []

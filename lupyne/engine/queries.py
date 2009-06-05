@@ -43,10 +43,6 @@ class Query(object):
         "Return lucene SpanTermQuery."
         return SpanQuery(lucene.SpanTermQuery, lucene.Term(name, value))
     @classmethod
-    def near(cls, spans, slop=0, inOrder=True):
-        "Return lucene SpanNearQuery."
-        return SpanQuery(lucene.SpanNearQuery, spans, slop, inOrder)
-    @classmethod
     def prefix(cls, name, value):
         "Return lucene PrefixQuery."
         return cls(lucene.PrefixQuery, lucene.Term(name, value))
@@ -112,10 +108,19 @@ class SpanQuery(Query):
     def __getitem__(self, slc):
         assert slc.start is slc.step is None, 'only prefix slice supported'
         return SpanQuery(lucene.SpanFirstQuery, self, slc.stop)
-    def __or__(self, other):
-        return SpanQuery(lucene.SpanOrQuery, (self, other))
     def __sub__(self, other):
         return SpanQuery(lucene.SpanNotQuery, self, other)
+    def __or__(*spans):
+        return SpanQuery(lucene.SpanOrQuery, spans)
+    def near(*spans, **kwargs):
+        """Return lucene SpanNearQuery.
+        
+        :param slop: default 0
+        :param inOrder: default True
+        """
+        slop = kwargs.pop('slop', 0)
+        inOrder = kwargs.pop('inOrder', True)
+        return SpanQuery(lucene.SpanNearQuery, spans, slop, inOrder, **kwargs)
 
 class HitCollector(lucene.PythonHitCollector):
     "Collect all ids and scores efficiently."

@@ -766,12 +766,6 @@ classmethod </em><tt class="descname">multiphrase</tt><big>(</big><em>name</em>,
 <dd>Return lucene MultiPhraseQuery.  None may be used as a placeholder.</dd></dl>
 
 <dl class="classmethod">
-<dt id="engine.queries.Query.near">
-<em class="property">
-classmethod </em><tt class="descname">near</tt><big>(</big><em>spans</em>, <em>slop=0</em>, <em>inOrder=True</em><big>)</big><a class="headerlink" href="#engine.queries.Query.near" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene SpanNearQuery.</dd></dl>
-
-<dl class="classmethod">
 <dt id="engine.queries.Query.phrase">
 <em class="property">
 classmethod </em><tt class="descname">phrase</tt><big>(</big><em>name</em>, <em>*values</em><big>)</big><a class="headerlink" href="#engine.queries.Query.phrase" title="Permalink to this definition">¶</a></dt>
@@ -861,14 +855,32 @@ class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">Sp
 <dd>&lt;SpanFirstQuery: spanFirst(self, other.stop)&gt;</dd></dl>
 
 <dl class="method">
-<dt id="engine.queries.SpanQuery.__or__">
-<tt class="descname">__or__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.__or__" title="Permalink to this definition">¶</a></dt>
-<dd>&lt;SpanOrQuery: spanOr([self, other])&gt;</dd></dl>
-
-<dl class="method">
 <dt id="engine.queries.SpanQuery.__sub__">
 <tt class="descname">__sub__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.__sub__" title="Permalink to this definition">¶</a></dt>
 <dd>&lt;SpanNotQuery: spanNot(self, other)&gt;</dd></dl>
+
+<dl class="method">
+<dt id="engine.queries.SpanQuery.__or__">
+<tt class="descname">__or__</tt><big>(</big><em>*spans</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.__or__" title="Permalink to this definition">¶</a></dt>
+<dd>&lt;SpanOrQuery: spanOr(spans)&gt;</dd></dl>
+
+<dl class="method">
+<dt id="engine.queries.SpanQuery.near">
+<tt class="descname">near</tt><big>(</big><em>*spans</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.near" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return lucene SpanNearQuery.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>slop</em> &#8211; default 0</li>
+<li><em>inOrder</em> &#8211; default True</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
