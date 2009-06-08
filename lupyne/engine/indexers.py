@@ -6,7 +6,7 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 
 import itertools, operator
 import contextlib
-from collections import defaultdict
+import collections
 import lucene
 from .queries import Query, HitCollector, Filter
 from .documents import Field, Document, Hits
@@ -132,7 +132,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         :param ids: document ids
         :param keys: field names, term tuples, or any keys to previously cached filters
         """
-        counts = defaultdict(dict)
+        counts = collections.defaultdict(dict)
         bits = Filter(ids).bits()
         for key in keys:
             filters = self.filters.get(key)
@@ -228,7 +228,7 @@ class IndexWriter(lucene.IndexWriter):
         terms.update(document)
         doc = lucene.Document()
         for name, values in terms.items():
-            if isinstance(values, basestring):
+            if isinstance(values, basestring) or not isinstance(values, collections.Iterable):
                 values = [values] 
             for field in self.fields[name].items(*values):
                 doc.add(field)

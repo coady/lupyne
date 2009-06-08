@@ -258,15 +258,19 @@ class TestCase(BaseTest):
         cities = set(hit['city'] for hit in hits)
         assert city in cities and len(cities) > 100
     
-    def testDate(self):
-        "DateTime field test."
+    def testFields(self):
+        "Custom field tests."
         indexer = engine.Indexer(self.tempdir)
-        indexer.set('amendment', store=True, index=False)
+        indexer.set('amendment', engine.FormatField, format='{0:02n}', store=True)
         indexer.set('date', engine.DateTimeField, store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
-                indexer.add(amendment=doc['amendment'], date=doc['date'])
+                indexer.add(amendment=int(doc['amendment']), date=doc['date'])
         indexer.commit()
+        query = engine.Query.range('amendment', '', indexer.fields['amendment'].format(10))
+        assert indexer.count(query) == 9
+        query = engine.Query.prefix('amendment', '0')
+        assert indexer.count(query) == 9
         query = indexer.fields['date'].range('', '1921-12', lower=False, upper=True)
         assert str(query) == 'date:Y:{ TO 1921} date:Ym:[1921 TO 1921-12]'
         assert indexer.count(query) == 19

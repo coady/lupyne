@@ -33,6 +33,7 @@ engine.queries.SpanQuery.near method engine.html
 client.Resource class client.html
 server.WebIndexer.commit method server.html
 engine.documents.NestedField.split method engine.html
+engine.documents.FormatField.items method engine.html
 engine.indexers.IndexReader.terms method engine.html
 client.Resource.get method client.html
 engine.queries.Query.term classmethod engine.html
@@ -43,6 +44,7 @@ engine.indexers.IndexReader.__contains__ method engine.html
 engine.queries.BooleanQuery.__isub__ method engine.html
 client.Resource.post method client.html
 engine.documents.PrefixField.items method engine.html
+engine.documents.FormatField.format method engine.html
 engine.indexers.IndexReader.positions method engine.html
 engine.queries.Query.wildcard classmethod engine.html
 engine.queries.Query.fuzzy classmethod engine.html
@@ -90,9 +92,9 @@ server.WebSearcher.index method server.html
 engine.documents.DateTimeField class engine.html
 engine.queries.Query.any classmethod engine.html
 engine.documents.DateTimeField.split method engine.html
-engine.queries.BooleanQuery.__iand__ method engine.html
-engine.spatial.PointField.within method engine.html
 server.WebIndexer.search method server.html
+engine.spatial.PointField.within method engine.html
+engine.queries.BooleanQuery.__iand__ method engine.html
 engine.documents.Hits.__getitem__ method engine.html
 engine.queries.Query.__and__ method engine.html
 engine.indexers.IndexReader.delete method engine.html
@@ -102,6 +104,7 @@ engine.spatial.PolygonField class engine.html
 engine.indexers.IndexSearcher.facets method engine.html
 engine.queries.Query.phrase classmethod engine.html
 client.Resources.request method client.html
+engine.documents.FormatField class engine.html
 engine.queries.Query.multiphrase classmethod engine.html
 engine.spatial.PointField class engine.html
 engine.queries.SpanQuery class engine.html

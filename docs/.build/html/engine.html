@@ -575,6 +575,35 @@ class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">
 </dd></dl>
 
 </div>
+<div class="section" id="formatfield">
+<h3>FormatField<a class="headerlink" href="#formatfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.documents.FormatField">
+<em class="property">
+class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">FormatField</tt><big>(</big><em>name</em>, <em>format='{0}'</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.documents.FormatField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.documents.Field" class="reference internal" href="#engine.documents.Field"><tt class="xref docutils literal"><span class="pre">engine.documents.Field</span></tt></a></p>
+<p>Field which uses string formatting on its values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>format</em> &#8211; format string</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.documents.FormatField.format">
+<tt class="descname">format</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#engine.documents.FormatField.format" title="Permalink to this definition">¶</a></dt>
+<dd>Return formatted value.</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.FormatField.items">
+<tt class="descname">items</tt><big>(</big><em>*values</em><big>)</big><a class="headerlink" href="#engine.documents.FormatField.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate fields with formatted values.</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="prefixfield">
 <h3>PrefixField<a class="headerlink" href="#prefixfield" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
@@ -1009,6 +1038,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 <li><a class="reference external" href="#hit">Hit</a></li>
 <li><a class="reference external" href="#hits">Hits</a></li>
 <li><a class="reference external" href="#field">Field</a></li>
+<li><a class="reference external" href="#formatfield">FormatField</a></li>
 <li><a class="reference external" href="#prefixfield">PrefixField</a></li>
 <li><a class="reference external" href="#nestedfield">NestedField</a></li>
 <li><a class="reference external" href="#datetimefield">DateTimeField</a></li>

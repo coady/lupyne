@@ -6,6 +6,6 @@ abstracting away java lucene primitives.
 """
 
 from .queries import Query, Filter
-from .documents import Document, Field, PrefixField, NestedField, DateTimeField
+from .documents import Document, Field, FormatField, PrefixField, NestedField, DateTimeField
 from .indexers import IndexSearcher, IndexWriter, Indexer
 from .spatial import PointField, PolygonField

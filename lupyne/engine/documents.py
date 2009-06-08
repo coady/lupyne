@@ -28,6 +28,18 @@ class Field(object):
         for value in values:
             yield lucene.Field(self.name, value, self.store, self.index, self.termvector)
 
+class FormatField(Field):
+    """Field which uses string formatting on its values.
+    
+    :param format: format string
+    """
+    def __init__(self, name, format='{0}', **kwargs):
+        Field.__init__(self, name, **kwargs)
+        self.format = format.format
+    def items(self, *values):
+        "Generate fields with formatted values."
+        return Field.items(self, *map(self.format, values))
+
 class PrefixField(Field):
     """Field which indexes every prefix of a value into a separate component field.
     The customizable component field names are expressed as slices.

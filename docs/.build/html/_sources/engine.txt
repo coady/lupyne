@@ -105,6 +105,16 @@ Field
 .. autoclass:: engine.documents.Field
   :members:
 
+FormatField
+^^^^^^^^^^^^^
+.. autoclass:: engine.documents.FormatField
+  :show-inheritance:
+  :members:
+
+  .. method:: format(value)
+
+    Return formatted value.
+
 PrefixField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.PrefixField
