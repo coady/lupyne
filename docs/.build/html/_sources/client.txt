@@ -9,9 +9,21 @@ Response
   :show-inheritance:
   :members:
 
+  .. attribute:: status
+
+    HTTP status code
+
+  .. attribute:: reason
+
+    HTTP status message
+
+  .. attribute:: body
+
+    string of entire response body
+
   .. method:: __call__()
-  
-  Return evaluated response body or raise exception.
+
+    Return json evaluated response body or raise exception.
 
 Resource
 ---------
@@ -22,9 +34,20 @@ Resource
 
   .. method:: __call__(method, path, body=None)
 
-  Send request and return evaluated response body.
+    Send request and return evaluated response body.
+
+  .. method:: getresponse()
 
 Resources
 ---------
 .. autoclass:: client.Resources
   :members:
+
+Shards
+---------
+.. autoclass:: client.Shards
+  :members:
+
+  .. attribute:: resources
+
+    `Resources`_ mapping.

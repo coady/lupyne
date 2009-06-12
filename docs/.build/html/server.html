@@ -68,7 +68,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 <dt id="server.WebSearcher">
 <em class="property">
 class </em><tt class="descclassname">server.</tt><tt class="descname">WebSearcher</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.WebSearcher" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dispatch root with a delegated Indexer.</p>
+<dd><p>Dispatch root with a delegated IndexSearcher.</p>
 <dl class="method">
 <dt id="server.WebSearcher.docs">
 <tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=''</em>, <em>multifields=''</em><big>)</big><a class="headerlink" href="#server.WebSearcher.docs" title="Permalink to this definition">¶</a></dt>
@@ -152,7 +152,7 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">WebSearche
 
 <dl class="method">
 <dt id="server.WebSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>q</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /search?q=<em>chars</em>,</dt>
@@ -306,7 +306,7 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">WebIndexer
 
 <dl class="method">
 <dt id="server.WebIndexer.search">
-<tt class="descname">search</tt><big>(</big><em>q</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delete a query.</p>
 <dl class="docutils">
 <dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>

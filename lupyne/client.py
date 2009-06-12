@@ -1,5 +1,15 @@
 """
-Restful json client.
+Restful json clients.
+
+Use `Resource`_ for a single host.
+Use `Resources`_ for multiple hosts with simple partitioning or redundancy.
+Use `Shards`_ for horizontally partitioning hosts by different keys.
+
+`Resources`_ reuse persistent connections as possible, handling request timeouts.
+Broadcasting to multiple resources is parallelized with asynchronous requests and responses.
+
+The load balancing strategy is randomized, biased by the number of cached connections available.
+This inherently provides limited failover support, but applications must still handle exceptions as desired.
 """
 
 import gzip
@@ -13,7 +23,7 @@ except ImportError:
     import json
 
 class Response(httplib.HTTPResponse):
-    "A closed response which handles json and caches its body."
+    "A completed response which handles json and caches its body."
     def begin(self):
         httplib.HTTPResponse.begin(self)
         self.body = self.read()
@@ -54,7 +64,7 @@ class Resource(httplib.HTTPConnection):
         return self('DELETE', path)
 
 class Resources(dict):
-    "Persistent thread-safe http connections with support for redundancy and partitioning."
+    "Thread-safe mapping of hosts to persistent resources."
     def __init__(self, hosts):
         self.update((host, []) for host in hosts)
     def pop(self, host):
@@ -67,15 +77,16 @@ class Resources(dict):
         "Put resource back into available pool."
         self[host].append(resource)
     def request(self, host, method, path, body=None):
-        "Send request to given host and return resource."
+        "Send request to given host and return exclusive resource."
         resource = self.pop(host)
         resource.request(method, path, body)
         return resource
     def unicast(self, method, path, body=None, hosts=()):
         "Send request and return response from any host, optionally from given subset."
-        hosts = list(hosts) or self
+        hosts = tuple(hosts) or self
         candidates = itertools.chain.from_iterable([host] * len(self[host]) for host in hosts)
-        host = random.choice(list(candidates) or list(hosts))
+        candidates = list(candidates)
+        host = random.choice(list(candidates) or tuple(hosts))
         resource = self.request(host, method, path, body)
         response = resource.getresponse()
         if response.status == httplib.REQUEST_TIMEOUT:
@@ -84,7 +95,7 @@ class Resources(dict):
         return response
     def broadcast(self, method, path, body=None, hosts=()):
         "Send requests and return responses from all hosts, optionally from given subset."
-        hosts = list(hosts) or self
+        hosts = tuple(hosts) or self
         responses = {}
         resources = dict((host, self.request(host, method, path, body)) for host in hosts)
         while resources:
@@ -96,3 +107,28 @@ class Resources(dict):
                 else:
                     self.push(host, resource)
         return map(responses.__getitem__, hosts)
+
+class Shards(dict):
+    "Mapping of keys to host clusters, with associated resources."
+    def __init__(self, items):
+        for key, hosts in items:
+            self[key] = set(hosts)
+        self.resources = Resources(itertools.chain(*self.values()))
+    def unicast(self, key, method, path, body=None):
+        "Send request and return response from any host for corresponding key."
+        return self.resources.unicast(method, path, body, self[key])
+    def broadcast(self, key, method, path, body=None):
+        "Send requests and return responses from all hosts for corresponding key."
+        return self.resources.broadcast(method, path, body, self[key])
+    def multicast(self, keys, method, path, body=None):
+        """Send requests and return responses from a subset of hosts which cover all corresponding keys.
+        A minimal number of hosts will be called, but overlap is possible depending on partitioning.
+        """
+        shards = set(map(frozenset, itertools.product(*map(self.__getitem__, keys))))
+        size = min(map(len, shards))
+        shards = [hosts for hosts in shards if len(hosts) <= size]
+        candidates = []
+        for hosts in shards:
+            candidates += [hosts] * min(len(self.resources[host]) for host in hosts)
+        hosts = random.choice(candidates or shards)
+        return self.resources.broadcast(method, path, body, hosts)

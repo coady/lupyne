@@ -1,9 +1,11 @@
 import unittest
+import itertools
 from lupyne import client
 import remote
 
 class TestCase(remote.BaseTest):
-    ports = 8080, 8081
+    ports = 8080, 8081, 8082
+    hosts = map('localhost:{0:n}'.format, ports)
     def setUp(self):
         remote.BaseTest.setUp(self)
         self.servers = map(self.start, self.ports)
@@ -14,7 +16,7 @@ class TestCase(remote.BaseTest):
     
     def testInterface(self):
         "Distributed reading and writing."
-        resources = client.Resources(map('localhost:{0:n}'.format, self.ports))
+        resources = client.Resources(self.hosts)
         responses = resources.broadcast('GET', '/')
         assert len(responses) == len(resources)
         for response in responses:
@@ -31,14 +33,37 @@ class TestCase(remote.BaseTest):
         assert response() == ''
         responses = resources.broadcast('POST', '/commit')
         assert all(response() >= 1 for response in responses)
-        responses = resources.broadcast('GET', '/search/?q=text:hello')
+        responses = resources.broadcast('GET', '/search?q=text:hello')
         docs = []
         for response in responses:
             result = response()
             assert result['count'] >= 1
             docs += result['docs']
-        assert len(docs) == 3
+        assert len(docs) == len(resources) + 1
         assert len(set(doc['__id__'] for doc in docs)) == 2
+    
+    def testSharding(self):
+        "Sharding of indices across servers."
+        shards = client.Shards(enumerate(itertools.combinations(self.hosts, 2)))
+        shards.resources.broadcast('PUT', '/fields/zone', {'store': 'yes'})
+        for zone in range(len(self.ports)):
+            shards.broadcast(zone, 'POST', '/docs', {'docs': [{'zone': str(zone)}]})
+        shards.resources.broadcast('POST', '/commit')
+        result = shards.unicast(0, 'GET', '/search?q=zone:0')()
+        assert result['count'] == len(result['docs']) == 1
+        assert all(response() == result for response in shards.broadcast(0, 'GET', '/search?q=zone:0'))
+        response, = shards.multicast([0], 'GET', '/search')
+        assert set(doc['zone'] for doc in response()['docs']) > set('0')
+        response, = shards.multicast([0, 1], 'GET', '/search')
+        assert set(doc['zone'] for doc in response()['docs']) == set('01')
+        zones = set()
+        responses = shards.multicast([0, 1, 2], 'GET', '/search')
+        assert len(responses) == 2
+        for response in responses:
+            docs = response()['docs']
+            assert len(docs) == 2
+            zones.update(doc['zone'] for doc in docs)
+        assert zones == set('012')
 
 if __name__ == '__main__':
     unittest.main()

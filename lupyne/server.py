@@ -62,7 +62,7 @@ def handleBadRequest(exception):
         raise cherrypy.HTTPError(httplib.BAD_REQUEST, str(exc))
 
 class WebSearcher(object):
-    "Dispatch root with a delegated Indexer."
+    "Dispatch root with a delegated IndexSearcher."
     _cp_config = {'tools.json.on': True, 'tools.gzip.on': True, 'tools.allow.on': True}
     def __init__(self, *args, **kwargs):
         self.indexer = IndexSearcher(*args, **kwargs)
@@ -104,7 +104,7 @@ class WebSearcher(object):
             doc = self.indexer[id]
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
-    def search(self, q, count=None, fields='', multifields='', sort=None, reverse='false'):
+    def search(self, q=None, count=None, fields='', multifields='', sort=None, reverse='false'):
         """Run query and return documents.
         
         **GET** /search?q=\ *chars*,
@@ -241,7 +241,7 @@ class WebIndexer(WebSearcher):
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
-    def search(self, q, count=None, fields='', multifields='', sort=None, reverse='false'):
+    def search(self, q=None, count=None, fields='', multifields='', sort=None, reverse='false'):
         """Delete a query.
         
         **DELETE** /search?q=\ *chars*
@@ -278,11 +278,9 @@ def main(root, path='', config=None):
 
 if __name__ == '__main__':
     import optparse
-    parser = optparse.OptionParser()
-    parser.add_option("-r", "--read-only", action="store_true", dest="read",
-        help="expose only search methods, without acquiring a write lock")
-    parser.add_option("-c", "--config", dest="config",
-        help="optional configuration file")
+    parser = optparse.OptionParser(usage='python %prog [index_directory]')
+    parser.add_option('-r', '--read-only', action='store_true', dest='read', help='expose only GET methods; no write lock')
+    parser.add_option('-c', '--config', dest='config', help='optional configuration file')
     options, args = parser.parse_args()
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')

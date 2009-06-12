@@ -4,20 +4,21 @@ import os, sys
 import subprocess
 import operator
 import httplib
+import socket, errno
 from contextlib import contextmanager
 import cherrypy
 from lupyne import client
 import fixture, local
 
 @contextmanager
-def assertRaises(code):
-    "Assert HTTPException is raised with specific status code."
+def assertRaises(exception, code):
+    "Assert an exception is raised with specific code."
     try:
         yield
-    except httplib.HTTPException as exc:
+    except exception as exc:
         assert exc[0] == code
     else:
-        raise AssertionError('HTTPException not raised')
+        raise AssertionError(exception.__name__ + ' not raised')
 
 class BaseTest(local.BaseTest):
     def start(self, port, *args):
@@ -53,15 +54,15 @@ class TestCase(BaseTest):
         (directory, count), = resource.get('/').items()
         assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
         assert not resource('HEAD', '/')
-        with assertRaises(httplib.METHOD_NOT_ALLOWED):
+        with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.put('/')
         assert resource.get('/docs') == []
-        with assertRaises(httplib.NOT_FOUND):
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/docs/0')
-        with assertRaises(httplib.BAD_REQUEST):
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/docs/~')
         assert resource.get('/fields') == []
-        with assertRaises(httplib.NOT_FOUND):
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/fields/name')
         assert resource.get('/terms') == []
         assert resource.get('/terms/x') == []
@@ -78,7 +79,7 @@ class TestCase(BaseTest):
         (directory, count), = resource.get('/').items()
         assert count == 1
         assert resource.get('/docs') == []
-        assert resource.get('/search/?q=text:hello') == {'count': 0, 'docs': []}
+        assert resource.get('/search?q=text:hello') == {'count': 0, 'docs': []}
         assert resource.post('/commit')
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
@@ -97,10 +98,13 @@ class TestCase(BaseTest):
         doc, = hits['docs']
         assert sorted(doc) == ['__id__', '__score__', 'name']
         assert doc['__id__'] == 0 and doc['__score__'] > 0 and doc['name'] == 'sample' 
-        assert not resource.delete('/search/?q=name:sample')
+        assert not resource.delete('/search?q=name:sample')
         assert resource.get('/docs') == [0]
         assert not resource.post('/commit')
         assert resource.get('/docs') == []
+        resource = client.Resource('localhost', self.port + 1)
+        with assertRaises(socket.error, errno.ECONNREFUSED):
+            resource.get('/')
     
     def testBasic(self):
         "Remote text indexing and searching."

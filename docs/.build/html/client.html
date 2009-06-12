@@ -46,7 +46,14 @@
             
   <div class="section" id="module-client">
 <h1>client<a class="headerlink" href="#module-client" title="Permalink to this headline">¶</a></h1>
-<p>Restful json client.</p>
+<p>Restful json clients.</p>
+<p>Use <a class="reference internal" href="#resource">Resource</a> for a single host.
+Use <a class="reference internal" href="#resources">Resources</a> for multiple hosts with simple partitioning or redundancy.
+Use <a class="reference internal" href="#shards">Shards</a> for horizontally partitioning hosts by different keys.</p>
+<p><a class="reference internal" href="#resources">Resources</a> reuse persistent connections as possible, handling request timeouts.
+Broadcasting to multiple resources is parallelized with asynchronous requests and responses.</p>
+<p>The load balancing strategy is randomized, biased by the number of cached connections available.
+This inherently provides limited failover support, but applications must still handle exceptions as desired.</p>
 <div class="section" id="response">
 <h2>Response<a class="headerlink" href="#response" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
@@ -54,13 +61,27 @@
 <em class="property">
 class </em><tt class="descclassname">client.</tt><tt class="descname">Response</tt><big>(</big><em>sock</em>, <em>debuglevel=0</em>, <em>strict=0</em>, <em>method=None</em><big>)</big><a class="headerlink" href="#client.Response" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref docutils literal"><span class="pre">httplib.HTTPResponse</span></tt></p>
-<p>A closed response which handles json and caches its body.</p>
+<p>A completed response which handles json and caches its body.</p>
+<dl class="attribute">
+<dt id="client.Response.status">
+<tt class="descname">status</tt><a class="headerlink" href="#client.Response.status" title="Permalink to this definition">¶</a></dt>
+<dd>HTTP status code</dd></dl>
+
+<dl class="attribute">
+<dt id="client.Response.reason">
+<tt class="descname">reason</tt><a class="headerlink" href="#client.Response.reason" title="Permalink to this definition">¶</a></dt>
+<dd>HTTP status message</dd></dl>
+
+<dl class="attribute">
+<dt id="client.Response.body">
+<tt class="descname">body</tt><a class="headerlink" href="#client.Response.body" title="Permalink to this definition">¶</a></dt>
+<dd>string of entire response body</dd></dl>
+
 <dl class="method">
 <dt id="client.Response.__call__">
 <tt class="descname">__call__</tt><big>(</big><big>)</big><a class="headerlink" href="#client.Response.__call__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd>Return json evaluated response body or raise exception.</dd></dl>
 
-<p>Return evaluated response body or raise exception.</p>
 </dd></dl>
 
 </div>
@@ -75,9 +96,13 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</
 <dl class="method">
 <dt id="client.Resource.__call__">
 <tt class="descname">__call__</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resource.__call__" title="Permalink to this definition">¶</a></dt>
+<dd>Send request and return evaluated response body.</dd></dl>
+
+<dl class="method">
+<dt id="client.Resource.getresponse">
+<tt class="descname">getresponse</tt><big>(</big><big>)</big><a class="headerlink" href="#client.Resource.getresponse" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<p>Send request and return evaluated response body.</p>
 <dl class="method">
 <dt id="client.Resource.delete">
 <tt class="descname">delete</tt><big>(</big><em>path</em><big>)</big><a class="headerlink" href="#client.Resource.delete" title="Permalink to this definition">¶</a></dt>
@@ -117,7 +142,7 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</
 <dt id="client.Resources">
 <em class="property">
 class </em><tt class="descclassname">client.</tt><tt class="descname">Resources</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Resources" title="Permalink to this definition">¶</a></dt>
-<dd><p>Persistent thread-safe http connections with support for redundancy and partitioning.</p>
+<dd><p>Thread-safe mapping of hosts to persistent resources.</p>
 <dl class="method">
 <dt id="client.Resources.broadcast">
 <tt class="descname">broadcast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.broadcast" title="Permalink to this definition">¶</a></dt>
@@ -136,12 +161,43 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resources<
 <dl class="method">
 <dt id="client.Resources.request">
 <tt class="descname">request</tt><big>(</big><em>host</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resources.request" title="Permalink to this definition">¶</a></dt>
-<dd>Send request to given host and return resource.</dd></dl>
+<dd>Send request to given host and return exclusive resource.</dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.unicast">
 <tt class="descname">unicast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.unicast" title="Permalink to this definition">¶</a></dt>
 <dd>Send request and return response from any host, optionally from given subset.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="shards">
+<h2>Shards<a class="headerlink" href="#shards" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="client.Shards">
+<em class="property">
+class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt><big>(</big><em>items</em><big>)</big><a class="headerlink" href="#client.Shards" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping of keys to host clusters, with associated resources.</p>
+<dl class="attribute">
+<dt id="client.Shards.resources">
+<tt class="descname">resources</tt><a class="headerlink" href="#client.Shards.resources" title="Permalink to this definition">¶</a></dt>
+<dd><a class="reference internal" href="#resources">Resources</a> mapping.</dd></dl>
+
+<dl class="method">
+<dt id="client.Shards.broadcast">
+<tt class="descname">broadcast</tt><big>(</big><em>key</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Shards.broadcast" title="Permalink to this definition">¶</a></dt>
+<dd>Send requests and return responses from all hosts for corresponding key.</dd></dl>
+
+<dl class="method">
+<dt id="client.Shards.multicast">
+<tt class="descname">multicast</tt><big>(</big><em>keys</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Shards.multicast" title="Permalink to this definition">¶</a></dt>
+<dd>Send requests and return responses from a subset of hosts which cover all corresponding keys.
+A minimal number of hosts will be called, but overlap is possible depending on partitioning.</dd></dl>
+
+<dl class="method">
+<dt id="client.Shards.unicast">
+<tt class="descname">unicast</tt><big>(</big><em>key</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Shards.unicast" title="Permalink to this definition">¶</a></dt>
+<dd>Send request and return response from any host for corresponding key.</dd></dl>
 
 </dd></dl>
 
@@ -160,6 +216,7 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resources<
 <li><a class="reference external" href="#response">Response</a></li>
 <li><a class="reference external" href="#resource">Resource</a></li>
 <li><a class="reference external" href="#resources">Resources</a></li>
+<li><a class="reference external" href="#shards">Shards</a></li>
 </ul>
 </li>
 </ul>
