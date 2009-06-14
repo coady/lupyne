@@ -277,12 +277,14 @@ def main(root, path='', config=None):
     cherrypy.quickstart(root, path, config)
 
 if __name__ == '__main__':
-    import optparse
+    import os, optparse
     parser = optparse.OptionParser(usage='python %prog [index_directory]')
     parser.add_option('-r', '--read-only', action='store_true', dest='read', help='expose only GET methods; no write lock')
-    parser.add_option('-c', '--config', dest='config', help='optional configuration file')
+    parser.add_option('-c', '--config', dest='config', help='optional configuration file or global json dict')
     options, args = parser.parse_args()
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
     root = (WebSearcher if options.read else WebIndexer)(*args)
+    if options.config and not os.path.exists(options.config):
+        options.config = {'global': json.loads(options.config)}
     main(root, config=options.config)

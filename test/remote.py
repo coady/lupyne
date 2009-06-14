@@ -1,4 +1,3 @@
-from __future__ import print_function
 import unittest
 import os, sys
 import subprocess
@@ -23,10 +22,7 @@ def assertRaises(exception, code):
 class BaseTest(local.BaseTest):
     def start(self, port, *args):
         "Start server in separate process on given port."
-        with open(os.path.join(self.tempdir, str(port)), 'w') as conf:
-            print('[global]', file=conf)
-            print('server.socket_port: {0:n}'.format(port), file=conf)
-        params = sys.executable, '-m', 'lupyne.server', '-c', conf.name
+        params = sys.executable, '-m', 'lupyne.server', '-c', '{{"server.socket_port": {0:n}}}'.format(port)
         stderr = None if self.verbose else subprocess.PIPE
         cherrypy.process.servers.wait_for_free_port('localhost', port)
         server = subprocess.Popen(params + args, stderr=stderr)

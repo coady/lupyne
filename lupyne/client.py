@@ -85,7 +85,6 @@ class Resources(dict):
         "Send request and return response from any host, optionally from given subset."
         hosts = tuple(hosts) or self
         candidates = itertools.chain.from_iterable([host] * len(self[host]) for host in hosts)
-        candidates = list(candidates)
         host = random.choice(list(candidates) or tuple(hosts))
         resource = self.request(host, method, path, body)
         response = resource.getresponse()
@@ -110,8 +109,8 @@ class Resources(dict):
 
 class Shards(dict):
     "Mapping of keys to host clusters, with associated resources."
-    def __init__(self, items):
-        for key, hosts in items:
+    def __init__(self, mapping=(), **kwargs):
+        for key, hosts in dict(mapping, **kwargs).items():
             self[key] = set(hosts)
         self.resources = Resources(itertools.chain(*self.values()))
     def unicast(self, key, method, path, body=None):

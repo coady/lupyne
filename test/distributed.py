@@ -1,5 +1,6 @@
 import unittest
 import itertools
+import socket, errno
 from lupyne import client
 import remote
 
@@ -41,6 +42,10 @@ class TestCase(remote.BaseTest):
             docs += result['docs']
         assert len(docs) == len(resources) + 1
         assert len(set(doc['__id__'] for doc in docs)) == 2
+        self.stop(self.servers.pop())
+        with remote.assertRaises(socket.error, errno.ECONNRESET):
+            resources.broadcast('GET', '/')
+        assert resources.unicast('GET', '/')()
     
     def testSharding(self):
         "Sharding of indices across servers."
@@ -64,6 +69,11 @@ class TestCase(remote.BaseTest):
             assert len(docs) == 2
             zones.update(doc['zone'] for doc in docs)
         assert zones == set('012')
+        self.stop(self.servers.pop())
+        with remote.assertRaises(socket.error, errno.ECONNRESET):
+            shards.broadcast(2, 'GET', '/')
+        responses = shards.multicast([0, 1, 2], 'GET', '/')
+        assert len(responses) == 2 and all(response() for response in responses)
 
 if __name__ == '__main__':
     unittest.main()
