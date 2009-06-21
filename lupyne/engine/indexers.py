@@ -102,16 +102,12 @@ class IndexReader(object):
                     values[termdocs.doc()] = value
         return values
 
-class IndexSearcher(lucene.IndexSearcher, IndexReader):
-    """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
-    
-    :param directory: directory path or lucene Directory
-    :param analyzer: lucene Analyzer class
-    """
-    def __init__(self, directory, analyzer=lucene.StandardAnalyzer):
-        lucene.IndexSearcher.__init__(self, directory)
+class Searcher(object):
+    "Mixin interface common among searchers."
+    __getitem__ = IndexReader.__getitem__.im_func
+    def __init__(self, arg, analyzer=lucene.StandardAnalyzer):
+        super(Searcher, self).__init__(arg)
         self.analyzer = analyzer()
-        self.filters = {}
     def __del__(self):
         if str(self) != '<null>':
             self.close()
@@ -126,6 +122,57 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         if op:
             parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
         return parser.parse(query)
+    def count(self, *query, **options):
+        """Return number of hits for given query or term.
+        
+        :param query: :meth:`search` compatible query, or optimally a name and value
+        :param options: additional :meth:`search` options
+        """
+        if len(query) <= 1:
+            return self.search(*query, count=1, **options).count
+        return self.docFreq(lucene.Term(*query))
+    def search(self, query=None, filter=None, count=None, sort=None, reverse=False, **parser):
+        """Run query and return `Hits`_.
+        
+        :param query: query string or lucene Query
+        :param filter: doc ids or lucene Filter
+        :param count: maximum number of hits to retrieve
+        :param sort: if count is given, lucene Sort parameters, else a callable key
+        :param reverse: reverse flag used with sort
+        :param parser: :meth:`parse` options
+        """
+        if query is None:
+            query = lucene.MatchAllDocsQuery()
+        elif not isinstance(query, lucene.Query):
+            query = self.parse(query, **parser)
+        if not isinstance(filter, (lucene.Filter, type(None))):
+            filter = Filter(filter)
+        # use custom HitCollector if all results are necessary, otherwise let lucene's TopDocs handle it
+        if count is None:
+            collector = HitCollector(self)
+            super(Searcher, self).search(query, filter, collector)
+            return Hits(self, *collector.sorted(key=sort, reverse=reverse))
+        if sort is None:
+            topdocs = super(Searcher, self).search(query, filter, count)
+        else:
+            if isinstance(sort, basestring):
+                sort = lucene.Sort(sort, reverse)
+            elif not isinstance(sort, lucene.Sort):
+                sort = lucene.Sort(sort)
+            topdocs = super(Searcher, self).search(query, filter, count, sort)
+        scoredocs = list(topdocs.scoreDocs)
+        ids, scores = (map(operator.attrgetter(name), scoredocs) for name in ('doc', 'score'))
+        return Hits(self, ids, scores, topdocs.totalHits)
+
+class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
+    """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
+    
+    :param directory: directory path or lucene Directory
+    :param analyzer: lucene Analyzer class
+    """
+    def __init__(self, directory, analyzer=lucene.StandardAnalyzer):
+        Searcher.__init__(self, directory, analyzer)
+        self.filters = {}
     def facets(self, ids, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
@@ -148,47 +195,19 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
                     filters[value] = Query.term(name, value).filter()
                 counts[name][value] = len(bits & filters[value].bits(self.indexReader))
         return dict(counts)
-    def count(self, *query, **options):
-        """Return number of hits for given query or term.
-        
-        :param query: :meth:`search` compatible query, or optimally a name and value
-        :param options: additional :meth:`search` options
-        """
-        if len(query) == 1:
-            return self.search(query[0], count=1, **options).count
-        return IndexReader.count(self, *query)
-    def search(self, query=None, filter=None, count=None, sort=None, reverse=False, **parser):
-        """Run query and return `Hits`_.
-        
-        :param query: query string or lucene Query
-        :param filter: doc ids or lucene Filter
-        :param count: maximum number of hits to retrieve
-        :param sort: if count is given, lucene Sort parameters, else a callable key
-        :param reverse: reverse flag used with sort
-        :param parser: :meth:`parse` options
-        """
-        if query is None:
-            query = lucene.MatchAllDocsQuery()
-        elif not isinstance(query, lucene.Query):
-            query = self.parse(query, **parser)
-        if not isinstance(filter, (lucene.Filter, type(None))):
-            filter = Filter(filter)
-        # use custom HitCollector if all results are necessary, otherwise let lucene's TopDocs handle it
-        if count is None:
-            collector = HitCollector(self)
-            lucene.IndexSearcher.search(self, query, filter, collector)
-            return Hits(self, *collector.sorted(key=sort, reverse=reverse))
-        if sort is None:
-            topdocs = lucene.IndexSearcher.search(self, query, filter, count)
-        else:
-            if isinstance(sort, basestring):
-                sort = lucene.Sort(sort, reverse)
-            elif not isinstance(sort, lucene.Sort):
-                sort = lucene.Sort(sort)
-            topdocs = lucene.IndexSearcher.search(self, query, filter, count, sort)
-        scoredocs = list(topdocs.scoreDocs)
-        ids, scores = (map(operator.attrgetter(name), scoredocs) for name in ('doc', 'score'))
-        return Hits(self, ids, scores, topdocs.totalHits)
+
+class MultiSearcher(Searcher, lucene.MultiSearcher):
+    """Inherited lucene MultiSearcher.
+    
+    :param searchers: lucene.Searchers or directory
+    :param analyzer: lucene Analyzer class
+    """
+    def __init__(self, searchers, analyzer=lucene.StandardAnalyzer):
+        searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(searcher) for searcher in searchers]
+        Searcher.__init__(self, searchers, analyzer)
+
+class ParallelMultiSearcher(MultiSearcher, lucene.ParallelMultiSearcher):
+    "Inherited lucene ParallelMultiSearcher."
 
 class IndexWriter(lucene.IndexWriter):
     """Inherited lucene IndexWriter.
@@ -199,8 +218,8 @@ class IndexWriter(lucene.IndexWriter):
     :param analyzer: lucene Analyzer class
     """
     __len__ = lucene.IndexWriter.numDocs
-    __del__ = IndexSearcher.__del__.im_func
-    parse = IndexSearcher.parse.im_func
+    __del__ = Searcher.__del__.im_func
+    parse = Searcher.parse.im_func
     def __init__(self, directory=None, mode='a', analyzer=lucene.StandardAnalyzer):
         create = [mode == 'w'] * (mode != 'a')
         lucene.IndexWriter.__init__(self, directory or lucene.RAMDirectory(), analyzer(), *create)
@@ -236,7 +255,7 @@ class IndexWriter(lucene.IndexWriter):
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
         
-        :param query: :meth:`IndexSearcher.search` compatible query, or optimally a name and value
+        :param query: :meth:`Searcher.search` compatible query, or optimally a name and value
         :param options: additional :meth:`parse` options
         """
         if len(query) == 1:

@@ -61,9 +61,9 @@
   <dd><dl>
     <dt><a href="engine.html#engine.indexers.IndexReader.__contains__">(engine.indexers.IndexReader method)</a></dt>
   </dl></dd>
-<dt><a href="engine.html#engine.indexers.IndexSearcher.__del__">__del__() (engine.indexers.IndexSearcher method)</a></dt>
+<dt><a href="engine.html#engine.indexers.IndexWriter.__del__">__del__() (engine.indexers.IndexWriter method)</a></dt>
   <dd><dl>
-    <dt><a href="engine.html#engine.indexers.IndexWriter.__del__">(engine.indexers.IndexWriter method)</a></dt>
+    <dt><a href="engine.html#engine.indexers.Searcher.__del__">(engine.indexers.Searcher method)</a></dt>
   </dl></dd>
 <dt><a href="engine.html#engine.documents.Document.__delitem__">__delitem__() (engine.documents.Document method)</a></dt>
   <dd><dl>
@@ -73,11 +73,12 @@
   <dd><dl>
     <dt><a href="engine.html#engine.documents.Hits.__getitem__">(engine.documents.Hits method)</a></dt>
     <dt><a href="engine.html#engine.indexers.IndexReader.__getitem__">(engine.indexers.IndexReader method)</a></dt>
+    <dt><a href="engine.html#engine.indexers.Searcher.__getitem__">(engine.indexers.Searcher method)</a></dt>
     <dt><a href="engine.html#engine.queries.BooleanQuery.__getitem__">(engine.queries.BooleanQuery method)</a></dt>
     <dt><a href="engine.html#engine.queries.SpanQuery.__getitem__">(engine.queries.SpanQuery method)</a></dt>
   </dl></dd>
-<dt><a href="engine.html#engine.indexers.IndexWriter.__iadd__">__iadd__() (engine.indexers.IndexWriter method)</a></dt>
-<dt><a href="engine.html#engine.queries.BooleanQuery.__iand__">__iand__() (engine.queries.BooleanQuery method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.indexers.IndexWriter.__iadd__">__iadd__() (engine.indexers.IndexWriter method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.queries.BooleanQuery.__iand__">__iand__() (engine.queries.BooleanQuery method)</a></dt>
 <dt><a href="engine.html#engine.queries.BooleanQuery.__ior__">__ior__() (engine.queries.BooleanQuery method)</a></dt>
 <dt><a href="engine.html#engine.queries.BooleanQuery.__isub__">__isub__() (engine.queries.BooleanQuery method)</a></dt>
 <dt><a href="engine.html#engine.documents.Document.__iter__">__iter__() (engine.documents.Document method)</a></dt>
@@ -139,7 +140,7 @@
 <dt><a href="engine.html#engine.indexers.IndexReader.comparator">comparator() (engine.indexers.IndexReader method)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.indexers.IndexReader.count">count() (engine.indexers.IndexReader method)</a></dt>
   <dd><dl>
-    <dt><a href="engine.html#engine.indexers.IndexSearcher.count">(engine.indexers.IndexSearcher method)</a></dt>
+    <dt><a href="engine.html#engine.indexers.Searcher.count">(engine.indexers.Searcher method)</a></dt>
   </dl></dd>
 </dl></td></tr></table>
 
@@ -258,8 +259,9 @@
 <dl>
 
 <dt><a href="server.html#server.main">main() (in module server)</a></dt>
-<dt><a href="client.html#client.Shards.multicast">multicast() (client.Shards method)</a></dt></dl></td><td width="33%" valign="top"><dl>
-<dt><a href="engine.html#engine.queries.Query.multiphrase">multiphrase() (engine.queries.Query class method)</a></dt>
+<dt><a href="client.html#client.Shards.multicast">multicast() (client.Shards method)</a></dt>
+<dt><a href="engine.html#engine.queries.Query.multiphrase">multiphrase() (engine.queries.Query class method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.indexers.MultiSearcher">MultiSearcher (class in engine.indexers)</a></dt>
 </dl></td></tr></table>
 
 <h2 id="N">N</h2>
@@ -278,16 +280,17 @@
 <table width="100%" class="indextable"><tr><td width="33%" valign="top">
 <dl>
 
-<dt><a href="engine.html#engine.indexers.IndexSearcher.parse">parse() (engine.indexers.IndexSearcher method)</a></dt>
+<dt><a href="engine.html#engine.indexers.ParallelMultiSearcher">ParallelMultiSearcher (class in engine.indexers)</a></dt>
+<dt><a href="engine.html#engine.indexers.IndexWriter.parse">parse() (engine.indexers.IndexWriter method)</a></dt>
   <dd><dl>
-    <dt><a href="engine.html#engine.indexers.IndexWriter.parse">(engine.indexers.IndexWriter method)</a></dt>
+    <dt><a href="engine.html#engine.indexers.Searcher.parse">(engine.indexers.Searcher method)</a></dt>
   </dl></dd>
 <dt><a href="engine.html#engine.queries.Query.phrase">phrase() (engine.queries.Query class method)</a></dt>
 <dt><a href="engine.html#engine.spatial.PointField">PointField (class in engine.spatial)</a></dt>
 <dt><a href="engine.html#engine.spatial.PolygonField">PolygonField (class in engine.spatial)</a></dt>
 <dt><a href="client.html#client.Resources.pop">pop() (client.Resources method)</a></dt>
-<dt><a href="engine.html#engine.indexers.IndexReader.positions">positions() (engine.indexers.IndexReader method)</a></dt>
-<dt><a href="client.html#client.Resource.post">post() (client.Resource method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.indexers.IndexReader.positions">positions() (engine.indexers.IndexReader method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="client.html#client.Resource.post">post() (client.Resource method)</a></dt>
 <dt><a href="engine.html#engine.documents.DateTimeField.prefix">prefix() (engine.documents.DateTimeField method)</a></dt>
   <dd><dl>
     <dt><a href="engine.html#engine.documents.PrefixField.prefix">(engine.documents.PrefixField method)</a></dt>
@@ -330,11 +333,12 @@
 <table width="100%" class="indextable"><tr><td width="33%" valign="top">
 <dl>
 
-<dt><a href="engine.html#engine.indexers.IndexSearcher.search">search() (engine.indexers.IndexSearcher method)</a></dt>
+<dt><a href="engine.html#engine.indexers.Searcher.search">search() (engine.indexers.Searcher method)</a></dt>
   <dd><dl>
     <dt><a href="server.html#server.WebIndexer.search">(server.WebIndexer method)</a></dt>
     <dt><a href="server.html#server.WebSearcher.search">(server.WebSearcher method)</a></dt>
   </dl></dd>
+<dt><a href="engine.html#engine.indexers.Searcher">Searcher (class in engine.indexers)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexWriter.segments">segments (engine.indexers.IndexWriter attribute)</a></dt>
 <dt><a href="server.html#module-server">server (module)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexWriter.set">set() (engine.indexers.IndexWriter method)</a></dt>

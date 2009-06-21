@@ -72,7 +72,6 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">I
 </tr>
 </tbody>
 </table>
-<p>Provides a mapping interface of ids to document objects.</p>
 <dl class="method">
 <dt id="engine.indexers.IndexReader.__len__">
 <tt class="descname">__len__</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.__len__" title="Permalink to this definition">¶</a></dt>
@@ -156,13 +155,91 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">I
 </dd></dl>
 
 </div>
+<div class="section" id="searcher">
+<h3>Searcher<a class="headerlink" href="#searcher" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.indexers.Searcher">
+<em class="property">
+class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">Searcher</tt><big>(</big><em>arg</em>, <em>analyzer=&lt;type 'StandardAnalyzer'&gt;</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mixin interface common among searchers.</p>
+<dl class="method">
+<dt id="engine.indexers.Searcher.__getitem__">
+<tt class="descname">__getitem__</tt><big>(</big><em>id</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.__getitem__" title="Permalink to this definition">¶</a></dt>
+<dd>Return <a class="reference internal" href="#document">Document</a></dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.__del__">
+<tt class="descname">__del__</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.__del__" title="Permalink to this definition">¶</a></dt>
+<dd>Closes index.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.count">
+<tt class="descname">count</tt><big>(</big><em>*query</em>, <em>**options</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return number of hits for given query or term.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>query</em> &#8211; <a title="engine.indexers.Searcher.search" class="reference internal" href="#engine.indexers.Searcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> compatible query, or optimally a name and value</li>
+<li><em>options</em> &#8211; additional <a title="engine.indexers.Searcher.search" class="reference internal" href="#engine.indexers.Searcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.parse">
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return lucene parsed Query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>field</em> &#8211; default query field name</li>
+<li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.search">
+<tt class="descname">search</tt><big>(</big><em>query=None</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run query and return <a class="reference internal" href="#hits">Hits</a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>query</em> &#8211; query string or lucene Query</li>
+<li><em>filter</em> &#8211; doc ids or lucene Filter</li>
+<li><em>count</em> &#8211; maximum number of hits to retrieve</li>
+<li><em>sort</em> &#8211; if count is given, lucene Sort parameters, else a callable key</li>
+<li><em>reverse</em> &#8211; reverse flag used with sort</li>
+<li><em>parser</em> &#8211; <a title="engine.indexers.Searcher.parse" class="reference internal" href="#engine.indexers.Searcher.parse"><tt class="xref docutils literal"><span class="pre">parse()</span></tt></a> options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="indexsearcher">
 <h3>IndexSearcher<a class="headerlink" href="#indexsearcher" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.indexers.IndexSearcher">
 <em class="property">
 class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexSearcher</tt><big>(</big><em>directory</em>, <em>analyzer=&lt;type 'StandardAnalyzer'&gt;</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a title="engine.indexers.IndexSearcher" class="reference internal" href="#engine.indexers.IndexSearcher"><tt class="xref docutils literal"><span class="pre">IndexSearcher</span></tt></a>, <a title="engine.indexers.IndexReader" class="reference internal" href="#engine.indexers.IndexReader"><tt class="xref docutils literal"><span class="pre">engine.indexers.IndexReader</span></tt></a></p>
+<dd><p>Bases: <a title="engine.indexers.Searcher" class="reference internal" href="#engine.indexers.Searcher"><tt class="xref docutils literal"><span class="pre">engine.indexers.Searcher</span></tt></a>, <a title="engine.indexers.IndexSearcher" class="reference internal" href="#engine.indexers.IndexSearcher"><tt class="xref docutils literal"><span class="pre">IndexSearcher</span></tt></a>, <a title="engine.indexers.IndexReader" class="reference internal" href="#engine.indexers.IndexReader"><tt class="xref docutils literal"><span class="pre">engine.indexers.IndexReader</span></tt></a></p>
 <p>Inherited lucene IndexSearcher, with a mixed-in IndexReader.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -176,34 +253,10 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">I
 </tr>
 </tbody>
 </table>
-<p>Provides a mapping interface of ids to document objects.</p>
 <dl class="attribute">
 <dt id="engine.indexers.IndexSearcher.filters">
 <tt class="descname">filters</tt><a class="headerlink" href="#engine.indexers.IndexSearcher.filters" title="Permalink to this definition">¶</a></dt>
 <dd>Mapping of cached filters, which are also used for facet counts.</dd></dl>
-
-<dl class="method">
-<dt id="engine.indexers.IndexSearcher.__del__">
-<tt class="descname">__del__</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.__del__" title="Permalink to this definition">¶</a></dt>
-<dd>Closes index.</dd></dl>
-
-<dl class="method">
-<dt id="engine.indexers.IndexSearcher.count">
-<tt class="descname">count</tt><big>(</big><em>*query</em>, <em>**options</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return number of hits for given query or term.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>query</em> &#8211; <a title="engine.indexers.IndexSearcher.search" class="reference internal" href="#engine.indexers.IndexSearcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> compatible query, or optimally a name and value</li>
-<li><em>options</em> &#8211; additional <a title="engine.indexers.IndexSearcher.search" class="reference internal" href="#engine.indexers.IndexSearcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> options</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.IndexSearcher.facets">
@@ -223,17 +276,24 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">I
 </table>
 </dd></dl>
 
-<dl class="method">
-<dt id="engine.indexers.IndexSearcher.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.parse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return lucene parsed Query.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="multisearcher">
+<h3>MultiSearcher<a class="headerlink" href="#multisearcher" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.indexers.MultiSearcher">
+<em class="property">
+class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">MultiSearcher</tt><big>(</big><em>searchers</em>, <em>analyzer=&lt;type 'StandardAnalyzer'&gt;</em><big>)</big><a class="headerlink" href="#engine.indexers.MultiSearcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.indexers.Searcher" class="reference internal" href="#engine.indexers.Searcher"><tt class="xref docutils literal"><span class="pre">engine.indexers.Searcher</span></tt></a>, <a title="engine.indexers.MultiSearcher" class="reference internal" href="#engine.indexers.MultiSearcher"><tt class="xref docutils literal"><span class="pre">MultiSearcher</span></tt></a></p>
+<p>Inherited lucene MultiSearcher.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>field</em> &#8211; default query field name</li>
-<li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
+<li><em>searchers</em> &#8211; lucene.Searchers or directory</li>
+<li><em>analyzer</em> &#8211; lucene Analyzer class</li>
 </ul>
 </td>
 </tr>
@@ -241,28 +301,15 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">I
 </table>
 </dd></dl>
 
-<dl class="method">
-<dt id="engine.indexers.IndexSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>query=None</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.search" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run query and return <a class="reference internal" href="#hits">Hits</a>.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>query</em> &#8211; query string or lucene Query</li>
-<li><em>filter</em> &#8211; doc ids or lucene Filter</li>
-<li><em>count</em> &#8211; maximum number of hits to retrieve</li>
-<li><em>sort</em> &#8211; if count is given, lucene Sort parameters, else a callable key</li>
-<li><em>reverse</em> &#8211; reverse flag used with sort</li>
-<li><em>parser</em> &#8211; <a title="engine.indexers.IndexSearcher.parse" class="reference internal" href="#engine.indexers.IndexSearcher.parse"><tt class="xref docutils literal"><span class="pre">parse()</span></tt></a> options</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
+</div>
+<div class="section" id="parallelmultisearcher">
+<h3>ParallelMultiSearcher<a class="headerlink" href="#parallelmultisearcher" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.indexers.ParallelMultiSearcher">
+<em class="property">
+class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">ParallelMultiSearcher</tt><big>(</big><em>searchers</em>, <em>analyzer=&lt;type 'StandardAnalyzer'&gt;</em><big>)</big><a class="headerlink" href="#engine.indexers.ParallelMultiSearcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.indexers.MultiSearcher" class="reference internal" href="#engine.indexers.MultiSearcher"><tt class="xref docutils literal"><span class="pre">engine.indexers.MultiSearcher</span></tt></a>, <a title="engine.indexers.ParallelMultiSearcher" class="reference internal" href="#engine.indexers.ParallelMultiSearcher"><tt class="xref docutils literal"><span class="pre">ParallelMultiSearcher</span></tt></a></p>
+<p>Inherited lucene ParallelMultiSearcher.</p>
 </dd></dl>
 
 </div>
@@ -331,7 +378,7 @@ Document is comprised of name: value pairs, where the values may be one or multi
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>query</em> &#8211; <a title="engine.indexers.IndexSearcher.search" class="reference internal" href="#engine.indexers.IndexSearcher.search"><tt class="xref docutils literal"><span class="pre">IndexSearcher.search()</span></tt></a> compatible query, or optimally a name and value</li>
+<li><em>query</em> &#8211; <a title="engine.indexers.Searcher.search" class="reference internal" href="#engine.indexers.Searcher.search"><tt class="xref docutils literal"><span class="pre">Searcher.search()</span></tt></a> compatible query, or optimally a name and value</li>
 <li><em>options</em> &#8211; additional <a title="engine.indexers.IndexWriter.parse" class="reference internal" href="#engine.indexers.IndexWriter.parse"><tt class="xref docutils literal"><span class="pre">parse()</span></tt></a> options</li>
 </ul>
 </td>
@@ -521,7 +568,7 @@ Provides a read-only sequence interface to hit objects.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>searcher</em> &#8211; <a class="reference internal" href="#indexsearcher">IndexSearcher</a> which can retrieve documents</li>
+<li><em>searcher</em> &#8211; <a class="reference internal" href="#searcher">Searcher</a> which can retrieve documents</li>
 <li><em>ids</em> &#8211; ordered doc ids</li>
 <li><em>scores</em> &#8211; ordered doc scores</li>
 <li><em>count</em> &#8211; total number of hits</li>
@@ -1028,7 +1075,10 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 <li><a class="reference external" href="">engine</a><ul>
 <li><a class="reference external" href="#module-engine.indexers">indexers</a><ul>
 <li><a class="reference external" href="#indexreader">IndexReader</a></li>
+<li><a class="reference external" href="#searcher">Searcher</a></li>
 <li><a class="reference external" href="#indexsearcher">IndexSearcher</a></li>
+<li><a class="reference external" href="#multisearcher">MultiSearcher</a></li>
+<li><a class="reference external" href="#parallelmultisearcher">ParallelMultiSearcher</a></li>
 <li><a class="reference external" href="#indexwriter">IndexWriter</a></li>
 <li><a class="reference external" href="#indexer">Indexer</a></li>
 </ul>

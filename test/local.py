@@ -30,6 +30,8 @@ class TestCase(BaseTest):
         assert len(indexer) == 1 and list(indexer) == []
         assert not indexer.optimized
         indexer.commit()
+        searcher = engine.ParallelMultiSearcher([indexer.indexSearcher, indexer.directory])
+        assert searcher.count() == 2 * len(indexer)
         assert list(indexer) == [0]
         assert indexer.current and indexer.optimized
         assert 0 in indexer and 1 not in indexer

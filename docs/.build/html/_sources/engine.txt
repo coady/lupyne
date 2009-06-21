@@ -12,8 +12,6 @@ IndexReader
 .. autoclass:: engine.indexers.IndexReader
   :members:
 
-  Provides a mapping interface of ids to document objects.
-
   .. method:: __len__()
 
   .. method:: __contains__(id)
@@ -27,21 +25,41 @@ IndexReader
     Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
 
 
+Searcher
+^^^^^^^^^^^^^
+.. autoclass:: engine.indexers.Searcher
+  :members:
+
+  .. method:: __getitem__(id)
+
+    Return `Document`_
+
+  .. method:: __del__()
+
+    Closes index.
+
+
 IndexSearcher
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.IndexSearcher
   :show-inheritance:
   :members:
 
-  Provides a mapping interface of ids to document objects.
-
   .. attribute:: filters
 
     Mapping of cached filters, which are also used for facet counts.
 
-  .. method:: __del__()
 
-    Closes index.
+MultiSearcher
+^^^^^^^^^^^^^
+.. autoclass:: engine.indexers.MultiSearcher
+  :show-inheritance:
+
+
+ParallelMultiSearcher
+^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: engine.indexers.ParallelMultiSearcher
+  :show-inheritance:
 
 
 IndexWriter
