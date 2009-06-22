@@ -1,5 +1,5 @@
 import unittest
-import os, sys
+import sys
 import subprocess
 import operator
 import httplib
@@ -20,6 +20,15 @@ def assertRaises(exception, code):
         raise AssertionError(exception.__name__ + ' not raised')
 
 class BaseTest(local.BaseTest):
+    ports = 8080, 8081
+    def setUp(self):
+        local.BaseTest.setUp(self)
+        self.servers = [self.start(self.ports[0], self.tempdir)]
+        self.servers += [self.start(port, self.tempdir, '-r') for port in self.ports[1:]] # concurrent searchers
+    def tearDown(self):
+        for server in self.servers:
+            self.stop(server)
+        local.BaseTest.tearDown(self)
     def start(self, port, *args):
         "Start server in separate process on given port."
         params = sys.executable, '-m', 'lupyne.server', '-c', '{{"server.socket_port": {0:n}}}'.format(port)
@@ -35,17 +44,10 @@ class BaseTest(local.BaseTest):
         assert server.wait() == 0
 
 class TestCase(BaseTest):
-    port = 8080
-    def setUp(self):
-        local.BaseTest.setUp(self)
-        self.server = self.start(self.port, self.tempdir)
-    def tearDown(self):
-        self.stop(self.server)
-        local.BaseTest.tearDown(self)
     
     def testInterface(self):
         "Remote reading and writing."
-        resource = client.Resource('localhost', self.port)
+        resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
         (directory, count), = resource.get('/').items()
         assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
@@ -98,13 +100,17 @@ class TestCase(BaseTest):
         assert resource.get('/docs') == [0]
         assert not resource.post('/commit')
         assert resource.get('/docs') == []
-        resource = client.Resource('localhost', self.port + 1)
+        resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
+        resource = client.Resource('localhost', self.ports[-1])
+        assert resource.get('/docs') == []
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/fields')
     
     def testBasic(self):
         "Remote text indexing and searching."
-        resource = client.Resource('localhost', str(self.port))
+        resource = client.Resource('localhost', str(self.ports[0]))
         assert resource.get('/fields') == []
         for name, settings in fixture.constitution.fields.items():
             assert resource.put('/fields/' + name, **settings)

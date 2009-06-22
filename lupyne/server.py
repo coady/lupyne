@@ -107,8 +107,10 @@ class WebSearcher(object):
     def search(self, q=None, count=None, fields='', multifields='', sort=None, reverse='false'):
         """Run query and return documents.
         
-        **GET** /search?q=\ *chars*,
-            Return list document mappings and total doc count.
+        **GET** /search?
+            Return list of document objects and total doc count.
+            
+            &q=\ *chars*
             
             &count=\ *int*
             
@@ -133,25 +135,6 @@ class WebSearcher(object):
         docs = [hit.dict(*multifields, **fields) for hit in hits]
         return {'count': hits.count, 'docs': docs}
     @cherrypy.expose
-    def fields(self, name=''):
-        """Return a field's parameters.
-        
-        **GET** /fields
-            Return known field names.
-            
-            :return: [*string*,... ]
-        
-        **GET** /fields/*chars*
-            Return parameters for given field name.
-            
-            :return: {"store": *string*, "index": *string*, "termvector": *string*}
-        """
-        if not name:
-            return sorted(self.indexer.fields)
-        with handleNotFound(KeyError):
-            field = self.indexer.fields[name]
-        return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
-    @cherrypy.expose
     def terms(self, name='', value=':', *args, **options):
         """Return data about indexed terms.
         
@@ -167,7 +150,7 @@ class WebSearcher(object):
             
             :return: [*string*,... ]
         
-        **GET** /terms/*chars*/[*chars*:*chars*]
+        **GET** /terms/*chars*/*chars*:*chars*
             Return slice of term values for given field name.
             
             :return: [*string*,... ]
@@ -225,7 +208,7 @@ class WebIndexer(WebSearcher):
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
     def docs(self, id=None, fields='', multifields='', docs='[]'):
-        """Index documents.
+        """Add or return documents.
         
         **POST** /docs
             Add documents to index.
@@ -242,7 +225,7 @@ class WebIndexer(WebSearcher):
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
     def search(self, q=None, count=None, fields='', multifields='', sort=None, reverse='false'):
-        """Delete a query.
+        """Run or delete a query.
         
         **DELETE** /search?q=\ *chars*
             Delete documents which match query.
@@ -254,20 +237,34 @@ class WebIndexer(WebSearcher):
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT', 'POST'])
     def fields(self, name='', **params):
-        """Store a field's parameters.
+        """Return or store a field's parameters.
         
-        **PUT** /fields/*chars*
-            Set parameters for given field name.
+        **GET** /fields
+            Return known field names.
+            
+            :return: [*string*,... ]
+        
+        **GET, PUT, POST** /fields/*chars*
+            Set and return parameters for given field name.
             
             store=\ *chars*
             
             index=\ *chars*
             
             termvector=\ *chars*
+            
+            :return: {"store": *string*, "index": *string*, "termvector": *string*}
+        
+        **PUT** /fields/*chars*
+            Set parameters for given field name.
         """
         if cherrypy.request.method in ('PUT', 'POST'):
             self.indexer.set(name, **params)
-        return WebSearcher.fields(self, name)
+        if not name:
+            return sorted(self.indexer.fields)
+        with handleNotFound(KeyError):
+            field = self.indexer.fields[name]
+        return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
 
 def main(root, path='', config=None):
     "Attach root and run server."

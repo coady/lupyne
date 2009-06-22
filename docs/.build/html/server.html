@@ -102,36 +102,6 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">WebSearche
 </dd></dl>
 
 <dl class="method">
-<dt id="server.WebSearcher.fields">
-<tt class="descname">fields</tt><big>(</big><em>name=''</em><big>)</big><a class="headerlink" href="#server.WebSearcher.fields" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a field&#8217;s parameters.</p>
-<dl class="docutils">
-<dt><strong>GET</strong> /fields</dt>
-<dd><p class="first">Return known field names.</p>
-<table class="last docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">return:</th><td class="field-body">[<em>string</em>,... ]</td>
-</tr>
-</tbody>
-</table>
-</dd>
-<dt><strong>GET</strong> /fields/<em>chars</em></dt>
-<dd><p class="first">Return parameters for given field name.</p>
-<table class="last docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">return:</th><td class="field-body">{&#8220;store&#8221;: <em>string</em>, &#8220;index&#8221;: <em>string</em>, &#8220;termvector&#8221;: <em>string</em>}</td>
-</tr>
-</tbody>
-</table>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
 <dt id="server.WebSearcher.index">
 <tt class="descname">index</tt><big>(</big><big>)</big><a class="headerlink" href="#server.WebSearcher.index" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return index information.</p>
@@ -155,8 +125,9 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">WebSearche
 <tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
-<dt><strong>GET</strong> /search?q=<em>chars</em>,</dt>
-<dd><p class="first">Return list document mappings and total doc count.</p>
+<dt><strong>GET</strong> /search?</dt>
+<dd><p class="first">Return list of document objects and total doc count.</p>
+<p>&amp;q=<em>chars</em></p>
 <p>&amp;count=<em>int</em></p>
 <p>&amp;fields=<em>chars</em>,...</p>
 <p>&amp;multifields=<em>chars</em>,...</p>
@@ -202,7 +173,7 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">WebSearche
 </tbody>
 </table>
 </dd>
-<dt><strong>GET</strong> /terms/<em>chars</em>/[<em>chars</em>:<em>chars</em>]</dt>
+<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>:<em>chars</em></dt>
 <dd><p class="first">Return slice of term values for given field name.</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -281,7 +252,7 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">WebIndexer
 <dl class="method">
 <dt id="server.WebIndexer.docs">
 <tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>docs='</em><span class="optional">[</span><span class="optional">]</span>, <em>'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.docs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Index documents.</p>
+<dd><p>Add or return documents.</p>
 <dl class="docutils">
 <dt><strong>POST</strong> /docs</dt>
 <dd><p class="first">Add documents to index.</p>
@@ -293,21 +264,42 @@ class </em><tt class="descclassname">server.</tt><tt class="descname">WebIndexer
 <dl class="method">
 <dt id="server.WebIndexer.fields">
 <tt class="descname">fields</tt><big>(</big><em>name=''</em>, <em>**params</em><big>)</big><a class="headerlink" href="#server.WebIndexer.fields" title="Permalink to this definition">¶</a></dt>
-<dd><p>Store a field&#8217;s parameters.</p>
+<dd><p>Return or store a field&#8217;s parameters.</p>
 <dl class="docutils">
-<dt><strong>PUT</strong> /fields/<em>chars</em></dt>
-<dd><p class="first">Set parameters for given field name.</p>
+<dt><strong>GET</strong> /fields</dt>
+<dd><p class="first">Return known field names.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[<em>string</em>,... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET, PUT, POST</strong> /fields/<em>chars</em></dt>
+<dd><p class="first">Set and return parameters for given field name.</p>
 <p>store=<em>chars</em></p>
 <p>index=<em>chars</em></p>
-<p class="last">termvector=<em>chars</em></p>
+<p>termvector=<em>chars</em></p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">{&#8220;store&#8221;: <em>string</em>, &#8220;index&#8221;: <em>string</em>, &#8220;termvector&#8221;: <em>string</em>}</td>
+</tr>
+</tbody>
+</table>
 </dd>
+<dt><strong>PUT</strong> /fields/<em>chars</em></dt>
+<dd>Set parameters for given field name.</dd>
 </dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="server.WebIndexer.search">
 <tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete a query.</p>
+<dd><p>Run or delete a query.</p>
 <dl class="docutils">
 <dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>
 <dd>Delete documents which match query.</dd>

@@ -2,18 +2,14 @@ import unittest
 import itertools
 import socket, errno
 from lupyne import client
-import remote
+import local, remote
 
 class TestCase(remote.BaseTest):
     ports = 8080, 8081, 8082
     hosts = map('localhost:{0:n}'.format, ports)
     def setUp(self):
-        remote.BaseTest.setUp(self)
+        local.BaseTest.setUp(self)
         self.servers = map(self.start, self.ports)
-    def tearDown(self):
-        for server in self.servers:
-            self.stop(server)
-        remote.BaseTest.tearDown(self)
     
     def testInterface(self):
         "Distributed reading and writing."
