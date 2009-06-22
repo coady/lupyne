@@ -18,22 +18,25 @@ class Tiler(GlobalMercator):
     "Utilities for transforming lat/lngs, projected coordinates, and tile coordinates."
     base = 4
     project = GlobalMercator.LatLonToMeters
+    def coords(self, tile):
+        "Return TMS coordinates of tile."
+        n = int(tile, self.base)
+        point = [0, 0]
+        for i in range(len(tile)):
+            for j in (0, 1):
+                point[j] |= (n & 1) << i
+                n >>= 1
+        x, y = point
+        return x, 2**len(tile) - 1 - y
     def encode(self, lat, lng, precision):
         "Return tile from latitude, longitude and precision level."
         x, y = self.LatLonToMeters(lat, lng)
         x, y = self.MetersToTile(x, y, precision)
         return self.QuadTree(x, y, precision)
     def decode(self, tile):
-        "Return bounding box of tile."
-        precision = len(tile)
-        n = int(tile, self.base)
-        point = [0, 0]
-        for i in range(precision):
-            for j in (0, 1):
-                point[j] |= (n & 1) << i
-                n >>= 1
-        x, y = point
-        return self.TileLatLonBounds(x, 2**precision - 1 - y, precision)
+        "Return lat/lng bounding box (bottom, left, top, right) of tile."
+        x, y = self.coords(tile)
+        return self.TileLatLonBounds(x, y, len(tile))
     def walk(self, bottomleft, topright, precision, limit=float('inf')):
         "Generate tile keys which span bounding box, adjusting precision to limit the total count."
         corners = bottomleft, topright

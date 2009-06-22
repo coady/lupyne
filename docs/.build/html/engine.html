@@ -799,17 +799,17 @@ class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">Qu
 Uses class methods and operator overloading for convenient query construction.</p>
 <dl class="method">
 <dt id="engine.queries.Query.__and__">
-<tt class="descname">__and__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__and__" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">__and__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__and__" title="Permalink to this definition">¶</a></dt>
 <dd>&lt;BooleanQuery +self +other&gt;</dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.Query.__or__">
-<tt class="descname">__or__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__or__" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">__or__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__or__" title="Permalink to this definition">¶</a></dt>
 <dd>&lt;BooleanQuery self other&gt;</dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.Query.__sub__">
-<tt class="descname">__sub__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__sub__" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">__sub__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__sub__" title="Permalink to this definition">¶</a></dt>
 <dd>&lt;BooleanQuery self -other&gt;</dd></dl>
 
 <dl class="classmethod">
@@ -903,17 +903,17 @@ class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">Bo
 
 <dl class="method">
 <dt id="engine.queries.BooleanQuery.__iand__">
-<tt class="descname">__iand__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery.__iand__" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">__iand__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery.__iand__" title="Permalink to this definition">¶</a></dt>
 <dd>add +other</dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.BooleanQuery.__ior__">
-<tt class="descname">__ior__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery.__ior__" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">__ior__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery.__ior__" title="Permalink to this definition">¶</a></dt>
 <dd>add other</dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.BooleanQuery.__isub__">
-<tt class="descname">__isub__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery.__isub__" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">__isub__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery.__isub__" title="Permalink to this definition">¶</a></dt>
 <dd>add -other</dd></dl>
 
 </dd></dl>
@@ -927,12 +927,12 @@ class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">Bo
 class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">SpanQuery</tt><big>(</big><em>base</em>, <em>*args</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="engine.queries.SpanQuery.__getitem__">
-<tt class="descname">__getitem__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.__getitem__" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">__getitem__</tt><big>(</big><em>slc</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.__getitem__" title="Permalink to this definition">¶</a></dt>
 <dd>&lt;SpanFirstQuery: spanFirst(self, other.stop)&gt;</dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.SpanQuery.__sub__">
-<tt class="descname">__sub__</tt><big>(</big><em>self</em>, <em>other</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.__sub__" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">__sub__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.__sub__" title="Permalink to this definition">¶</a></dt>
 <dd>&lt;SpanNotQuery: spanNot(self, other)&gt;</dd></dl>
 
 <dl class="method">
@@ -994,13 +994,53 @@ Although this method is deprecated in Lucene, it&#8217;s in use in PyLucene.</p>
 which are also compatible with Google Maps and OSGEO Tile Map Service.
 See <a class="reference external" href="http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/">http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/</a>.</p>
 <p>The quadkeys are then indexed using a prefix tree, creating a cartesian tier of tiles.</p>
+<div class="section" id="tiler">
+<h3>Tiler<a class="headerlink" href="#tiler" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.spatial.Tiler">
+<em class="property">
+class </em><tt class="descclassname">engine.spatial.</tt><tt class="descname">Tiler</tt><big>(</big><em>tileSize=256</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utilities for transforming lat/lngs, projected coordinates, and tile coordinates.</p>
+<dl class="method">
+<dt id="engine.spatial.Tiler.coords">
+<tt class="descname">coords</tt><big>(</big><em>tile</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.coords" title="Permalink to this definition">¶</a></dt>
+<dd>Return TMS coordinates of tile.</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.Tiler.decode">
+<tt class="descname">decode</tt><big>(</big><em>tile</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.decode" title="Permalink to this definition">¶</a></dt>
+<dd>Return lat/lng bounding box (bottom, left, top, right) of tile.</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.Tiler.encode">
+<tt class="descname">encode</tt><big>(</big><em>lat</em>, <em>lng</em>, <em>precision</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.encode" title="Permalink to this definition">¶</a></dt>
+<dd>Return tile from latitude, longitude and precision level.</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.Tiler.project">
+<tt class="descname">project</tt><big>(</big><em>lat</em>, <em>lon</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.project" title="Permalink to this definition">¶</a></dt>
+<dd>Converts given lat/lon in WGS84 Datum to XY in Spherical Mercator EPSG:900913</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.Tiler.walk">
+<tt class="descname">walk</tt><big>(</big><em>bottomleft</em>, <em>topright</em>, <em>precision</em>, <em>limit=inf</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.walk" title="Permalink to this definition">¶</a></dt>
+<dd>Generate tile keys which span bounding box, adjusting precision to limit the total count.</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.Tiler.zoom">
+<tt class="descname">zoom</tt><big>(</big><em>tiles</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.zoom" title="Permalink to this definition">¶</a></dt>
+<dd>Return reduced number of tiles, by zooming out where all sub-tiles are present.</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="pointfield">
 <h3>PointField<a class="headerlink" href="#pointfield" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.spatial.PointField">
 <em class="property">
 class </em><tt class="descclassname">engine.spatial.</tt><tt class="descname">PointField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a>, <tt class="xref docutils literal"><span class="pre">engine.spatial.Tiler</span></tt></p>
+<dd><p>Bases: <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a>, <a title="engine.spatial.Tiler" class="reference internal" href="#engine.spatial.Tiler"><tt class="xref docutils literal"><span class="pre">engine.spatial.Tiler</span></tt></a></p>
 <p>Geospatial points, which create a tiered index of tiles.
 Points must still be stored if exact distances are required upon retrieval.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -1102,6 +1142,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 </ul>
 </li>
 <li><a class="reference external" href="#module-engine.spatial">spatial</a><ul>
+<li><a class="reference external" href="#tiler">Tiler</a></li>
 <li><a class="reference external" href="#pointfield">PointField</a></li>
 <li><a class="reference external" href="#polygonfield">PolygonField</a></li>
 </ul>

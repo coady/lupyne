@@ -12,15 +12,15 @@ IndexReader
 .. autoclass:: engine.indexers.IndexReader
   :members:
 
-  .. method:: __len__()
+  .. automethod:: __len__
 
-  .. method:: __contains__(id)
+  .. automethod:: __contains__
 
-  .. method:: __iter__()
+  .. automethod:: __iter__
 
-  .. method:: __getitem__(id)
+  .. automethod:: __getitem__
 
-  .. method:: __delitem__(id)
+  .. automethod:: __delitem__
 
     Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
 
@@ -30,11 +30,11 @@ Searcher
 .. autoclass:: engine.indexers.Searcher
   :members:
 
-  .. method:: __getitem__(id)
+  .. automethod:: __getitem__
 
     Return `Document`_
 
-  .. method:: __del__()
+  .. automethod:: __del__
 
     Closes index.
 
@@ -68,15 +68,13 @@ IndexWriter
   :show-inheritance:
   :members:
 
-  .. method:: __del__()
+  .. automethod:: __del__
 
     Closes index.
 
-  .. method:: __len__()
+  .. automethod:: __len__
 
-  .. method:: __iadd__(directory)
-
-    Add directory (or reader, searcher, writer) to index.
+  .. automethod:: __iadd__
 
 Indexer
 ^^^^^^^^^^^^^
@@ -94,15 +92,15 @@ Document
 .. autoclass:: engine.documents.Document
   :members:
 
-  .. method:: __len__()
+  .. automethod:: __len__
 
-  .. method:: __contains__(name)
+  .. automethod:: __contains__
 
-  .. method:: __iter__()
+  .. automethod:: __iter__
 
-  .. method:: __getitem__(name)
+  .. automethod:: __getitem__
 
-  .. method:: __delitem__(name)
+  .. automethod:: __delitem__
 
 Hit
 ^^^^^^^^^^^^^
@@ -114,9 +112,9 @@ Hits
 .. autoclass:: engine.documents.Hits
   :members:
 
-  .. method:: __len__()
+  .. automethod:: __len__
 
-  .. method:: __getitem__(index)
+  .. automethod:: __getitem__
 
 Field
 ^^^^^^^^^^^^^
@@ -161,15 +159,15 @@ Query
 .. autoclass:: engine.queries.Query
   :members:
 
-  .. method:: __and__(self, other)
+  .. automethod:: __and__
 
     <BooleanQuery +self +other>
 
-  .. method:: __or__(self, other)
+  .. automethod:: __or__
 
     <BooleanQuery self other>
 
-  .. method:: __sub__(self, other)
+  .. automethod:: __sub__
 
     <BooleanQuery self -other>
 
@@ -178,21 +176,21 @@ BooleanQuery
 .. autoclass:: engine.queries.BooleanQuery
   :members:
 
-  .. method:: __len__()
+  .. automethod:: __len__
 
-  .. method:: __iter__()
+  .. automethod:: __iter__
 
-  .. method:: __getitem__(index)
+  .. automethod:: __getitem__
 
-  .. method:: __iand__(self, other)
+  .. automethod:: __iand__
 
     add +other
 
-  .. method:: __ior__(self, other)
+  .. automethod:: __ior__
 
     add other
 
-  .. method:: __isub__(self, other)
+  .. automethod:: __isub__
 
     add -other
 
@@ -201,15 +199,15 @@ SpanQuery
 .. autoclass:: engine.queries.SpanQuery
   :members:
 
-  .. method:: __getitem__(self, other)
+  .. automethod:: __getitem__
 
     <SpanFirstQuery: spanFirst(self, other.stop)>
 
-  .. method:: __sub__(self, other)
+  .. automethod:: __sub__
 
     <SpanNotQuery: spanNot(self, other)>
 
-  .. method:: __or__(*spans)
+  .. automethod:: __or__
 
     <SpanOrQuery: spanOr(spans)>
 
@@ -222,6 +220,11 @@ Filter
 spatial
 ---------
 .. automodule:: engine.spatial
+
+Tiler
+^^^^^^^^^^^^^
+.. autoclass:: engine.spatial.Tiler
+  :members:
 
 PointField
 ^^^^^^^^^^^^^

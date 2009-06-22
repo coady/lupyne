@@ -245,6 +245,7 @@ class TestCase(BaseTest):
         hit, = indexer.search(field.prefix(tile))
         assert hit['zipcode'] == zipcode and hit['city'] == city
         x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
+        assert field.coords(tile[:4]) == (2, 9)
         bottom, left, top, right = field.decode(tile)
         assert left < x < right and bottom < y < top
         hits = indexer.search(field.near(x, y))

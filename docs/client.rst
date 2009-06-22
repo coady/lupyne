@@ -21,9 +21,7 @@ Response
 
     string of entire response body
 
-  .. method:: __call__()
-
-    Return json evaluated response body or raise exception.
+  .. automethod:: __call__
 
 Resource
 ---------
@@ -32,11 +30,9 @@ Resource
   :members:
   :undoc-members:
 
-  .. method:: __call__(method, path, body=None)
+  .. automethod:: __call__
 
-    Send request and return evaluated response body.
-
-  .. method:: getresponse()
+  .. automethod:: getresponse
 
 Resources
 ---------
