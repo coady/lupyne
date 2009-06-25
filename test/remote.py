@@ -49,7 +49,11 @@ class TestCase(BaseTest):
         "Remote reading and writing."
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
-        (directory, count), = resource.get('/').items()
+        resource.request('GET', '/')
+        response = resource.getresponse()
+        assert response.status == httplib.OK and response.reason == 'OK'
+        assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type') == 'text/x-json'
+        (directory, count), = response().items()
         assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
         assert not resource('HEAD', '/')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):

@@ -28,8 +28,6 @@ def json_tool():
         response.headers['content-type'] = 'text/x-json'
         response.body = json.dumps(response.body)
 cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
-# make content-type text/x-json compatible with gzip
-cherrypy.tools.gzip.callable.func_defaults[-1].append('text/x-json')
 
 def allow_tool(methods=['GET', 'HEAD']):
     request = cherrypy.request
@@ -63,7 +61,8 @@ def handleBadRequest(exception):
 
 class WebSearcher(object):
     "Dispatch root with a delegated IndexSearcher."
-    _cp_config = {'tools.json.on': True, 'tools.gzip.on': True, 'tools.allow.on': True}
+    _cp_config = {'tools.json.on': True, 'tools.allow.on': True,
+        'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'text/x-json']}
     def __init__(self, *args, **kwargs):
         self.indexer = IndexSearcher(*args, **kwargs)
     @cherrypy.expose
