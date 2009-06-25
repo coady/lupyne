@@ -28,7 +28,7 @@ client.Resources class client.html
 engine.documents.Field class engine.html
 engine.queries.SpanQuery.__getitem__ method engine.html
 engine.indexers.MultiSearcher class engine.html
-engine.indexers.IndexWriter.__iadd__ method engine.html
+client.Resources.unicast method client.html
 engine.indexers.IndexSearcher class engine.html
 engine.indexers.IndexWriter class engine.html
 server.WebIndexer.docs method server.html
@@ -60,7 +60,7 @@ engine.indexers.Indexer.commit method engine.html
 engine.spatial.Tiler.walk method engine.html
 client.Resource.request method client.html
 engine.indexers.IndexReader.__iter__ method engine.html
-client.Resources.unicast method client.html
+engine.indexers.IndexWriter.__iadd__ method engine.html
 client.Resources.pop method client.html
 engine.indexers.IndexWriter.segments attribute engine.html
 engine.spatial.PolygonField.items method engine.html

@@ -176,8 +176,20 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resources<
 <dl class="class">
 <dt id="client.Shards">
 <em class="property">
-class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt><big>(</big><em>mapping=()</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#client.Shards" title="Permalink to this definition">¶</a></dt>
+class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt><big>(</big><em>items=()</em>, <em>**multimap</em><big>)</big><a class="headerlink" href="#client.Shards" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mapping of keys to host clusters, with associated resources.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>items</em> &#8211; host, key pairs</li>
+<li><em>multimap</em> &#8211; mapping of hosts to multiple keys</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="attribute">
 <dt id="client.Shards.resources">
 <tt class="descname">resources</tt><a class="headerlink" href="#client.Shards.resources" title="Permalink to this definition">¶</a></dt>
@@ -191,8 +203,8 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt
 <dl class="method">
 <dt id="client.Shards.multicast">
 <tt class="descname">multicast</tt><big>(</big><em>keys</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Shards.multicast" title="Permalink to this definition">¶</a></dt>
-<dd>Send requests and return responses from a subset of hosts which cover all corresponding keys.
-A minimal number of hosts will be called, but overlap is possible depending on partitioning.</dd></dl>
+<dd>Send requests and return responses from a minimal subset of hosts which cover all corresponding keys.
+Response overlap is possible depending on partitioning.</dd></dl>
 
 <dl class="method">
 <dt id="client.Shards.unicast">

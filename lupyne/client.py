@@ -108,10 +108,15 @@ class Resources(dict):
         return map(responses.__getitem__, hosts)
 
 class Shards(dict):
-    "Mapping of keys to host clusters, with associated resources."
-    def __init__(self, mapping=(), **kwargs):
-        for key, hosts in dict(mapping, **kwargs).items():
-            self[key] = set(hosts)
+    """Mapping of keys to host clusters, with associated resources.
+    
+    :param items: host, key pairs
+    :param multimap: mapping of hosts to multiple keys
+    """
+    def __init__(self, items=(), **multimap):
+        pairs = ((host, key) for host in multimap for key in multimap[host])
+        for host, key in itertools.chain(items, pairs):
+            self.setdefault(key, set()).add(host)
         self.resources = Resources(itertools.chain(*self.values()))
     def unicast(self, key, method, path, body=None):
         "Send request and return response from any host for corresponding key."
@@ -120,10 +125,12 @@ class Shards(dict):
         "Send requests and return responses from all hosts for corresponding key."
         return self.resources.broadcast(method, path, body, self[key])
     def multicast(self, keys, method, path, body=None):
-        """Send requests and return responses from a subset of hosts which cover all corresponding keys.
-        A minimal number of hosts will be called, but overlap is possible depending on partitioning.
+        """Send requests and return responses from a minimal subset of hosts which cover all corresponding keys.
+        Response overlap is possible depending on partitioning.
         """
-        shards = set(map(frozenset, itertools.product(*map(self.__getitem__, keys))))
+        shards = [frozenset()]
+        for key in keys:
+            shards = set(hosts.union([host]) for hosts, host in itertools.product(shards, self[key]))
         size = min(map(len, shards))
         shards = [hosts for hosts in shards if len(hosts) <= size]
         candidates = []

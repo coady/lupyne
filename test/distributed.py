@@ -1,5 +1,5 @@
 import unittest
-import itertools
+import heapq
 import socket, errno
 from lupyne import client
 import local, remote
@@ -45,7 +45,8 @@ class TestCase(remote.BaseTest):
     
     def testSharding(self):
         "Sharding of indices across servers."
-        shards = client.Shards(enumerate(itertools.combinations(self.hosts, 2)))
+        keys = range(len(self.hosts))
+        shards = client.Shards(zip(self.hosts * 2, heapq.merge(keys, keys)))
         shards.resources.broadcast('PUT', '/fields/zone', {'store': 'yes'})
         for zone in range(len(self.ports)):
             shards.broadcast(zone, 'POST', '/docs', {'docs': [{'zone': str(zone)}]})
