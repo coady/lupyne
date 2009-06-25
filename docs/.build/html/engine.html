@@ -106,6 +106,7 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">I
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>name</em> &#8211; field name</li>
 <li><em>names</em> &#8211; additional names return tuples of values</li>
 <li><em>default</em> &#8211; keyword only default value</li>
 </ul>
@@ -1020,6 +1021,11 @@ class </em><tt class="descclassname">engine.spatial.</tt><tt class="descname">Ti
 <dt id="engine.spatial.Tiler.project">
 <tt class="descname">project</tt><big>(</big><em>lat</em>, <em>lon</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.project" title="Permalink to this definition">¶</a></dt>
 <dd>Converts given lat/lon in WGS84 Datum to XY in Spherical Mercator EPSG:900913</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.Tiler.radiate">
+<tt class="descname">radiate</tt><big>(</big><em>lat</em>, <em>lng</em>, <em>distance</em>, <em>precision</em>, <em>limit=inf</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.radiate" title="Permalink to this definition">¶</a></dt>
+<dd>Generate tile keys within distance of given point, with adjustable precision.</dd></dl>
 
 <dl class="method">
 <dt id="engine.spatial.Tiler.walk">

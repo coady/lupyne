@@ -75,6 +75,7 @@ engine.queries.Query.range classmethod engine.html
 engine.documents.DateTimeField.prefix method engine.html
 engine.indexers.ParallelMultiSearcher class engine.html
 engine.documents.NestedField class engine.html
+engine.spatial.Tiler.radiate method engine.html
 engine.documents.PrefixField.join method engine.html
 engine.documents.PrefixField class engine.html
 engine.indexers.IndexWriter.parse method engine.html
