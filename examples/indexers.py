@@ -1,5 +1,5 @@
 """
-Indexing example from http://lucene.apache.org/java/2_4_1/api/core/index.html
+Basic indexing and searching example adapted from http://lucene.apache.org/java/2_4_1/api/core/index.html
 """
 
 import lucene

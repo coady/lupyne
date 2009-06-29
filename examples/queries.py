@@ -1,5 +1,7 @@
 """
-Query usage.
+Convenient Query creation.
+
+Operator overloading is used for combining boolean clauses.
 """
 
 import lucene

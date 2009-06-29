@@ -2,7 +2,6 @@ server
 ======
 .. automodule:: server
 
-
 WebSearcher
 -----------
 .. autoclass:: server.WebSearcher

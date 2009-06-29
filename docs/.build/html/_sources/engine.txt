@@ -24,7 +24,6 @@ IndexReader
 
     Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
 
-
 Searcher
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.Searcher
@@ -38,7 +37,6 @@ Searcher
 
     Closes index.
 
-
 IndexSearcher
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.IndexSearcher
@@ -49,24 +47,25 @@ IndexSearcher
 
     Mapping of cached filters, which are also used for facet counts.
 
-
 MultiSearcher
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.MultiSearcher
   :show-inheritance:
-
 
 ParallelMultiSearcher
 ^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.ParallelMultiSearcher
   :show-inheritance:
 
-
 IndexWriter
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.IndexWriter
   :show-inheritance:
   :members:
+
+  .. attribute:: fields
+
+    Mapping of assigned fields.  May be used directly, instead of :meth:`set` method, for further customization.
 
   .. automethod:: __del__
 

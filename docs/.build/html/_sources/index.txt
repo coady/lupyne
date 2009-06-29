@@ -12,7 +12,7 @@ Welcome to LuPyne's documentation!
 
 Quickstart::
 
-  >>> from lupyne import engine
+  >>> from lupyne import engine                       # don't forget to call lucene.initVM
   >>> indexer = engine.Indexer()                      # create an in-memory index (no filename supplied)
   >>> indexer.set('name', store=True)                 # create stored 'name' field
   >>> indexer.set('text')                             # create indexed 'text' field (the default)
@@ -29,15 +29,20 @@ Quickstart::
   >>> hit.dict()                                      # dict representation of the hit document
   {'__score__': 0.19178301095962524, u'name': u'sample', '__id__': 0}
 
+See more `examples <examples.html>`_
+
 Contents:
 
 .. toctree::
-   :maxdepth: 2
 
    engine
    server
    client
 
+.. toctree::
+   :hidden:
+
+   examples
 
 Indices and tables
 ==================

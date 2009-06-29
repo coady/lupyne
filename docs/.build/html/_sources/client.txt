@@ -2,7 +2,6 @@ client
 ======
 .. automodule:: client
 
-
 Response
 ---------
 .. autoclass:: client.Response

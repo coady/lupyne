@@ -56,7 +56,7 @@
 </dd>
 </dl>
 <p>Quickstart:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">lupyne</span> <span class="kn">import</span> <span class="n">engine</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">lupyne</span> <span class="kn">import</span> <span class="n">engine</span>                       <span class="c"># don&#39;t forget to call lucene.initVM</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">indexer</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">Indexer</span><span class="p">()</span>                      <span class="c"># create an in-memory index (no filename supplied)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>                 <span class="c"># create stored &#39;name&#39; field</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">)</span>                             <span class="c"># create indexed &#39;text&#39; field (the default)</span>
@@ -74,13 +74,44 @@
 <span class="go">{&#39;__score__&#39;: 0.19178301095962524, u&#39;name&#39;: u&#39;sample&#39;, &#39;__id__&#39;: 0}</span>
 </pre></div>
 </div>
+<p>See more <a class="reference external" href="examples.html">examples</a></p>
 <p>Contents:</p>
 <ul>
 <li class="toctree-l1"><a class="reference external" href="engine.html">engine</a><ul>
-<li class="toctree-l2"><a class="reference external" href="engine.html#module-engine.indexers">indexers</a></li>
-<li class="toctree-l2"><a class="reference external" href="engine.html#module-engine.documents">documents</a></li>
-<li class="toctree-l2"><a class="reference external" href="engine.html#module-engine.queries">queries</a></li>
-<li class="toctree-l2"><a class="reference external" href="engine.html#module-engine.spatial">spatial</a></li>
+<li class="toctree-l2"><a class="reference external" href="engine.html#module-engine.indexers">indexers</a><ul>
+<li class="toctree-l3"><a class="reference external" href="engine.html#indexreader">IndexReader</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#searcher">Searcher</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#indexsearcher">IndexSearcher</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#multisearcher">MultiSearcher</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#parallelmultisearcher">ParallelMultiSearcher</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#indexwriter">IndexWriter</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#indexer">Indexer</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference external" href="engine.html#module-engine.documents">documents</a><ul>
+<li class="toctree-l3"><a class="reference external" href="engine.html#document">Document</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#hit">Hit</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#hits">Hits</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#field">Field</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#formatfield">FormatField</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#prefixfield">PrefixField</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#nestedfield">NestedField</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#datetimefield">DateTimeField</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference external" href="engine.html#module-engine.queries">queries</a><ul>
+<li class="toctree-l3"><a class="reference external" href="engine.html#query">Query</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#booleanquery">BooleanQuery</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#spanquery">SpanQuery</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#filter">Filter</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference external" href="engine.html#module-engine.spatial">spatial</a><ul>
+<li class="toctree-l3"><a class="reference external" href="engine.html#tiler">Tiler</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#pointfield">PointField</a></li>
+<li class="toctree-l3"><a class="reference external" href="engine.html#polygonfield">PolygonField</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference external" href="server.html">server</a><ul>
