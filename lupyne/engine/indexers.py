@@ -6,10 +6,18 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 
 import itertools, operator
 import contextlib
-import collections
+import abc, collections
 import lucene
 from .queries import Query, HitCollector, Filter
 from .documents import Field, Document, Hits
+
+class Atomic(object):
+    "Abstract base class to distinguish singleton values from other iterables."
+    __metaclass__ = abc.ABCMeta
+    @classmethod
+    def __subclasshook__(cls, other):
+        return not issubclass(other, collections.Iterable) or NotImplemented
+Atomic.register(basestring)
 
 def iterate(jit, positioned=False):
     """Transform java iterator into python iterator.
@@ -249,7 +257,7 @@ class IndexWriter(lucene.IndexWriter):
         terms.update(document)
         doc = lucene.Document()
         for name, values in terms.items():
-            if isinstance(values, basestring) or not isinstance(values, collections.Iterable):
+            if isinstance(values, Atomic):
                 values = [values] 
             for field in self.fields[name].items(*values):
                 doc.add(field)

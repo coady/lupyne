@@ -20,6 +20,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="LuPyne v0.1+ documentation" href="index.html" />
+    <link rel="next" title="examples" href="examples.html" />
     <link rel="prev" title="server" href="server.html" /> 
   </head>
   <body>
@@ -32,6 +33,9 @@
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
+        <li class="right" >
+          <a href="examples.html" title="examples"
+             accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="server.html" title="server"
              accesskey="P">previous</a> |</li>
@@ -90,7 +94,7 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Response</
 <dl class="class">
 <dt id="client.Resource">
 <em class="property">
-class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x17600&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
+class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x16608&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref docutils literal"><span class="pre">httplib.HTTPConnection</span></tt></p>
 <p>Synchronous connection which handles json responses.</p>
 <dl class="method">
@@ -141,8 +145,20 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</
 <dl class="class">
 <dt id="client.Resources">
 <em class="property">
-class </em><tt class="descclassname">client.</tt><tt class="descname">Resources</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Resources" title="Permalink to this definition">¶</a></dt>
-<dd><p>Thread-safe mapping of hosts to persistent resources.</p>
+class </em><tt class="descclassname">client.</tt><tt class="descname">Resources</tt><big>(</big><em>hosts</em>, <em>limit=0</em><big>)</big><a class="headerlink" href="#client.Resources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Thread-safe mapping of hosts to optionally persistent resources.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>hosts</em> &#8211; host[:port] strings</li>
+<li><em>limit</em> &#8211; maximum number of cached connections per host</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="client.Resources.broadcast">
 <tt class="descname">broadcast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.broadcast" title="Permalink to this definition">¶</a></dt>
@@ -176,7 +192,7 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resources<
 <dl class="class">
 <dt id="client.Shards">
 <em class="property">
-class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt><big>(</big><em>items=()</em>, <em>**multimap</em><big>)</big><a class="headerlink" href="#client.Shards" title="Permalink to this definition">¶</a></dt>
+class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt><big>(</big><em>items=()</em>, <em>limit=0</em>, <em>**multimap</em><big>)</big><a class="headerlink" href="#client.Shards" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mapping of keys to host clusters, with associated resources.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -184,6 +200,7 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>items</em> &#8211; host, key pairs</li>
+<li><em>limit</em> &#8211; maximum number of cached connections per host</li>
 <li><em>multimap</em> &#8211; mapping of hosts to multiple keys</li>
 </ul>
 </td>
@@ -236,6 +253,9 @@ Response overlap is possible depending on partitioning.</dd></dl>
             <h4>Previous topic</h4>
             <p class="topless"><a href="server.html"
                                   title="previous chapter">server</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="examples.html"
+                                  title="next chapter">examples</a></p>
             <h3>This Page</h3>
             <ul class="this-page-menu">
               <li><a href="_sources/client.txt"
@@ -267,6 +287,9 @@ Response overlap is possible depending on partitioning.</dd></dl>
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              >modules</a> |</li>
+        <li class="right" >
+          <a href="examples.html" title="examples"
+             >next</a> |</li>
         <li class="right" >
           <a href="server.html" title="server"
              >previous</a> |</li>

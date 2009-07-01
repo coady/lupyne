@@ -15,6 +15,7 @@ This inherently provides limited failover support, but applications must still h
 import gzip
 import random
 import itertools
+import collections
 from cStringIO import StringIO
 import httplib, urllib
 try:
@@ -64,13 +65,17 @@ class Resource(httplib.HTTPConnection):
         return self('DELETE', path)
 
 class Resources(dict):
-    "Thread-safe mapping of hosts to persistent resources."
-    def __init__(self, hosts):
-        self.update((host, []) for host in hosts)
+    """Thread-safe mapping of hosts to optionally persistent resources.
+    
+    :param hosts: host[:port] strings
+    :param limit: maximum number of cached connections per host
+    """
+    def __init__(self, hosts, limit=0):
+        self.update((host, collections.deque(maxlen=limit)) for host in hosts)
     def pop(self, host):
         "Return an exclusive resource for given host."
         try:
-            return self[host].pop()
+            return self[host].popleft()
         except IndexError:
             return Resource(host)
     def push(self, host, resource):
@@ -86,10 +91,11 @@ class Resources(dict):
         hosts = tuple(hosts) or self
         candidates = itertools.chain.from_iterable([host] * len(self[host]) for host in hosts)
         host = random.choice(list(candidates) or tuple(hosts))
-        resource = self.request(host, method, path, body)
-        response = resource.getresponse()
-        if response.status == httplib.REQUEST_TIMEOUT:
-            return self.unicast(method, path, body, hosts)
+        while True:
+            resource = self.request(host, method, path, body)
+            response = resource.getresponse()
+            if response.status != httplib.REQUEST_TIMEOUT:
+                break
         self.push(host, resource)
         return response
     def broadcast(self, method, path, body=None, hosts=()):
@@ -111,13 +117,14 @@ class Shards(dict):
     """Mapping of keys to host clusters, with associated resources.
     
     :param items: host, key pairs
+    :param limit: maximum number of cached connections per host
     :param multimap: mapping of hosts to multiple keys
     """
-    def __init__(self, items=(), **multimap):
+    def __init__(self, items=(), limit=0, **multimap):
         pairs = ((host, key) for host in multimap for key in multimap[host])
         for host, key in itertools.chain(items, pairs):
             self.setdefault(key, set()).add(host)
-        self.resources = Resources(itertools.chain(*self.values()))
+        self.resources = Resources(itertools.chain(*self.values()), limit)
     def unicast(self, key, method, path, body=None):
         "Send request and return response from any host for corresponding key."
         return self.resources.unicast(method, path, body, self[key])

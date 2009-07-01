@@ -13,7 +13,7 @@ class TestCase(remote.BaseTest):
     
     def testInterface(self):
         "Distributed reading and writing."
-        resources = client.Resources(self.hosts)
+        resources = client.Resources(self.hosts, limit=1)
         responses = resources.broadcast('GET', '/')
         assert len(responses) == len(resources)
         for response in responses:
@@ -46,7 +46,7 @@ class TestCase(remote.BaseTest):
     def testSharding(self):
         "Sharding of indices across servers."
         keys = range(len(self.hosts))
-        shards = client.Shards(zip(self.hosts * 2, heapq.merge(keys, keys)))
+        shards = client.Shards(zip(self.hosts * 2, heapq.merge(keys, keys)), limit=1)
         shards.resources.broadcast('PUT', '/fields/zone', {'store': 'yes'})
         for zone in range(len(self.ports)):
             shards.broadcast(zone, 'POST', '/docs', {'docs': [{'zone': str(zone)}]})
