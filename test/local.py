@@ -66,6 +66,7 @@ class TestCase(BaseTest):
         assert data['__id__'] == 0 and '__score__' in data
         assert not indexer.search('hello') and indexer.search('hello', field='text')
         assert indexer.search('text:hello hi') and not indexer.search('text:hello hi', op='and')
+        assert indexer.search('text:*hello', allowLeadingWildcard=True)
         indexer.delete('name:sample')
         indexer.delete('tag', 'python')
         assert 0 in indexer

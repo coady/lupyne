@@ -121,16 +121,19 @@ class Searcher(object):
     def __del__(self):
         if str(self) != '<null>':
             self.close()
-    def parse(self, query, field='', op=''):
+    def parse(self, query, field='', op='', **attrs):
         """Return lucene parsed Query.
         
         :param field: default query field name
         :param op: default query operator ('or', 'and')
+        :param attrs: additional attributes to set on the parser
         """
         # parser's aren't thread-safe (nor slow), so create one each time
         parser = lucene.QueryParser(field, self.analyzer)
         if op:
             parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
+        for name, value in attrs.items():
+            setattr(parser, name, value)
         return parser.parse(query)
     def count(self, *query, **options):
         """Return number of hits for given query or term.
