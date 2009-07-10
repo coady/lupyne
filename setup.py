@@ -8,14 +8,14 @@ for dirpath, dirnames, filenames in os.walk('lupyne'):
 
 setup(
     name='lupyne',
-    version='0.1+',
+    version='0.2',
     description='A pythonic search engine, based on PyLucene and CherryPy.',
     author='Aric Coady',
     author_email='aric.coady@gmail.com',
     url='http://code.google.com/p/lupyne/',
     packages=packages,
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: Apache Software License',
     ],
 )

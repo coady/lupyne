@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>engine &mdash; LuPyne v0.1+ documentation</title>
+    <title>engine &mdash; LuPyne v0.2 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.1+',
+        VERSION:     '0.2',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.1+ documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.2 documentation" href="index.html" />
     <link rel="next" title="server" href="server.html" />
     <link rel="prev" title="Welcome to LuPyne’s documentation!" href="index.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.1+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -193,7 +193,7 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">S
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.parse" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return lucene parsed Query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -202,6 +202,7 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">S
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>field</em> &#8211; default query field name</li>
 <li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
+<li><em>attrs</em> &#8211; additional attributes to set on the parser</li>
 </ul>
 </td>
 </tr>
@@ -395,7 +396,7 @@ Document is comprised of name: value pairs, where the values may be one or multi
 
 <dl class="method">
 <dt id="engine.indexers.IndexWriter.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.parse" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return lucene parsed Query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -404,6 +405,7 @@ Document is comprised of name: value pairs, where the values may be one or multi
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>field</em> &#8211; default query field name</li>
 <li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
+<li><em>attrs</em> &#8211; additional attributes to set on the parser</li>
 </ul>
 </td>
 </tr>
@@ -1205,12 +1207,12 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.1+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.2.
     </div>
   </body>
 </html>

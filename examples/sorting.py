@@ -15,7 +15,7 @@ but the performance overhead of O(n log n) comparison calls in java is still hor
 To mitigate all these problems, LuPyne first provides a unified search interface.
 The same Hits type is returned regardless of whether a doc count is supplied.
 As with lucene, the result is fully evaluated but each individual Hit object will only be loaded on demand.
-Internally an optimized custom HitCollector is used to retrieve all docs.
+Internally an optimized custom HitCollector is used when all docs are requested.
 
 The search method does allow lucene Sort parameters to be passed through, since that's still optimal.
 So the only gotcha is that with no doc count the sort parameter must instead be a python callable key.

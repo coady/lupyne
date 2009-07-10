@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>examples &mdash; LuPyne v0.1+ documentation</title>
+    <title>examples &mdash; LuPyne v0.2 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.1+',
+        VERSION:     '0.2',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.1+ documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.2 documentation" href="index.html" />
     <link rel="prev" title="client" href="client.html" /> 
   </head>
   <body>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.1+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -159,6 +159,7 @@
 
 <span class="sd">NestedFields extend PrefixFields to support a common separator.</span>
 <span class="sd">DateTimeFields extend PrefixFields with datetime specific query generators.</span>
+<span class="sd">PointFields extend PrefixFields to support geospatial queries.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">lucene</span>
@@ -166,9 +167,9 @@
 <span class="kn">from</span> <span class="nn">lupyne</span> <span class="kn">import</span> <span class="n">engine</span>
 
 <span class="n">docs</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;CA&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-15&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="s">&#39;0,808,976&#39;</span><span class="p">},</span>
-    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;CA&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-04&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="s">&#39;3,849,378&#39;</span><span class="p">},</span>
-    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Portland&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;OR&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1851-02-08&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="s">&#39;0,575,930&#39;</span><span class="p">},</span>
+    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;CA&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-15&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="s">&#39;0,808,976&#39;</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.4192</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">37.7752</span><span class="p">},</span>
+    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;CA&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-04&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="s">&#39;3,849,378&#39;</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">118.2434</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">34.0521</span><span class="p">},</span>
+    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Portland&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;OR&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1851-02-08&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="s">&#39;0,575,930&#39;</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.6703</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">45.5238</span><span class="p">},</span>
 <span class="p">]</span>
 
 <span class="n">indexer</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">Indexer</span><span class="p">()</span>
@@ -177,12 +178,14 @@
 <span class="c"># set method supports custom field types inheriting their default settings</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;incorporated&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">)</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;population&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">PrefixField</span><span class="p">)</span>
+<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;point&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">PointField</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mf">10</span><span class="p">)</span>
 <span class="c"># assigned fields can have a different key from their underlying field name</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">NestedField</span><span class="p">(</span><span class="s">&#39;state:city&#39;</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">docs</span><span class="p">:</span>
     <span class="n">location</span> <span class="o">=</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;state&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span> <span class="o">+</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span>
-    <span class="n">indexer</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">)</span>
+    <span class="n">point</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;longitude&#39;</span><span class="p">),</span> <span class="n">doc</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;latitude&#39;</span><span class="p">)</span>
+    <span class="n">indexer</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span> <span class="n">point</span><span class="o">=</span><span class="p">[</span><span class="n">point</span><span class="p">])</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
 <span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;incorporated&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="s">&#39;1800&#39;</span><span class="p">,</span> <span class="s">&#39;1851-02-07&#39;</span><span class="p">)</span>
@@ -207,6 +210,12 @@
 <span class="c"># optimized to search the best field</span>
 <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;state:CA*&#39;</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">]</span>
+
+<span class="n">cities</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">distance</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="mf">1e3</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">,</span> <span class="mf">2e5</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">]):</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;point&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">within</span><span class="p">(</span><span class="o">-</span><span class="mf">122.4</span><span class="p">,</span> <span class="mf">37.7</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">BooleanQuery</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">4</span>
+    <span class="k">assert</span> <span class="n">set</span><span class="p">(</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">))</span> <span class="o">==</span> <span class="n">set</span><span class="p">(</span><span class="n">cities</span><span class="p">[:</span><span class="n">index</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
@@ -229,7 +238,7 @@
 <span class="sd">To mitigate all these problems, LuPyne first provides a unified search interface.</span>
 <span class="sd">The same Hits type is returned regardless of whether a doc count is supplied.</span>
 <span class="sd">As with lucene, the result is fully evaluated but each individual Hit object will only be loaded on demand.</span>
-<span class="sd">Internally an optimized custom HitCollector is used to retrieve all docs.</span>
+<span class="sd">Internally an optimized custom HitCollector is used when all docs are requested.</span>
 
 <span class="sd">The search method does allow lucene Sort parameters to be passed through, since that&#39;s still optimal.</span>
 <span class="sd">So the only gotcha is that with no doc count the sort parameter must instead be a python callable key.</span>
@@ -354,12 +363,12 @@
         <li class="right" >
           <a href="client.html" title="client"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.1+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.2.
     </div>
   </body>
 </html>
