@@ -100,7 +100,7 @@ class TestCase(BaseTest):
         doc, = hits['docs']
         assert sorted(doc) == ['__id__', '__score__', 'name']
         assert doc['__id__'] == 0 and doc['__score__'] > 0 and doc['name'] == 'sample' 
-        assert not resource.delete('/search?q=name:sample')
+        assert not resource.delete('/search', q='name:sample')
         assert resource.get('/docs') == [0]
         assert not resource.post('/commit')
         assert resource.get('/docs') == []

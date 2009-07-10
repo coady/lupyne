@@ -20,6 +20,8 @@ Response
 
     string of entire response body
 
+  .. automethod:: __nonzero__
+
   .. automethod:: __call__
 
 Resource

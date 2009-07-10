@@ -253,9 +253,6 @@ class WebIndexer(WebSearcher):
             termvector=\ *chars*
             
             :return: {"store": *string*, "index": *string*, "termvector": *string*}
-        
-        **PUT** /fields/*chars*
-            Set parameters for given field name.
         """
         if cherrypy.request.method in ('PUT', 'POST'):
             self.indexer.set(name, **params)

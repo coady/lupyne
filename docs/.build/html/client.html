@@ -54,7 +54,7 @@
 <p>Use <a class="reference internal" href="#resource">Resource</a> for a single host.
 Use <a class="reference internal" href="#resources">Resources</a> for multiple hosts with simple partitioning or redundancy.
 Use <a class="reference internal" href="#shards">Shards</a> for horizontally partitioning hosts by different keys.</p>
-<p><a class="reference internal" href="#resources">Resources</a> reuse persistent connections as possible, handling request timeouts.
+<p><a class="reference internal" href="#resources">Resources</a> optionally reuse connections, handling request timeouts.
 Broadcasting to multiple resources is parallelized with asynchronous requests and responses.</p>
 <p>The load balancing strategy is randomized, biased by the number of cached connections available.
 This inherently provides limited failover support, but applications must still handle exceptions as desired.</p>
@@ -82,6 +82,11 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Response</
 <dd>string of entire response body</dd></dl>
 
 <dl class="method">
+<dt id="client.Response.__nonzero__">
+<tt class="descname">__nonzero__</tt><big>(</big><big>)</big><a class="headerlink" href="#client.Response.__nonzero__" title="Permalink to this definition">¶</a></dt>
+<dd>Return whether status is successful.</dd></dl>
+
+<dl class="method">
 <dt id="client.Response.__call__">
 <tt class="descname">__call__</tt><big>(</big><big>)</big><a class="headerlink" href="#client.Response.__call__" title="Permalink to this definition">¶</a></dt>
 <dd>Return evaluated response body or raise exception.</dd></dl>
@@ -94,7 +99,7 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Response</
 <dl class="class">
 <dt id="client.Resource">
 <em class="property">
-class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x16608&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
+class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x17600&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref docutils literal"><span class="pre">httplib.HTTPConnection</span></tt></p>
 <p>Synchronous connection which handles json responses.</p>
 <dl class="method">
@@ -109,12 +114,12 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</
 
 <dl class="method">
 <dt id="client.Resource.delete">
-<tt class="descname">delete</tt><big>(</big><em>path</em><big>)</big><a class="headerlink" href="#client.Resource.delete" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">delete</tt><big>(</big><em>path</em>, <em>**params</em><big>)</big><a class="headerlink" href="#client.Resource.delete" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="client.Resource.get">
-<tt class="descname">get</tt><big>(</big><em>path='/'</em>, <em>**params</em><big>)</big><a class="headerlink" href="#client.Resource.get" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">get</tt><big>(</big><em>path</em>, <em>**params</em><big>)</big><a class="headerlink" href="#client.Resource.get" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -298,7 +303,7 @@ Response overlap is possible depending on partitioning.</dd></dl>
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.2.
     </div>
   </body>
 </html>

@@ -14,6 +14,8 @@ class TestCase(remote.BaseTest):
     def testInterface(self):
         "Distributed reading and writing."
         resources = client.Resources(self.hosts, limit=1)
+        assert resources.unicast('GET', '/')
+        assert not resources.unicast('POST', '/')
         responses = resources.broadcast('GET', '/')
         assert len(responses) == len(resources)
         for response in responses:

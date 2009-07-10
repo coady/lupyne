@@ -5,7 +5,7 @@ Use `Resource`_ for a single host.
 Use `Resources`_ for multiple hosts with simple partitioning or redundancy.
 Use `Shards`_ for horizontally partitioning hosts by different keys.
 
-`Resources`_ reuse persistent connections as possible, handling request timeouts.
+`Resources`_ optionally reuse connections, handling request timeouts.
 Broadcasting to multiple resources is parallelized with asynchronous requests and responses.
 
 The load balancing strategy is randomized, biased by the number of cached connections available.
@@ -30,9 +30,12 @@ class Response(httplib.HTTPResponse):
         self.body = self.read()
         if self.getheader('content-encoding') == 'gzip':
             self.body = gzip.GzipFile(fileobj=StringIO(self.body)).read()
+    def __nonzero__(self):
+        "Return whether status is successful."
+        return httplib.OK <= self.status < httplib.MULTIPLE_CHOICES
     def __call__(self):
         "Return evaluated response body or raise exception."
-        if not httplib.OK <= self.status < httplib.MULTIPLE_CHOICES:
+        if not self:
             raise httplib.HTTPException(self.status, self.reason, self.body)
         if self.body and self.getheader('content-type') == 'text/x-json':
             return json.loads(self.body)
@@ -53,7 +56,7 @@ class Resource(httplib.HTTPConnection):
         "Send request and return evaluated response body."
         self.request(method, path, body)
         return self.getresponse()()
-    def get(self, path='/', **params):
+    def get(self, path, **params):
         if params:
             path += '?' + urllib.urlencode(params)
         return self('GET', path)
@@ -61,7 +64,9 @@ class Resource(httplib.HTTPConnection):
         return self('POST', path, body)
     def put(self, path, **body):
         return self('PUT', path, body)
-    def delete(self, path):
+    def delete(self, path, **params):
+        if params:
+            path += '?' + urllib.urlencode(params)
         return self('DELETE', path)
 
 class Resources(dict):
