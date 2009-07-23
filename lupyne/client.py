@@ -75,34 +75,41 @@ class Resources(dict):
     :param hosts: host[:port] strings
     :param limit: maximum number of cached connections per host
     """
+    class Manager(collections.deque):
+        "Queue of prioritized resources."
     def __init__(self, hosts, limit=0):
-        self.update((host, collections.deque(maxlen=limit)) for host in hosts)
-    def pop(self, host):
-        "Return an exclusive resource for given host."
-        try:
-            return self[host].popleft()
-        except IndexError:
-            return Resource(host)
-    def push(self, host, resource):
-        "Put resource back into available pool."
-        self[host].append(resource)
+        self.update((host, self.Manager(maxlen=limit)) for host in hosts)
     def request(self, host, method, path, body=None):
         "Send request to given host and return exclusive resource."
-        resource = self.pop(host)
+        try:
+            resource = self[host].popleft()
+        except IndexError:
+            resource = Resource(host)
         resource.request(method, path, body)
         return resource
+    def getresponse(self, host, resource):
+        "Return response and release resource."
+        response = resource.getresponse()
+        if response.status != httplib.REQUEST_TIMEOUT:
+            self[host].append(resource)
+        return response
+    def priority(self, host):
+        "Return priority for host.  None may be used to eliminate from consideration."
+        return -len(self[host])
+    def choice(self, hosts):
+        "Return chosen host according to priority."
+        hosts = dict(zip(hosts, map(self.priority, hosts)))
+        for priority, candidates in itertools.groupby(sorted(hosts, key=hosts.get), hosts.get):
+            if priority is not None:
+                return random.choice(list(candidates))
     def unicast(self, method, path, body=None, hosts=()):
         "Send request and return response from any host, optionally from given subset."
-        hosts = tuple(hosts) or self
-        candidates = itertools.chain.from_iterable([host] * len(self[host]) for host in hosts)
-        host = random.choice(list(candidates) or tuple(hosts))
+        host = self.choice(tuple(hosts) or self)
         while True:
             resource = self.request(host, method, path, body)
-            response = resource.getresponse()
+            response = self.getresponse(host, resource)
             if response.status != httplib.REQUEST_TIMEOUT:
-                break
-        self.push(host, resource)
-        return response
+                return response
     def broadcast(self, method, path, body=None, hosts=()):
         "Send requests and return responses from all hosts, optionally from given subset."
         hosts = tuple(hosts) or self
@@ -111,11 +118,9 @@ class Resources(dict):
         while resources:
             for host in list(resources):
                 resource = resources.pop(host)
-                response = responses[host] = resource.getresponse()
+                response = responses[host] = self.getresponse(host, resource)
                 if response.status == httplib.REQUEST_TIMEOUT:
                     resources[host] = self.request(host, method, path, body)
-                else:
-                    self.push(host, resource)
         return map(responses.__getitem__, hosts)
 
 class Shards(dict):
@@ -125,11 +130,17 @@ class Shards(dict):
     :param limit: maximum number of cached connections per host
     :param multimap: mapping of hosts to multiple keys
     """
+    choice = Resources.choice.im_func
     def __init__(self, items=(), limit=0, **multimap):
         pairs = ((host, key) for host in multimap for key in multimap[host])
         for host, key in itertools.chain(items, pairs):
             self.setdefault(key, set()).add(host)
         self.resources = Resources(itertools.chain(*self.values()), limit)
+    def priority(self, hosts):
+        "Return combined priority for hosts."
+        priorities = map(self.resources.priority, hosts)
+        if None not in priorities:
+            return len(hosts), sum(priorities)
     def unicast(self, key, method, path, body=None):
         "Send request and return response from any host for corresponding key."
         return self.resources.unicast(method, path, body, self[key])
@@ -143,10 +154,4 @@ class Shards(dict):
         shards = [frozenset()]
         for key in keys:
             shards = set(hosts.union([host]) for hosts, host in itertools.product(shards, self[key]))
-        size = min(map(len, shards))
-        shards = [hosts for hosts in shards if len(hosts) <= size]
-        candidates = []
-        for hosts in shards:
-            candidates += [hosts] * min(len(self.resources[host]) for host in hosts)
-        hosts = random.choice(candidates or shards)
-        return self.resources.broadcast(method, path, body, hosts)
+        return self.resources.broadcast(method, path, body, self.choice(shards))
