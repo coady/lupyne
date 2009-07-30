@@ -195,7 +195,8 @@ class Document(object):
         self.doc.removeFields(name)
     def getlist(self, name):
         "Return list of all values for given field."
-        return list(self.doc.getValues(name))
+        # memory leak in string array returned by getValues
+        return [field.stringValue() for field in self.doc.getFields(name)]
     def dict(self, *names, **defaults):
         """Return dict representation of document.
         
