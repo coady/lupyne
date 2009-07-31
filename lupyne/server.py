@@ -99,7 +99,7 @@ class WebSearcher(object):
             id = int(id)
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
-        with handleNotFound(KeyError):
+        with handleNotFound(lucene.JavaError):
             doc = self.indexer[id]
         return doc.dict(*multifields, **fields)
     @cherrypy.expose

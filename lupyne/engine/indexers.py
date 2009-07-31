@@ -47,14 +47,8 @@ class IndexReader(object):
         return 0 <= id < self.maxDoc() and not self.isDeleted(id)
     def __iter__(self):
         return itertools.ifilterfalse(self.isDeleted, xrange(self.maxDoc()))
-    def doc(self, id):
-        return self.indexReader.document(id)
     def __getitem__(self, id):
-        try:
-            doc = self.doc(id)
-        except lucene.JavaError:
-            raise KeyError(id)
-        return Document(doc)
+        return Document(self.document(id))
     def __delitem__(self, id):
         self.deleteDocument(id)
     @property
@@ -63,7 +57,6 @@ class IndexReader(object):
         return self.indexReader.directory()
     def delete(self, name, value):
         """Delete documents with given term.
-        
         Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
         """
         self.deleteDocuments(lucene.Term(name, value))
@@ -114,13 +107,14 @@ class IndexReader(object):
 
 class Searcher(object):
     "Mixin interface common among searchers."
-    __getitem__ = IndexReader.__getitem__.im_func
     def __init__(self, arg, analyzer=lucene.StandardAnalyzer):
         super(Searcher, self).__init__(arg)
         self.analyzer = analyzer()
     def __del__(self):
         if str(self) != '<null>':
             self.close()
+    def __getitem__(self, id):
+        return Document(self.doc(id))
     def parse(self, query, field='', op='', **attrs):
         """Return lucene parsed Query.
         
