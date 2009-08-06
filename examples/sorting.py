@@ -25,6 +25,7 @@ The upshot is custom sorting and sorting large results are both easier and faste
 Custom sorting isn't necessary in the below example of course, just there for demonstration.
 """
 
+from contextlib import closing
 import lucene
 lucene.initVM(lucene.CLASSPATH)
 from lupyne import engine
@@ -46,9 +47,7 @@ class SortComparatorSource(lucene.PythonSortComparatorSource):
     class newComparator(lucene.PythonScoreDocComparator):
         def __init__(self, reader, name):
             lucene.PythonScoreDocComparator.__init__(self)
-            terms = reader.terms(lucene.Term(name, ''))
             self.comparator = [None] * reader.numDocs()
-            from contextlib import closing
             with closing(reader.terms(lucene.Term(name, ''))) as terms:
                 with closing(reader.termDocs()) as termDocs:
                     while True:

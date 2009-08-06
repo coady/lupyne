@@ -129,6 +129,31 @@ class Searcher(object):
         for name, value in attrs.items():
             setattr(parser, name, value)
         return parser.parse(query)
+    def highlight(self, query, text, count=1, span=False, formatter=None, encoder=None, field='', **attrs):
+        """Return highlighted text fragments which match the query.
+        
+        :param query: query string or lucene Query
+        :param text: text string to be searched
+        :param count: maximum number of fragments
+        :param span: use SpanScorer to only highlight terms which would contribute to a hit
+        :param formatter: optional lucene Formatter
+        :param encoder: optional lucene Encoder
+        :param field: default query field name
+        :param attrs: additional attributes to set on the highlighter
+        """
+        if not isinstance(query, lucene.Query):
+            query = self.parse(query, field)
+        tokens = self.analyzer.tokenStream(field, lucene.StringReader(text))
+        if span:
+            tokens = lucene.CachingTokenFilter(tokens)
+            scorer = lucene.HighlighterSpanScorer(query, field, tokens)
+        else:
+            scorer = lucene.QueryScorer(query, field)
+        highlighter = lucene.Highlighter(*filter(None, [formatter, encoder, scorer]))
+        for name, value in attrs.items():
+            setattr(highlighter, name, value)
+        # avoid getBestFragments because of memory leak in string array
+        return map(unicode, highlighter.getBestTextFragments(tokens, text, True, count))
     def count(self, *query, **options):
         """Return number of hits for given query or term.
         

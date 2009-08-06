@@ -293,6 +293,24 @@ class TestCase(BaseTest):
         assert len(indexer.fields['date'].within(-100.0)) > 3
         assert len(indexer.fields['date'].within(-100, 1)) > 3
 
+    def testHighlighting(self):
+        "Highlighting text fragments."
+        indexer = engine.Indexer()
+        amendments = dict((doc['amendment'], doc['text']) for doc in fixture.constitution.docs() if 'amendment' in doc)
+        for amendment in amendments.values():
+            fragments = indexer.highlight('persons', amendment)
+            assert len(fragments) == ('persons' in amendment)
+            for fragment in fragments:
+                assert '<B>persons</B>' in fragment
+        text = amendments['4']
+        query = '"persons, houses, papers"'
+        fragments = indexer.highlight(query, text, count=3, formatter=lucene.SimpleHTMLFormatter('*', '*'))
+        assert len(fragments) == 2 and fragments[0].count('*') == 2*3 and '*persons*' in fragments[1]
+        fragment, = indexer.highlight(query, text, count=3, textFragmenter=lucene.SimpleFragmenter(200))
+        assert len(fragment) > len(text) and fragment.count('<B>persons</B>') == 2
+        fragment, = indexer.highlight(query, text, count=3, span=True)
+        assert len(fragment) < len(text) and fragment.count('<B>') == 3
+
 if __name__ == '__main__':
     lucene.initVM(lucene.CLASSPATH)
     unittest.main()

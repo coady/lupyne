@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>examples &mdash; LuPyne v0.2 documentation</title>
+    <title>examples &mdash; LuPyne v0.2+ documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.2',
+        VERSION:     '0.2+',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.2 documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.2+ documentation" href="index.html" />
     <link rel="prev" title="client" href="client.html" /> 
   </head>
   <body>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -130,11 +130,20 @@
 <span class="n">q3</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">q2</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">BooleanClause</span><span class="o">.</span><span class="n">Occur</span><span class="o">.</span><span class="n">MUST</span><span class="p">)</span>
 <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">q3</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;+text:lucene +text:&quot;search engine&quot;&#39;</span>
 
+<span class="n">q1</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SpanTermQuery</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Term</span><span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">,</span> <span class="s">&#39;hello&#39;</span><span class="p">))</span>
+<span class="n">q2</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SpanFirstQuery</span><span class="p">(</span><span class="n">q1</span><span class="p">,</span> <span class="mf">10</span><span class="p">)</span>
+<span class="n">q3</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SpanNotQuery</span><span class="p">(</span><span class="n">q1</span><span class="p">,</span> <span class="n">q2</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">q3</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;spanNot(text:hello, spanFirst(text:hello, 10))&#39;</span>
+
 <span class="c">### lupyne ###</span>
 
 <span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="o">.</span><span class="n">term</span><span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">,</span> <span class="s">&#39;lucene&#39;</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">Query</span><span class="o">.</span><span class="n">phrase</span><span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">,</span> <span class="s">&#39;search&#39;</span><span class="p">,</span> <span class="s">&#39;engine&#39;</span><span class="p">)</span>
 <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">BooleanQuery</span><span class="p">)</span>
 <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;+text:lucene +text:&quot;search engine&quot;&#39;</span>
+
+<span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="o">.</span><span class="n">span</span><span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">,</span> <span class="s">&#39;hello&#39;</span><span class="p">)</span>
+<span class="n">q</span> <span class="o">-=</span> <span class="n">q</span><span class="p">[:</span><span class="mf">10</span><span class="p">]</span>
+<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;spanNot(text:hello, spanFirst(text:hello, 10))&#39;</span>
 </pre></div>
 </div>
 </div>
@@ -248,6 +257,7 @@
 <span class="sd">Custom sorting isn&#39;t necessary in the below example of course, just there for demonstration.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">closing</span>
 <span class="kn">import</span> <span class="nn">lucene</span>
 <span class="n">lucene</span><span class="o">.</span><span class="n">initVM</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">CLASSPATH</span><span class="p">)</span>
 <span class="kn">from</span> <span class="nn">lupyne</span> <span class="kn">import</span> <span class="n">engine</span>
@@ -269,9 +279,7 @@
     <span class="k">class</span> <span class="nc">newComparator</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonScoreDocComparator</span><span class="p">):</span>
         <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
             <span class="n">lucene</span><span class="o">.</span><span class="n">PythonScoreDocComparator</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-            <span class="n">terms</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">terms</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Term</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">reader</span><span class="o">.</span><span class="n">numDocs</span><span class="p">()</span>
-            <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">closing</span>
             <span class="k">with</span> <span class="n">closing</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">terms</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Term</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)))</span> <span class="k">as</span> <span class="n">terms</span><span class="p">:</span>
                 <span class="k">with</span> <span class="n">closing</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">termDocs</span><span class="p">())</span> <span class="k">as</span> <span class="n">termDocs</span><span class="p">:</span>
                     <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
@@ -363,7 +371,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

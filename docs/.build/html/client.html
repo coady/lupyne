@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>client &mdash; LuPyne v0.2 documentation</title>
+    <title>client &mdash; LuPyne v0.2+ documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.2',
+        VERSION:     '0.2+',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.2 documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.2+ documentation" href="index.html" />
     <link rel="next" title="examples" href="examples.html" />
     <link rel="prev" title="server" href="server.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="server.html" title="server"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -164,29 +164,40 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resources<
 </tr>
 </tbody>
 </table>
+<dl class="class">
+<dt id="client.Resources.Manager">
+<em class="property">
+class </em><tt class="descname">Manager</tt><a class="headerlink" href="#client.Resources.Manager" title="Permalink to this definition">¶</a></dt>
+<dd>Queue of prioritized resources.</dd></dl>
+
 <dl class="method">
 <dt id="client.Resources.broadcast">
-<tt class="descname">broadcast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.broadcast" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">Resources.</tt><tt class="descname">broadcast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.broadcast" title="Permalink to this definition">¶</a></dt>
 <dd>Send requests and return responses from all hosts, optionally from given subset.</dd></dl>
 
 <dl class="method">
-<dt id="client.Resources.pop">
-<tt class="descname">pop</tt><big>(</big><em>host</em><big>)</big><a class="headerlink" href="#client.Resources.pop" title="Permalink to this definition">¶</a></dt>
-<dd>Return an exclusive resource for given host.</dd></dl>
+<dt id="client.Resources.choice">
+<tt class="descclassname">Resources.</tt><tt class="descname">choice</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Resources.choice" title="Permalink to this definition">¶</a></dt>
+<dd>Return chosen host according to priority.</dd></dl>
 
 <dl class="method">
-<dt id="client.Resources.push">
-<tt class="descname">push</tt><big>(</big><em>host</em>, <em>resource</em><big>)</big><a class="headerlink" href="#client.Resources.push" title="Permalink to this definition">¶</a></dt>
-<dd>Put resource back into available pool.</dd></dl>
+<dt id="client.Resources.getresponse">
+<tt class="descclassname">Resources.</tt><tt class="descname">getresponse</tt><big>(</big><em>host</em>, <em>resource</em><big>)</big><a class="headerlink" href="#client.Resources.getresponse" title="Permalink to this definition">¶</a></dt>
+<dd>Return response and release resource.</dd></dl>
+
+<dl class="method">
+<dt id="client.Resources.priority">
+<tt class="descclassname">Resources.</tt><tt class="descname">priority</tt><big>(</big><em>host</em><big>)</big><a class="headerlink" href="#client.Resources.priority" title="Permalink to this definition">¶</a></dt>
+<dd>Return priority for host.  None may be used to eliminate from consideration.</dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.request">
-<tt class="descname">request</tt><big>(</big><em>host</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resources.request" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">Resources.</tt><tt class="descname">request</tt><big>(</big><em>host</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resources.request" title="Permalink to this definition">¶</a></dt>
 <dd>Send request to given host and return exclusive resource.</dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.unicast">
-<tt class="descname">unicast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.unicast" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">Resources.</tt><tt class="descname">unicast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.unicast" title="Permalink to this definition">¶</a></dt>
 <dd>Send request and return response from any host, optionally from given subset.</dd></dl>
 
 </dd></dl>
@@ -223,10 +234,20 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt
 <dd>Send requests and return responses from all hosts for corresponding key.</dd></dl>
 
 <dl class="method">
+<dt id="client.Shards.choice">
+<tt class="descname">choice</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Shards.choice" title="Permalink to this definition">¶</a></dt>
+<dd>Return chosen host according to priority.</dd></dl>
+
+<dl class="method">
 <dt id="client.Shards.multicast">
 <tt class="descname">multicast</tt><big>(</big><em>keys</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Shards.multicast" title="Permalink to this definition">¶</a></dt>
 <dd>Send requests and return responses from a minimal subset of hosts which cover all corresponding keys.
 Response overlap is possible depending on partitioning.</dd></dl>
+
+<dl class="method">
+<dt id="client.Shards.priority">
+<tt class="descname">priority</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Shards.priority" title="Permalink to this definition">¶</a></dt>
+<dd>Return combined priority for hosts.</dd></dl>
 
 <dl class="method">
 <dt id="client.Shards.unicast">
@@ -298,7 +319,7 @@ Response overlap is possible depending on partitioning.</dd></dl>
         <li class="right" >
           <a href="server.html" title="server"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

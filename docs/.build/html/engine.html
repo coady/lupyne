@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>engine &mdash; LuPyne v0.2 documentation</title>
+    <title>engine &mdash; LuPyne v0.2+ documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.2',
+        VERSION:     '0.2+',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.2 documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.2+ documentation" href="index.html" />
     <link rel="next" title="server" href="server.html" />
     <link rel="prev" title="Welcome to LuPyne’s documentation!" href="index.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -124,9 +124,8 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">I
 <dl class="method">
 <dt id="engine.indexers.IndexReader.delete">
 <tt class="descname">delete</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.delete" title="Permalink to this definition">¶</a></dt>
-<dd><p>Delete documents with given term.</p>
-<p>Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</p>
-</dd></dl>
+<dd>Delete documents with given term.
+Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</dd></dl>
 
 <dl class="attribute">
 <dt id="engine.indexers.IndexReader.directory">
@@ -184,6 +183,30 @@ class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">S
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>query</em> &#8211; <a title="engine.indexers.Searcher.search" class="reference internal" href="#engine.indexers.Searcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> compatible query, or optimally a name and value</li>
 <li><em>options</em> &#8211; additional <a title="engine.indexers.Searcher.search" class="reference internal" href="#engine.indexers.Searcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.highlight">
+<tt class="descname">highlight</tt><big>(</big><em>query</em>, <em>text</em>, <em>count=1</em>, <em>span=False</em>, <em>formatter=None</em>, <em>encoder=None</em>, <em>field=''</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.highlight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return highlighted text fragments which match the query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>query</em> &#8211; query string or lucene Query</li>
+<li><em>text</em> &#8211; text string to be searched</li>
+<li><em>count</em> &#8211; maximum number of fragments</li>
+<li><em>span</em> &#8211; use SpanScorer to only highlight terms which would contribute to a hit</li>
+<li><em>formatter</em> &#8211; optional lucene Formatter</li>
+<li><em>encoder</em> &#8211; optional lucene Encoder</li>
+<li><em>field</em> &#8211; default query field name</li>
+<li><em>attrs</em> &#8211; additional attributes to set on the highlighter</li>
 </ul>
 </td>
 </tr>
@@ -1207,7 +1230,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
