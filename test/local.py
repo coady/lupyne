@@ -173,6 +173,11 @@ class TestCase(BaseTest):
         near = queries[0].near(queries[1] | queries[2], slop=1)
         assert indexer.count(queries[0] - near) == count - 1
         assert indexer.count(queries[0][:100]) == count - 1
+        spans = dict(indexer.spans(queries[0]))
+        assert len(spans) == count and spans == dict(indexer.docs('text', 'persons', counts=True))
+        near = queries[0].near(queries[1], slop=2)
+        (id, positions), = indexer.spans(near, positions=True)
+        assert indexer[id]['amendment'] == '4' and positions == [(3, 6)]
         del indexer
         assert engine.Indexer(self.tempdir)
     

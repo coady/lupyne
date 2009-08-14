@@ -19,17 +19,6 @@ class Atomic(object):
         return not issubclass(other, collections.Iterable) or NotImplemented
 Atomic.register(basestring)
 
-def iterate(jit, positioned=False):
-    """Transform java iterator into python iterator.
-    
-    :param positioned: current iterator position is valid
-    """
-    with contextlib.closing(jit):
-        if positioned:
-            yield jit
-        while jit.next():
-            yield jit
-
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
     
@@ -69,24 +58,28 @@ class IndexReader(object):
         return list(self.getFieldNames(option))
     def terms(self, name, start='', stop=None, counts=False):
         "Generate a slice of term values, optionally with frequency counts."
-        for termenum in iterate(self.indexReader.terms(lucene.Term(name, start)), positioned=True):
-            term = termenum.term()
-            if term and term.field() == name:
+        with contextlib.closing(self.indexReader.terms(lucene.Term(name, start))) as termenum:
+            while True:
+                term = termenum.term()
+                if term is None or term.field() != name:
+                    break
                 text = term.text()
-                if stop is None or text < stop:
-                    yield (text, termenum.docFreq()) if counts else text
-                    continue
-            break
+                if stop is not None and text >= stop:
+                    break
+                yield (text, termenum.docFreq()) if counts else text
+                termenum.next()
     def docs(self, name, value, counts=False):
         "Generate doc ids which contain given term, optionally with frequency counts."
-        for termdocs in iterate(self.termDocs(lucene.Term(name, value))):
-            doc = termdocs.doc()
-            yield (doc, termdocs.freq()) if counts else doc
+        with contextlib.closing(self.termDocs(lucene.Term(name, value))) as termdocs:
+            while termdocs.next():
+                doc = termdocs.doc()
+                yield (doc, termdocs.freq()) if counts else doc
     def positions(self, name, value):
         "Generate doc ids which contain given term, with their positions."
-        for termpositions in iterate(self.termPositions(lucene.Term(name, value))):
-            positions = [termpositions.nextPosition() for n in xrange(termpositions.freq())]
-            yield termpositions.doc(), positions
+        with contextlib.closing(self.termPositions(lucene.Term(name, value))) as termpositions:
+            while termpositions.next():
+                positions = [termpositions.nextPosition() for n in xrange(termpositions.freq())]
+                yield termpositions.doc(), positions
     def comparator(self, name, *names, **kwargs):
         """Return sequence of documents' field values suitable for sorting.
         
@@ -104,6 +97,19 @@ class IndexReader(object):
                 while termdocs.next():
                     values[termdocs.doc()] = value
         return values
+    def spans(self, query, positions=False):
+        """Generate docs with occurrence counts for a span query.
+        
+        :param query: lucene SpanQuery
+        :param positions: optionally include slice positions instead of counts
+        """
+        spans = query.getSpans(self.indexReader)
+        spans = itertools.takewhile(lucene.Spans.next, itertools.repeat(spans))
+        for doc, spans in itertools.groupby(spans, key=lucene.Spans.doc):
+            if positions:
+                yield doc, [(span.start(), span.end()) for span in spans]
+            else:
+                yield doc, sum(1 for span in spans)
 
 class Searcher(object):
     "Mixin interface common among searchers."
