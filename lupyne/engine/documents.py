@@ -26,7 +26,10 @@ class Field(object):
     def items(self, *values):
         "Generate lucene Fields suitable for adding to a document."
         for value in values:
-            yield lucene.Field(self.name, value, self.store, self.index, self.termvector)
+            try:
+                yield lucene.Field(self.name, value, self.store, self.index, self.termvector)
+            except lucene.InvalidArgsError:
+                yield lucene.Field(self.name, value, self.termvector)
 
 class FormatField(Field):
     """Field which uses string formatting on its values.

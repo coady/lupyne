@@ -85,6 +85,9 @@ class TestCase(BaseTest):
         assert len(indexer) == 3
         x, y = engine.Filter([0, 1]).bits(), engine.Filter([1, 2]).bits()
         assert list(x & y) == [1] and list(x | y) == [0, 1, 2] and list(x -y) == [0]
+        indexer.add(text=lucene.WhitespaceTokenizer(lucene.StringReader('?')))
+        indexer.commit()
+        assert list(indexer.terms('text')) == ['?']
     
     def testBasic(self):
         "Text fields and simple searches."

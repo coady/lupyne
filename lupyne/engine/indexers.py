@@ -18,6 +18,7 @@ class Atomic(object):
     def __subclasshook__(cls, other):
         return not issubclass(other, collections.Iterable) or NotImplemented
 Atomic.register(basestring)
+Atomic.register(lucene.TokenStream)
 
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
