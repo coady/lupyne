@@ -7,7 +7,7 @@ from datetime import datetime
 
 class constitution(object):
     fields = dict.fromkeys(['article', 'amendment', 'date'], {'store': 'yes', 'index': 'not_analyzed'})
-    fields['text'] = {}
+    fields['text'] = {'termvector': 'with_positions_offsets'}
     @classmethod
     def docs(cls):
         file = open(os.path.join(os.path.dirname(__file__), 'constitution.txt'))

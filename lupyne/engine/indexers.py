@@ -111,6 +111,20 @@ class IndexReader(object):
                 yield doc, [(span.start(), span.end()) for span in spans]
             else:
                 yield doc, sum(1 for span in spans)
+    def termvector(self, id, field, counts=False):
+        "Generate terms for given doc id and field, optionally with frequency counts."
+        # warning: TermFreqVector.terms leaks memory
+        tfv = self.getTermFreqVector(id, field)
+        return itertools.izip(tfv.terms, tfv.termFrequencies) if counts else iter(tfv.terms)
+    def positionvector(self, id, field, offsets=False):
+        "Generate terms and positions for given doc id and field, optionally with character offsets."
+        # warning: TermPositionVector.terms leaks memory
+        tpv = lucene.TermPositionVector.cast_(self.getTermFreqVector(id, field))
+        for index, term in enumerate(tpv.terms):
+            if offsets:
+                yield term, map(operator.attrgetter('startOffset', 'endOffset'), tpv.getOffsets(index))
+            else:
+                yield term, list(tpv.getTermPositions(index))
 
 class Searcher(object):
     "Mixin interface common among searchers."
