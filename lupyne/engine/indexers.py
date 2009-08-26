@@ -7,6 +7,7 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 import itertools, operator
 import contextlib
 import abc, collections
+import warnings
 import lucene
 from .queries import Query, HitCollector, Filter
 from .documents import Field, Document, Hits
@@ -113,12 +114,12 @@ class IndexReader(object):
                 yield doc, sum(1 for span in spans)
     def termvector(self, id, field, counts=False):
         "Generate terms for given doc id and field, optionally with frequency counts."
-        # warning: TermFreqVector.terms leaks memory
+        warnings.warn('TermFreqVector.terms leaks memory')
         tfv = self.getTermFreqVector(id, field)
         return itertools.izip(tfv.terms, tfv.termFrequencies) if counts else iter(tfv.terms)
     def positionvector(self, id, field, offsets=False):
         "Generate terms and positions for given doc id and field, optionally with character offsets."
-        # warning: TermPositionVector.terms leaks memory
+        warnings.warn('TermPositionVector.terms leaks memory')
         tpv = lucene.TermPositionVector.cast_(self.getTermFreqVector(id, field))
         for index, term in enumerate(tpv.terms):
             if offsets:

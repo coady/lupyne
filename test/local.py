@@ -2,6 +2,7 @@ import unittest
 import os, optparse
 import tempfile, shutil
 import itertools
+import warnings
 from datetime import date
 import lucene
 from lupyne import engine
@@ -181,10 +182,12 @@ class TestCase(BaseTest):
         near = queries[0].near(queries[1], slop=2)
         (id, positions), = indexer.spans(near, positions=True)
         assert indexer[id]['amendment'] == '4' and positions == [(3, 6)]
-        assert 'persons' in indexer.termvector(id, 'text')
-        assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
-        assert dict(indexer.positionvector(id, 'text'))['persons'] == [3, 26]
-        assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
+        with warnings.catch_warnings(record=True) as leaks:
+            assert 'persons' in indexer.termvector(id, 'text')
+            assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
+            assert dict(indexer.positionvector(id, 'text'))['persons'] == [3, 26]
+            assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
+        assert len(leaks) == 2
         del indexer
         assert engine.Indexer(self.tempdir)
     
