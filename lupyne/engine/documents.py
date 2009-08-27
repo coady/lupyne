@@ -153,11 +153,19 @@ class DateTimeField(PrefixField):
         queries[0] = PrefixField.range(self, str(start), queries[0].upperVal, lower=lower)
         queries[-1] = PrefixField.range(self, queries[-1].lowerVal, str(stop), upper=upper)
         return Query.any(*queries)
-    def within(self, days=0, seconds=0):
-        "Return date range query within current time and delta."
-        now = datetime.date.today() if (isinstance(days, int) and not seconds) else datetime.datetime.now()
-        delta = now + datetime.timedelta(days, seconds)
-        return self.range(*sorted([now, delta]), upper=True)
+    def within(self, days=0, weeks=0, utc=False, **delta):
+        """Return date range query within current time and delta.
+        If the delta is an exact number of days, then dates will be used.
+        
+        :param days, weeks: number of days to offset from today
+        :param utc: optionally use utc instead of local time
+        :params delta: additional timedelta parameters
+        """
+        now = datetime.datetime.utcnow() if utc else datetime.datetime.now()
+        if not (isinstance(days + weeks, float) or delta):
+            now = now.date()
+        delta = datetime.timedelta(days, weeks=weeks, **delta)
+        return self.range(*sorted([now, now + delta]), upper=True)
 
 class Document(object):
     """Delegated lucene Document.

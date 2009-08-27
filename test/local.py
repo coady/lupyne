@@ -306,7 +306,7 @@ class TestCase(BaseTest):
         assert 0 < indexer.count(query) <= 12
         assert len(indexer.fields['date'].within(-100)) <= 3
         assert len(indexer.fields['date'].within(-100.0)) > 3
-        assert len(indexer.fields['date'].within(-100, 1)) > 3
+        assert len(indexer.fields['date'].within(-100, seconds=1, utc=True)) > 3
 
     def testHighlighting(self):
         "Highlighting text fragments."
