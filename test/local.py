@@ -25,7 +25,9 @@ class TestCase(BaseTest):
         indexer = engine.Indexer()
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
-        indexer.set('name', store=True, index=False)
+        indexer.set('name', store=True, index=False, boost=2.0)
+        for field in indexer.fields['name'].items('sample'):
+            assert isinstance(field, lucene.Field) and field.boost == 2.0
         indexer.set('tag', store=True, index=True)
         indexer.add(text='hello world', name='sample', tag=['python', 'search'])
         assert len(indexer) == 1 and list(indexer) == []

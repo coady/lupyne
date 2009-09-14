@@ -12,9 +12,11 @@ class Field(object):
     
     :param name: name of field
     :param store, index, termvector: field parameters, expressed as bools or strs, with lucene defaults
+    :param attrs: additional attributes to set on the field
     """
-    def __init__(self, name, store=False, index='analyzed', termvector=False):
+    def __init__(self, name, store=False, index='analyzed', termvector=False, **attrs):
         self.name = name
+        self.attrs = attrs
         if isinstance(store, bool):
             store = 'yes' if store else 'no'
         if isinstance(index, bool):
@@ -27,9 +29,12 @@ class Field(object):
         "Generate lucene Fields suitable for adding to a document."
         for value in values:
             try:
-                yield lucene.Field(self.name, value, self.store, self.index, self.termvector)
+                field = lucene.Field(self.name, value, self.store, self.index, self.termvector)
             except lucene.InvalidArgsError:
-                yield lucene.Field(self.name, value, self.termvector)
+                field = lucene.Field(self.name, value, self.termvector)
+            for name, value in self.attrs.items():
+                setattr(field, name, value)
+            yield field
 
 class FormatField(Field):
     """Field which uses string formatting on its values.
