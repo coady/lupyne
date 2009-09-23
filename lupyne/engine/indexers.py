@@ -21,6 +21,17 @@ class Atomic(object):
 Atomic.register(basestring)
 Atomic.register(lucene.TokenStream)
 
+class Analyzer(lucene.PythonAnalyzer):
+    "Return a lucene Analyzer which chains together a tokenizer (or analyzer) and filters."
+    def __init__(self, tokenizer, *filters):
+        lucene.PythonAnalyzer.__init__(self)
+        self.tokenizer, self.filters = tokenizer, filters
+    def tokenStream(self, field, reader):
+        tokens = self.tokenizer.tokenStream(field, reader) if isinstance(self.tokenizer, lucene.Analyzer) else self.tokenizer(reader)
+        for filter in self.filters:
+            tokens = filter(tokens)
+        return tokens
+
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
     
@@ -129,9 +140,12 @@ class IndexReader(object):
 
 class Searcher(object):
     "Mixin interface common among searchers."
-    def __init__(self, arg, analyzer=lucene.StandardAnalyzer):
+    def __init__(self, arg, analyzer=None):
         super(Searcher, self).__init__(arg)
-        self.analyzer = analyzer()
+        if not isinstance(analyzer, (lucene.Analyzer, type(None))):
+            warnings.warn("Support for analyzer constructors will be removed.", DeprecationWarning)
+            analyzer = analyzer()
+        self.analyzer = lucene.StandardAnalyzer() if analyzer is None else analyzer
     def __del__(self):
         if str(self) != '<null>':
             self.close()
@@ -144,7 +158,7 @@ class Searcher(object):
         :param op: default query operator ('or', 'and')
         :param attrs: additional attributes to set on the parser
         """
-        # parser's aren't thread-safe (nor slow), so create one each time
+        # parsers aren't thread-safe (nor slow), so create one each time
         parser = lucene.QueryParser(field, self.analyzer)
         if op:
             parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
@@ -222,9 +236,9 @@ class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
     
     :param directory: directory path or lucene Directory
-    :param analyzer: lucene Analyzer class
+    :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
-    def __init__(self, directory, analyzer=lucene.StandardAnalyzer):
+    def __init__(self, directory, analyzer=None):
         Searcher.__init__(self, directory, analyzer)
         self.filters = {}
     def facets(self, ids, *keys):
@@ -254,9 +268,9 @@ class MultiSearcher(Searcher, lucene.MultiSearcher):
     """Inherited lucene MultiSearcher.
     
     :param searchers: lucene.Searchers or directory
-    :param analyzer: lucene Analyzer class
+    :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
-    def __init__(self, searchers, analyzer=lucene.StandardAnalyzer):
+    def __init__(self, searchers, analyzer=None):
         searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(searcher) for searcher in searchers]
         Searcher.__init__(self, searchers, analyzer)
 
@@ -267,16 +281,23 @@ class IndexWriter(lucene.IndexWriter):
     """Inherited lucene IndexWriter.
     Supports setting fields parameters explicitly, so documents can be represented as dictionaries.
     
-    :param directory: directory path or lucene Directory
+    :param directory: directory path or lucene Directory, default RAMDirectory
     :param mode: file mode (rwa), except updating (+) is implied
-    :param analyzer: lucene Analyzer class
+    :param analyzer: lucene Analyzer, default StandardAnalyzer
+    :param mfl: MaxFieldLength, default IndexWriter.DEFAULT_MAX_FIELD_LENGTH
     """
     __len__ = lucene.IndexWriter.numDocs
     __del__ = Searcher.__del__.im_func
     parse = Searcher.parse.im_func
-    def __init__(self, directory=None, mode='a', analyzer=lucene.StandardAnalyzer):
-        create = [mode == 'w'] * (mode != 'a')
-        lucene.IndexWriter.__init__(self, directory or lucene.RAMDirectory(), analyzer(), *create)
+    def __init__(self, directory=None, mode='a', analyzer=None, mfl=10000):
+        if not isinstance(analyzer, (lucene.Analyzer, type(None))):
+            warnings.warn("Support for analyzer constructors will be removed.", DeprecationWarning)
+            analyzer = analyzer()
+        args = [(directory or lucene.RAMDirectory()), (lucene.StandardAnalyzer() if analyzer is None else analyzer)]
+        if mode != 'a':
+            args.append(mode == 'w')
+        args.append(mfl if isinstance(mfl, self.MaxFieldLength) else self.MaxFieldLength(mfl))
+        lucene.IndexWriter.__init__(self, *args)
         self.fields = {}
     @property
     def segments(self):
@@ -334,7 +355,7 @@ class Indexer(IndexWriter):
     """
     def __init__(self, *args, **kwargs):
         IndexWriter.__init__(self, *args, **kwargs)
-        self.indexSearcher = IndexSearcher(self.directory, self.getAnalyzer)
+        self.indexSearcher = IndexSearcher(self.directory, self.analyzer)
     def __getattr__(self, name):
         if name == 'indexSearcher':
             raise AttributeError(name)
@@ -349,4 +370,4 @@ class Indexer(IndexWriter):
         "Commit writes and refresh searcher.  Not thread-safe."
         IndexWriter.commit(self)
         if not self.current:
-            self.indexSearcher = IndexSearcher(self.directory, self.getAnalyzer)
+            self.indexSearcher = IndexSearcher(self.directory, self.analyzer)

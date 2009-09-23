@@ -22,14 +22,20 @@ class TestCase(BaseTest):
     
     def testInterface(self):
         "Indexer and document interfaces."
-        indexer = engine.Indexer()
+        assert engine.IndexWriter.__init__.im_func.func_defaults[-1] == lucene.IndexWriter.DEFAULT_MAX_FIELD_LENGTH
+        with warnings.catch_warnings(record=True) as deprecations:
+            writer = engine.IndexWriter(analyzer=lucene.StandardAnalyzer)
+            engine.IndexSearcher(writer.directory, analyzer=lucene.WhitespaceAnalyzer)
+        assert len(deprecations) == 2
+        Stemmer = engine.Analyzer(lucene.StandardAnalyzer(), lucene.PorterStemFilter)
+        indexer = engine.Indexer(analyzer=Stemmer)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
         indexer.set('name', store=True, index=False, boost=2.0)
         for field in indexer.fields['name'].items('sample'):
             assert isinstance(field, lucene.Field) and field.boost == 2.0
         indexer.set('tag', store=True, index=True)
-        indexer.add(text='hello world', name='sample', tag=['python', 'search'])
+        indexer.add(text='hello worlds', name='sample', tag=['python', 'search'])
         assert len(indexer) == 1 and list(indexer) == []
         assert not indexer.optimized
         indexer.commit()
