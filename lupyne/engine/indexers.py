@@ -72,27 +72,31 @@ class IndexReader(object):
     def terms(self, name, start='', stop=None, counts=False):
         "Generate a slice of term values, optionally with frequency counts."
         with contextlib.closing(self.indexReader.terms(lucene.Term(name, start))) as termenum:
-            while True:
-                term = termenum.term()
-                if term is None or term.field() != name:
-                    break
+            term = termenum.term()
+            while term and term.field() == name:
                 text = term.text()
                 if stop is not None and text >= stop:
                     break
                 yield (text, termenum.docFreq()) if counts else text
-                termenum.next()
+                term = termenum.next() and termenum.term()
     def docs(self, name, value, counts=False):
         "Generate doc ids which contain given term, optionally with frequency counts."
         with contextlib.closing(self.termDocs(lucene.Term(name, value))) as termdocs:
             while termdocs.next():
                 doc = termdocs.doc()
                 yield (doc, termdocs.freq()) if counts else doc
-    def positions(self, name, value):
-        "Generate doc ids which contain given term, with their positions."
+    def positions(self, name, value, payloads=False):
+        "Generate doc ids and positions which contain given term, optionally only with payloads."
         with contextlib.closing(self.termPositions(lucene.Term(name, value))) as termpositions:
             while termpositions.next():
-                positions = [termpositions.nextPosition() for n in xrange(termpositions.freq())]
-                yield termpositions.doc(), positions
+                doc = termpositions.doc()
+                positions = (termpositions.nextPosition() for n in xrange(termpositions.freq()))
+                if payloads:
+                    array = lucene.JArray_byte('')
+                    yield doc, [(position, ''.join(termpositions.getPayload(array, 0))) \
+                        for position in positions if termpositions.payloadAvailable]
+                else:
+                    yield doc, list(positions)
     def comparator(self, name, *names, **kwargs):
         """Return sequence of documents' field values suitable for sorting.
         

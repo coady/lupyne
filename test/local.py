@@ -27,7 +27,7 @@ class TestCase(BaseTest):
             writer = engine.IndexWriter(analyzer=lucene.StandardAnalyzer)
             engine.IndexSearcher(writer.directory, analyzer=lucene.WhitespaceAnalyzer)
         assert len(deprecations) == 2
-        Stemmer = engine.Analyzer(lucene.StandardAnalyzer(), lucene.PorterStemFilter)
+        Stemmer = engine.Analyzer(lucene.StandardAnalyzer(), lucene.PorterStemFilter, lucene.TypeAsPayloadTokenFilter)
         indexer = engine.Indexer(analyzer=Stemmer)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
@@ -65,6 +65,7 @@ class TestCase(BaseTest):
         assert list(indexer.docs('text', 'hi')) == []
         assert list(indexer.docs('text', 'world', counts=True)) == [(0, 1)]
         assert list(indexer.positions('text', 'world')) == [(0, [1])]
+        assert list(indexer.positions('text', 'world', payloads=True)) == [(0, [(1, '<ALPHANUM>')])]
         hits = indexer.search('text:hello')
         assert len(hits) == hits.count == 1
         assert hits.ids == [0]
