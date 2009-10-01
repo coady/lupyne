@@ -211,8 +211,9 @@ class Document(object):
         self.doc.removeFields(name)
     def getlist(self, name):
         "Return list of all values for given field."
-        # memory leak in string array returned by getValues
-        return [field.stringValue() for field in self.doc.getFields(name)]
+        if lucene.VERSION <= '2.4.1': # memory leak in string array
+            return [field.stringValue() for field in self.doc.getFields(name)]
+        return list(self.doc.getValues(name))
     def dict(self, *names, **defaults):
         """Return dict representation of document.
         

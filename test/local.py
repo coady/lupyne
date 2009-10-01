@@ -196,7 +196,7 @@ class TestCase(BaseTest):
             assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
             assert dict(indexer.positionvector(id, 'text'))['persons'] == [3, 26]
             assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
-        assert len(leaks) == 2
+        assert len(leaks) == 2 * (lucene.VERSION <= '2.4.1')
         del indexer
         assert engine.Indexer(self.tempdir)
     
@@ -244,7 +244,6 @@ class TestCase(BaseTest):
         count = indexer.count(field.prefix(lng[:3]))
         assert count > len(hits)
         assert count == indexer.count(field.range(lng[:3], lng[:3]+'~'))
-        self.assertRaises(lucene.JavaError, indexer.search, engine.Query.prefix(longitude, lng[:3]))
         assert count > indexer.count(engine.Query.term('state', 'CA'), filter=engine.Query.term(longitude, lng).filter())
         hits = indexer.search('zipcode:90*')
         (field, facets), = indexer.facets(hits.ids, 'state:county').items()
@@ -328,11 +327,11 @@ class TestCase(BaseTest):
                 assert '<B>persons</B>' in fragment
         text = amendments['4']
         query = '"persons, houses, papers"'
-        fragments = indexer.highlight(query, text, count=3, formatter=lucene.SimpleHTMLFormatter('*', '*'))
+        fragments = indexer.highlight(query, text, count=3, span=False, formatter=lucene.SimpleHTMLFormatter('*', '*'))
         assert len(fragments) == 2 and fragments[0].count('*') == 2*3 and '*persons*' in fragments[1]
-        fragment, = indexer.highlight(query, text, count=3, textFragmenter=lucene.SimpleFragmenter(200))
+        fragment, = indexer.highlight(query, text, count=3, span=False, textFragmenter=lucene.SimpleFragmenter(200))
         assert len(fragment) > len(text) and fragment.count('<B>persons</B>') == 2
-        fragment, = indexer.highlight(query, text, count=3, span=True)
+        fragment, = indexer.highlight(query, text, count=3)
         assert len(fragment) < len(text) and fragment.count('<B>') == 3
 
 if __name__ == '__main__':

@@ -124,8 +124,8 @@ class SpanQuery(Query):
 
 class HitCollector(lucene.PythonHitCollector):
     "Collect all ids and scores efficiently."
-    def __init__(self, searcher):
-        lucene.PythonHitCollector.__init__(self, searcher)
+    def __init__(self):
+        lucene.PythonHitCollector.__init__(self)
         self.collect = {}.__setitem__
     def sorted(self, key=None, reverse=False):
         "Return ordered ids and scores."

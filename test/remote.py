@@ -54,7 +54,7 @@ class TestCase(BaseTest):
         assert response.status == httplib.OK and response.reason == 'OK'
         assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type') == 'text/x-json'
         (directory, count), = response().items()
-        assert count == 0 and directory.startswith('org.apache.lucene.store.FSDirectory@')
+        assert count == 0 and 'FSDirectory@' in directory
         assert not resource('HEAD', '/')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.put('/')

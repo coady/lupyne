@@ -129,12 +129,14 @@ class IndexReader(object):
                 yield doc, sum(1 for span in spans)
     def termvector(self, id, field, counts=False):
         "Generate terms for given doc id and field, optionally with frequency counts."
-        warnings.warn('TermFreqVector.terms leaks memory')
+        if lucene.VERSION <= '2.4.1':
+            warnings.warn('TermFreqVector.terms leaks memory')
         tfv = self.getTermFreqVector(id, field)
         return itertools.izip(tfv.terms, tfv.termFrequencies) if counts else iter(tfv.terms)
     def positionvector(self, id, field, offsets=False):
         "Generate terms and positions for given doc id and field, optionally with character offsets."
-        warnings.warn('TermPositionVector.terms leaks memory')
+        if lucene.VERSION <= '2.4.1':
+            warnings.warn('TermPositionVector.terms leaks memory')
         tpv = lucene.TermPositionVector.cast_(self.getTermFreqVector(id, field))
         for index, term in enumerate(tpv.terms):
             if offsets:
@@ -169,13 +171,13 @@ class Searcher(object):
         for name, value in attrs.items():
             setattr(parser, name, value)
         return parser.parse(query)
-    def highlight(self, query, text, count=1, span=False, formatter=None, encoder=None, field='', **attrs):
+    def highlight(self, query, text, count=1, span=True, formatter=None, encoder=None, field='', **attrs):
         """Return highlighted text fragments which match the query.
         
         :param query: query string or lucene Query
         :param text: text string to be searched
         :param count: maximum number of fragments
-        :param span: use SpanScorer to only highlight terms which would contribute to a hit
+        :param span: only highlight terms which would contribute to a hit
         :param formatter: optional lucene Formatter
         :param encoder: optional lucene Encoder
         :param field: default query field name
@@ -183,17 +185,18 @@ class Searcher(object):
         """
         if not isinstance(query, lucene.Query):
             query = self.parse(query, field)
-        tokens = self.analyzer.tokenStream(field, lucene.StringReader(text))
-        if span:
-            tokens = lucene.CachingTokenFilter(tokens)
-            scorer = lucene.HighlighterSpanScorer(query, field, tokens)
-        else:
-            scorer = lucene.QueryScorer(query, field)
-        highlighter = lucene.Highlighter(*filter(None, [formatter, encoder, scorer]))
+        highlighter = lucene.Highlighter(*filter(None, [formatter, encoder, lucene.QueryScorer(query, field)]))
         for name, value in attrs.items():
             setattr(highlighter, name, value)
-        # avoid getBestFragments because of memory leak in string array
-        return map(unicode, highlighter.getBestTextFragments(tokens, text, True, count))
+        if lucene.VERSION <= '2.4.1': # memory leak in string array
+            tokens = self.analyzer.tokenStream(field, lucene.StringReader(text))
+            if span:
+                tokens = lucene.CachingTokenFilter(tokens)
+                highlighter.fragmentScorer = lucene.HighlighterSpanScorer(query, field, tokens)
+            return map(unicode, highlighter.getBestTextFragments(tokens, text, True, count))
+        if not span:
+            highlighter.fragmentScorer = lucene.QueryTermScorer(query, field)
+        return list(highlighter.getBestFragments(self.analyzer, field, text, count))
     def count(self, *query, **options):
         """Return number of hits for given query or term.
         
@@ -221,7 +224,7 @@ class Searcher(object):
             filter = Filter(filter)
         # use custom HitCollector if all results are necessary, otherwise let lucene's TopDocs handle it
         if count is None:
-            collector = HitCollector(self)
+            collector = HitCollector()
             super(Searcher, self).search(query, filter, collector)
             return Hits(self, *collector.sorted(key=sort, reverse=reverse))
         if sort is None:
