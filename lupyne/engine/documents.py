@@ -151,12 +151,12 @@ class DateTimeField(PrefixField):
         May produce invalid dates, but the query is still correct.
         """
         dates = (map(float, self.split(str(date))) for date in (start, stop))
-        queries = []
+        items = []
         for dates in self._range(*dates):
-            begin, end = (self.join(map('{0:02n}'.format, date)) for date in dates)
-            queries.append(PrefixField.range(self, begin, end))
-        queries[0] = PrefixField.range(self, str(start), queries[0].upperVal, lower=lower)
-        queries[-1] = PrefixField.range(self, queries[-1].lowerVal, str(stop), upper=upper)
+            items.append(tuple(self.join(map('{0:02n}'.format, date)) for date in dates))
+        queries = [PrefixField.range(self, str(start), items[0][1], lower=lower)]
+        queries += [PrefixField.range(self, *item) for item in items[1:-1]]
+        queries.append(PrefixField.range(self, items[-1][0], str(stop), upper=upper))
         return Query.any(*queries)
     def within(self, days=0, weeks=0, utc=False, **delta):
         """Return date range query within current time and delta.

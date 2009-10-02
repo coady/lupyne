@@ -49,7 +49,8 @@ class Query(object):
     @classmethod
     def range(cls, name, start, stop, lower=True, upper=False):
         "Return lucene ConstantScoreRangeQuery, by default with a half-open interval."
-        return cls(lucene.ConstantScoreRangeQuery, name, start, stop, lower, upper)
+        base = lucene.TermRangeQuery if hasattr(lucene, 'TermRangeQuery') else lucene.ConstantScoreRangeQuery
+        return cls(base, name, start, stop, lower, upper)
     @classmethod
     def phrase(cls, name, *values):
         "Return lucene PhraseQuery.  None may be used as a placeholder."

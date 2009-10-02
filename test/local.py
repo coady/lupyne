@@ -302,7 +302,8 @@ class TestCase(BaseTest):
         assert str(query) == 'date:Y:{ TO 1921} date:Ym:[1921 TO 1921-12]'
         assert indexer.count(query) == 19
         query = indexer.fields['date'].range(date(1919, 1, 1), date(1921, 12, 31))
-        fields = [lucene.ConstantScoreRangeQuery.cast_(clause.query).field for clause in query]
+        cls = lucene.TermRangeQuery if hasattr(lucene, 'TermRangeQuery') else lucene.ConstantScoreRangeQuery
+        fields = [cls.cast_(clause.query).field for clause in query]
         assert fields == ['date:Ymd', 'date:Ym', 'date:Y', 'date:Ym', 'date:Ymd']
         hits = indexer.search(query)
         assert [hit['amendment'] for hit in hits] == ['18', '19']
