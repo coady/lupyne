@@ -290,9 +290,13 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.FormatField, format='{0:02n}', store=True)
         indexer.set('date', engine.DateTimeField, store=True)
+        try:
+            indexer.set('size', engine.NumericField, store=True)
+        except AttributeError:
+            indexer.set('size', engine.FormatField, format='{0:04n}', store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
-                indexer.add(amendment=int(doc['amendment']), date=doc['date'])
+                indexer.add(amendment=int(doc['amendment']), date=doc['date'], size=len(doc['text']))
         indexer.commit()
         query = engine.Query.range('amendment', '', indexer.fields['amendment'].format(10))
         assert indexer.count(query) == 9
@@ -316,6 +320,19 @@ class TestCase(BaseTest):
         assert len(indexer.fields['date'].within(-100)) <= 3
         assert len(indexer.fields['date'].within(-100.0)) > 3
         assert len(indexer.fields['date'].within(-100, seconds=1, utc=True)) > 3
+        field, numeric = indexer.fields['size'], hasattr(engine, 'NumericField')
+        assert numeric == (len(list(indexer.terms('size'))) > len(indexer))
+        sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
+        ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
+        query = field.range(1000, None) if numeric else engine.Query.range('size', '1000', None)
+        hits = indexer.search(query, sort=sizes.get)
+        assert hits.ids == ids
+        hits = indexer.search(query, count=3, sort=lucene.SortField('size', lucene.SortField.INT))
+        assert hits.ids == ids[:len(hits)]
+        query = field.range(None, 1000L) if numeric else engine.Query.range('size', None, '1000')
+        assert indexer.count(query) == len(sizes) - len(ids)
+        if numeric:
+            assert not indexer.search(field.range(0.0, None))
 
     def testHighlighting(self):
         "Highlighting text fragments."

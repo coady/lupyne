@@ -48,6 +48,38 @@ class FormatField(Field):
         "Generate fields with formatted values."
         return Field.items(self, *map(self.format, values))
 
+class NumericField(Field):
+    """Field which indexes numbers in a prefix tree.
+    
+    :param name: name of field
+    :param step: precision step
+    """
+    def __init__(self, name, step=None, store=False, index=True):
+        Field.__init__(self, name, store)
+        self.step = step or lucene.NumericUtils.PRECISION_STEP_DEFAULT
+        self.index = index
+    def items(self, *values):
+        "Generate lucene NumericFields suitable for adding to a document."
+        for value in values:
+            field = lucene.NumericField(self.name, self.step, self.store, self.index)
+            if isinstance(value, float):
+                field.doubleValue = value
+            elif lucene.Integer.MIN_VALUE <= value <= lucene.Integer.MAX_VALUE:
+                field.intValue = int(value)
+            else:
+                field.longValue = long(value)
+            yield field
+    def range(self, start, stop, lower=True, upper=False):
+        "Return lucene NumericRangeQuery."
+        if isinstance(start, float) or isinstance(stop, float):
+            type, cls, method = float, lucene.Double, lucene.NumericRangeQuery.newDoubleRange
+        elif lucene.Integer.MIN_VALUE <= (start or 0) and (stop or 0) <= lucene.Integer.MAX_VALUE:
+            type, cls, method = int, lucene.Integer, lucene.NumericRangeQuery.newIntRange
+        else:
+            type, cls, method = long, lucene.Long, lucene.NumericRangeQuery.newLongRange
+        start, stop = (value if value is None else cls(type(value)) for value in (start, stop))
+        return method(self.name, start, stop, lower, upper)
+
 class PrefixField(Field):
     """Field which indexes every prefix of a value into a separate component field.
     The customizable component field names are expressed as slices.
