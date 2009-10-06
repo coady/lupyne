@@ -36,22 +36,26 @@ class Tiler(GlobalMercator):
         "Return lat/lng bounding box (bottom, left, top, right) of tile."
         x, y = self.coords(tile)
         return self.TileLatLonBounds(x, y, len(tile))
-    def walk(self, bottomleft, topright, precision, limit=float('inf')):
-        "Generate tile keys which span bounding box, adjusting precision to limit the total count."
-        corners = bottomleft, topright
+    def walk(self, bottomleft, topright, precision):
+        "Generate tile keys which span bounding box."
+        left, bottom = self.MetersToTile(*bottomleft, zoom=precision)
+        right, top = self.MetersToTile(*topright, zoom=precision)
+        for i, j in itertools.product(range(left, right+1), range(bottom, top+1)):
+            yield self.QuadTree(i, j, precision)
+    def radiate(self, lat, lng, distance, precision, limit=float('inf')):
+        "Generate tile keys within distance of given point, adjusting precision to limit the number considered."
+        x, y = self.LatLonToMeters(lat, lng)
         for precision in range(precision, 0, -1):
-            (left, bottom), (right, top) = (self.MetersToTile(x, y, precision) for x, y in corners)
+            left, bottom = self.MetersToTile(x-distance, y-distance, precision)
+            right, top = self.MetersToTile(x+distance, y+distance, precision)
             if (right+1-left) * (top+1-bottom) <= limit:
                 break
-        assert left >= 0 and bottom >= 0, "bounding box out of global range: {0}".format(corners)
-        for x in range(left, right+1):
-            for y in range(bottom, top+1):
-                yield self.QuadTree(x, y, precision)
-    def radiate(self, lat, lng, distance, precision, limit=float('inf')):
-        "Generate tile keys within distance of given point, with adjustable precision."
-        x, y = self.project(lat, lng)
-        bottomleft, topright = (x-distance, y-distance), (x+distance, y+distance)
-        return self.walk(bottomleft, topright, precision, limit)
+        for i, j in itertools.product(range(left, right+1), range(bottom, top+1)):
+            left, bottom, right, top = self.TileBounds(i, j, precision)
+            dx = min(0, x-left, right-x)
+            dy = min(0, y-bottom, top-y)
+            if (dx**2 + dy**2) ** 0.5 <= distance:
+                yield self.QuadTree(i, j, precision)
     def zoom(self, tiles):
         "Return reduced number of tiles, by zooming out where all sub-tiles are present."
         result, keys = [], []

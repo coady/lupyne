@@ -258,10 +258,14 @@ class TestCase(BaseTest):
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
         field = indexer.fields['tile'] = engine.PointField('tile', precision=15, start=10, step=2, store=True)
+        points = []
         for doc in fixture.zipcodes.docs():
             if doc['state'] == 'CA':
                 lat, lng = doc.pop('latitude'), doc.pop('longitude')
                 indexer.add(doc, tile=[(lng, lat)], latitude=str(lat), longitude=str(lng))
+                if doc['city'] == 'Los Angeles':
+                    points.append((lng, lat))
+        assert len(list(engine.PolygonField('', precision=15).items(points))) > len(points)
         indexer.commit()
         city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
         hit, = indexer.search('zipcode:' + zipcode)
