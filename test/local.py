@@ -331,13 +331,17 @@ class TestCase(BaseTest):
         query = field.range(1000, None) if numeric else engine.Query.range('size', '1000', None)
         hits = indexer.search(query, sort=sizes.get)
         assert hits.ids == ids
-        hits = indexer.search(query, count=3, sort=lucene.SortField('size', lucene.SortField.INT))
+        hits = indexer.search(query, count=3, sort=lucene.SortField('size', lucene.SortField.LONG))
         assert hits.ids == ids[:len(hits)]
-        query = field.range(None, 1000L) if numeric else engine.Query.range('size', None, '1000')
+        query = field.range(None, 1000) if numeric else engine.Query.range('size', None, '1000')
         assert indexer.count(query) == len(sizes) - len(ids)
         if numeric:
-            assert not indexer.search(field.range(0.0, None))
-
+            self.assertRaises(OverflowError, list, field.items(-2**64))
+            nf, = field.items(0.5)
+            assert nf.numericValue.doubleValue() == 0.5
+            assert str(field.range(-2**64, 0)) == 'size:[* TO 0}'
+            assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
+    
     def testHighlighting(self):
         "Highlighting text fragments."
         indexer = engine.Indexer()

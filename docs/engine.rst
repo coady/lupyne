@@ -7,6 +7,11 @@ indexers
 ---------
 .. automodule:: engine.indexers
 
+Analyzer
+^^^^^^^^^^^^^
+.. autoclass:: engine.indexers.Analyzer
+  :members:
+
 IndexReader
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.IndexReader
@@ -129,6 +134,12 @@ FormatField
   .. method:: format(value)
 
     Return formatted value.
+
+NumericField
+^^^^^^^^^^^^^
+.. autoclass:: engine.documents.NumericField
+  :show-inheritance:
+  :members:
 
 PrefixField
 ^^^^^^^^^^^^^

@@ -64,21 +64,19 @@ class NumericField(Field):
             field = lucene.NumericField(self.name, self.step, self.store, self.index)
             if isinstance(value, float):
                 field.doubleValue = value
-            elif lucene.Integer.MIN_VALUE <= value <= lucene.Integer.MAX_VALUE:
-                field.intValue = int(value)
             else:
                 field.longValue = long(value)
             yield field
     def range(self, start, stop, lower=True, upper=False):
         "Return lucene NumericRangeQuery."
         if isinstance(start, float) or isinstance(stop, float):
-            type, cls, method = float, lucene.Double, lucene.NumericRangeQuery.newDoubleRange
-        elif lucene.Integer.MIN_VALUE <= (start or 0) and (stop or 0) <= lucene.Integer.MAX_VALUE:
-            type, cls, method = int, lucene.Integer, lucene.NumericRangeQuery.newIntRange
-        else:
-            type, cls, method = long, lucene.Long, lucene.NumericRangeQuery.newLongRange
-        start, stop = (value if value is None else cls(type(value)) for value in (start, stop))
-        return method(self.name, start, stop, lower, upper)
+            start, stop = (value if value is None else lucene.Double(value) for value in (start, stop))
+            return lucene.NumericRangeQuery.newDoubleRange(self.name, start, stop, lower, upper)
+        if start is not None:
+            start = None if start < lucene.Long.MIN_VALUE else lucene.Long(long(start))
+        if stop is not None:
+            stop = None if start > lucene.Long.MAX_VALUE else lucene.Long(long(stop))
+        return lucene.NumericRangeQuery.newLongRange(self.name, start, stop, lower, upper)
 
 class PrefixField(Field):
     """Field which indexes every prefix of a value into a separate component field.
