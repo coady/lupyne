@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Index &mdash; LuPyne v0.2+ documentation</title>
+    <title>Index &mdash; LuPyne v0.3 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.2+',
+        VERSION:     '0.3',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.2+ documentation" href="index.html" /> 
+    <link rel="top" title="LuPyne v0.3 documentation" href="index.html" /> 
   </head>
   <body>
     <div class="related">
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
-        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -113,6 +113,7 @@
     <dt><a href="engine.html#engine.indexers.IndexWriter.add">(engine.indexers.IndexWriter method)</a></dt>
   </dl></dd>
 <dt><a href="engine.html#engine.queries.Query.all">all() (engine.queries.Query class method)</a></dt></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.indexers.Analyzer">Analyzer (class in engine.indexers)</a></dt>
 <dt><a href="engine.html#engine.queries.Query.any">any() (engine.queries.Query class method)</a></dt>
 </dl></td></tr></table>
 
@@ -249,6 +250,7 @@
     <dt><a href="engine.html#engine.documents.Field.items">(engine.documents.Field method)</a></dt>
     <dt><a href="engine.html#engine.documents.FormatField.items">(engine.documents.FormatField method)</a></dt>
     <dt><a href="engine.html#engine.documents.Hits.items">(engine.documents.Hits method)</a></dt>
+    <dt><a href="engine.html#engine.documents.NumericField.items">(engine.documents.NumericField method)</a></dt>
     <dt><a href="engine.html#engine.documents.PrefixField.items">(engine.documents.PrefixField method)</a></dt>
     <dt><a href="engine.html#engine.spatial.PointField.items">(engine.spatial.PointField method)</a></dt>
     <dt><a href="engine.html#engine.spatial.PolygonField.items">(engine.spatial.PolygonField method)</a></dt>
@@ -286,6 +288,7 @@
     <dt><a href="engine.html#engine.spatial.PointField.near">(engine.spatial.PointField method)</a></dt>
   </dl></dd></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.documents.NestedField">NestedField (class in engine.documents)</a></dt>
+<dt><a href="engine.html#engine.documents.NumericField">NumericField (class in engine.documents)</a></dt>
 </dl></td></tr></table>
 
 <h2 id="P">P</h2>
@@ -301,12 +304,13 @@
 <dt><a href="engine.html#engine.spatial.PointField">PointField (class in engine.spatial)</a></dt>
 <dt><a href="engine.html#engine.spatial.PolygonField">PolygonField (class in engine.spatial)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexReader.positions">positions() (engine.indexers.IndexReader method)</a></dt>
-<dt><a href="client.html#client.Resource.post">post() (client.Resource method)</a></dt>
+<dt><a href="engine.html#engine.indexers.IndexReader.positionvector">positionvector() (engine.indexers.IndexReader method)</a></dt>
+<dt><a href="client.html#client.Resource.post">post() (client.Resource method)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.documents.DateTimeField.prefix">prefix() (engine.documents.DateTimeField method)</a></dt>
   <dd><dl>
     <dt><a href="engine.html#engine.documents.PrefixField.prefix">(engine.documents.PrefixField method)</a></dt>
     <dt><a href="engine.html#engine.queries.Query.prefix">(engine.queries.Query class method)</a></dt>
-  </dl></dd></dl></td><td width="33%" valign="top"><dl>
+  </dl></dd>
 <dt><a href="engine.html#engine.documents.PrefixField">PrefixField (class in engine.documents)</a></dt>
 <dt><a href="client.html#client.Resources.priority">priority() (client.Resources method)</a></dt>
   <dd><dl>
@@ -330,6 +334,7 @@
 <dt><a href="engine.html#engine.spatial.Tiler.radiate">radiate() (engine.spatial.Tiler method)</a></dt>
 <dt><a href="engine.html#engine.documents.DateTimeField.range">range() (engine.documents.DateTimeField method)</a></dt>
   <dd><dl>
+    <dt><a href="engine.html#engine.documents.NumericField.range">(engine.documents.NumericField method)</a></dt>
     <dt><a href="engine.html#engine.documents.PrefixField.range">(engine.documents.PrefixField method)</a></dt>
     <dt><a href="engine.html#engine.queries.Query.range">(engine.queries.Query class method)</a></dt>
   </dl></dd>
@@ -362,6 +367,7 @@
 <dt><a href="client.html#client.Shards">Shards (class in client)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.queries.Query.span">span() (engine.queries.Query class method)</a></dt>
 <dt><a href="engine.html#engine.queries.SpanQuery">SpanQuery (class in engine.queries)</a></dt>
+<dt><a href="engine.html#engine.indexers.IndexReader.spans">spans() (engine.indexers.IndexReader method)</a></dt>
 <dt><a href="engine.html#engine.documents.DateTimeField.split">split() (engine.documents.DateTimeField method)</a></dt>
   <dd><dl>
     <dt><a href="engine.html#engine.documents.NestedField.split">(engine.documents.NestedField method)</a></dt>
@@ -379,6 +385,7 @@
   <dd><dl>
     <dt><a href="server.html#server.WebSearcher.terms">(server.WebSearcher method)</a></dt>
   </dl></dd></dl></td><td width="33%" valign="top"><dl>
+<dt><a href="engine.html#engine.indexers.IndexReader.termvector">termvector() (engine.indexers.IndexReader method)</a></dt>
 <dt><a href="engine.html#engine.spatial.Tiler">Tiler (class in engine.spatial)</a></dt>
 </dl></td></tr></table>
 
@@ -449,12 +456,12 @@
         <li class="right" >
           <a href="modindex.html" title="Global Module Index"
              >modules</a> |</li>
-        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.2.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.3.
     </div>
   </body>
 </html>

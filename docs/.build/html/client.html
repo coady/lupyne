@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>client &mdash; LuPyne v0.2+ documentation</title>
+    <title>client &mdash; LuPyne v0.3 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.2+',
+        VERSION:     '0.3',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.2+ documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.3 documentation" href="index.html" />
     <link rel="next" title="examples" href="examples.html" />
     <link rel="prev" title="server" href="server.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="server.html" title="server"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -62,8 +62,7 @@ This inherently provides limited failover support, but applications must still h
 <h2>Response<a class="headerlink" href="#response" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="client.Response">
-<em class="property">
-class </em><tt class="descclassname">client.</tt><tt class="descname">Response</tt><big>(</big><em>sock</em>, <em>debuglevel=0</em>, <em>strict=0</em>, <em>method=None</em><big>)</big><a class="headerlink" href="#client.Response" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Response</tt><big>(</big><em>sock</em>, <em>debuglevel=0</em>, <em>strict=0</em>, <em>method=None</em><big>)</big><a class="headerlink" href="#client.Response" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref docutils literal"><span class="pre">httplib.HTTPResponse</span></tt></p>
 <p>A completed response which handles json and caches its body.</p>
 <dl class="attribute">
@@ -98,8 +97,7 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Response</
 <h2>Resource<a class="headerlink" href="#resource" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="client.Resource">
-<em class="property">
-class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x17600&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x1001da190&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref docutils literal"><span class="pre">httplib.HTTPConnection</span></tt></p>
 <p>Synchronous connection which handles json responses.</p>
 <dl class="method">
@@ -149,8 +147,7 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</
 <h2>Resources<a class="headerlink" href="#resources" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="client.Resources">
-<em class="property">
-class </em><tt class="descclassname">client.</tt><tt class="descname">Resources</tt><big>(</big><em>hosts</em>, <em>limit=0</em><big>)</big><a class="headerlink" href="#client.Resources" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resources</tt><big>(</big><em>hosts</em>, <em>limit=0</em><big>)</big><a class="headerlink" href="#client.Resources" title="Permalink to this definition">¶</a></dt>
 <dd><p>Thread-safe mapping of hosts to optionally persistent resources.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -166,8 +163,7 @@ class </em><tt class="descclassname">client.</tt><tt class="descname">Resources<
 </table>
 <dl class="class">
 <dt id="client.Resources.Manager">
-<em class="property">
-class </em><tt class="descname">Manager</tt><a class="headerlink" href="#client.Resources.Manager" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descname">Manager</tt><a class="headerlink" href="#client.Resources.Manager" title="Permalink to this definition">¶</a></dt>
 <dd>Queue of prioritized resources.</dd></dl>
 
 <dl class="method">
@@ -207,8 +203,7 @@ class </em><tt class="descname">Manager</tt><a class="headerlink" href="#client.
 <h2>Shards<a class="headerlink" href="#shards" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="client.Shards">
-<em class="property">
-class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt><big>(</big><em>items=()</em>, <em>limit=0</em>, <em>**multimap</em><big>)</big><a class="headerlink" href="#client.Shards" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt><big>(</big><em>items=()</em>, <em>limit=0</em>, <em>**multimap</em><big>)</big><a class="headerlink" href="#client.Shards" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mapping of keys to host clusters, with associated resources.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -319,12 +314,12 @@ Response overlap is possible depending on partitioning.</dd></dl>
         <li class="right" >
           <a href="server.html" title="server"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.2.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.3.
     </div>
   </body>
 </html>

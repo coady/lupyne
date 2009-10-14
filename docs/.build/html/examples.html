@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>examples &mdash; LuPyne v0.2+ documentation</title>
+    <title>examples &mdash; LuPyne v0.3 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.2+',
+        VERSION:     '0.3',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.2+ documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.3 documentation" href="index.html" />
     <link rel="prev" title="client" href="client.html" /> 
   </head>
   <body>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -66,7 +66,7 @@
 <span class="c"># To store an index on disk, use this instead:</span>
 <span class="c">#Directory directory = FSDirectory.getDirectory(&quot;/tmp/testindex&quot;)</span>
 <span class="n">iwriter</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">IndexWriter</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
-<span class="n">iwriter</span><span class="o">.</span><span class="n">setMaxFieldLength</span><span class="p">(</span><span class="mf">25000</span><span class="p">)</span>
+<span class="n">iwriter</span><span class="o">.</span><span class="n">setMaxFieldLength</span><span class="p">(</span><span class="mi">25000</span><span class="p">)</span>
 <span class="n">doc</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Document</span><span class="p">()</span>
 <span class="n">text</span> <span class="o">=</span> <span class="s">&quot;This is the text to be indexed.&quot;</span>
 <span class="n">doc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Field</span><span class="p">(</span><span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Field</span><span class="o">.</span><span class="n">Store</span><span class="o">.</span><span class="n">YES</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Field</span><span class="o">.</span><span class="n">Index</span><span class="o">.</span><span class="n">TOKENIZED</span><span class="p">))</span>
@@ -80,7 +80,7 @@
 <span class="n">parser</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">QueryParser</span><span class="p">(</span><span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">)</span>
 <span class="n">query</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">&quot;text&quot;</span><span class="p">)</span>
 <span class="n">hits</span> <span class="o">=</span> <span class="n">isearcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-<span class="k">assert</span> <span class="mf">1</span> <span class="o">==</span> <span class="n">hits</span><span class="o">.</span><span class="n">length</span><span class="p">()</span>
+<span class="k">assert</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">hits</span><span class="o">.</span><span class="n">length</span><span class="p">()</span>
 <span class="c"># Iterate through the results:</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">hits</span><span class="o">.</span><span class="n">length</span><span class="p">()):</span>
     <span class="n">hitDoc</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
@@ -92,7 +92,7 @@
 
 <span class="c"># Store the index in memory:</span>
 <span class="n">indexer</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">Indexer</span><span class="p">()</span>              <span class="c"># Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">maxFieldLength</span> <span class="o">=</span> <span class="mf">25000</span>          <span class="c"># not necessary for this example</span>
+<span class="n">indexer</span><span class="o">.</span><span class="n">maxFieldLength</span> <span class="o">=</span> <span class="mi">25000</span>          <span class="c"># not necessary for this example</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;fieldname&#39;</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>    <span class="c"># settings for all documents of indexer; tokenized is the default</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fieldname</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>             <span class="c"># add document</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>                      <span class="c"># not necessary for this example</span>
@@ -100,7 +100,7 @@
 
 <span class="c"># Now search the index:</span>
 <span class="n">hits</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s">&#39;fieldname&#39;</span><span class="p">)</span>    <span class="c"># parsing handled if necessary</span>
-<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mf">1</span>                               <span class="c"># hits support full sequence interface</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>                               <span class="c"># hits support full sequence interface</span>
 <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">:</span>
     <span class="k">assert</span> <span class="n">hit</span><span class="p">[</span><span class="s">&#39;fieldname&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">text</span>                 <span class="c"># hit supports full mapping interface</span>
 <span class="c"># closing is handled automatically</span>
@@ -131,7 +131,7 @@
 <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">q3</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;+text:lucene +text:&quot;search engine&quot;&#39;</span>
 
 <span class="n">q1</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SpanTermQuery</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Term</span><span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">,</span> <span class="s">&#39;hello&#39;</span><span class="p">))</span>
-<span class="n">q2</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SpanFirstQuery</span><span class="p">(</span><span class="n">q1</span><span class="p">,</span> <span class="mf">10</span><span class="p">)</span>
+<span class="n">q2</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SpanFirstQuery</span><span class="p">(</span><span class="n">q1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
 <span class="n">q3</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SpanNotQuery</span><span class="p">(</span><span class="n">q1</span><span class="p">,</span> <span class="n">q2</span><span class="p">)</span>
 <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">q3</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;spanNot(text:hello, spanFirst(text:hello, 10))&#39;</span>
 
@@ -142,7 +142,7 @@
 <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;+text:lucene +text:&quot;search engine&quot;&#39;</span>
 
 <span class="n">q</span> <span class="o">=</span> <span class="n">Query</span><span class="o">.</span><span class="n">span</span><span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">,</span> <span class="s">&#39;hello&#39;</span><span class="p">)</span>
-<span class="n">q</span> <span class="o">-=</span> <span class="n">q</span><span class="p">[:</span><span class="mf">10</span><span class="p">]</span>
+<span class="n">q</span> <span class="o">-=</span> <span class="n">q</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>
 <span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;spanNot(text:hello, spanFirst(text:hello, 10))&#39;</span>
 </pre></div>
 </div>
@@ -187,7 +187,7 @@
 <span class="c"># set method supports custom field types inheriting their default settings</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;incorporated&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">)</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;population&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">PrefixField</span><span class="p">)</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;point&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">PointField</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mf">10</span><span class="p">)</span>
+<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;point&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">PointField</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 <span class="c"># assigned fields can have a different key from their underlying field name</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">NestedField</span><span class="p">(</span><span class="s">&#39;state:city&#39;</span><span class="p">)</span>
 
@@ -223,8 +223,8 @@
 <span class="n">cities</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
 <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">distance</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="mf">1e3</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">,</span> <span class="mf">2e5</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">]):</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;point&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">within</span><span class="p">(</span><span class="o">-</span><span class="mf">122.4</span><span class="p">,</span> <span class="mf">37.7</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">BooleanQuery</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mf">4</span>
-    <span class="k">assert</span> <span class="n">set</span><span class="p">(</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">))</span> <span class="o">==</span> <span class="n">set</span><span class="p">(</span><span class="n">cities</span><span class="p">[:</span><span class="n">index</span><span class="p">])</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">BooleanQuery</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">4</span>
+    <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">))</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">cities</span><span class="p">[:</span><span class="n">index</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
@@ -272,8 +272,8 @@
 <span class="c">### lucene ###</span>
 
 <span class="n">searcher</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">IndexSearcher</span><span class="p">(</span><span class="n">indexer</span><span class="o">.</span><span class="n">directory</span><span class="p">)</span>
-<span class="n">topdocs</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">MatchAllDocsQuery</span><span class="p">(),</span> <span class="bp">None</span><span class="p">,</span> <span class="mf">10</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Sort</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">))</span>
-<span class="k">assert</span> <span class="p">[</span><span class="n">searcher</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">scoredoc</span><span class="o">.</span><span class="n">doc</span><span class="p">)[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">scoredoc</span> <span class="ow">in</span> <span class="n">topdocs</span><span class="o">.</span><span class="n">scoreDocs</span><span class="p">]</span> <span class="o">==</span> <span class="n">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<span class="n">topdocs</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">MatchAllDocsQuery</span><span class="p">(),</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Sort</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">))</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">searcher</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">scoredoc</span><span class="o">.</span><span class="n">doc</span><span class="p">)[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">scoredoc</span> <span class="ow">in</span> <span class="n">topdocs</span><span class="o">.</span><span class="n">scoreDocs</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 
 <span class="k">class</span> <span class="nc">SortComparatorSource</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonSortComparatorSource</span><span class="p">):</span>
     <span class="k">class</span> <span class="nc">newComparator</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonScoreDocComparator</span><span class="p">):</span>
@@ -301,17 +301,17 @@
 
 <span class="n">sorter</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Sort</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">,</span> <span class="n">SortComparatorSource</span><span class="p">()))</span>
 <span class="c"># still must supply excessive doc count to use the sorter</span>
-<span class="n">topdocs</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">MatchAllDocsQuery</span><span class="p">(),</span> <span class="bp">None</span><span class="p">,</span> <span class="mf">10</span><span class="p">,</span> <span class="n">sorter</span><span class="p">)</span>
-<span class="k">assert</span> <span class="p">[</span><span class="n">searcher</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">scoredoc</span><span class="o">.</span><span class="n">doc</span><span class="p">)[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">scoredoc</span> <span class="ow">in</span> <span class="n">topdocs</span><span class="o">.</span><span class="n">scoreDocs</span><span class="p">]</span> <span class="o">==</span> <span class="n">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<span class="n">topdocs</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">MatchAllDocsQuery</span><span class="p">(),</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">sorter</span><span class="p">)</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">searcher</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">scoredoc</span><span class="o">.</span><span class="n">doc</span><span class="p">)[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">scoredoc</span> <span class="ow">in</span> <span class="n">topdocs</span><span class="o">.</span><span class="n">scoreDocs</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 
 <span class="c">### lupyne ###</span>
 
-<span class="n">hits</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="mf">10</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="s">&#39;color&#39;</span><span class="p">)</span>
-<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">]</span> <span class="o">==</span> <span class="n">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<span class="n">hits</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="s">&#39;color&#39;</span><span class="p">)</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 <span class="n">comparator</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">comparator</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">comparator</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 <span class="n">hits</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">comparator</span><span class="o">.</span><span class="n">__getitem__</span><span class="p">)</span>
-<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">]</span> <span class="o">==</span> <span class="n">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -371,12 +371,12 @@
         <li class="right" >
           <a href="client.html" title="client"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.2+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.2.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.3.
     </div>
   </body>
 </html>
