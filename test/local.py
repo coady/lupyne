@@ -340,6 +340,7 @@ class TestCase(BaseTest):
             nf, = field.items(0.5)
             assert nf.numericValue.doubleValue() == 0.5
             assert str(field.range(-2**64, 0)) == 'size:[* TO 0}'
+            assert str(field.range(0, 2**64)) == 'size:[0 TO *}'
             assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
     
     def testHighlighting(self):

@@ -75,7 +75,7 @@ class NumericField(Field):
         if start is not None:
             start = None if start < lucene.Long.MIN_VALUE else lucene.Long(long(start))
         if stop is not None:
-            stop = None if start > lucene.Long.MAX_VALUE else lucene.Long(long(stop))
+            stop = None if stop > lucene.Long.MAX_VALUE else lucene.Long(long(stop))
         return lucene.NumericRangeQuery.newLongRange(self.name, start, stop, lower, upper)
 
 class PrefixField(Field):
