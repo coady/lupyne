@@ -8,6 +8,8 @@ import lucene
 from lupyne import engine
 import fixture
 
+numeric = hasattr(lucene, 'NumericField')
+
 class BaseTest(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp(dir=os.path.dirname(__file__))
@@ -254,49 +256,50 @@ class TestCase(BaseTest):
     
     def testSpatial(self):
         "Spatial tile test."
-        indexer = engine.Indexer(self.tempdir)
-        for name, params in fixture.zipcodes.fields.items():
-            indexer.set(name, **params)
-        field = indexer.fields['tile'] = engine.PointField('tile', precision=15, start=10, step=2, store=True)
-        points = []
-        for doc in fixture.zipcodes.docs():
-            if doc['state'] == 'CA':
-                lat, lng = doc.pop('latitude'), doc.pop('longitude')
-                indexer.add(doc, tile=[(lng, lat)], latitude=str(lat), longitude=str(lng))
-                if doc['city'] == 'Los Angeles':
-                    points.append((lng, lat))
-        assert len(list(engine.PolygonField('', precision=15).items(points))) > len(points)
-        indexer.commit()
-        city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
-        hit, = indexer.search('zipcode:' + zipcode)
-        assert hit['tile'] == tile and hit['city'] == city
-        hit, = indexer.search(field.prefix(tile))
-        assert hit['zipcode'] == zipcode and hit['city'] == city
-        x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
-        assert field.coords(tile[:4]) == (2, 9)
-        bottom, left, top, right = field.decode(tile)
-        assert left < x < right and bottom < y < top
-        hits = indexer.search(field.near(x, y))
-        cities = set(hit['city'] for hit in hits)
-        assert set([city]) == cities
-        hits = indexer.search(field.near(x, y, precision=10))
-        cities = set(hit['city'] for hit in hits)
-        assert city in cities and len(cities) > 10
-        hits = indexer.search(field.within(x, y, 10**4))
-        cities = set(hit['city'] for hit in hits)
-        assert city in cities and 100 > len(cities) > 50
-        hits = indexer.search(field.within(x, y, 10**5))
-        cities = set(hit['city'] for hit in hits)
-        assert city in cities and len(cities) > 100
+        for PointField in [engine.PointField] + [engine.numeric.PointField] * numeric:
+            indexer = engine.Indexer(self.tempdir, 'w')
+            for name, params in fixture.zipcodes.fields.items():
+                indexer.set(name, **params)
+            field = indexer.fields['tile'] = PointField('tile', precision=15, step=2, store=True)
+            points = []
+            for doc in fixture.zipcodes.docs():
+                if doc['state'] == 'CA':
+                    lat, lng = doc.pop('latitude'), doc.pop('longitude')
+                    indexer.add(doc, tile=[(lng, lat)], latitude=str(lat), longitude=str(lng))
+                    if doc['city'] == 'Los Angeles':
+                        points.append((lng, lat))
+            assert len(list(engine.PolygonField('', precision=15).items(points))) > len(points)
+            indexer.commit()
+            city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
+            hit, = indexer.search('zipcode:' + zipcode)
+            assert (hit['tile'] == tile or int(hit['tile']) == int(tile, 4)) and hit['city'] == city
+            hit, = indexer.search(field.prefix(tile))
+            assert hit['zipcode'] == zipcode and hit['city'] == city
+            x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
+            assert field.coords(tile[:4]) == (2, 9)
+            bottom, left, top, right = field.decode(tile)
+            assert left < x < right and bottom < y < top
+            hits = indexer.search(field.near(x, y))
+            cities = set(hit['city'] for hit in hits)
+            assert set([city]) == cities
+            hits = indexer.search(field.near(x, y, precision=10))
+            cities = set(hit['city'] for hit in hits)
+            assert city in cities and len(cities) > 10
+            hits = indexer.search(field.within(x, y, 10**4))
+            cities = set(hit['city'] for hit in hits)
+            assert city in cities and 100 > len(cities) > 50
+            hits = indexer.search(field.within(x, y, 10**5))
+            cities = set(hit['city'] for hit in hits)
+            assert city in cities and len(cities) > 100
     
     def testFields(self):
         "Custom field tests."
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.FormatField, format='{0:02n}', store=True)
         indexer.set('date', engine.DateTimeField, store=True)
-        try:
-            indexer.set('size', engine.NumericField, store=True)
-        except AttributeError:
+        if numeric:
+            indexer.set('size', engine.numeric.NumericField, store=True)
+        else:
             indexer.set('size', engine.FormatField, format='{0:04n}', store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
@@ -324,7 +327,7 @@ class TestCase(BaseTest):
         assert len(indexer.fields['date'].within(-100)) <= 3
         assert len(indexer.fields['date'].within(-100.0)) > 3
         assert len(indexer.fields['date'].within(-100, seconds=1, utc=True)) > 3
-        field, numeric = indexer.fields['size'], hasattr(engine, 'NumericField')
+        field = indexer.fields['size']
         assert numeric == (len(list(indexer.terms('size'))) > len(indexer))
         sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
         ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)

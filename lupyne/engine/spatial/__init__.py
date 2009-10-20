@@ -12,7 +12,7 @@ import itertools, operator
 import lucene
 from .globalmaptiles import GlobalMercator
 from ..queries import Query
-from ..documents import PrefixField
+from ..documents import Field, PrefixField
 
 class Tiler(GlobalMercator):
     "Utilities for transforming lat/lngs, projected coordinates, and tile coordinates."
@@ -36,10 +36,10 @@ class Tiler(GlobalMercator):
         "Return lat/lng bounding box (bottom, left, top, right) of tile."
         x, y = self.coords(tile)
         return self.TileLatLonBounds(x, y, len(tile))
-    def walk(self, bottomleft, topright, precision):
-        "Generate tile keys which span bounding box."
-        left, bottom = self.MetersToTile(*bottomleft, zoom=precision)
-        right, top = self.MetersToTile(*topright, zoom=precision)
+    def walk(self, left, bottom, right, top, precision):
+        "Generate tile keys which span bounding box of meters."
+        left, bottom = self.MetersToTile(left, bottom, precision)
+        right, top = self.MetersToTile(right, top, precision)
         for i, j in itertools.product(range(left, right+1), range(bottom, top+1)):
             yield self.QuadTree(i, j, precision)
     def radiate(self, lat, lng, distance, precision, limit=float('inf')):
@@ -67,20 +67,16 @@ class Tiler(GlobalMercator):
                 result += values
         return result + (keys and self.zoom(keys))
 
-class PointField(PrefixField, Tiler):
-    """Geospatial points, which create a tiered index of tiles.
-    Points must still be stored if exact distances are required upon retrieval.
+class SpatialField(Field, Tiler):
+    """Mixin interface for indexing lat/lngs as a prefix tree of tiles.
+    Subclasses should implement items and prefix methods.
     
     :param precision: zoom level, i.e., length of encoded value
     """
     def __init__(self, name, precision=30, **kwargs):
         Tiler.__init__(self)
-        PrefixField.__init__(self, name, **kwargs)
+        super(SpatialField, self).__init__(name, **kwargs)
         self.precision = precision
-    def items(self, *points):
-        "Generate tiles from points (lng, lat)."
-        tiles = set(self.encode(lat, lng, self.precision) for lng, lat in points)
-        return PrefixField.items(self, *sorted(tiles))
     def near(self, lng, lat, precision=None):
         "Return prefix query for point at given precision."
         return self.prefix(self.encode(lat, lng, precision or self.precision))
@@ -93,6 +89,23 @@ class PointField(PrefixField, Tiler):
         """
         tiles = self.zoom(self.radiate(lat, lng, distance, self.precision, limit))
         return Query.any(*map(self.prefix, tiles))
+    def tiles(self, points, span=False):
+        """Generate tile values from points (lng, lat).
+        
+        :param span: cover entire area of points, as if it were a polygon
+        """
+        if not span:
+            return sorted(set(self.encode(lat, lng, self.precision) for lng, lat in points))
+        xs, ys = zip(*(self.project(lat, lng) for lng, lat in points))
+        return self.walk(min(xs), min(ys), max(xs), max(ys), self.precision)
+
+class PointField(SpatialField, PrefixField):
+    """Geospatial points, which create a tiered index of tiles.
+    Points must still be stored if exact distances are required upon retrieval.
+    """
+    def items(self, *points):
+        "Generate tiles from points (lng, lat)."
+        return super(SpatialField, self).items(*self.tiles(points))
 
 class PolygonField(PointField):
     """PointField which implicitly supports polygons (technically linear rings of points).
@@ -101,9 +114,5 @@ class PolygonField(PointField):
     """
     def items(self, *polygons):
         "Generate all covered tiles from polygons."
-        for points in polygons:
-            xs, ys = zip(*(self.project(lat, lng) for lng, lat in points))
-            corners = (min(xs), min(ys)), (max(xs), max(ys))
-            tiles = self.walk(*corners, precision=self.precision)
-            for field in PrefixField.items(self, *tiles):
-                yield field
+        tiles = itertools.chain.from_iterable(self.tiles(points, span=True) for points in polygons)
+        return super(SpatialField, self).items(*tiles)
