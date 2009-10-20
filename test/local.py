@@ -25,10 +25,6 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Indexer and document interfaces."
         assert engine.IndexWriter.__init__.im_func.func_defaults[-1] == lucene.IndexWriter.DEFAULT_MAX_FIELD_LENGTH
-        with warnings.catch_warnings(record=True) as deprecations:
-            writer = engine.IndexWriter(analyzer=lucene.StandardAnalyzer)
-            engine.IndexSearcher(writer.directory, analyzer=lucene.WhitespaceAnalyzer)
-        assert len(deprecations) == 2
         Stemmer = engine.Analyzer(lucene.StandardAnalyzer(), lucene.PorterStemFilter, lucene.TypeAsPayloadTokenFilter)
         indexer = engine.Indexer(analyzer=Stemmer)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)

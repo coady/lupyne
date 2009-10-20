@@ -148,9 +148,6 @@ class Searcher(object):
     "Mixin interface common among searchers."
     def __init__(self, arg, analyzer=None):
         super(Searcher, self).__init__(arg)
-        if not isinstance(analyzer, (lucene.Analyzer, type(None))):
-            warnings.warn("Support for analyzer constructors will be removed.", DeprecationWarning)
-            analyzer = analyzer()
         self.analyzer = lucene.StandardAnalyzer() if analyzer is None else analyzer
     def __del__(self):
         if str(self) != '<null>':
@@ -297,9 +294,6 @@ class IndexWriter(lucene.IndexWriter):
     __del__ = Searcher.__del__.im_func
     parse = Searcher.parse.im_func
     def __init__(self, directory=None, mode='a', analyzer=None, mfl=10000):
-        if not isinstance(analyzer, (lucene.Analyzer, type(None))):
-            warnings.warn("Support for analyzer constructors will be removed.", DeprecationWarning)
-            analyzer = analyzer()
         args = [(directory or lucene.RAMDirectory()), (lucene.StandardAnalyzer() if analyzer is None else analyzer)]
         if mode != 'a':
             args.append(mode == 'w')
