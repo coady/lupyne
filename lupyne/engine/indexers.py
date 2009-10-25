@@ -21,8 +21,18 @@ class Atomic(object):
 Atomic.register(basestring)
 Atomic.register(lucene.TokenStream)
 
+class TokenFilter(lucene.PythonTokenFilter):
+    "Return a lucene TokenStream from an iterable of tokens."
+    def __init__(self, tokens):
+        lucene.PythonTokenFilter.__init__(self, lucene.EmptyTokenStream())
+        self.next = iter(tokens).next
+
 class Analyzer(lucene.PythonAnalyzer):
-    "Return a lucene Analyzer which chains together a tokenizer (or analyzer) and filters."
+    """Return a lucene Analyzer which chains together a tokenizer and filters.
+    
+    :param tokenizer: lucene Tokenizer or Analyzer
+    :param filters: lucene TokenFilters or python generators.
+    """
     def __init__(self, tokenizer, *filters):
         lucene.PythonAnalyzer.__init__(self)
         self.tokenizer, self.filters = tokenizer, filters
@@ -30,7 +40,7 @@ class Analyzer(lucene.PythonAnalyzer):
         tokens = self.tokenizer.tokenStream(field, reader) if isinstance(self.tokenizer, lucene.Analyzer) else self.tokenizer(reader)
         for filter in self.filters:
             tokens = filter(tokens)
-        return tokens
+        return tokens if isinstance(tokens, lucene.TokenStream) else TokenFilter(tokens)
 
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.

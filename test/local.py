@@ -20,12 +20,18 @@ class BaseTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
+def typeAsPayload(tokens):
+    "Generator variant of lucene TypeAsPayloadTokenFilter."
+    for token in tokens:
+        token.payload = lucene.Payload(lucene.JArray_byte(str(token.type())))
+        yield token
+
 class TestCase(BaseTest):
     
     def testInterface(self):
         "Indexer and document interfaces."
         assert engine.IndexWriter.__init__.im_func.func_defaults[-1] == lucene.IndexWriter.DEFAULT_MAX_FIELD_LENGTH
-        Stemmer = engine.Analyzer(lucene.StandardAnalyzer(), lucene.PorterStemFilter, lucene.TypeAsPayloadTokenFilter)
+        Stemmer = engine.Analyzer(lucene.StandardAnalyzer(), lucene.PorterStemFilter, typeAsPayload)
         indexer = engine.Indexer(analyzer=Stemmer)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
