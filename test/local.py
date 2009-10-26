@@ -3,7 +3,7 @@ import os, optparse
 import tempfile, shutil
 import itertools
 import warnings
-from datetime import date
+import datetime
 import lucene
 from lupyne import engine
 import fixture
@@ -299,10 +299,7 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.FormatField, format='{0:02n}', store=True)
         indexer.set('date', engine.DateTimeField, store=True)
-        if numeric:
-            indexer.set('size', engine.numeric.NumericField, store=True)
-        else:
-            indexer.set('size', engine.FormatField, format='{0:04n}', store=True)
+        indexer.set('size', engine.FormatField, format='{0:04n}', store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=doc['date'], size=len(doc['text']))
@@ -311,36 +308,77 @@ class TestCase(BaseTest):
         assert indexer.count(query) == 9
         query = engine.Query.prefix('amendment', '0')
         assert indexer.count(query) == 9
-        query = indexer.fields['date'].range('', '1921-12', lower=False, upper=True)
+        field = indexer.fields['date']
+        query = field.prefix('1791-12-15')
+        assert indexer.count(query) == 10
+        query = field.range('', '1921-12', lower=False, upper=True)
         assert str(query) == 'date:Y:{ TO 1921} date:Ym:[1921 TO 1921-12]'
         assert indexer.count(query) == 19
-        query = indexer.fields['date'].range(date(1919, 1, 1), date(1921, 12, 31))
+        query = field.range(datetime.date(1919, 1, 1), datetime.date(1921, 12, 31))
         cls = lucene.TermRangeQuery if hasattr(lucene, 'TermRangeQuery') else lucene.ConstantScoreRangeQuery
         fields = [cls.cast_(clause.query).field for clause in query]
         assert fields == ['date:Ymd', 'date:Ym', 'date:Y', 'date:Ym', 'date:Ymd']
         hits = indexer.search(query)
         assert [hit['amendment'] for hit in hits] == ['18', '19']
         assert [hit['date'].split('-')[0] for hit in hits] == ['1919', '1920']
-        query = indexer.fields['date'].within(seconds=100)
+        query = field.within(seconds=100)
         assert indexer.count(query) == 0
-        query = indexer.fields['date'].within(-100*365)
+        query = field.duration([2009], days=-100*365)
         assert 0 < len(query) <= 5
-        assert 0 < indexer.count(query) <= 12
-        assert len(indexer.fields['date'].within(-100)) <= 3
-        assert len(indexer.fields['date'].within(-100.0)) > 3
-        assert len(indexer.fields['date'].within(-100, seconds=1, utc=True)) > 3
+        assert indexer.count(query) == 12
+        assert len(field.within(-100)) <= 3
+        assert len(field.within(-100.0)) > 3
+        assert len(field.within(-100, seconds=1, utc=True)) > 3
         field = indexer.fields['size']
-        assert numeric == (len(list(indexer.terms('size'))) > len(indexer))
         sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
         ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
-        query = field.range(1000, None) if numeric else engine.Query.range('size', '1000', None)
+        query = engine.Query.range('size', '1000', None)
         hits = indexer.search(query, sort=sizes.get)
         assert hits.ids == ids
         hits = indexer.search(query, count=3, sort=lucene.SortField('size', lucene.SortField.LONG))
         assert hits.ids == ids[:len(hits)]
-        query = field.range(None, 1000) if numeric else engine.Query.range('size', None, '1000')
+        query = engine.Query.range('size', None, '1000')
         assert indexer.count(query) == len(sizes) - len(ids)
-        if numeric:
+    
+    if numeric:
+        def testNumericFields(self):
+            "Numeric variant fields."
+            indexer = engine.Indexer(self.tempdir)
+            indexer.set('amendment', engine.numeric.NumericField, store=True)
+            indexer.set('date', engine.numeric.DateTimeField, store=True)
+            indexer.set('size', engine.numeric.NumericField, store=True)
+            for doc in fixture.constitution.docs():
+                if 'amendment' in doc:
+                    indexer.add(amendment=int(doc['amendment']), date=[map(int, doc['date'].split('-'))], size=len(doc['text']))
+            indexer.commit()
+            query = indexer.fields['amendment'].range(None, 10)
+            assert indexer.count(query) == 9
+            field = indexer.fields['date']
+            query = field.prefix((1791, 12))
+            assert indexer.count(query) == 10
+            query = field.prefix(datetime.date(1791, 12, 15))
+            assert indexer.count(query) == 10
+            query = field.range(None, (1921, 12), lower=False, upper=True)
+            assert indexer.count(query) == 19
+            query = field.range(datetime.date(1919, 1, 1), datetime.date(1921, 12, 31))
+            hits = indexer.search(query)
+            assert [hit['amendment'] for hit in hits] == ['18', '19']
+            assert [datetime.datetime.utcfromtimestamp(float(hit['date'])).year for hit in hits] == [1919, 1920]
+            query = field.within(seconds=100)
+            assert indexer.count(query) == 0
+            query = field.duration([2009], days=-100*365)
+            assert indexer.count(query) == 12
+            field = indexer.fields['size']
+            assert len(list(indexer.terms('size'))) > len(indexer)
+            sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
+            ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
+            query = field.range(1000, None)
+            hits = indexer.search(query, sort=sizes.get)
+            assert hits.ids == ids
+            hits = indexer.search(query, count=3, sort=lucene.SortField('size', lucene.SortField.LONG))
+            assert hits.ids == ids[:len(hits)]
+            query = field.range(None, 1000)
+            assert indexer.count(query) == len(sizes) - len(ids)
             self.assertRaises(OverflowError, list, field.items(-2**64))
             nf, = field.items(0.5)
             assert nf.numericValue.doubleValue() == 0.5

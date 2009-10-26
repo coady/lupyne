@@ -158,19 +158,29 @@ class DateTimeField(PrefixField):
         queries += [PrefixField.range(self, *item) for item in items[1:-1]]
         queries.append(PrefixField.range(self, items[-1][0], str(stop), upper=upper))
         return Query.any(*queries)
-    def within(self, days=0, weeks=0, utc=False, **delta):
+    def duration(self, date, days=0, **delta):
+        """Return date range query within time span of date.
+        
+        :param date: origin date or tuple
+        :param days, delta: timedelta parameters
+        """
+        if not isinstance(date, datetime.date):
+            date = tuple(date) + (None, 1, 1)[len(date):]
+            date = (datetime.datetime if len(date) > 3 else datetime.date)(*date)
+        delta = datetime.timedelta(days, **delta)
+        return self.range(*sorted([date, date + delta]), upper=True)
+    def within(self, days=0, weeks=0, utc=True, **delta):
         """Return date range query within current time and delta.
         If the delta is an exact number of days, then dates will be used.
         
         :param days, weeks: number of days to offset from today
         :param utc: optionally use utc instead of local time
-        :params delta: additional timedelta parameters
+        :param delta: additional timedelta parameters
         """
-        now = datetime.datetime.utcnow() if utc else datetime.datetime.now()
+        date = datetime.datetime.utcnow() if utc else datetime.datetime.now()
         if not (isinstance(days + weeks, float) or delta):
-            now = now.date()
-        delta = datetime.timedelta(days, weeks=weeks, **delta)
-        return self.range(*sorted([now, now + delta]), upper=True)
+            date = date.date()
+        return self.duration(date, days, weeks=weeks, **delta)
 
 class Document(object):
     """Delegated lucene Document.

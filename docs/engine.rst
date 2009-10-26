@@ -176,6 +176,12 @@ PolygonField
   :show-inheritance:
   :members:
 
+DateTimeField
+^^^^^^^^^^^^^
+.. autoclass:: engine.numeric.DateTimeField
+  :show-inheritance:
+  :members:
+
 
 queries
 ---------

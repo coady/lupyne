@@ -1,11 +1,12 @@
 """
 Wrappers for lucene NumericFields, available since version 2.9.
-Alternative implementations of spatial fields.
+Alternative implementations of spatial and datetime fields.
 """
 
+import datetime, calendar
 import lucene
 from .documents import Field
-from . import spatial
+from . import spatial, documents
 
 class NumericField(Field):
     """Field which indexes numbers in a prefix tree.
@@ -53,3 +54,29 @@ class PointField(spatial.SpatialField, NumericField):
 class PolygonField(PointField):
     __doc__ = spatial.PolygonField.__doc__
     items = spatial.PolygonField.items.im_func
+
+class DateTimeField(NumericField):
+    """Field which indexes datetimes as a NumericField of timestamps.
+    Supports datetimes, dates, and any prefix of time tuples.
+    """
+    duration = documents.DateTimeField.duration.im_func
+    within = documents.DateTimeField.within.im_func
+    def timestamp(self, date):
+        "Return utc timestamp from date or time tuple."
+        if isinstance(date, datetime.date):
+            return calendar.timegm(date.timetuple()) + getattr(date, 'microsecond', 0) * 1e-6
+        return float(calendar.timegm(tuple(date) + (None, 1, 1, 0, 0, 0)[len(date):]))
+    def items(self, *dates):
+        "Generate lucene NumericFields of timestamps."
+        return NumericField.items(self, *map(self.timestamp, dates))
+    def range(self, start, stop, lower=True, upper=False):
+        "Return NumericRangeQuery of timestamps."
+        start, stop = (date and self.timestamp(date) for date in (start, stop))
+        return NumericField.range(self, start, stop, lower, upper)
+    def prefix(self, date):
+        "Return range query which matches the date prefix."
+        if isinstance(date, datetime.date):
+            date = date.timetuple()[:6 if isinstance(date, datetime.datetime) else 3]
+        if len(date) == 2 and date[1] == 12: # month must be valid
+            return self.range(date, (date[0]+1, 1))
+        return self.range(date, tuple(date[:-1]) + (date[-1]+1,))
