@@ -6,6 +6,7 @@ Alternative implementations of spatial and datetime fields.
 import datetime, calendar
 import lucene
 from .documents import Field
+from .queries import Query
 from . import spatial, documents
 
 class NumericField(Field):
@@ -50,6 +51,21 @@ class PointField(spatial.SpatialField, NumericField):
         shift = self.base ** (self.precision - len(tile))
         value = int(tile, self.base) * shift
         return self.range(value, value + shift)
+    def within(self, lng, lat, distance, limit=spatial.Tiler.base):
+        """Return range queries for any tiles which could be within distance of given point.
+        
+        :param lng, lat: point
+        :param distance: search radius in meters
+        :param limit: maximum number of tiles to consider
+        """
+        queries = []
+        for tile in sorted(self.radiate(lat, lng, distance, self.precision, limit)):
+            query = self.prefix(tile)
+            if queries and queries[-1].max.equals(query.min):
+                queries[-1] = self.range(queries[-1].min.longValue(), query.max.longValue())
+            else:
+                queries.append(query)
+        return Query.any(*queries)
 
 class PolygonField(PointField):
     __doc__ = spatial.PolygonField.__doc__

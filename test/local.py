@@ -287,8 +287,9 @@ class TestCase(BaseTest):
             hits = indexer.search(field.near(x, y, precision=10))
             cities = set(hit['city'] for hit in hits)
             assert city in cities and len(cities) > 10
-            hits = indexer.search(field.within(x, y, 10**4))
-            cities = set(hit['city'] for hit in hits)
+            query = field.within(x, y, 10**4)
+            assert issubclass(PointField, engine.PointField) or len(query) < 3
+            cities = set(hit['city'] for hit in indexer.search(query))
             assert city in cities and 100 > len(cities) > 50
             hits = indexer.search(field.within(x, y, 10**5))
             cities = set(hit['city'] for hit in hits)
