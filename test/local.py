@@ -119,6 +119,8 @@ class TestCase(BaseTest):
         assert sorted(map(int, articles)) == range(1, 8)
         assert sorted(map(int, indexer.terms('amendment'))) == range(1, 28)
         assert list(itertools.islice(indexer.terms('text', 'right'), 2)) == ['right', 'rights']
+        assert list(indexer.terms('text', 'right*')) == ['right', 'rights']
+        assert list(indexer.terms('text', 'right', minSimilarity=0.5)) == ['eight', 'right', 'rights']
         word, count = next(indexer.terms('text', 'people', counts=True))
         assert word == 'people' and count == 8
         docs = dict(indexer.docs('text', 'people', counts=True))

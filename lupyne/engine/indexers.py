@@ -79,9 +79,25 @@ class IndexReader(object):
         "Return field names, given option description."
         option = getattr(self.FieldOption, option.upper())
         return list(self.getFieldNames(option))
-    def terms(self, name, start='', stop=None, counts=False):
-        "Generate a slice of term values, optionally with frequency counts."
-        with contextlib.closing(self.indexReader.terms(lucene.Term(name, start))) as termenum:
+    def terms(self, name, value='', stop=None, counts=False, **fuzzy):
+        """Generate a slice of term values, optionally with frequency counts.
+        Supports a range of terms, wildcard terms, or fuzzy terms.
+        
+        :param name: field name
+        :param value: initial term text or wildcard
+        :param stop: optional upper bound for simple terms
+        :param counts: include frequency counts
+        :param fuzzy: optional keyword arguments for fuzzy terms
+        """
+        term = lucene.Term(name, value)
+        if fuzzy:
+            args = fuzzy.pop('minSimilarity', 0.5), fuzzy.pop('prefixLength', 0)
+            termenum = lucene.FuzzyTermEnum(self.indexReader, term, *args, **fuzzy)
+        elif '*' in value or '?' in value:
+            termenum = lucene.WildcardTermEnum(self.indexReader, term)
+        else:
+            termenum = self.indexReader.terms(term)
+        with contextlib.closing(termenum):
             term = termenum.term()
             while term and term.field() == name:
                 text = term.text()
