@@ -31,8 +31,10 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Indexer and document interfaces."
         assert engine.IndexWriter.__init__.im_func.func_defaults[-1] == lucene.IndexWriter.DEFAULT_MAX_FIELD_LENGTH
-        Stemmer = engine.Analyzer(lucene.StandardAnalyzer(), lucene.PorterStemFilter, typeAsPayload)
-        indexer = engine.Indexer(analyzer=Stemmer)
+        stemmer = engine.Analyzer(lucene.StandardAnalyzer(), lucene.PorterStemFilter, typeAsPayload)
+        assert [token.termText() for token in stemmer.tokens('hello worlds')] == ['hello', 'world']
+        assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
+        indexer = engine.Indexer(analyzer=stemmer)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
         indexer.set('name', store=True, index=False, boost=2.0)

@@ -41,6 +41,25 @@ class Analyzer(lucene.PythonAnalyzer):
         for filter in self.filters:
             tokens = filter(tokens)
         return tokens if isinstance(tokens, lucene.TokenStream) else TokenFilter(tokens)
+    def tokens(self, text):
+        "Return lucene TokenStream from text."
+        return self.tokenStream('', lucene.StringReader(text))
+    def parse(self, query, field='', op='', **attrs):
+        """Return parsed lucene Query.
+        
+        :param field: default query field name or sequence of names
+        :param op: default query operator ('or', 'and')
+        :param attrs: additional attributes to set on the parser
+        """
+        # parsers aren't thread-safe (nor slow), so create one each time
+        parser = (lucene.QueryParser if isinstance(field, basestring) else lucene.MultiFieldQueryParser)(field, self)
+        if op:
+            parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
+        for name, value in attrs.items():
+            setattr(parser, name, value)
+        if isinstance(parser, lucene.MultiFieldQueryParser):
+            return parser.parse(parser, query) # bug in method binding
+        return parser.parse(query)
 
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
@@ -180,20 +199,10 @@ class Searcher(object):
             self.close()
     def __getitem__(self, id):
         return Document(self.doc(id))
-    def parse(self, query, field='', op='', **attrs):
-        """Return lucene parsed Query.
-        
-        :param field: default query field name
-        :param op: default query operator ('or', 'and')
-        :param attrs: additional attributes to set on the parser
-        """
-        # parsers aren't thread-safe (nor slow), so create one each time
-        parser = lucene.QueryParser(field, self.analyzer)
-        if op:
-            parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
-        for name, value in attrs.items():
-            setattr(parser, name, value)
-        return parser.parse(query)
+    def parse(self, query, *args, **kwargs):
+        if isinstance(query, lucene.Query):
+            return query
+        return Analyzer.parse.im_func(self.analyzer, query, *args, **kwargs)
     def highlight(self, query, text, count=1, span=True, formatter=None, encoder=None, field='', **attrs):
         """Return highlighted text fragments which match the query.
         
@@ -206,8 +215,7 @@ class Searcher(object):
         :param field: default query field name
         :param attrs: additional attributes to set on the highlighter
         """
-        if not isinstance(query, lucene.Query):
-            query = self.parse(query, field)
+        query = self.parse(query, field)
         highlighter = lucene.Highlighter(*filter(None, [formatter, encoder, lucene.QueryScorer(query, field)]))
         for name, value in attrs.items():
             setattr(highlighter, name, value)
@@ -237,12 +245,9 @@ class Searcher(object):
         :param count: maximum number of hits to retrieve
         :param sort: if count is given, lucene Sort parameters, else a callable key
         :param reverse: reverse flag used with sort
-        :param parser: :meth:`parse` options
+        :param parser: :meth:`Analyzer.parse` options
         """
-        if query is None:
-            query = lucene.MatchAllDocsQuery()
-        elif not isinstance(query, lucene.Query):
-            query = self.parse(query, **parser)
+        query = lucene.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
         if not isinstance(filter, (lucene.Filter, type(None))):
             filter = Filter(filter)
         # use custom HitCollector if all results are necessary, otherwise let lucene's TopDocs handle it
@@ -358,13 +363,10 @@ class IndexWriter(lucene.IndexWriter):
         """Remove documents which match given query or term.
         
         :param query: :meth:`Searcher.search` compatible query, or optimally a name and value
-        :param options: additional :meth:`parse` options
+        :param options: additional :meth:`Analyzer.parse` options
         """
         if len(query) == 1:
-            query, = query
-            if not isinstance(query, lucene.Query):
-                query = self.parse(query, **options)
-            self.deleteDocuments(query)
+            self.deleteDocuments(self.parse(*query, **options))
         else:
             self.deleteDocuments(lucene.Term(*query))
     def __iadd__(self, directory):
