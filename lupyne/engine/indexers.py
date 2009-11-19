@@ -188,6 +188,18 @@ class IndexReader(object):
                 yield term, map(operator.attrgetter('startOffset', 'endOffset'), tpv.getOffsets(index))
             else:
                 yield term, list(tpv.getTermPositions(index))
+    def morelikethis(self, doc, *fields, **attrs):
+        """Return MoreLikeThis query for document.
+        
+        :param doc: document id or text
+        :param fields: document fields to use, optional for termvectors
+        :param attrs: additional attributes to set on the morelikethis object
+        """
+        mlt = lucene.MoreLikeThis(self.indexReader)
+        mlt.fieldNames = fields or None
+        for name, value in attrs.items():
+            setattr(mlt, name, value)
+        return mlt.like(lucene.StringReader(doc) if isinstance(doc, basestring) else doc)
 
 class Searcher(object):
     "Mixin interface common among searchers."

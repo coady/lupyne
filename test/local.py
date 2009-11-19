@@ -205,6 +205,15 @@ class TestCase(BaseTest):
             assert dict(indexer.positionvector(id, 'text'))['persons'] == [3, 26]
             assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
         assert len(leaks) == 2 * (lucene.VERSION <= '2.4.1')
+        query = indexer.morelikethis(0)
+        assert str(query) == 'text:united text:states'
+        hits = indexer.search(query & engine.Query.prefix('article', ''))
+        assert len(hits) == 8 and hits[0]['article'] == 'Preamble'
+        assert str(indexer.morelikethis(0, 'article')) == ''
+        assert str(indexer.morelikethis(0, minDocFreq=3)) == 'text:establish text:united text:states'
+        assert str(indexer.morelikethis('jury', 'text', minDocFreq=4, minTermFreq=1)) == 'text:jury'
+        assert str(indexer.morelikethis('jury', 'article')) == ''
+        self.assertRaises(lucene.JavaError, indexer.morelikethis, 'jury')
         del indexer
         assert engine.Indexer(self.tempdir)
     

@@ -83,10 +83,16 @@ class Query(object):
         return Query.boolean(lucene.BooleanClause.Occur.MUST_NOT, self)
     def __and__(self, other):
         return Query.all(self, other)
+    def __rand__(self, other):
+        return Query.all(other, self)
     def __or__(self, other):
         return Query.any(self, other)
+    def __ror__(self, other):
+        return Query.any(other, self)
     def __sub__(self, other):
         return Query.any(self).__isub__(other)
+    def __rsub__(self, other):
+        return Query.any(other).__isub__(self)
 
 class BooleanQuery(Query):
     def __len__(self):
