@@ -9,13 +9,13 @@ from lupyne import engine
 import fixture
 
 numeric = hasattr(lucene, 'NumericField')
+parser = optparse.OptionParser()
+parser.add_option("-v", "--verbose", action="store_true", dest="verbose")
+options, args = parser.parse_args()
 
 class BaseTest(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp(dir=os.path.dirname(__file__))
-        parser = optparse.OptionParser()
-        parser.add_option("-v", "--verbose", action="store_true", dest="verbose")
-        options, args = parser.parse_args()
         self.verbose = options.verbose
     def tearDown(self):
         shutil.rmtree(self.tempdir)
