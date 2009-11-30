@@ -64,10 +64,10 @@ class Analyzer(lucene.PythonAnalyzer):
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
     
-    :param directory: lucene IndexReader or directory
+    :param reader: lucene IndexReader
     """
-    def __init__(self, directory):
-        self.indexReader = directory if isinstance(directory, lucene.IndexReader) else lucene.IndexReader.open(directory)
+    def __init__(self, reader):
+        self.indexReader = reader
     def __getattr__(self, name):
         if name == 'indexReader':
             raise AttributeError(name)
@@ -80,17 +80,10 @@ class IndexReader(object):
         return itertools.ifilterfalse(self.isDeleted, xrange(self.maxDoc()))
     def __getitem__(self, id):
         return Document(self.document(id))
-    def __delitem__(self, id):
-        self.deleteDocument(id)
     @property
     def directory(self):
         "reader's lucene Directory"
         return self.indexReader.directory()
-    def delete(self, name, value):
-        """Delete documents with given term.
-        Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
-        """
-        self.deleteDocuments(lucene.Term(name, value))
     def count(self, name, value):
         "Return number of documents with given term."
         return self.docFreq(lucene.Term(name, value))

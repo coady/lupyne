@@ -1,5 +1,5 @@
 """
-Basic indexing and searching example adapted from http://lucene.apache.org/java/2_4_1/api/core/index.html
+Basic indexing and searching example adapted from http://lucene.apache.org/java/2_9_1/api/core/index.html
 """
 
 import lucene
@@ -8,19 +8,17 @@ from lupyne import engine
 
 ### lucene ###
 
-analyzer = lucene.StandardAnalyzer()
+analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
 
 # Store the index in memory:
 directory = lucene.RAMDirectory()
 # To store an index on disk, use this instead:
-#Directory directory = FSDirectory.getDirectory("/tmp/testindex")
-iwriter = lucene.IndexWriter(directory, analyzer, True)
-iwriter.setMaxFieldLength(25000)
+#Directory directory = FSDirectory.open(lucene.File("/tmp/testindex"))
+iwriter = lucene.IndexWriter(directory, analyzer, True, lucene.IndexWriter.MaxFieldLength(25000))
 doc = lucene.Document()
 text = "This is the text to be indexed."
 doc.add(lucene.Field("fieldname", text, lucene.Field.Store.YES, lucene.Field.Index.TOKENIZED))
 iwriter.addDocument(doc)
-iwriter.optimize()
 iwriter.close()
 
 # Now search the index:
@@ -28,12 +26,12 @@ isearcher = lucene.IndexSearcher(directory)
 # Parse a simple query that searches for "text":
 parser = lucene.QueryParser("fieldname", analyzer)
 query = parser.parse("text")
-hits = isearcher.search(query)
-assert 1 == hits.length()
+hits = isearcher.search(query, None, 1000).scoreDocs
+assert len(hits) == 1
 # Iterate through the results:
-for i in range(hits.length()):
-    hitDoc = hits.doc(i)
-    assert "This is the text to be indexed." == hitDoc.get("fieldname")
+for hit in hits:
+    hitDoc = isearcher.doc(hit.doc)
+    assert hitDoc['fieldname'] == text
 isearcher.close()
 directory.close()
 
@@ -41,15 +39,13 @@ directory.close()
 
 # Store the index in memory:
 indexer = engine.Indexer()              # Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults
-indexer.maxFieldLength = 25000          # not necessary for this example
 indexer.set('fieldname', store=True)    # settings for all documents of indexer; tokenized is the default
 indexer.add(fieldname=text)             # add document
-indexer.optimize()                      # not necessary for this example
 indexer.commit()                        # commit changes and refresh searcher
 
 # Now search the index:
 hits = indexer.search('text', field='fieldname')    # parsing handled if necessary
-assert len(hits) == 1                               # hits support full sequence interface
-for hit in hits:
-    assert hit['fieldname'] == text                 # hit supports full mapping interface
+assert len(hits) == 1
+for hit in hits:                                    # hits support mapping interface
+    assert hit['fieldname'] == text
 # closing is handled automatically

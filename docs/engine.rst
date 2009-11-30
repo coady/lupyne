@@ -25,10 +25,6 @@ IndexReader
 
   .. automethod:: __getitem__
 
-  .. automethod:: __delitem__
-
-    Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
-
 Searcher
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.Searcher
