@@ -44,7 +44,7 @@ class Analyzer(lucene.PythonAnalyzer):
     def tokens(self, text):
         "Return lucene TokenStream from text."
         return self.tokenStream('', lucene.StringReader(text))
-    def parse(self, query, field='', op='', **attrs):
+    def parse(self, query, field='', op='', version='current', **attrs):
         """Return parsed lucene Query.
         
         :param field: default query field name or sequence of names
@@ -52,7 +52,12 @@ class Analyzer(lucene.PythonAnalyzer):
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        parser = (lucene.QueryParser if isinstance(field, basestring) else lucene.MultiFieldQueryParser)(field, self)
+        parser = lucene.QueryParser if isinstance(field, basestring) else lucene.MultiFieldQueryParser
+        if hasattr(lucene, 'Version'):
+            version = getattr(lucene.Version, 'LUCENE_' + version.replace('.', '').upper())
+            parser = parser(version, field, self)
+        else:
+            parser = parser(field, self)
         if op:
             parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
         for name, value in attrs.items():
@@ -198,7 +203,9 @@ class Searcher(object):
     "Mixin interface common among searchers."
     def __init__(self, arg, analyzer=None):
         super(Searcher, self).__init__(arg)
-        self.analyzer = lucene.StandardAnalyzer() if analyzer is None else analyzer
+        if analyzer is None:
+            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
+        self.analyzer = analyzer
     def __del__(self):
         if str(self) != '<null>':
             self.close()
@@ -330,7 +337,9 @@ class IndexWriter(lucene.IndexWriter):
     __del__ = Searcher.__del__.im_func
     parse = Searcher.parse.im_func
     def __init__(self, directory=None, mode='a', analyzer=None, mfl=10000):
-        args = [(directory or lucene.RAMDirectory()), (lucene.StandardAnalyzer() if analyzer is None else analyzer)]
+        if analyzer is None:
+            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
+        args = [(directory or lucene.RAMDirectory()), analyzer]
         if mode != 'a':
             args.append(mode == 'w')
         args.append(mfl if isinstance(mfl, self.MaxFieldLength) else self.MaxFieldLength(mfl))

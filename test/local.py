@@ -31,7 +31,8 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Indexer and document interfaces."
         assert engine.IndexWriter.__init__.im_func.func_defaults[-1] == lucene.IndexWriter.DEFAULT_MAX_FIELD_LENGTH
-        stemmer = engine.Analyzer(lucene.StandardAnalyzer(), lucene.PorterStemFilter, typeAsPayload)
+        analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
+        stemmer = engine.Analyzer(analyzer, lucene.PorterStemFilter, typeAsPayload)
         assert [token.termText() for token in stemmer.tokens('hello worlds')] == ['hello', 'world']
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         indexer = engine.Indexer(analyzer=stemmer)
@@ -193,16 +194,16 @@ class TestCase(BaseTest):
         assert indexer.count(queries[0] - near) == count
         near = queries[0].near(queries[1] | queries[2], slop=1)
         assert indexer.count(queries[0] - near) == count - 1
-        assert indexer.count(queries[0][:100]) == count - 1
+        assert 0 < indexer.count(queries[0][:100]) < count
         spans = dict(indexer.spans(queries[0]))
         assert len(spans) == count and spans == dict(indexer.docs('text', 'persons', counts=True))
         near = queries[0].near(queries[1], slop=2)
         (id, positions), = indexer.spans(near, positions=True)
-        assert indexer[id]['amendment'] == '4' and positions == [(3, 6)]
+        assert indexer[id]['amendment'] == '4' and positions in ([(3, 6)], [(10, 13)])
         with warnings.catch_warnings(record=True) as leaks:
             assert 'persons' in indexer.termvector(id, 'text')
             assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
-            assert dict(indexer.positionvector(id, 'text'))['persons'] == [3, 26]
+            assert dict(indexer.positionvector(id, 'text'))['persons'] in ([3, 26], [10, 48])
             assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
         assert len(leaks) == 2 * (lucene.VERSION <= '2.4.1')
         query = indexer.morelikethis(0)
