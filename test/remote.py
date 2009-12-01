@@ -150,6 +150,10 @@ class TestCase(BaseTest):
         assert len(docs) == result['count'] == 8
         result = resource.get('/search', q='text:people', count=5)
         assert docs[:5] == result['docs'] and result['count'] == len(docs)
+        result = resource.get('/search', q='text:people', count=5, sort='-amendment:int')
+        assert [doc['amendment'] for doc in result['docs']] == ['17', '10', '9', '4', '2']
+        result = resource.get('/search', q='text:people', count=5, sort='-article,amendment:int')
+        assert [doc.get('amendment') for doc in result['docs']] == [None, None, '1', '2', '4']
         result = resource.get('/search', q='text:freedom')
         assert result['count'] == 1
         doc, = result['docs']

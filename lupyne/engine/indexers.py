@@ -273,8 +273,8 @@ class Searcher(object):
             topdocs = super(Searcher, self).search(query, filter, count)
         else:
             if isinstance(sort, basestring):
-                sort = lucene.Sort(sort, reverse)
-            elif not isinstance(sort, lucene.Sort):
+                sort = lucene.SortField(sort, lucene.SortField.STRING, reverse)
+            if not isinstance(sort, lucene.Sort):
                 sort = lucene.Sort(sort)
             topdocs = super(Searcher, self).search(query, filter, count, sort)
         scoredocs = list(topdocs.scoreDocs)
@@ -345,7 +345,6 @@ class IndexWriter(lucene.IndexWriter):
     :param directory: directory path or lucene Directory, default RAMDirectory
     :param mode: file mode (rwa), except updating (+) is implied
     :param analyzer: lucene Analyzer, default StandardAnalyzer
-    :param mfl: MaxFieldLength, default IndexWriter.DEFAULT_MAX_FIELD_LENGTH
     """
     __len__ = lucene.IndexWriter.numDocs
     __del__ = IndexSearcher.__del__.im_func

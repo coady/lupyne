@@ -143,8 +143,9 @@ class TestCase(BaseTest):
         hits = indexer.search('people', count=5, field='text')
         assert hits.ids == ids[:len(hits)]
         assert len(hits) == 5 and hits.count == 8
-        hits = indexer.search('text:people', count=5, sort='amendment')
-        assert sorted(hits.ids) == hits.ids and hits.ids != ids[:len(hits)]
+        assert 1 < len(set(hit.score for hit in hits)) <= len(hits)
+        hits = indexer.search('text:people', count=5, sort=lucene.SortField('amendment', lucene.SortField.INT))
+        assert [hit.get('amendment') for hit in hits] == [None, None, '1', u'2', u'4']
         comparator = map(int, indexer.comparator('amendment', default='0'))
         hits = indexer.search('text:people', sort=comparator.__getitem__)
         assert sorted(hits.ids) == hits.ids and hits.ids != ids
@@ -152,7 +153,7 @@ class TestCase(BaseTest):
         hits = indexer.search('text:people', sort=comparator.__getitem__)
         assert sorted(hits.ids) != hits.ids
         hits = indexer.search('text:people', count=5, sort='amendment', reverse=True)
-        assert sorted(hits.ids, reverse=True) == hits.ids and hits.ids != ids[:len(hits)]
+        assert [hit['amendment'] for hit in hits] == ['9', '4', '2', '17', '10']
         hit, = indexer.search('freedom', field='text')
         assert hit['amendment'] == '1'
         assert sorted(hit.dict()) == ['__id__', '__score__', 'amendment', 'date']

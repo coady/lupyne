@@ -13,6 +13,7 @@ try:    # optimization
     import simplejson as json
 except ImportError:
     import json
+import re
 import httplib
 import threading
 from contextlib import contextmanager
@@ -103,7 +104,7 @@ class WebSearcher(object):
             doc = self.indexer[id]
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
-    def search(self, q=None, count=None, fields='', multifields='', sort=None, reverse='false'):
+    def search(self, q=None, count=None, fields='', multifields='', sort=None):
         """Run query and return documents.
         
         **GET** /search?
@@ -117,20 +118,18 @@ class WebSearcher(object):
             
             &multifields=\ *chars*,...
             
-            &sort=\ *chars*,...
-            
-            &reverse=true|false,
+            &sort=\ [-]*chars*[:*chars*],...
             
             :return: {"count": *int*, "docs": [{"__id__": *int*, "__score__": *number*, *string*: *string*\|\ *array*,... },... ]}
         """
         with handleBadRequest(ValueError):
             count = count and int(count)
-            reverse = json.loads(reverse)
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
-        if sort is not None and ',' in sort:
-            sort = fields.split(',')
-        hits = self.indexer.search(q, count=count, sort=sort, reverse=reverse)
+        if sort is not None:
+            sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort.split(','))
+            sort = [lucene.SortField(name, getattr(lucene.SortField, type.upper() or 'STRING'), (reverse == '-')) for reverse, name, type in sort]
+        hits = self.indexer.search(q, count=count, sort=sort)
         docs = [hit.dict(*multifields, **fields) for hit in hits]
         return {'count': hits.count, 'docs': docs}
     @cherrypy.expose
@@ -223,14 +222,14 @@ class WebIndexer(WebSearcher):
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
-    def search(self, q=None, count=None, fields='', multifields='', sort=None, reverse='false'):
+    def search(self, q=None, count=None, fields='', multifields='', sort=None):
         """Run or delete a query.
         
         **DELETE** /search?q=\ *chars*
             Delete documents which match query.
         """
         if cherrypy.request.method != 'DELETE':
-            return WebSearcher.search(self, q, count, fields, multifields, sort, reverse)
+            return WebSearcher.search(self, q, count, fields, multifields, sort)
         self.indexer.delete(q)
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
