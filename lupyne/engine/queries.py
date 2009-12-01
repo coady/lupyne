@@ -143,47 +143,27 @@ class HitCollector(lucene.PythonHitCollector):
         ids.sort(key=key, reverse=reverse)
         return ids, map(data.__getitem__, ids)
 
-class BitSet(lucene.BitSet):
-    "Inherited lucene BitSet with a set interface."
-    __len__ = lucene.BitSet.cardinality
-    __contains__ = lucene.BitSet.get
-    add = lucene.BitSet.set
-    def __init__(self, ids=()):
-        lucene.BitSet.__init__(self)
-        if isinstance(ids, lucene.BitSet):
-            self |= ids
-        else:
-            for id in ids:
-                self.set(id)
-    def discard(self, id):
-        self.set(id, False)
-    def __iter__(self):
-        return itertools.ifilter(self.get, xrange(self.length()))
-    def __ior__(self, other):
-        getattr(self, 'or')(other)
-        return self
-    def __iand__(self, other):
-        getattr(self, 'and')(other)
-        return self
-    def __isub__(self, other):
-        self.andNot(other)
-        return self
-    def __or__(self, other):
-        return type(self)(self).__ior__(other)
-    def __and__(self, other):
-        return type(self)(self).__iand__(other)
-    def __sub__(self, other):
-        return type(self)(self).__isub__(other)
-
 class Filter(lucene.PythonFilter):
     "Inherited lucene Filter with a cached BitSet of ids."
     def __init__(self, ids):
         lucene.PythonFilter.__init__(self)
-        self._bits = BitSet(ids)
+        self.docIdSet = lucene.OpenBitSet()
+        if isinstance(ids, lucene.OpenBitSet):
+            self.docIdSet.union(ids)
+        else:
+            setter = self.docIdSet.set
+            for id in itertools.imap(long, ids):
+                setter(id)
+        self.bitSet = lucene.BitSet()
+        setter = self.bitSet.set
+        for id in itertools.ifilter(self.docIdSet.get, xrange(self.docIdSet.size())):
+            setter(id)
+    def overlap(self, other, reader=None):
+        "Return intersection count of the filters."
+        return int(lucene.OpenBitSet.intersectionCount(self.getDocIdSet(reader), other.getDocIdSet(reader)))
     def bits(self, reader=None):
-        """Return cached BitSet.
-        Although this method is deprecated in Lucene, it's in use in PyLucene.
-        
-        :param reader: ignored IndexReader, necessary for lucene api
-        """
-        return self._bits
+        "Return cached BitSet, reader is ignored.  Deprecated."
+        return self.bitSet
+    def getDocIdSet(self, reader=None):
+        "Return cached OpenBitSet, reader is ignored."
+        return self.docIdSet

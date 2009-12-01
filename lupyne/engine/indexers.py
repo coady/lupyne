@@ -309,20 +309,20 @@ class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
         :param keys: field names, term tuples, or any keys to previously cached filters
         """
         counts = collections.defaultdict(dict)
-        bits = Filter(ids).bits()
+        ids = Filter(ids)
         for key in keys:
             filters = self.filters.get(key)
             if isinstance(filters, Filter):
-                counts[key] = len(bits & filters.bits(self.indexReader))
+                counts[key] = ids.overlap(filters, self.indexReader)
             elif isinstance(key, basestring):
                 values = self.terms(key) if filters is None else filters
-                counts.update(self.facets(bits, *((key, value) for value in values)))
+                counts.update(self.facets(ids.docIdSet, *((key, value) for value in values)))
             else:
                 name, value = key
                 filters = self.filters.setdefault(name, {})
                 if value not in filters:
                     filters[value] = Query.term(name, value).filter()
-                counts[name][value] = len(bits & filters[value].bits(self.indexReader))
+                counts[name][value] = ids.overlap(filters[value], self.indexReader)
         return dict(counts)
 
 class MultiSearcher(Searcher, lucene.MultiSearcher):

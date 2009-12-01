@@ -4,6 +4,7 @@ import tempfile, shutil
 import itertools
 import warnings
 import datetime
+import math
 import lucene
 from lupyne import engine
 import fixture
@@ -103,8 +104,6 @@ class TestCase(BaseTest):
         indexer += temp.directory
         indexer += self.tempdir
         assert len(indexer) == 3
-        x, y = engine.Filter([0, 1]).bits(), engine.Filter([1, 2]).bits()
-        assert list(x & y) == [1] and list(x | y) == [0, 1, 2] and list(x -y) == [0]
         indexer.add(text=lucene.WhitespaceTokenizer(lucene.StringReader('?')))
         indexer.commit()
         assert list(indexer.terms('text')) == ['?']
@@ -139,13 +138,16 @@ class TestCase(BaseTest):
         assert sorted(hit.dict()) == ['__id__', '__score__', 'article']
         hits = indexer.search('people', field='text')
         assert len(hits) == hits.count == 8
+        assert set(map(type, hits.ids)) == set([int]) and set(map(type, hits.scores)) == set([float])
         ids = hits.ids
         hits = indexer.search('people', count=5, field='text')
         assert hits.ids == ids[:len(hits)]
         assert len(hits) == 5 and hits.count == 8
-        assert 1 < len(set(hit.score for hit in hits)) <= len(hits)
+        assert not any(map(math.isnan, hits.scores))
         hits = indexer.search('text:people', count=5, sort=lucene.SortField('amendment', lucene.SortField.INT))
         assert [hit.get('amendment') for hit in hits] == [None, None, '1', u'2', u'4']
+        if lucene.VERSION >= '2.9':
+            assert all(map(math.isnan, hits.scores))
         comparator = map(int, indexer.comparator('amendment', default='0'))
         hits = indexer.search('text:people', sort=comparator.__getitem__)
         assert sorted(hits.ids) == hits.ids and hits.ids != ids
