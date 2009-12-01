@@ -30,7 +30,6 @@ class TestCase(BaseTest):
     
     def testInterface(self):
         "Indexer and document interfaces."
-        assert engine.IndexWriter.__init__.im_func.func_defaults[-1] == lucene.IndexWriter.DEFAULT_MAX_FIELD_LENGTH
         analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
         stemmer = engine.Analyzer(analyzer, lucene.PorterStemFilter, typeAsPayload)
         assert [token.termText() for token in stemmer.tokens('hello worlds')] == ['hello', 'world']
@@ -42,10 +41,14 @@ class TestCase(BaseTest):
         for field in indexer.fields['name'].items('sample'):
             assert isinstance(field, lucene.Field) and field.boost == 2.0
         indexer.set('tag', store=True, index=True)
+        searcher = indexer.indexSearcher
+        indexer.commit()
+        assert searcher is indexer.indexSearcher
         indexer.add(text='hello worlds', name='sample', tag=['python', 'search'])
         assert len(indexer) == 1 and list(indexer) == []
         assert not indexer.optimized
         indexer.commit()
+        assert searcher is not indexer.indexSearcher
         searcher = engine.ParallelMultiSearcher([indexer.indexSearcher, indexer.directory])
         assert searcher.count() == 2 * len(indexer)
         assert list(indexer) == [0]
@@ -308,6 +311,7 @@ class TestCase(BaseTest):
             hits = indexer.search(field.within(x, y, 10**5))
             cities = set(hit['city'] for hit in hits)
             assert city in cities and len(cities) > 100
+            del indexer
     
     def testFields(self):
         "Custom field tests."

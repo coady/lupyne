@@ -201,10 +201,12 @@ class IndexReader(object):
 
 class Searcher(object):
     "Mixin interface common among searchers."
+    class StandardAnalyzer(lucene.StandardAnalyzer):
+        __del__ = lucene.StandardAnalyzer.close
     def __init__(self, arg, analyzer=None):
         super(Searcher, self).__init__(arg)
         if analyzer is None:
-            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
+            analyzer = self.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else self.StandardAnalyzer()
         self.analyzer = analyzer
     def __del__(self):
         if str(self) != '<null>':
@@ -282,12 +284,24 @@ class Searcher(object):
 class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
     
-    :param directory: directory path or lucene Directory
+    :param directory: directory path, lucene Directory, or lucene IndexReader
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
     def __init__(self, directory, analyzer=None):
+        self.closing = set()
+        if isinstance(directory, basestring):
+            if hasattr(lucene.FSDirectory, 'open'):
+                directory = lucene.FSDirectory.open(lucene.File(directory))
+            else:
+                directory = lucene.FSDirectory.getDirectory(directory)
+            self.closing.add(directory)
         Searcher.__init__(self, directory, analyzer)
         self.filters = {}
+    def __del__(self):
+        if str(self) != '<null>':
+            self.close()
+        for obj in self.closing:
+            obj.close()
     def facets(self, ids, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
@@ -334,16 +348,26 @@ class IndexWriter(lucene.IndexWriter):
     :param mfl: MaxFieldLength, default IndexWriter.DEFAULT_MAX_FIELD_LENGTH
     """
     __len__ = lucene.IndexWriter.numDocs
-    __del__ = Searcher.__del__.im_func
+    __del__ = IndexSearcher.__del__.im_func
     parse = Searcher.parse.im_func
-    def __init__(self, directory=None, mode='a', analyzer=None, mfl=10000):
+    def __init__(self, directory=None, mode='a', analyzer=None):
+        self.closing = set()
         if analyzer is None:
             analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
-        args = [(directory or lucene.RAMDirectory()), analyzer]
-        if mode != 'a':
-            args.append(mode == 'w')
-        args.append(mfl if isinstance(mfl, self.MaxFieldLength) else self.MaxFieldLength(mfl))
-        lucene.IndexWriter.__init__(self, *args)
+            self.closing.add(analyzer)
+        if not isinstance(directory, lucene.Directory):
+            if directory is None:
+                directory = lucene.RAMDirectory()
+            elif hasattr(lucene.FSDirectory, 'open'):
+                directory = lucene.FSDirectory.open(lucene.File(directory))
+            else:
+                directory = lucene.FSDirectory.getDirectory(directory)
+            self.closing.add(directory)
+        mfl = lucene.IndexWriter.MaxFieldLength.LIMITED
+        if mode == 'a':
+            lucene.IndexWriter.__init__(self, directory, analyzer, mfl)
+        else:
+            lucene.IndexWriter.__init__(self, directory, analyzer, (mode == 'w'), mfl)
         self.fields = {}
     @property
     def segments(self):
@@ -386,10 +410,16 @@ class IndexWriter(lucene.IndexWriter):
     def __iadd__(self, directory):
         "Add directory (or reader, searcher, writer) to index."
         if isinstance(directory, basestring):
-            directory = lucene.FSDirectory.getDirectory(directory)
-        elif not isinstance(directory, lucene.Directory):
-            directory = directory.directory
-        self.addIndexesNoOptimize([directory])
+            if hasattr(lucene.FSDirectory, 'open'):
+                directory = lucene.FSDirectory.open(lucene.File(directory))
+            else:
+                directory = lucene.FSDirectory.getDirectory(directory)
+            with contextlib.closing(directory):
+                self.addIndexesNoOptimize([directory])
+        else:
+            if not isinstance(directory, lucene.Directory):
+                directory = directory.directory
+            self.addIndexesNoOptimize([directory])
         return self
 
 class Indexer(IndexWriter):
@@ -413,4 +443,5 @@ class Indexer(IndexWriter):
         "Commit writes and refresh searcher.  Not thread-safe."
         IndexWriter.commit(self)
         if not self.current:
-            self.indexSearcher = IndexSearcher(self.directory, self.analyzer)
+            searcher = self.indexSearcher = IndexSearcher(self.reopen(), self.analyzer)
+            searcher.closing.add(searcher.indexReader)
