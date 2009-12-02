@@ -129,19 +129,25 @@ class SpanQuery(Query):
         inOrder = kwargs.pop('inOrder', True)
         return SpanQuery(lucene.SpanNearQuery, spans, slop, inOrder, **kwargs)
 
-class HitCollector(lucene.PythonHitCollector):
+class HitCollector(lucene.PythonCollector if hasattr(lucene, 'PythonCollector') else lucene.PythonHitCollector):
     "Collect all ids and scores efficiently."
     def __init__(self):
-        lucene.PythonHitCollector.__init__(self)
-        self.collect = {}.__setitem__
+        super(HitCollector, self).__init__()
+        self.base = 0
+        self.scores = {}
+    def collect(self, id, score):
+        self.scores[id + self.base] = score
+    def setNextReader(self, reader, base):
+        self.base = base
+    def acceptsDocsOutOfOrder(self):
+        return True
     def sorted(self, key=None, reverse=False):
         "Return ordered ids and scores."
-        data = self.collect.__self__
-        ids = sorted(data)
+        ids = sorted(self.scores)
         if key is None:
-            key, reverse = data.__getitem__, True
+            key, reverse = self.scores.__getitem__, True
         ids.sort(key=key, reverse=reverse)
-        return ids, map(data.__getitem__, ids)
+        return ids, map(self.scores.__getitem__, ids)
 
 class Filter(lucene.PythonFilter):
     "Inherited lucene Filter with a cached BitSet of ids."
@@ -154,10 +160,11 @@ class Filter(lucene.PythonFilter):
             setter = self.docIdSet.set
             for id in itertools.imap(long, ids):
                 setter(id)
-        self.bitSet = lucene.BitSet()
-        setter = self.bitSet.set
-        for id in itertools.ifilter(self.docIdSet.get, xrange(self.docIdSet.size())):
-            setter(id)
+        if lucene.VERSION < '3':
+            self.bitSet = lucene.BitSet()
+            setter = self.bitSet.set
+            for id in itertools.ifilter(self.docIdSet.get, xrange(self.docIdSet.size())):
+                setter(id)
     def overlap(self, other, reader=None):
         "Return intersection count of the filters."
         return int(lucene.OpenBitSet.intersectionCount(self.getDocIdSet(reader), other.getDocIdSet(reader)))

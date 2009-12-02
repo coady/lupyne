@@ -21,11 +21,65 @@ class Atomic(object):
 Atomic.register(basestring)
 Atomic.register(lucene.TokenStream)
 
-class TokenFilter(lucene.PythonTokenFilter):
-    "Return a lucene TokenStream from an iterable of tokens."
-    def __init__(self, tokens):
-        lucene.PythonTokenFilter.__init__(self, lucene.EmptyTokenStream())
-        self.next = iter(tokens).next
+if issubclass(lucene.TokenFilter, collections.Iterable):
+    class TokenFilter(lucene.PythonTokenFilter):
+        "Return a lucene TokenStream from any iterable of tokens."
+        def __init__(self, tokens):
+            lucene.PythonTokenFilter.__init__(self, lucene.EmptyTokenStream())
+            self.next = iter(tokens).next
+else:
+    class TokenFilter(lucene.PythonTokenFilter):
+        """Return an iterable lucene TokenStream from a TokenStream.
+        Attributes are cached as properties to create a Token interface.
+        Subclasses should override incrementToken method.
+        """
+        def __init__(self, input):
+            lucene.PythonTokenFilter.__init__(self, input)
+            self.input = input
+        def __iter__(self):
+            return self
+        def next(self):
+            if self.incrementToken():
+                return self
+            raise StopIteration
+        def incrementToken(self):
+            return self.input.incrementToken()
+        def __getattr__(self, name):
+            cls = getattr(lucene, name + 'Attribute').class_
+            attr = self.getAttribute(cls) if self.hasAttribute(cls) else self.addAttribute(cls)
+            setattr(self, name, attr)
+            return attr
+        @property
+        def offset(self):
+            return self.Offset.startOffset(), self.Offset.endOffset()
+        @offset.setter
+        def offset(self, item):
+            self.Offset.setOffset(*item)
+        @property
+        def payload(self):
+            data = self.Payload.payload.data
+            return data and data.string_
+        @payload.setter
+        def payload(self, data):
+            self.Payload.payload = lucene.Payload(lucene.JArray_byte(bytes(data)))
+        @property
+        def positionIncrement(self):
+            return self.PositionIncrement.positionIncrement
+        @positionIncrement.setter
+        def positionIncrement(self, index):
+            self.PositionIncrement.positionIncrement = index
+        @property
+        def term(self):
+            return self.Term.term()
+        @term.setter
+        def term(self, text):
+            self.Term.setTermBuffer(text)
+        @property
+        def type(self):
+            return self.Type.type()
+        @type.setter
+        def type(self, text):
+            self.Type.setType(text)
 
 class Analyzer(lucene.PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
@@ -135,9 +189,12 @@ class IndexReader(object):
                 doc = termpositions.doc()
                 positions = (termpositions.nextPosition() for n in xrange(termpositions.freq()))
                 if payloads:
-                    array = lucene.JArray_byte('')
-                    yield doc, [(position, ''.join(termpositions.getPayload(array, 0))) \
-                        for position in positions if termpositions.payloadAvailable]
+                    items, array = [], lucene.JArray_byte('')
+                    for position in positions:
+                        if termpositions.payloadAvailable:
+                            data = termpositions.getPayload(array, 0)
+                            items.append((position, data.string_ if hasattr(data, 'string_') else ''.join(data)))
+                    yield doc, items
                 else:
                     yield doc, list(positions)
     def comparator(self, name, *names, **kwargs):

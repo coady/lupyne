@@ -2,6 +2,7 @@ import unittest
 import os, optparse
 import tempfile, shutil
 import itertools
+import collections
 import warnings
 import datetime
 import math
@@ -14,6 +15,20 @@ parser = optparse.OptionParser()
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose")
 options, args = parser.parse_args()
 
+if issubclass(lucene.TokenFilter, collections.Iterable):
+    def typeAsPayload(tokens):
+        "Generator variant of lucene TypeAsPayloadTokenFilter."
+        for token in tokens:
+            token.payload = lucene.Payload(lucene.JArray_byte(bytes(token.type())))
+            yield token
+else:
+    class typeAsPayload(engine.TokenFilter):
+        "Custom implementation of lucene TypeAsPayloadTokenFilter."
+        def incrementToken(self):
+            result = engine.TokenFilter.incrementToken(self)
+            self.payload = self.type
+            return result
+
 class BaseTest(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp(dir=os.path.dirname(__file__))
@@ -21,19 +36,13 @@ class BaseTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
-def typeAsPayload(tokens):
-    "Generator variant of lucene TypeAsPayloadTokenFilter."
-    for token in tokens:
-        token.payload = lucene.Payload(lucene.JArray_byte(str(token.type())))
-        yield token
-
 class TestCase(BaseTest):
     
     def testInterface(self):
         "Indexer and document interfaces."
         analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
         stemmer = engine.Analyzer(analyzer, lucene.PorterStemFilter, typeAsPayload)
-        assert [token.termText() for token in stemmer.tokens('hello worlds')] == ['hello', 'world']
+        assert [token.termText() if isinstance(token, lucene.Token) else token.term for token in stemmer.tokens('hello worlds')] == ['hello', 'world']
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         indexer = engine.Indexer(analyzer=stemmer)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
