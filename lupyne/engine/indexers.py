@@ -197,23 +197,22 @@ class IndexReader(object):
                     yield doc, items
                 else:
                     yield doc, list(positions)
-    def comparator(self, name, *names, **kwargs):
-        """Return sequence of documents' field values suitable for sorting.
+    def comparator(self, name, type='string', parser=None):
+        """Return cache of field values suitable for sorting.
+        Parsing values into an array is memory optimized.
+        Map values into a list for speed optimization.
         
         :param name: field name
-        :param names: additional names return tuples of values
-        :param default: keyword only default value
+        :param type: type of field values compatible with lucene FieldCache
+        :param parser: callable applied to field values, available in lucene 2.9 or higher
         """
-        if names:
-            return zip(*(self.comparator(name, **kwargs) for name in (name,)+names))
-        values = [kwargs.pop('default', None)] * self.maxDoc()
-        term = lucene.Term(name, '')
-        with contextlib.closing(self.termDocs(**kwargs)) as termdocs:
-            for value in self.terms(name):
-                termdocs.seek(term.createTerm(value))
-                while termdocs.next():
-                    values[termdocs.doc()] = value
-        return values
+        type = getattr(type, '__name__', type).capitalize()
+        method = getattr(lucene.FieldCache.DEFAULT, 'get{0}s'.format(type))
+        if parser is None:
+            return method(self.indexReader, name)
+        bases = getattr(lucene, 'Python{0}Parser'.format(type)),
+        parser = object.__class__('', bases, {'parse' + type: staticmethod(parser)})
+        return method(self.indexReader, name, parser())
     def spans(self, query, positions=False):
         """Generate docs with occurrence counts for a span query.
         

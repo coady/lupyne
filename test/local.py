@@ -157,10 +157,11 @@ class TestCase(BaseTest):
         assert [hit.get('amendment') for hit in hits] == [None, None, '1', u'2', u'4']
         if lucene.VERSION >= '2.9':
             assert all(map(math.isnan, hits.scores))
-        comparator = map(int, indexer.comparator('amendment', default='0'))
+        parser = (lambda value: int(value or -1)) if hasattr(lucene, 'PythonIntParser') else None
+        comparator = indexer.comparator('amendment', type=int, parser=parser)
         hits = indexer.search('text:people', sort=comparator.__getitem__)
         assert sorted(hits.ids) == hits.ids and hits.ids != ids
-        comparator = indexer.comparator('article', 'amendment')
+        comparator = zip(*map(indexer.comparator, ['article', 'amendment']))
         hits = indexer.search('text:people', sort=comparator.__getitem__)
         assert sorted(hits.ids) != hits.ids
         hits = indexer.search('text:people', count=5, sort='amendment', reverse=True)
