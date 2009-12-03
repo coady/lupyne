@@ -7,6 +7,11 @@ indexers
 ---------
 .. automodule:: engine.indexers
 
+TokenFilter
+^^^^^^^^^^^^^
+.. autoclass:: engine.indexers.TokenFilter
+  :members:
+
 Analyzer
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.Analyzer

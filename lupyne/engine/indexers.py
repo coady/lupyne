@@ -21,65 +21,70 @@ class Atomic(object):
 Atomic.register(basestring)
 Atomic.register(lucene.TokenStream)
 
-if issubclass(lucene.TokenFilter, collections.Iterable):
-    class TokenFilter(lucene.PythonTokenFilter):
-        "Return a lucene TokenStream from any iterable of tokens."
-        def __init__(self, tokens):
+class TokenFilter(lucene.PythonTokenFilter):
+    """Create an iterable lucene TokenFilter from a TokenStream.
+    In lucene version 2, call on any iterable of tokens.
+    In lucene version 3, subclass and override :meth:`incrementToken`;
+    attributes are cached as properties to create a Token interface.
+    """
+    def __init__(self, input):
+        if issubclass(lucene.TokenFilter, collections.Iterable):
             lucene.PythonTokenFilter.__init__(self, lucene.EmptyTokenStream())
-            self.next = iter(tokens).next
-else:
-    class TokenFilter(lucene.PythonTokenFilter):
-        """Return an iterable lucene TokenStream from a TokenStream.
-        Attributes are cached as properties to create a Token interface.
-        Subclasses should override incrementToken method.
-        """
-        def __init__(self, input):
+            self.next = iter(input).next
+        else:
             lucene.PythonTokenFilter.__init__(self, input)
             self.input = input
-        def __iter__(self):
-            return self
+    def __iter__(self):
+        return self
+    if not hasattr(lucene.TokenFilter, 'next'):
         def next(self):
             if self.incrementToken():
                 return self
             raise StopIteration
-        def incrementToken(self):
-            return self.input.incrementToken()
-        def __getattr__(self, name):
-            cls = getattr(lucene, name + 'Attribute').class_
-            attr = self.getAttribute(cls) if self.hasAttribute(cls) else self.addAttribute(cls)
-            setattr(self, name, attr)
-            return attr
-        @property
-        def offset(self):
-            return self.Offset.startOffset(), self.Offset.endOffset()
-        @offset.setter
-        def offset(self, item):
-            self.Offset.setOffset(*item)
-        @property
-        def payload(self):
-            data = self.Payload.payload.data
-            return data and data.string_
-        @payload.setter
-        def payload(self, data):
-            self.Payload.payload = lucene.Payload(lucene.JArray_byte(bytes(data)))
-        @property
-        def positionIncrement(self):
-            return self.PositionIncrement.positionIncrement
-        @positionIncrement.setter
-        def positionIncrement(self, index):
-            self.PositionIncrement.positionIncrement = index
-        @property
-        def term(self):
-            return self.Term.term()
-        @term.setter
-        def term(self, text):
-            self.Term.setTermBuffer(text)
-        @property
-        def type(self):
-            return self.Type.type()
-        @type.setter
-        def type(self, text):
-            self.Type.setType(text)
+    def incrementToken(self):
+        "Advance to next token and return whether the stream is not empty."
+        return self.input.incrementToken()
+    def __getattr__(self, name):
+        cls = getattr(lucene, name + 'Attribute').class_
+        attr = self.getAttribute(cls) if self.hasAttribute(cls) else self.addAttribute(cls)
+        setattr(self, name, attr)
+        return attr
+    @property
+    def offset(self):
+        "Start and stop character offset."
+        return self.Offset.startOffset(), self.Offset.endOffset()
+    @offset.setter
+    def offset(self, item):
+        self.Offset.setOffset(*item)
+    @property
+    def payload(self):
+        "Payload bytes."
+        data = self.Payload.payload.data
+        return data and data.string_
+    @payload.setter
+    def payload(self, data):
+        self.Payload.payload = lucene.Payload(lucene.JArray_byte(bytes(data)))
+    @property
+    def positionIncrement(self):
+        "Position relative to the previous token."
+        return self.PositionIncrement.positionIncrement
+    @positionIncrement.setter
+    def positionIncrement(self, index):
+        self.PositionIncrement.positionIncrement = index
+    @property
+    def term(self):
+        "Term text."
+        return self.Term.term()
+    @term.setter
+    def term(self, text):
+        self.Term.setTermBuffer(text)
+    @property
+    def type(self):
+        "Lexical type."
+        return self.Type.type()
+    @type.setter
+    def type(self, text):
+        self.Type.setType(text)
 
 class Analyzer(lucene.PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
