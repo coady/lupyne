@@ -108,15 +108,16 @@ class Analyzer(lucene.PythonAnalyzer):
         
         :param field: default query field name or sequence of names
         :param op: default query operator ('or', 'and')
+        :param version: lucene Version string, leave blank for deprecated constructor
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
         parser = lucene.QueryParser if isinstance(field, basestring) else lucene.MultiFieldQueryParser
-        if hasattr(lucene, 'Version'):
-            version = getattr(lucene.Version, 'LUCENE_' + version.replace('.', '').upper())
-            parser = parser(version, field, self)
-        else:
-            parser = parser(field, self)
+        version = 'LUCENE_' + version.replace('.', '').upper()
+        try:
+            parser = parser(getattr(lucene.Version, version), field, self)
+        except (AttributeError, lucene.InvalidArgsError):
+            parser = parser(field, self) # 2.4 lacks Version, 2.9.0 lacks constructor
         if op:
             parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
         for name, value in attrs.items():
