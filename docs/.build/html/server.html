@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>server &mdash; LuPyne v0.3 documentation</title>
+    <title>server &mdash; LuPyne v0.4 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3',
+        VERSION:     '0.4',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.3 documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.4 documentation" href="index.html" />
     <link rel="next" title="client" href="client.html" />
     <link rel="prev" title="engine" href="engine.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="engine.html" title="engine"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.4 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -121,7 +121,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 
 <dl class="method">
 <dt id="server.WebSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /search?</dt>
@@ -130,8 +130,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 <p>&amp;count=<em>int</em></p>
 <p>&amp;fields=<em>chars</em>,...</p>
 <p>&amp;multifields=<em>chars</em>,...</p>
-<p>&amp;sort=<em>chars</em>,...</p>
-<p>&amp;reverse=true|false,</p>
+<p>&amp;sort=[-]*chars*[:<em>chars</em>],...</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -294,7 +293,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 
 <dl class="method">
 <dt id="server.WebIndexer.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>reverse='false'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run or delete a query.</p>
 <dl class="docutils">
 <dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>
@@ -370,7 +369,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
         <li class="right" >
           <a href="engine.html" title="engine"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.4 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

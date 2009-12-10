@@ -8,7 +8,7 @@ for dirpath, dirnames, filenames in os.walk('lupyne'):
 
 setup(
     name='lupyne',
-    version='0.3+',
+    version='0.4',
     description='A pythonic search engine, based on PyLucene and CherryPy.',
     author='Aric Coady',
     author_email='aric.coady@gmail.com',

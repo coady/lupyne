@@ -7,6 +7,11 @@ indexers
 ---------
 .. automodule:: engine.indexers
 
+TokenFilter
+^^^^^^^^^^^^^
+.. autoclass:: engine.indexers.TokenFilter
+  :members:
+
 Analyzer
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.Analyzer
@@ -24,10 +29,6 @@ IndexReader
   .. automethod:: __iter__
 
   .. automethod:: __getitem__
-
-  .. automethod:: __delitem__
-
-    Acquires a write lock.  Deleting from an `IndexWriter`_ is encouraged instead.
 
 Searcher
 ^^^^^^^^^^^^^
@@ -135,12 +136,6 @@ FormatField
 
     Return formatted value.
 
-NumericField
-^^^^^^^^^^^^^
-.. autoclass:: engine.documents.NumericField
-  :show-inheritance:
-  :members:
-
 PrefixField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.PrefixField
@@ -156,6 +151,35 @@ NestedField
 DateTimeField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.DateTimeField
+  :show-inheritance:
+  :members:
+
+
+numeric
+---------
+.. automodule:: engine.numeric
+
+NumericField
+^^^^^^^^^^^^^
+.. autoclass:: engine.numeric.NumericField
+  :show-inheritance:
+  :members:
+
+PointField
+^^^^^^^^^^^^^
+.. autoclass:: engine.numeric.PointField
+  :show-inheritance:
+  :members:
+
+PolygonField
+^^^^^^^^^^^^^
+.. autoclass:: engine.numeric.PolygonField
+  :show-inheritance:
+  :members:
+
+DateTimeField
+^^^^^^^^^^^^^
+.. autoclass:: engine.numeric.DateTimeField
   :show-inheritance:
   :members:
 

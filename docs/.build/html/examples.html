@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>examples &mdash; LuPyne v0.3 documentation</title>
+    <title>examples &mdash; LuPyne v0.4 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3',
+        VERSION:     '0.4',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.3 documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.4 documentation" href="index.html" />
     <link rel="prev" title="client" href="client.html" /> 
   </head>
   <body>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.4 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -50,7 +50,8 @@
 <div class="section" id="indexers">
 <h2>indexers<a class="headerlink" href="#indexers" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Basic indexing and searching example adapted from http://lucene.apache.org/java/2_4_1/api/core/index.html</span>
+<span class="sd">Basic indexing and searching example adapted from http://lucene.apache.org/java/2_9_1/api/core/index.html</span>
+<span class="sd">Compatible with lucene versions 2.4 through 3.0.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">lucene</span>
@@ -59,32 +60,30 @@
 
 <span class="c">### lucene ###</span>
 
-<span class="n">analyzer</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">StandardAnalyzer</span><span class="p">()</span>
+<span class="n">analyzer</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">StandardAnalyzer</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Version</span><span class="o">.</span><span class="n">LUCENE_CURRENT</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lucene</span><span class="p">,</span> <span class="s">&#39;Version&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">lucene</span><span class="o">.</span><span class="n">StandardAnalyzer</span><span class="p">()</span>
 
 <span class="c"># Store the index in memory:</span>
 <span class="n">directory</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">RAMDirectory</span><span class="p">()</span>
 <span class="c"># To store an index on disk, use this instead:</span>
-<span class="c">#Directory directory = FSDirectory.getDirectory(&quot;/tmp/testindex&quot;)</span>
-<span class="n">iwriter</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">IndexWriter</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
-<span class="n">iwriter</span><span class="o">.</span><span class="n">setMaxFieldLength</span><span class="p">(</span><span class="mi">25000</span><span class="p">)</span>
+<span class="c">#Directory directory = FSDirectory.open(lucene.File(&quot;/tmp/testindex&quot;))</span>
+<span class="n">iwriter</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">IndexWriter</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">IndexWriter</span><span class="o">.</span><span class="n">MaxFieldLength</span><span class="p">(</span><span class="mi">25000</span><span class="p">))</span>
 <span class="n">doc</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Document</span><span class="p">()</span>
 <span class="n">text</span> <span class="o">=</span> <span class="s">&quot;This is the text to be indexed.&quot;</span>
-<span class="n">doc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Field</span><span class="p">(</span><span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Field</span><span class="o">.</span><span class="n">Store</span><span class="o">.</span><span class="n">YES</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Field</span><span class="o">.</span><span class="n">Index</span><span class="o">.</span><span class="n">TOKENIZED</span><span class="p">))</span>
+<span class="n">doc</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Field</span><span class="p">(</span><span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Field</span><span class="o">.</span><span class="n">Store</span><span class="o">.</span><span class="n">YES</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Field</span><span class="o">.</span><span class="n">Index</span><span class="o">.</span><span class="n">ANALYZED</span><span class="p">))</span>
 <span class="n">iwriter</span><span class="o">.</span><span class="n">addDocument</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
-<span class="n">iwriter</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
 <span class="n">iwriter</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="c"># Now search the index:</span>
 <span class="n">isearcher</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">IndexSearcher</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
 <span class="c"># Parse a simple query that searches for &quot;text&quot;:</span>
-<span class="n">parser</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">QueryParser</span><span class="p">(</span><span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">)</span>
+<span class="n">parser</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">QueryParser</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Version</span><span class="o">.</span><span class="n">LUCENE_CURRENT</span><span class="p">,</span> <span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lucene</span><span class="p">,</span> <span class="s">&#39;Version&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">lucene</span><span class="o">.</span><span class="n">QueryParser</span><span class="p">(</span><span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">)</span>
 <span class="n">query</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">&quot;text&quot;</span><span class="p">)</span>
-<span class="n">hits</span> <span class="o">=</span> <span class="n">isearcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-<span class="k">assert</span> <span class="mi">1</span> <span class="o">==</span> <span class="n">hits</span><span class="o">.</span><span class="n">length</span><span class="p">()</span>
+<span class="n">hits</span> <span class="o">=</span> <span class="n">isearcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">scoreDocs</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
 <span class="c"># Iterate through the results:</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">hits</span><span class="o">.</span><span class="n">length</span><span class="p">()):</span>
-    <span class="n">hitDoc</span> <span class="o">=</span> <span class="n">hits</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="s">&quot;This is the text to be indexed.&quot;</span> <span class="o">==</span> <span class="n">hitDoc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;fieldname&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">:</span>
+    <span class="n">hitDoc</span> <span class="o">=</span> <span class="n">isearcher</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">hit</span><span class="o">.</span><span class="n">doc</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">hitDoc</span><span class="p">[</span><span class="s">&#39;fieldname&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">text</span>
 <span class="n">isearcher</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 <span class="n">directory</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
@@ -92,17 +91,15 @@
 
 <span class="c"># Store the index in memory:</span>
 <span class="n">indexer</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">Indexer</span><span class="p">()</span>              <span class="c"># Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">maxFieldLength</span> <span class="o">=</span> <span class="mi">25000</span>          <span class="c"># not necessary for this example</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;fieldname&#39;</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>    <span class="c"># settings for all documents of indexer; tokenized is the default</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fieldname</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>             <span class="c"># add document</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>                      <span class="c"># not necessary for this example</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>                        <span class="c"># commit changes and refresh searcher</span>
 
 <span class="c"># Now search the index:</span>
 <span class="n">hits</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s">&#39;text&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s">&#39;fieldname&#39;</span><span class="p">)</span>    <span class="c"># parsing handled if necessary</span>
-<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>                               <span class="c"># hits support full sequence interface</span>
-<span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">:</span>
-    <span class="k">assert</span> <span class="n">hit</span><span class="p">[</span><span class="s">&#39;fieldname&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">text</span>                 <span class="c"># hit supports full mapping interface</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">:</span>                                    <span class="c"># hits support mapping interface</span>
+    <span class="k">assert</span> <span class="n">hit</span><span class="p">[</span><span class="s">&#39;fieldname&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">text</span>
 <span class="c"># closing is handled automatically</span>
 </pre></div>
 </div>
@@ -237,17 +234,17 @@
 <span class="sd">Lucene&#39;s performance itself drops off noticeably as the requested doc count increases.</span>
 <span class="sd">This is heavily compounded by having to iterate through a large set of ScoreDocs in PyLucene.</span>
 
-<span class="sd">Lucene also only supports sorting a query result when a doc count is supplied (deprecation notwithstanding).</span>
-<span class="sd">And supplying an excessively large count is not a good workaround because of the previous problem.</span>
+<span class="sd">Lucene also only supports sorting a query result when a doc count is supplied.</span>
+<span class="sd">And supplying an excessively large count is not a good workaround because of the aforementioned problem.</span>
 
-<span class="sd">Finally the custom sorting interface, although supported in PyLucene, is bascially useless.</span>
+<span class="sd">Finally the custom sorting interface, although well-supported in PyLucene, is bascially useless.</span>
 <span class="sd">The sort key of every potential doc must realistically be cached anyway,</span>
 <span class="sd">but the performance overhead of O(n log n) comparison calls in java is still horrid.</span>
 
 <span class="sd">To mitigate all these problems, LuPyne first provides a unified search interface.</span>
 <span class="sd">The same Hits type is returned regardless of whether a doc count is supplied.</span>
 <span class="sd">As with lucene, the result is fully evaluated but each individual Hit object will only be loaded on demand.</span>
-<span class="sd">Internally an optimized custom HitCollector is used when all docs are requested.</span>
+<span class="sd">Internally an optimized custom hit Collector is used when all docs are requested.</span>
 
 <span class="sd">The search method does allow lucene Sort parameters to be passed through, since that&#39;s still optimal.</span>
 <span class="sd">So the only gotcha is that with no doc count the sort parameter must instead be a python callable key.</span>
@@ -255,9 +252,9 @@
 <span class="sd">The upshot is custom sorting and sorting large results are both easier and faster.</span>
 
 <span class="sd">Custom sorting isn&#39;t necessary in the below example of course, just there for demonstration.</span>
+<span class="sd">Compatible with lucene versions 2.4 through 3.0.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">closing</span>
 <span class="kn">import</span> <span class="nn">lucene</span>
 <span class="n">lucene</span><span class="o">.</span><span class="n">initVM</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">CLASSPATH</span><span class="p">)</span>
 <span class="kn">from</span> <span class="nn">lupyne</span> <span class="kn">import</span> <span class="n">engine</span>
@@ -272,34 +269,43 @@
 <span class="c">### lucene ###</span>
 
 <span class="n">searcher</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">IndexSearcher</span><span class="p">(</span><span class="n">indexer</span><span class="o">.</span><span class="n">directory</span><span class="p">)</span>
-<span class="n">topdocs</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">MatchAllDocsQuery</span><span class="p">(),</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Sort</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">))</span>
+<span class="n">topdocs</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">MatchAllDocsQuery</span><span class="p">(),</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Sort</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="o">.</span><span class="n">STRING</span><span class="p">)))</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">searcher</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">scoredoc</span><span class="o">.</span><span class="n">doc</span><span class="p">)[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">scoredoc</span> <span class="ow">in</span> <span class="n">topdocs</span><span class="o">.</span><span class="n">scoreDocs</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 
-<span class="k">class</span> <span class="nc">SortComparatorSource</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonSortComparatorSource</span><span class="p">):</span>
-    <span class="k">class</span> <span class="nc">newComparator</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonScoreDocComparator</span><span class="p">):</span>
-        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-            <span class="n">lucene</span><span class="o">.</span><span class="n">PythonScoreDocComparator</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">reader</span><span class="o">.</span><span class="n">numDocs</span><span class="p">()</span>
-            <span class="k">with</span> <span class="n">closing</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">terms</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Term</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)))</span> <span class="k">as</span> <span class="n">terms</span><span class="p">:</span>
-                <span class="k">with</span> <span class="n">closing</span><span class="p">(</span><span class="n">reader</span><span class="o">.</span><span class="n">termDocs</span><span class="p">())</span> <span class="k">as</span> <span class="n">termDocs</span><span class="p">:</span>
-                    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-                        <span class="n">term</span> <span class="o">=</span> <span class="n">terms</span><span class="o">.</span><span class="n">term</span><span class="p">()</span>
-                        <span class="k">if</span> <span class="n">term</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">term</span><span class="o">.</span><span class="n">field</span><span class="p">()</span> <span class="o">!=</span> <span class="n">name</span><span class="p">:</span>
-                            <span class="k">break</span>
-                        <span class="n">termDocs</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">term</span><span class="p">)</span>
-                        <span class="n">value</span> <span class="o">=</span> <span class="n">term</span><span class="o">.</span><span class="n">text</span><span class="p">()</span>
-                        <span class="k">while</span> <span class="n">termDocs</span><span class="o">.</span><span class="n">next</span><span class="p">():</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">termDocs</span><span class="o">.</span><span class="n">doc</span><span class="p">()]</span> <span class="o">=</span> <span class="n">value</span>
-                        <span class="k">if</span> <span class="ow">not</span> <span class="n">terms</span><span class="o">.</span><span class="n">next</span><span class="p">():</span>
-                            <span class="k">break</span>
-        <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
-            <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">doc</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">doc</span><span class="p">])</span>
-        <span class="k">def</span> <span class="nf">sortValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">lucene</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
-        <span class="k">def</span> <span class="nf">sortType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="o">.</span><span class="n">STRING</span>
+<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lucene</span><span class="p">,</span> <span class="s">&#39;PythonFieldComparatorSource&#39;</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">ComparatorSource</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonFieldComparatorSource</span><span class="p">):</span>
+        <span class="k">class</span> <span class="nc">newComparator</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonFieldComparator</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">numHits</span><span class="p">,</span> <span class="n">sortPos</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">):</span>
+                <span class="n">lucene</span><span class="o">.</span><span class="n">PythonFieldComparator</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">def</span> <span class="nf">setNextReader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span> <span class="o">+=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">FieldCache</span><span class="o">.</span><span class="n">DEFAULT</span><span class="o">.</span><span class="n">getStrings</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot1</span><span class="p">,</span> <span class="n">slot2</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">slot1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">slot2</span><span class="p">])</span>
+            <span class="k">def</span> <span class="nf">setBottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_bottom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span>
+            <span class="k">def</span> <span class="nf">compareBottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bottom</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">doc</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">])</span>
+            <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">,</span> <span class="n">doc</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">lucene</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">class</span> <span class="nc">ComparatorSource</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonSortComparatorSource</span><span class="p">):</span>
+        <span class="k">class</span> <span class="nc">newComparator</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonScoreDocComparator</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+                <span class="n">lucene</span><span class="o">.</span><span class="n">PythonScoreDocComparator</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">FieldCache</span><span class="o">.</span><span class="n">DEFAULT</span><span class="o">.</span><span class="n">getStrings</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+            <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">doc</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">doc</span><span class="p">])</span>
+            <span class="k">def</span> <span class="nf">sortValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+                 <span class="k">return</span> <span class="n">lucene</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
+            <span class="k">def</span> <span class="nf">sortType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="o">.</span><span class="n">STRING</span>
 
-<span class="n">sorter</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Sort</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">,</span> <span class="n">SortComparatorSource</span><span class="p">()))</span>
+<span class="n">sorter</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Sort</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">,</span> <span class="n">ComparatorSource</span><span class="p">()))</span>
 <span class="c"># still must supply excessive doc count to use the sorter</span>
 <span class="n">topdocs</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">MatchAllDocsQuery</span><span class="p">(),</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">sorter</span><span class="p">)</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">searcher</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">scoredoc</span><span class="o">.</span><span class="n">doc</span><span class="p">)[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">scoredoc</span> <span class="ow">in</span> <span class="n">topdocs</span><span class="o">.</span><span class="n">scoreDocs</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
@@ -309,7 +315,7 @@
 <span class="n">hits</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">count</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="s">&#39;color&#39;</span><span class="p">)</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 <span class="n">comparator</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">comparator</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">comparator</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">comparator</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 <span class="n">hits</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">comparator</span><span class="o">.</span><span class="n">__getitem__</span><span class="p">)</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">hits</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 </pre></div>
@@ -371,7 +377,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.4 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

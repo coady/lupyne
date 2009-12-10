@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>engine &mdash; LuPyne v0.3 documentation</title>
+    <title>engine &mdash; LuPyne v0.4 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.3',
+        VERSION:     '0.4',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.3 documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.4 documentation" href="index.html" />
     <link rel="next" title="server" href="server.html" />
     <link rel="prev" title="Welcome to LuPyne’s documentation!" href="index.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.4 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -57,25 +57,105 @@ abstracting away java lucene primitives.</p>
 <h2>indexers<a class="headerlink" href="#module-engine.indexers" title="Permalink to this headline">¶</a></h2>
 <p>Wrappers for lucene Index{Read,Search,Writ}ers.</p>
 <p>The final <a class="reference internal" href="#indexer">Indexer</a> classes exposes a high-level Searcher and Writer.</p>
+<div class="section" id="tokenfilter">
+<h3>TokenFilter<a class="headerlink" href="#tokenfilter" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.indexers.TokenFilter">
+<em class="property">class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">TokenFilter</tt><big>(</big><em>input</em><big>)</big><a class="headerlink" href="#engine.indexers.TokenFilter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an iterable lucene TokenFilter from a TokenStream.
+In lucene version 2, call on any iterable of tokens.
+In lucene version 3, subclass and override <a title="engine.indexers.TokenFilter.incrementToken" class="reference internal" href="#engine.indexers.TokenFilter.incrementToken"><tt class="xref docutils literal"><span class="pre">incrementToken()</span></tt></a>;
+attributes are cached as properties to create a Token interface.</p>
+<dl class="method">
+<dt id="engine.indexers.TokenFilter.incrementToken">
+<tt class="descname">incrementToken</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.TokenFilter.incrementToken" title="Permalink to this definition">¶</a></dt>
+<dd>Advance to next token and return whether the stream is not empty.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.indexers.TokenFilter.offset">
+<tt class="descname">offset</tt><a class="headerlink" href="#engine.indexers.TokenFilter.offset" title="Permalink to this definition">¶</a></dt>
+<dd>Start and stop character offset.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.indexers.TokenFilter.payload">
+<tt class="descname">payload</tt><a class="headerlink" href="#engine.indexers.TokenFilter.payload" title="Permalink to this definition">¶</a></dt>
+<dd>Payload bytes.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.indexers.TokenFilter.positionIncrement">
+<tt class="descname">positionIncrement</tt><a class="headerlink" href="#engine.indexers.TokenFilter.positionIncrement" title="Permalink to this definition">¶</a></dt>
+<dd>Position relative to the previous token.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.indexers.TokenFilter.term">
+<tt class="descname">term</tt><a class="headerlink" href="#engine.indexers.TokenFilter.term" title="Permalink to this definition">¶</a></dt>
+<dd>Term text.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.indexers.TokenFilter.type">
+<tt class="descname">type</tt><a class="headerlink" href="#engine.indexers.TokenFilter.type" title="Permalink to this definition">¶</a></dt>
+<dd>Lexical type.</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="analyzer">
 <h3>Analyzer<a class="headerlink" href="#analyzer" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.indexers.Analyzer">
 <em class="property">class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">Analyzer</tt><big>(</big><em>tokenizer</em>, <em>*filters</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer" title="Permalink to this definition">¶</a></dt>
-<dd>Return a lucene Analyzer which chains together a tokenizer (or analyzer) and filters.</dd></dl>
+<dd><p>Return a lucene Analyzer which chains together a tokenizer and filters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>tokenizer</em> &#8211; lucene Tokenizer or Analyzer</li>
+<li><em>filters</em> &#8211; lucene TokenFilters or python generators.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.indexers.Analyzer.parse">
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>version='current'</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return parsed lucene Query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>field</em> &#8211; default query field name or sequence of names</li>
+<li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
+<li><em>version</em> &#8211; lucene Version string, leave blank for deprecated constructor</li>
+<li><em>attrs</em> &#8211; additional attributes to set on the parser</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Analyzer.tokens">
+<tt class="descname">tokens</tt><big>(</big><em>text</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.tokens" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene TokenStream from text.</dd></dl>
+
+</dd></dl>
 
 </div>
 <div class="section" id="indexreader">
 <h3>IndexReader<a class="headerlink" href="#indexreader" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.indexers.IndexReader">
-<em class="property">class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexReader</tt><big>(</big><em>directory</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexReader</tt><big>(</big><em>reader</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delegated lucene IndexReader, with a mapping interface of ids to document objects.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>directory</em> &#8211; lucene IndexReader or directory</td>
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>reader</em> &#8211; lucene IndexReader</td>
 </tr>
 </tbody>
 </table>
@@ -100,22 +180,19 @@ abstracting away java lucene primitives.</p>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="engine.indexers.IndexReader.__delitem__">
-<tt class="descname">__delitem__</tt><big>(</big><em>id</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.__delitem__" title="Permalink to this definition">¶</a></dt>
-<dd>Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</dd></dl>
-
-<dl class="method">
 <dt id="engine.indexers.IndexReader.comparator">
-<tt class="descname">comparator</tt><big>(</big><em>name</em>, <em>*names</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.comparator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return sequence of documents&#8217; field values suitable for sorting.</p>
+<tt class="descname">comparator</tt><big>(</big><em>name</em>, <em>type='string'</em>, <em>parser=None</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.comparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return cache of field values suitable for sorting.
+Parsing values into an array is memory optimized.
+Map values into a list for speed optimization.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>name</em> &#8211; field name</li>
-<li><em>names</em> &#8211; additional names return tuples of values</li>
-<li><em>default</em> &#8211; keyword only default value</li>
+<li><em>type</em> &#8211; type of field values compatible with lucene FieldCache</li>
+<li><em>parser</em> &#8211; callable applied to field values, available in lucene 2.9 or higher</li>
 </ul>
 </td>
 </tr>
@@ -128,12 +205,6 @@ abstracting away java lucene primitives.</p>
 <tt class="descname">count</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.count" title="Permalink to this definition">¶</a></dt>
 <dd>Return number of documents with given term.</dd></dl>
 
-<dl class="method">
-<dt id="engine.indexers.IndexReader.delete">
-<tt class="descname">delete</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.delete" title="Permalink to this definition">¶</a></dt>
-<dd>Delete documents with given term.
-Acquires a write lock.  Deleting from an <a class="reference internal" href="#indexwriter">IndexWriter</a> is encouraged instead.</dd></dl>
-
 <dl class="attribute">
 <dt id="engine.indexers.IndexReader.directory">
 <tt class="descname">directory</tt><a class="headerlink" href="#engine.indexers.IndexReader.directory" title="Permalink to this definition">¶</a></dt>
@@ -143,6 +214,25 @@ Acquires a write lock.  Deleting from an <a class="reference internal" href="#in
 <dt id="engine.indexers.IndexReader.docs">
 <tt class="descname">docs</tt><big>(</big><em>name</em>, <em>value</em>, <em>counts=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.docs" title="Permalink to this definition">¶</a></dt>
 <dd>Generate doc ids which contain given term, optionally with frequency counts.</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexReader.morelikethis">
+<tt class="descname">morelikethis</tt><big>(</big><em>doc</em>, <em>*fields</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.morelikethis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return MoreLikeThis query for document.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>doc</em> &#8211; document id or text</li>
+<li><em>fields</em> &#8211; document fields to use, optional for termvectors</li>
+<li><em>attrs</em> &#8211; additional attributes to set on the morelikethis object</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.IndexReader.names">
@@ -179,8 +269,25 @@ Acquires a write lock.  Deleting from an <a class="reference internal" href="#in
 
 <dl class="method">
 <dt id="engine.indexers.IndexReader.terms">
-<tt class="descname">terms</tt><big>(</big><em>name</em>, <em>start=''</em>, <em>stop=None</em>, <em>counts=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.terms" title="Permalink to this definition">¶</a></dt>
-<dd>Generate a slice of term values, optionally with frequency counts.</dd></dl>
+<tt class="descname">terms</tt><big>(</big><em>name</em>, <em>value=''</em>, <em>stop=None</em>, <em>counts=False</em>, <em>**fuzzy</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.terms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a slice of term values, optionally with frequency counts.
+Supports a range of terms, wildcard terms, or fuzzy terms.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>name</em> &#8211; field name</li>
+<li><em>value</em> &#8211; initial term text or wildcard</li>
+<li><em>stop</em> &#8211; optional upper bound for simple terms</li>
+<li><em>counts</em> &#8211; include frequency counts</li>
+<li><em>fuzzy</em> &#8211; optional keyword arguments for fuzzy terms</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.IndexReader.termvector">
@@ -249,25 +356,6 @@ Acquires a write lock.  Deleting from an <a class="reference internal" href="#in
 </dd></dl>
 
 <dl class="method">
-<dt id="engine.indexers.Searcher.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.parse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return lucene parsed Query.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>field</em> &#8211; default query field name</li>
-<li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
-<li><em>attrs</em> &#8211; additional attributes to set on the parser</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
 <dt id="engine.indexers.Searcher.search">
 <tt class="descname">search</tt><big>(</big><em>query=None</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return <a class="reference internal" href="#hits">Hits</a>.</p>
@@ -281,7 +369,7 @@ Acquires a write lock.  Deleting from an <a class="reference internal" href="#in
 <li><em>count</em> &#8211; maximum number of hits to retrieve</li>
 <li><em>sort</em> &#8211; if count is given, lucene Sort parameters, else a callable key</li>
 <li><em>reverse</em> &#8211; reverse flag used with sort</li>
-<li><em>parser</em> &#8211; <a title="engine.indexers.Searcher.parse" class="reference internal" href="#engine.indexers.Searcher.parse"><tt class="xref docutils literal"><span class="pre">parse()</span></tt></a> options</li>
+<li><em>parser</em> &#8211; <a title="engine.indexers.Analyzer.parse" class="reference internal" href="#engine.indexers.Analyzer.parse"><tt class="xref docutils literal"><span class="pre">Analyzer.parse()</span></tt></a> options</li>
 </ul>
 </td>
 </tr>
@@ -304,7 +392,7 @@ Acquires a write lock.  Deleting from an <a class="reference internal" href="#in
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>directory</em> &#8211; directory path or lucene Directory</li>
+<li><em>directory</em> &#8211; directory path, lucene Directory, or lucene IndexReader</li>
 <li><em>analyzer</em> &#8211; lucene Analyzer, default StandardAnalyzer</li>
 </ul>
 </td>
@@ -373,7 +461,7 @@ Acquires a write lock.  Deleting from an <a class="reference internal" href="#in
 <h3>IndexWriter<a class="headerlink" href="#indexwriter" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.indexers.IndexWriter">
-<em class="property">class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexWriter</tt><big>(</big><em>directory=None</em>, <em>mode='a'</em>, <em>analyzer=None</em>, <em>mfl=10000</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">IndexWriter</tt><big>(</big><em>directory=None</em>, <em>mode='a'</em>, <em>analyzer=None</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a title="engine.indexers.IndexWriter" class="reference internal" href="#engine.indexers.IndexWriter"><tt class="xref docutils literal"><span class="pre">IndexWriter</span></tt></a></p>
 <p>Inherited lucene IndexWriter.
 Supports setting fields parameters explicitly, so documents can be represented as dictionaries.</p>
@@ -385,7 +473,6 @@ Supports setting fields parameters explicitly, so documents can be represented a
 <li><em>directory</em> &#8211; directory path or lucene Directory, default RAMDirectory</li>
 <li><em>mode</em> &#8211; file mode (rwa), except updating (+) is implied</li>
 <li><em>analyzer</em> &#8211; lucene Analyzer, default StandardAnalyzer</li>
-<li><em>mfl</em> &#8211; MaxFieldLength, default IndexWriter.DEFAULT_MAX_FIELD_LENGTH</li>
 </ul>
 </td>
 </tr>
@@ -440,26 +527,7 @@ Document is comprised of name: value pairs, where the values may be one or multi
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>query</em> &#8211; <a title="engine.indexers.Searcher.search" class="reference internal" href="#engine.indexers.Searcher.search"><tt class="xref docutils literal"><span class="pre">Searcher.search()</span></tt></a> compatible query, or optimally a name and value</li>
-<li><em>options</em> &#8211; additional <a title="engine.indexers.IndexWriter.parse" class="reference internal" href="#engine.indexers.IndexWriter.parse"><tt class="xref docutils literal"><span class="pre">parse()</span></tt></a> options</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="engine.indexers.IndexWriter.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.parse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return lucene parsed Query.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>field</em> &#8211; default query field name</li>
-<li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
-<li><em>attrs</em> &#8211; additional attributes to set on the parser</li>
+<li><em>options</em> &#8211; additional <a title="engine.indexers.Analyzer.parse" class="reference internal" href="#engine.indexers.Analyzer.parse"><tt class="xref docutils literal"><span class="pre">Analyzer.parse()</span></tt></a> options</li>
 </ul>
 </td>
 </tr>
@@ -708,38 +776,6 @@ Provides a read-only sequence interface to hit objects.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="numericfield">
-<h3>NumericField<a class="headerlink" href="#numericfield" title="Permalink to this headline">¶</a></h3>
-<dl class="class">
-<dt id="engine.documents.NumericField">
-<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">NumericField</tt><big>(</big><em>name</em>, <em>step=None</em>, <em>store=False</em>, <em>index=True</em><big>)</big><a class="headerlink" href="#engine.documents.NumericField" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a title="engine.documents.Field" class="reference internal" href="#engine.documents.Field"><tt class="xref docutils literal"><span class="pre">engine.documents.Field</span></tt></a></p>
-<p>Field which indexes numbers in a prefix tree.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>name</em> &#8211; name of field</li>
-<li><em>step</em> &#8211; precision step</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-<dl class="method">
-<dt id="engine.documents.NumericField.items">
-<tt class="descname">items</tt><big>(</big><em>*values</em><big>)</big><a class="headerlink" href="#engine.documents.NumericField.items" title="Permalink to this definition">¶</a></dt>
-<dd>Generate lucene NumericFields suitable for adding to a document.</dd></dl>
-
-<dl class="method">
-<dt id="engine.documents.NumericField.range">
-<tt class="descname">range</tt><big>(</big><em>start</em>, <em>stop</em>, <em>lower=True</em>, <em>upper=False</em><big>)</big><a class="headerlink" href="#engine.documents.NumericField.range" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene NumericRangeQuery.</dd></dl>
-
-</dd></dl>
-
-</div>
 <div class="section" id="prefixfield">
 <h3>PrefixField<a class="headerlink" href="#prefixfield" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
@@ -838,6 +874,24 @@ Optimized to handle duplicate values.</dd></dl>
 <p>Field which indexes each datetime component in sortable ISO format: Y-m-d H:M:S.
 Works with datetimes, dates, and any object whose string form is a prefix of ISO.</p>
 <dl class="method">
+<dt id="engine.documents.DateTimeField.duration">
+<tt class="descname">duration</tt><big>(</big><em>date</em>, <em>days=0</em>, <em>**delta</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField.duration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return date range query within time span of date.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>date</em> &#8211; origin date or tuple</li>
+<li><em>days, delta</em> &#8211; timedelta parameters</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="engine.documents.DateTimeField.getname">
 <tt class="descname">getname</tt><big>(</big><em>depth</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField.getname" title="Permalink to this definition">¶</a></dt>
 <dd>Return component field name for given depth.</dd></dl>
@@ -865,20 +919,186 @@ May produce invalid dates, but the query is still correct.</dd></dl>
 
 <dl class="method">
 <dt id="engine.documents.DateTimeField.within">
-<tt class="descname">within</tt><big>(</big><em>days=0</em>, <em>weeks=0</em>, <em>utc=False</em>, <em>**delta</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField.within" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">within</tt><big>(</big><em>days=0</em>, <em>weeks=0</em>, <em>utc=True</em>, <em>**delta</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField.within" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return date range query within current time and delta.
 If the delta is an exact number of days, then dates will be used.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>days, weeks</em> &#8211; number of days to offset from today</li>
 <li><em>utc</em> &#8211; optionally use utc instead of local time</li>
+<li><em>delta</em> &#8211; additional timedelta parameters</li>
 </ul>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Params delta:</th><td class="field-body"><p class="first last">additional timedelta parameters</p>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-engine.numeric">
+<h2>numeric<a class="headerlink" href="#module-engine.numeric" title="Permalink to this headline">¶</a></h2>
+<p>Wrappers for lucene NumericFields, available since version 2.9.
+Alternative implementations of spatial and datetime fields.</p>
+<div class="section" id="numericfield">
+<h3>NumericField<a class="headerlink" href="#numericfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.numeric.NumericField">
+<em class="property">class </em><tt class="descclassname">engine.numeric.</tt><tt class="descname">NumericField</tt><big>(</big><em>name</em>, <em>step=None</em>, <em>store=False</em>, <em>index=True</em><big>)</big><a class="headerlink" href="#engine.numeric.NumericField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.documents.Field" class="reference internal" href="#engine.documents.Field"><tt class="xref docutils literal"><span class="pre">engine.documents.Field</span></tt></a></p>
+<p>Field which indexes numbers in a prefix tree.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>name</em> &#8211; name of field</li>
+<li><em>step</em> &#8211; precision step</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.numeric.NumericField.items">
+<tt class="descname">items</tt><big>(</big><em>*values</em><big>)</big><a class="headerlink" href="#engine.numeric.NumericField.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate lucene NumericFields suitable for adding to a document.</dd></dl>
+
+<dl class="method">
+<dt id="engine.numeric.NumericField.range">
+<tt class="descname">range</tt><big>(</big><em>start</em>, <em>stop</em>, <em>lower=True</em>, <em>upper=False</em><big>)</big><a class="headerlink" href="#engine.numeric.NumericField.range" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene NumericRangeQuery.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="pointfield">
+<h3>PointField<a class="headerlink" href="#pointfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.numeric.PointField">
+<em class="property">class </em><tt class="descclassname">engine.numeric.</tt><tt class="descname">PointField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.numeric.PointField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">engine.spatial.SpatialField</span></tt>, <a title="engine.numeric.NumericField" class="reference internal" href="#engine.numeric.NumericField"><tt class="xref docutils literal"><span class="pre">engine.numeric.NumericField</span></tt></a></p>
+<p>Geospatial points, which create a tiered index of tiles.
+Points must still be stored if exact distances are required upon retrieval.</p>
+<dl class="method">
+<dt id="engine.numeric.PointField.items">
+<tt class="descname">items</tt><big>(</big><em>*points</em><big>)</big><a class="headerlink" href="#engine.numeric.PointField.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate tiles from points (lng, lat).</dd></dl>
+
+<dl class="method">
+<dt id="engine.numeric.PointField.prefix">
+<tt class="descname">prefix</tt><big>(</big><em>tile</em><big>)</big><a class="headerlink" href="#engine.numeric.PointField.prefix" title="Permalink to this definition">¶</a></dt>
+<dd>Return range query which is equivalent to the prefix of the tile.</dd></dl>
+
+<dl class="method">
+<dt id="engine.numeric.PointField.tiles">
+<tt class="descname">tiles</tt><big>(</big><em>points</em><big>)</big><a class="headerlink" href="#engine.numeric.PointField.tiles" title="Permalink to this definition">¶</a></dt>
+<dd>Generate tile values from points (lng, lat).</dd></dl>
+
+<dl class="method">
+<dt id="engine.numeric.PointField.within">
+<tt class="descname">within</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>distance</em>, <em>limit=4</em><big>)</big><a class="headerlink" href="#engine.numeric.PointField.within" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return range queries for any tiles which could be within distance of given point.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>lng, lat</em> &#8211; point</li>
+<li><em>distance</em> &#8211; search radius in meters</li>
+<li><em>limit</em> &#8211; maximum number of tiles to consider</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="polygonfield">
+<h3>PolygonField<a class="headerlink" href="#polygonfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.numeric.PolygonField">
+<em class="property">class </em><tt class="descclassname">engine.numeric.</tt><tt class="descname">PolygonField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.numeric.PolygonField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.numeric.PointField" class="reference internal" href="#engine.numeric.PointField"><tt class="xref docutils literal"><span class="pre">engine.numeric.PointField</span></tt></a></p>
+<p>PointField which implicitly supports polygons (technically linear rings of points).
+Differs from points in that all necessary tiles are included to match the points&#8217; boundary.
+As with PointField, the tiered tiles are a search optimization, not a distance calculator.</p>
+<dl class="method">
+<dt id="engine.numeric.PolygonField.items">
+<tt class="descname">items</tt><big>(</big><em>*polygons</em><big>)</big><a class="headerlink" href="#engine.numeric.PolygonField.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate all covered tiles from polygons.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="id1">
+<h3>DateTimeField<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.numeric.DateTimeField">
+<em class="property">class </em><tt class="descclassname">engine.numeric.</tt><tt class="descname">DateTimeField</tt><big>(</big><em>name</em>, <em>step=None</em>, <em>store=False</em>, <em>index=True</em><big>)</big><a class="headerlink" href="#engine.numeric.DateTimeField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.numeric.NumericField" class="reference internal" href="#engine.numeric.NumericField"><tt class="xref docutils literal"><span class="pre">engine.numeric.NumericField</span></tt></a></p>
+<p>Field which indexes datetimes as a NumericField of timestamps.
+Supports datetimes, dates, and any prefix of time tuples.</p>
+<dl class="method">
+<dt id="engine.numeric.DateTimeField.duration">
+<tt class="descname">duration</tt><big>(</big><em>date</em>, <em>days=0</em>, <em>**delta</em><big>)</big><a class="headerlink" href="#engine.numeric.DateTimeField.duration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return date range query within time span of date.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>date</em> &#8211; origin date or tuple</li>
+<li><em>days, delta</em> &#8211; timedelta parameters</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.numeric.DateTimeField.items">
+<tt class="descname">items</tt><big>(</big><em>*dates</em><big>)</big><a class="headerlink" href="#engine.numeric.DateTimeField.items" title="Permalink to this definition">¶</a></dt>
+<dd>Generate lucene NumericFields of timestamps.</dd></dl>
+
+<dl class="method">
+<dt id="engine.numeric.DateTimeField.prefix">
+<tt class="descname">prefix</tt><big>(</big><em>date</em><big>)</big><a class="headerlink" href="#engine.numeric.DateTimeField.prefix" title="Permalink to this definition">¶</a></dt>
+<dd>Return range query which matches the date prefix.</dd></dl>
+
+<dl class="method">
+<dt id="engine.numeric.DateTimeField.range">
+<tt class="descname">range</tt><big>(</big><em>start</em>, <em>stop</em>, <em>lower=True</em>, <em>upper=False</em><big>)</big><a class="headerlink" href="#engine.numeric.DateTimeField.range" title="Permalink to this definition">¶</a></dt>
+<dd>Return NumericRangeQuery of timestamps.</dd></dl>
+
+<dl class="method">
+<dt id="engine.numeric.DateTimeField.timestamp">
+<tt class="descname">timestamp</tt><big>(</big><em>date</em><big>)</big><a class="headerlink" href="#engine.numeric.DateTimeField.timestamp" title="Permalink to this definition">¶</a></dt>
+<dd>Return utc timestamp from date or time tuple.</dd></dl>
+
+<dl class="method">
+<dt id="engine.numeric.DateTimeField.within">
+<tt class="descname">within</tt><big>(</big><em>days=0</em>, <em>weeks=0</em>, <em>utc=True</em>, <em>**delta</em><big>)</big><a class="headerlink" href="#engine.numeric.DateTimeField.within" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return date range query within current time and delta.
+If the delta is an exact number of days, then dates will be used.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>days, weeks</em> &#8211; number of days to offset from today</li>
+<li><em>utc</em> &#8211; optionally use utc instead of local time</li>
+<li><em>delta</em> &#8211; additional timedelta parameters</li>
+</ul>
 </td>
 </tr>
 </tbody>
@@ -1060,17 +1280,17 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="method">
 <dt id="engine.queries.Filter.bits">
 <tt class="descname">bits</tt><big>(</big><em>reader=None</em><big>)</big><a class="headerlink" href="#engine.queries.Filter.bits" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return cached BitSet.
-Although this method is deprecated in Lucene, it&#8217;s in use in PyLucene.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>reader</em> &#8211; ignored IndexReader, necessary for lucene api</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
+<dd>Return cached BitSet, reader is ignored.  Deprecated.</dd></dl>
+
+<dl class="method">
+<dt id="engine.queries.Filter.getDocIdSet">
+<tt class="descname">getDocIdSet</tt><big>(</big><em>reader=None</em><big>)</big><a class="headerlink" href="#engine.queries.Filter.getDocIdSet" title="Permalink to this definition">¶</a></dt>
+<dd>Return cached OpenBitSet, reader is ignored.</dd></dl>
+
+<dl class="method">
+<dt id="engine.queries.Filter.overlap">
+<tt class="descname">overlap</tt><big>(</big><em>other</em>, <em>reader=None</em><big>)</big><a class="headerlink" href="#engine.queries.Filter.overlap" title="Permalink to this definition">¶</a></dt>
+<dd>Return intersection count of the filters.</dd></dl>
 
 </dd></dl>
 
@@ -1116,8 +1336,8 @@ See <a class="reference external" href="http://www.maptiler.org/google-maps-coor
 
 <dl class="method">
 <dt id="engine.spatial.Tiler.walk">
-<tt class="descname">walk</tt><big>(</big><em>bottomleft</em>, <em>topright</em>, <em>precision</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.walk" title="Permalink to this definition">¶</a></dt>
-<dd>Generate tile keys which span bounding box.</dd></dl>
+<tt class="descname">walk</tt><big>(</big><em>left</em>, <em>bottom</em>, <em>right</em>, <em>top</em>, <em>precision</em><big>)</big><a class="headerlink" href="#engine.spatial.Tiler.walk" title="Permalink to this definition">¶</a></dt>
+<dd>Generate tile keys which span bounding box of meters.</dd></dl>
 
 <dl class="method">
 <dt id="engine.spatial.Tiler.zoom">
@@ -1127,56 +1347,24 @@ See <a class="reference external" href="http://www.maptiler.org/google-maps-coor
 </dd></dl>
 
 </div>
-<div class="section" id="pointfield">
-<h3>PointField<a class="headerlink" href="#pointfield" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id2">
+<h3>PointField<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.spatial.PointField">
 <em class="property">class </em><tt class="descclassname">engine.spatial.</tt><tt class="descname">PointField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a>, <a title="engine.spatial.Tiler" class="reference internal" href="#engine.spatial.Tiler"><tt class="xref docutils literal"><span class="pre">engine.spatial.Tiler</span></tt></a></p>
+<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">engine.spatial.SpatialField</span></tt>, <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a></p>
 <p>Geospatial points, which create a tiered index of tiles.
 Points must still be stored if exact distances are required upon retrieval.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>precision</em> &#8211; zoom level, i.e., length of encoded value</td>
-</tr>
-</tbody>
-</table>
 <dl class="method">
 <dt id="engine.spatial.PointField.items">
 <tt class="descname">items</tt><big>(</big><em>*points</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.items" title="Permalink to this definition">¶</a></dt>
 <dd>Generate tiles from points (lng, lat).</dd></dl>
 
-<dl class="method">
-<dt id="engine.spatial.PointField.near">
-<tt class="descname">near</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.near" title="Permalink to this definition">¶</a></dt>
-<dd>Return prefix query for point at given precision.</dd></dl>
-
-<dl class="method">
-<dt id="engine.spatial.PointField.within">
-<tt class="descname">within</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>distance</em>, <em>limit=4</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField.within" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return prefix queries for any tiles which could be within distance of given point.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>lng, lat</em> &#8211; point</li>
-<li><em>distance</em> &#8211; search radius in meters</li>
-<li><em>limit</em> &#8211; maximum number of tiles to consider</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 </dd></dl>
 
 </div>
-<div class="section" id="polygonfield">
-<h3>PolygonField<a class="headerlink" href="#polygonfield" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id3">
+<h3>PolygonField<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.spatial.PolygonField">
 <em class="property">class </em><tt class="descclassname">engine.spatial.</tt><tt class="descname">PolygonField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PolygonField" title="Permalink to this definition">¶</a></dt>
@@ -1205,6 +1393,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
             <ul>
 <li><a class="reference external" href="">engine</a><ul>
 <li><a class="reference external" href="#module-engine.indexers">indexers</a><ul>
+<li><a class="reference external" href="#tokenfilter">TokenFilter</a></li>
 <li><a class="reference external" href="#analyzer">Analyzer</a></li>
 <li><a class="reference external" href="#indexreader">IndexReader</a></li>
 <li><a class="reference external" href="#searcher">Searcher</a></li>
@@ -1221,10 +1410,16 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 <li><a class="reference external" href="#hits">Hits</a></li>
 <li><a class="reference external" href="#field">Field</a></li>
 <li><a class="reference external" href="#formatfield">FormatField</a></li>
-<li><a class="reference external" href="#numericfield">NumericField</a></li>
 <li><a class="reference external" href="#prefixfield">PrefixField</a></li>
 <li><a class="reference external" href="#nestedfield">NestedField</a></li>
 <li><a class="reference external" href="#datetimefield">DateTimeField</a></li>
+</ul>
+</li>
+<li><a class="reference external" href="#module-engine.numeric">numeric</a><ul>
+<li><a class="reference external" href="#numericfield">NumericField</a></li>
+<li><a class="reference external" href="#pointfield">PointField</a></li>
+<li><a class="reference external" href="#polygonfield">PolygonField</a></li>
+<li><a class="reference external" href="#id1">DateTimeField</a></li>
 </ul>
 </li>
 <li><a class="reference external" href="#module-engine.queries">queries</a><ul>
@@ -1236,8 +1431,8 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 </li>
 <li><a class="reference external" href="#module-engine.spatial">spatial</a><ul>
 <li><a class="reference external" href="#tiler">Tiler</a></li>
-<li><a class="reference external" href="#pointfield">PointField</a></li>
-<li><a class="reference external" href="#polygonfield">PolygonField</a></li>
+<li><a class="reference external" href="#id2">PointField</a></li>
+<li><a class="reference external" href="#id3">PolygonField</a></li>
 </ul>
 </li>
 </ul>
@@ -1287,7 +1482,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.3 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.4 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
