@@ -48,7 +48,7 @@ class Query(object):
         return cls(lucene.PrefixQuery, lucene.Term(name, value))
     @classmethod
     def range(cls, name, start, stop, lower=True, upper=False):
-        "Return lucene ConstantScoreRangeQuery, by default with a half-open interval."
+        "Return lucene RangeQuery, by default with a half-open interval."
         base = lucene.TermRangeQuery if hasattr(lucene, 'TermRangeQuery') else lucene.ConstantScoreRangeQuery
         return cls(base, name, start, stop, lower, upper)
     @classmethod
