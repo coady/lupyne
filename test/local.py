@@ -40,6 +40,7 @@ class TestCase(BaseTest):
     
     def testInterface(self):
         "Indexer and document interfaces."
+        self.assertRaises(TypeError, engine.IndexSearcher)
         analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
         stemmer = engine.Analyzer(analyzer, lucene.PorterStemFilter, typeAsPayload)
         assert [token.termText() if isinstance(token, lucene.Token) else token.term for token in stemmer.tokens('hello worlds')] == ['hello', 'world']

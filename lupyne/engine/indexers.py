@@ -21,6 +21,12 @@ class Atomic(object):
 Atomic.register(basestring)
 Atomic.register(lucene.TokenStream)
 
+class closing(set):
+    "Manage lifespan of registered objects, similar to contextlib.closing."
+    def __del__(self):
+        for obj in self:
+            obj.close()
+
 class TokenFilter(lucene.PythonTokenFilter):
     """Create an iterable lucene TokenFilter from a TokenStream.
     In lucene version 2, call on any iterable of tokens.
@@ -271,7 +277,7 @@ class Searcher(object):
             analyzer = self.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else self.StandardAnalyzer()
         self.analyzer = analyzer
     def __del__(self):
-        if str(self) != '<null>':
+        if hash(self):
             self.close()
     def __getitem__(self, id):
         return Document(self.doc(id))
@@ -350,7 +356,7 @@ class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
     def __init__(self, directory, analyzer=None):
-        self.closing = set()
+        self.closing = closing()
         if isinstance(directory, basestring):
             if hasattr(lucene.FSDirectory, 'open'):
                 directory = lucene.FSDirectory.open(lucene.File(directory))
@@ -359,11 +365,6 @@ class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
             self.closing.add(directory)
         Searcher.__init__(self, directory, analyzer)
         self.filters = {}
-    def __del__(self):
-        if str(self) != '<null>':
-            self.close()
-        for obj in self.closing:
-            obj.close()
     def facets(self, ids, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
@@ -412,7 +413,7 @@ class IndexWriter(lucene.IndexWriter):
     __del__ = IndexSearcher.__del__.im_func
     parse = Searcher.parse.im_func
     def __init__(self, directory=None, mode='a', analyzer=None):
-        self.closing = set()
+        self.closing = closing()
         if analyzer is None:
             analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
             self.closing.add(analyzer)
