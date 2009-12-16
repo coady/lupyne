@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>engine &mdash; LuPyne v0.4 documentation</title>
+    <title>engine &mdash; LuPyne v0.4+ documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.4',
+        VERSION:     '0.4+',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.4 documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.4+ documentation" href="index.html" />
     <link rel="next" title="server" href="server.html" />
     <link rel="prev" title="Welcome to LuPyne’s documentation!" href="index.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.4 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.4+ documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -126,7 +126,8 @@ attributes are cached as properties to create a Token interface.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>field</em> &#8211; default query field name or sequence of names</li>
+<li><em>query</em> &#8211; query string</li>
+<li><em>field</em> &#8211; default query field name, sequence of names, or (in lucene 2.9 or higher) boost mapping</li>
 <li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
 <li><em>version</em> &#8211; lucene Version string, leave blank for deprecated constructor</li>
 <li><em>attrs</em> &#8211; additional attributes to set on the parser</li>
@@ -1172,7 +1173,7 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="classmethod">
 <dt id="engine.queries.Query.range">
 <em class="property">classmethod </em><tt class="descname">range</tt><big>(</big><em>name</em>, <em>start</em>, <em>stop</em>, <em>lower=True</em>, <em>upper=False</em><big>)</big><a class="headerlink" href="#engine.queries.Query.range" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene ConstantScoreRangeQuery, by default with a half-open interval.</dd></dl>
+<dd>Return lucene RangeQuery, by default with a half-open interval.</dd></dl>
 
 <dl class="classmethod">
 <dt id="engine.queries.Query.span">
@@ -1482,7 +1483,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.4 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.4+ documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

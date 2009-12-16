@@ -112,18 +112,24 @@ class Analyzer(lucene.PythonAnalyzer):
     def parse(self, query, field='', op='', version='current', **attrs):
         """Return parsed lucene Query.
         
-        :param field: default query field name or sequence of names
+        :param query: query string
+        :param field: default query field name, sequence of names, or (in lucene 2.9 or higher) boost mapping
         :param op: default query operator ('or', 'and')
         :param version: lucene Version string, leave blank for deprecated constructor
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        parser = lucene.QueryParser if isinstance(field, basestring) else lucene.MultiFieldQueryParser
-        version = 'LUCENE_' + version.replace('.', '').upper()
-        try:
-            parser = parser(getattr(lucene.Version, version), field, self)
-        except (AttributeError, lucene.InvalidArgsError):
-            parser = parser(field, self) # 2.4 lacks Version, 2.9.0 lacks constructor
+        args = []
+        if version and lucene.VERSION >= '2.9.1':
+            args += getattr(lucene.Version, 'LUCENE_' + version.replace('.', '').upper()),
+        if isinstance(field, collections.Mapping):
+            boosts = lucene.HashMap()
+            for key in field:
+                boosts.put(key, lucene.Float(field[key]))
+            args += list(field), self, boosts
+        else:
+            args += field, self
+        parser = (lucene.QueryParser if isinstance(field, basestring) else lucene.MultiFieldQueryParser)(*args)
         if op:
             parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
         for name, value in attrs.items():

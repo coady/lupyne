@@ -51,6 +51,8 @@ class TestCase(BaseTest):
             assert token.type == token.payload == '<ALPHANUM>'
             assert token.offset == (0, 5)
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
+        if lucene.VERSION >= '2.9':
+            assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
         indexer = engine.Indexer(analyzer=stemmer)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')

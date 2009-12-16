@@ -96,7 +96,7 @@ engine.documents.NestedField class engine.html
 engine.spatial.Tiler.radiate method engine.html
 engine.documents.PrefixField.join method engine.html
 engine.documents.PrefixField class engine.html
-client.Response class client.html
+engine.indexers.Analyzer.tokens method engine.html
 client.Resources.broadcast method client.html
 engine.indexers.IndexReader.count method engine.html
 engine.indexers.TokenFilter.type attribute engine.html
@@ -159,7 +159,7 @@ client.Shards.resources attribute client.html
 engine.queries.BooleanQuery class engine.html
 engine.indexers.IndexReader.spans method engine.html
 engine.documents.Hit.dict method engine.html
-engine.indexers.Analyzer.tokens method engine.html
+client.Response class client.html
 engine.documents.Document.get method engine.html
 engine.documents.PrefixField.indices method engine.html
 engine.queries.BooleanQuery.__getitem__ method engine.html
