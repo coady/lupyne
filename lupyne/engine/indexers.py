@@ -65,11 +65,11 @@ class TokenFilter(lucene.PythonTokenFilter):
     @property
     def payload(self):
         "Payload bytes."
-        data = self.Payload.payload.data
-        return data and data.string_
+        payload = self.Payload.payload
+        return payload and getattr(payload.data, 'string_', None)
     @payload.setter
     def payload(self, data):
-        self.Payload.payload = lucene.Payload(lucene.JArray_byte(bytes(data)))
+        self.Payload.payload = lucene.Payload(lucene.JArray_byte(data))
     @property
     def positionIncrement(self):
         "Position relative to the previous token."

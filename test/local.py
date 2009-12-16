@@ -26,7 +26,7 @@ else:
         "Custom implementation of lucene TypeAsPayloadTokenFilter."
         def incrementToken(self):
             result = engine.TokenFilter.incrementToken(self)
-            self.payload = self.type
+            self.payload = bytes(self.type)
             return result
 
 class BaseTest(unittest.TestCase):
@@ -43,7 +43,13 @@ class TestCase(BaseTest):
         self.assertRaises(TypeError, engine.IndexSearcher)
         analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
         stemmer = engine.Analyzer(analyzer, lucene.PorterStemFilter, typeAsPayload)
-        assert [token.termText() if isinstance(token, lucene.Token) else token.term for token in stemmer.tokens('hello worlds')] == ['hello', 'world']
+        token = stemmer.tokens('hello').next()
+        assert token.positionIncrement == 1
+        if not isinstance(token, lucene.Token):
+            assert engine.TokenFilter(lucene.EmptyTokenStream()).payload is None
+            assert token.term == 'hello'
+            assert token.type == token.payload == '<ALPHANUM>'
+            assert token.offset == (0, 5)
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         indexer = engine.Indexer(analyzer=stemmer)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
