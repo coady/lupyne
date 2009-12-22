@@ -154,6 +154,9 @@ class TestCase(BaseTest):
         assert [doc['amendment'] for doc in result['docs']] == ['17', '10', '9', '4', '2']
         result = resource.get('/search', q='text:people', count=5, sort='-article,amendment:int')
         assert [doc.get('amendment') for doc in result['docs']] == [None, None, '1', '2', '4']
+        result = resource.get('/search', q='text:people', facets='article,amendment')
+        for name, keys in [('article', ['1', 'Preamble']), ('amendment', ['1', '10', '17', '2', '4', '9'])]:
+            assert sorted(key for key, value in result['facets'][name].items() if value) == keys
         result = resource.get('/search', q='text:freedom')
         assert result['count'] == 1
         doc, = result['docs']

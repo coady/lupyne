@@ -104,7 +104,7 @@ class WebSearcher(object):
             doc = self.indexer[id]
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
-    def search(self, q=None, count=None, fields='', multifields='', sort=None):
+    def search(self, q=None, count=None, fields='', multifields='', sort=None, facets=''):
         """Run query and return documents.
         
         **GET** /search?
@@ -120,7 +120,9 @@ class WebSearcher(object):
             
             &sort=\ [-]*chars*[:*chars*],...
             
-            :return: {"count": *int*, "docs": [{"__id__": *int*, "__score__": *number*, *string*: *string*\|\ *array*,... },... ]}
+            &facets=\ *chars*,...
+            
+            :return: {"count": *int*, "docs": [{"__id__": *int*, "__score__": *number*, *string*: *string*\|\ *array*,... },... ], "facets": {... }}
         """
         with handleBadRequest(ValueError):
             count = count and int(count)
@@ -131,7 +133,10 @@ class WebSearcher(object):
             sort = [lucene.SortField(name, getattr(lucene.SortField, type.upper() or 'STRING'), (reverse == '-')) for reverse, name, type in sort]
         hits = self.indexer.search(q, count=count, sort=sort)
         docs = [hit.dict(*multifields, **fields) for hit in hits]
-        return {'count': hits.count, 'docs': docs}
+        result = {'count': hits.count, 'docs': docs}
+        if facets:
+            result['facets'] = self.indexer.facets(hits.ids, *facets.split(','))
+        return result
     @cherrypy.expose
     def terms(self, name='', value=':', *args, **options):
         """Return data about indexed terms.
@@ -222,14 +227,14 @@ class WebIndexer(WebSearcher):
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
-    def search(self, q=None, count=None, fields='', multifields='', sort=None):
+    def search(self, q=None, count=None, fields='', multifields='', sort=None, facets=''):
         """Run or delete a query.
         
         **DELETE** /search?q=\ *chars*
             Delete documents which match query.
         """
         if cherrypy.request.method != 'DELETE':
-            return WebSearcher.search(self, q, count, fields, multifields, sort)
+            return WebSearcher.search(self, q, count, fields, multifields, sort, facets)
         self.indexer.delete(q)
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
