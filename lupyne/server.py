@@ -20,7 +20,7 @@ from contextlib import contextmanager
 import lucene
 import cherrypy
 from cherrypy.wsgiserver import WorkerThread
-from engine import Indexer, IndexSearcher
+import engine
 
 def json_tool():
     "Transform responses into json format."
@@ -61,11 +61,11 @@ def handleBadRequest(exception):
         raise cherrypy.HTTPError(httplib.BAD_REQUEST, str(exc))
 
 class WebSearcher(object):
-    "Dispatch root with a delegated IndexSearcher."
+    "Dispatch root with a delegated Searcher."
     _cp_config = {'tools.json.on': True, 'tools.allow.on': True,
         'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'text/x-json']}
-    def __init__(self, *args, **kwargs):
-        self.indexer = IndexSearcher(*args, **kwargs)
+    def __init__(self, *directories, **kwargs):
+        self.indexer = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
     @cherrypy.expose
     def index(self):
         """Return index information.
@@ -196,7 +196,7 @@ class WebSearcher(object):
 class WebIndexer(WebSearcher):
     "Dispatch root which extends searcher to include write methods."
     def __init__(self, *args, **kwargs):
-        self.indexer = Indexer(*args, **kwargs)
+        self.indexer = engine.Indexer(*args, **kwargs)
         self.lock = threading.Lock()
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])

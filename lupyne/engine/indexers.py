@@ -275,16 +275,26 @@ class IndexReader(object):
 
 class Searcher(object):
     "Mixin interface common among searchers."
-    class StandardAnalyzer(lucene.StandardAnalyzer):
-        __del__ = lucene.StandardAnalyzer.close
     def __init__(self, arg, analyzer=None):
         super(Searcher, self).__init__(arg)
         if analyzer is None:
-            analyzer = self.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else self.StandardAnalyzer()
+            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
+            self.closing.add(analyzer)
         self.analyzer = analyzer
+        self.filters = {}
     def __del__(self):
         if hash(self):
             self.close()
+    def open(self, *directories):
+        self.closing = closing()
+        for directory in directories:
+            if isinstance(directory, basestring):
+                if hasattr(lucene.FSDirectory, 'open'):
+                    directory = lucene.FSDirectory.open(lucene.File(directory))
+                else:
+                    directory = lucene.FSDirectory.getDirectory(directory)
+                self.closing.add(directory)
+            yield directory
     def __getitem__(self, id):
         return Document(self.doc(id))
     def parse(self, query, *args, **kwargs):
@@ -354,23 +364,6 @@ class Searcher(object):
         scoredocs = list(topdocs.scoreDocs)
         ids, scores = (map(operator.attrgetter(name), scoredocs) for name in ('doc', 'score'))
         return Hits(self, ids, scores, topdocs.totalHits)
-
-class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
-    """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
-    
-    :param directory: directory path, lucene Directory, or lucene IndexReader
-    :param analyzer: lucene Analyzer, default StandardAnalyzer
-    """
-    def __init__(self, directory, analyzer=None):
-        self.closing = closing()
-        if isinstance(directory, basestring):
-            if hasattr(lucene.FSDirectory, 'open'):
-                directory = lucene.FSDirectory.open(lucene.File(directory))
-            else:
-                directory = lucene.FSDirectory.getDirectory(directory)
-            self.closing.add(directory)
-        Searcher.__init__(self, directory, analyzer)
-        self.filters = {}
     def facets(self, ids, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
@@ -394,15 +387,27 @@ class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
                 counts[name][value] = ids.overlap(filters[value], self.indexReader)
         return dict(counts)
 
-class MultiSearcher(Searcher, lucene.MultiSearcher):
-    """Inherited lucene MultiSearcher.
+class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
+    """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
     
-    :param searchers: lucene.Searchers or directory
+    :param directory: directory path, lucene Directory, or lucene IndexReader
+    :param analyzer: lucene Analyzer, default StandardAnalyzer
+    """
+    def __init__(self, directory, analyzer=None):
+        Searcher.__init__(self, *self.open(directory), analyzer=analyzer)
+
+class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
+    """Inherited lucene MultiSearcher.
+    All sub searchers will be closed when the MultiSearcher is closed.
+    
+    :param searchers: directory paths, lucene Directories, lucene IndexReaders, or lucene Searchers
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
     def __init__(self, searchers, analyzer=None):
-        searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(searcher) for searcher in searchers]
+        searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(searcher) for searcher in self.open(*searchers)]
         Searcher.__init__(self, searchers, analyzer)
+        self.indexReader = lucene.MultiReader([lucene.IndexSearcher.cast_(searchable).indexReader for searchable in self.searchables], False)
+        self.closing.add(self.indexReader)
 
 class ParallelMultiSearcher(MultiSearcher, lucene.ParallelMultiSearcher):
     "Inherited lucene ParallelMultiSearcher."

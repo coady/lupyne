@@ -24,7 +24,7 @@ class BaseTest(local.BaseTest):
     def setUp(self):
         local.BaseTest.setUp(self)
         self.servers = [self.start(self.ports[0], self.tempdir)]
-        self.servers += [self.start(port, self.tempdir, '-r') for port in self.ports[1:]] # concurrent searchers
+        self.servers += [self.start(port, self.tempdir, self.tempdir, '-r') for port in self.ports[1:]] # concurrent searchers
     def tearDown(self):
         for server in self.servers:
             self.stop(server)

@@ -135,6 +135,10 @@ class TestCase(BaseTest):
         for doc in fixture.constitution.docs():
             indexer.add(doc)
         indexer.commit()
+        searcher = engine.MultiSearcher([indexer.directory, self.tempdir])
+        assert searcher.count() == len(searcher) == 2 * len(indexer)
+        assert searcher.facets(searcher, 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
+        del searcher
         assert len(indexer) == len(indexer.search()) == 35
         assert sorted(indexer.names()) == ['amendment', 'article', 'date', 'text']
         articles = list(indexer.terms('article'))

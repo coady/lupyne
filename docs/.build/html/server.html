@@ -66,8 +66,8 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 <h2>WebSearcher<a class="headerlink" href="#websearcher" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="server.WebSearcher">
-<em class="property">class </em><tt class="descclassname">server.</tt><tt class="descname">WebSearcher</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.WebSearcher" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dispatch root with a delegated IndexSearcher.</p>
+<em class="property">class </em><tt class="descclassname">server.</tt><tt class="descname">WebSearcher</tt><big>(</big><em>*directories</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.WebSearcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dispatch root with a delegated Searcher.</p>
 <dl class="method">
 <dt id="server.WebSearcher.docs">
 <tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=''</em>, <em>multifields=''</em><big>)</big><a class="headerlink" href="#server.WebSearcher.docs" title="Permalink to this definition">¶</a></dt>
@@ -121,7 +121,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 
 <dl class="method">
 <dt id="server.WebSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /search?</dt>
@@ -131,11 +131,12 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 <p>&amp;fields=<em>chars</em>,...</p>
 <p>&amp;multifields=<em>chars</em>,...</p>
 <p>&amp;sort=[-]*chars*[:<em>chars</em>],...</p>
+<p>&amp;facets=<em>chars</em>,...</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">return:</th><td class="field-body">{&#8220;count&#8221;: <em>int</em>, &#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>number</em>, <em>string</em>: <em>string</em>|<em>array</em>,... },... ]}</td>
+<tr class="field"><th class="field-name">return:</th><td class="field-body">{&#8220;count&#8221;: <em>int</em>, &#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>number</em>, <em>string</em>: <em>string</em>|<em>array</em>,... },... ], &#8220;facets&#8221;: {... }}</td>
 </tr>
 </tbody>
 </table>
@@ -293,7 +294,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 
 <dl class="method">
 <dt id="server.WebIndexer.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run or delete a query.</p>
 <dl class="docutils">
 <dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>

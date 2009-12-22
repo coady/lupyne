@@ -314,6 +314,11 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 <tt class="descname">__del__</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.__del__" title="Permalink to this definition">¶</a></dt>
 <dd>Closes index.</dd></dl>
 
+<dl class="attribute">
+<dt id="engine.indexers.Searcher.filters">
+<tt class="descname">filters</tt><a class="headerlink" href="#engine.indexers.Searcher.filters" title="Permalink to this definition">¶</a></dt>
+<dd>Mapping of cached filters, which are also used for facet counts.</dd></dl>
+
 <dl class="method">
 <dt id="engine.indexers.Searcher.count">
 <tt class="descname">count</tt><big>(</big><em>*query</em>, <em>**options</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.count" title="Permalink to this definition">¶</a></dt>
@@ -325,6 +330,24 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>query</em> &#8211; <a title="engine.indexers.Searcher.search" class="reference internal" href="#engine.indexers.Searcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> compatible query, or optimally a name and value</li>
 <li><em>options</em> &#8211; additional <a title="engine.indexers.Searcher.search" class="reference internal" href="#engine.indexers.Searcher.search"><tt class="xref docutils literal"><span class="pre">search()</span></tt></a> options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.facets">
+<tt class="descname">facets</tt><big>(</big><em>ids</em>, <em>*keys</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.facets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return mapping of document counts for the intersection with each facet.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>ids</em> &#8211; document ids</li>
+<li><em>keys</em> &#8211; field names, term tuples, or any keys to previously cached filters</li>
 </ul>
 </td>
 </tr>
@@ -400,29 +423,6 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 </tr>
 </tbody>
 </table>
-<dl class="attribute">
-<dt id="engine.indexers.IndexSearcher.filters">
-<tt class="descname">filters</tt><a class="headerlink" href="#engine.indexers.IndexSearcher.filters" title="Permalink to this definition">¶</a></dt>
-<dd>Mapping of cached filters, which are also used for facet counts.</dd></dl>
-
-<dl class="method">
-<dt id="engine.indexers.IndexSearcher.facets">
-<tt class="descname">facets</tt><big>(</big><em>ids</em>, <em>*keys</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexSearcher.facets" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return mapping of document counts for the intersection with each facet.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>ids</em> &#8211; document ids</li>
-<li><em>keys</em> &#8211; field names, term tuples, or any keys to previously cached filters</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 </dd></dl>
 
 </div>
@@ -431,14 +431,15 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 <dl class="class">
 <dt id="engine.indexers.MultiSearcher">
 <em class="property">class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">MultiSearcher</tt><big>(</big><em>searchers</em>, <em>analyzer=None</em><big>)</big><a class="headerlink" href="#engine.indexers.MultiSearcher" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a title="engine.indexers.Searcher" class="reference internal" href="#engine.indexers.Searcher"><tt class="xref docutils literal"><span class="pre">engine.indexers.Searcher</span></tt></a>, <a title="engine.indexers.MultiSearcher" class="reference internal" href="#engine.indexers.MultiSearcher"><tt class="xref docutils literal"><span class="pre">MultiSearcher</span></tt></a></p>
-<p>Inherited lucene MultiSearcher.</p>
+<dd><p>Bases: <a title="engine.indexers.Searcher" class="reference internal" href="#engine.indexers.Searcher"><tt class="xref docutils literal"><span class="pre">engine.indexers.Searcher</span></tt></a>, <a title="engine.indexers.MultiSearcher" class="reference internal" href="#engine.indexers.MultiSearcher"><tt class="xref docutils literal"><span class="pre">MultiSearcher</span></tt></a>, <a title="engine.indexers.IndexReader" class="reference internal" href="#engine.indexers.IndexReader"><tt class="xref docutils literal"><span class="pre">engine.indexers.IndexReader</span></tt></a></p>
+<p>Inherited lucene MultiSearcher.
+All sub searchers will be closed when the MultiSearcher is closed.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>searchers</em> &#8211; lucene.Searchers or directory</li>
+<li><em>searchers</em> &#8211; directory paths, lucene Directories, lucene IndexReaders, or lucene Searchers</li>
 <li><em>analyzer</em> &#8211; lucene Analyzer, default StandardAnalyzer</li>
 </ul>
 </td>

@@ -43,15 +43,14 @@ Searcher
 
     Closes index.
 
+  .. attribute:: filters
+
+    Mapping of cached filters, which are also used for facet counts.
+
 IndexSearcher
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.IndexSearcher
   :show-inheritance:
-  :members:
-
-  .. attribute:: filters
-
-    Mapping of cached filters, which are also used for facet counts.
 
 MultiSearcher
 ^^^^^^^^^^^^^
