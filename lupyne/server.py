@@ -128,10 +128,17 @@ class WebSearcher(object):
             count = count and int(count)
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
+        reverse = False
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort.split(','))
-            sort = [lucene.SortField(name, getattr(lucene.SortField, type.upper() or 'STRING'), (reverse == '-')) for reverse, name, type in sort]
-        hits = self.indexer.search(q, count=count, sort=sort)
+            sort = [(name, (type.upper() or 'STRING'), (reverse == '-')) for reverse, name, type in sort]
+            if count is None:
+                with handleBadRequest(ValueError):
+                    (name, type, reverse), = sort # only one sort field allowed with unlimited count
+                sort = self.indexer.comparator(name, type).__getitem__
+            else:
+                sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
+        hits = self.indexer.search(q, count=count, sort=sort, reverse=reverse)
         docs = [hit.dict(*multifields, **fields) for hit in hits]
         result = {'count': hits.count, 'docs': docs}
         if facets:
@@ -275,7 +282,7 @@ def main(root, path='', config=None):
 
 if __name__ == '__main__':
     import os, optparse
-    parser = optparse.OptionParser(usage='python %prog [index_directory]')
+    parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
     parser.add_option('-r', '--read-only', action='store_true', dest='read', help='expose only GET methods; no write lock')
     parser.add_option('-c', '--config', dest='config', help='optional configuration file or global json dict')
     options, args = parser.parse_args()
