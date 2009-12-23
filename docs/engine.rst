@@ -259,6 +259,12 @@ Tiler
 .. autoclass:: engine.spatial.Tiler
   :members:
 
+SpatialField
+^^^^^^^^^^^^^
+.. autoclass:: engine.spatial.SpatialField
+  :show-inheritance:
+  :members:
+
 PointField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.spatial.PointField

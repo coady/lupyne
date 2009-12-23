@@ -301,7 +301,8 @@ class TestCase(BaseTest):
     
     def testSpatial(self):
         "Spatial tile test."
-        for PointField in [engine.PointField] + [engine.numeric.PointField] * numeric:
+        for PolygonField in [engine.PolygonField] + [engine.numeric.PolygonField] * numeric:
+            PointField, = PolygonField.__bases__
             indexer = engine.Indexer(self.tempdir, 'w')
             for name, params in fixture.zipcodes.fields.items():
                 indexer.set(name, **params)
@@ -313,7 +314,7 @@ class TestCase(BaseTest):
                     indexer.add(doc, tile=[(lng, lat)], latitude=str(lat), longitude=str(lng))
                     if doc['city'] == 'Los Angeles':
                         points.append((lng, lat))
-            assert len(list(engine.PolygonField('', precision=15).items(points))) > len(points)
+            assert len(list(PolygonField('', precision=15).items(points))) > len(points)
             indexer.commit()
             city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
             hit, = indexer.search('zipcode:' + zipcode)

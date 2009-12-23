@@ -42,9 +42,12 @@ class NumericField(Field):
 class PointField(spatial.SpatialField, NumericField):
     __doc__ = spatial.PointField.__doc__
     items = spatial.PointField.items.im_func
-    def tiles(self, points):
-        "Generate tile values from points (lng, lat)."
-        for tile in spatial.SpatialField.tiles(self, points):
+    def tiles(self, points, span=False):
+        """Generate tile values from points (lng, lat).
+        
+        :param span: cover entire area of points, as if it were a polygon
+        """
+        for tile in spatial.SpatialField.tiles(self, points, span):
             yield int(tile, self.base)
     def prefix(self, tile):
         "Return range query which is equivalent to the prefix of the tile."

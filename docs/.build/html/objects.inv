@@ -17,7 +17,7 @@ client.Shards.choice method client.html
 client.Resources class client.html
 engine.queries.Query.all classmethod engine.html
 engine.queries.Query.span classmethod engine.html
-engine.numeric.DateTimeField.duration method engine.html
+client.Resources.request method client.html
 engine.numeric.PointField.tiles method engine.html
 client.Response.status attribute client.html
 engine.indexers.IndexReader.termvector method engine.html
@@ -37,7 +37,7 @@ engine.documents.Field class engine.html
 engine.queries.SpanQuery.__getitem__ method engine.html
 engine.indexers.TokenFilter.term attribute engine.html
 engine.numeric.DateTimeField class engine.html
-client.Resources.unicast method client.html
+engine.indexers.IndexWriter.__iadd__ method engine.html
 engine.indexers.IndexSearcher class engine.html
 engine.indexers.IndexWriter class engine.html
 engine.numeric.PointField.within method engine.html
@@ -45,6 +45,7 @@ server.WebIndexer.docs method server.html
 engine.queries.SpanQuery.near method engine.html
 client.Resource class client.html
 server.WebIndexer.commit method server.html
+client.Shards.multicast method client.html
 engine.numeric.DateTimeField.timestamp method engine.html
 engine.documents.NestedField.split method engine.html
 engine.numeric.PointField class engine.html
@@ -77,7 +78,7 @@ engine.indexers.TokenFilter.incrementToken method engine.html
 engine.spatial.Tiler.walk method engine.html
 client.Resource.request method client.html
 engine.indexers.IndexReader.__iter__ method engine.html
-engine.indexers.IndexWriter.__iadd__ method engine.html
+client.Resources.unicast method client.html
 engine.indexers.IndexWriter.segments attribute engine.html
 engine.spatial.PolygonField.items method engine.html
 server.WebSearcher.search method server.html
@@ -94,13 +95,15 @@ engine.documents.DateTimeField.prefix method engine.html
 engine.indexers.ParallelMultiSearcher class engine.html
 engine.documents.NestedField class engine.html
 engine.spatial.Tiler.radiate method engine.html
+engine.spatial.SpatialField.within method engine.html
 engine.documents.PrefixField.join method engine.html
 engine.documents.PrefixField class engine.html
-engine.indexers.Analyzer.tokens method engine.html
+client.Response class client.html
 client.Resources.broadcast method client.html
 engine.indexers.IndexReader.count method engine.html
 engine.indexers.TokenFilter.type attribute engine.html
 server.WebIndexer.fields method server.html
+engine.spatial.SpatialField.near method engine.html
 engine.indexers.IndexReader.names method engine.html
 engine.documents.Document.dict method engine.html
 client.Shards.broadcast method client.html
@@ -123,7 +126,7 @@ engine.indexers.Searcher.__getitem__ method engine.html
 engine.queries.Query.any classmethod engine.html
 engine.documents.DateTimeField.split method engine.html
 engine.queries.BooleanQuery.__iand__ method engine.html
-engine.numeric.DateTimeField.range method engine.html
+engine.spatial.PolygonField class engine.html
 client.Resources.choice method client.html
 server.WebIndexer.search method server.html
 client.Response.__nonzero__ method client.html
@@ -131,9 +134,9 @@ client.Response.reason attribute client.html
 engine.queries.Query.__and__ method engine.html
 engine.indexers.IndexReader.comparator method engine.html
 engine.indexers.Searcher.search method engine.html
-engine.spatial.PolygonField class engine.html
 engine.queries.Query.phrase classmethod engine.html
-client.Resources.request method client.html
+engine.numeric.DateTimeField.duration method engine.html
+engine.spatial.SpatialField.tiles method engine.html
 engine.documents.FormatField class engine.html
 engine.queries.Query.multiphrase classmethod engine.html
 engine.spatial.PointField class engine.html
@@ -150,8 +153,9 @@ engine.indexers.IndexReader.docs method engine.html
 engine.indexers.Searcher.filters attribute engine.html
 engine.indexers.IndexWriter.set method engine.html
 engine.documents.Hit class engine.html
-client.Shards.multicast method client.html
+engine.numeric.DateTimeField.range method engine.html
 engine.queries.Query.prefix classmethod engine.html
+engine.spatial.SpatialField class engine.html
 server.WebSearcher class server.html
 engine.queries.SpanQuery.__sub__ method engine.html
 client.Shards class client.html
@@ -159,7 +163,7 @@ client.Shards.resources attribute client.html
 engine.queries.BooleanQuery class engine.html
 engine.indexers.IndexReader.spans method engine.html
 engine.documents.Hit.dict method engine.html
-client.Response class client.html
+engine.indexers.Analyzer.tokens method engine.html
 engine.documents.Document.get method engine.html
 engine.documents.PrefixField.indices method engine.html
 engine.queries.BooleanQuery.__getitem__ method engine.html

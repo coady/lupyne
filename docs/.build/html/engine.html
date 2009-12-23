@@ -984,7 +984,7 @@ Alternative implementations of spatial and datetime fields.</p>
 <dl class="class">
 <dt id="engine.numeric.PointField">
 <em class="property">class </em><tt class="descclassname">engine.numeric.</tt><tt class="descname">PointField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.numeric.PointField" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">engine.spatial.SpatialField</span></tt>, <a title="engine.numeric.NumericField" class="reference internal" href="#engine.numeric.NumericField"><tt class="xref docutils literal"><span class="pre">engine.numeric.NumericField</span></tt></a></p>
+<dd><p>Bases: <a title="engine.spatial.SpatialField" class="reference internal" href="#engine.spatial.SpatialField"><tt class="xref docutils literal"><span class="pre">engine.spatial.SpatialField</span></tt></a>, <a title="engine.numeric.NumericField" class="reference internal" href="#engine.numeric.NumericField"><tt class="xref docutils literal"><span class="pre">engine.numeric.NumericField</span></tt></a></p>
 <p>Geospatial points, which create a tiered index of tiles.
 Points must still be stored if exact distances are required upon retrieval.</p>
 <dl class="method">
@@ -999,8 +999,17 @@ Points must still be stored if exact distances are required upon retrieval.</p>
 
 <dl class="method">
 <dt id="engine.numeric.PointField.tiles">
-<tt class="descname">tiles</tt><big>(</big><em>points</em><big>)</big><a class="headerlink" href="#engine.numeric.PointField.tiles" title="Permalink to this definition">¶</a></dt>
-<dd>Generate tile values from points (lng, lat).</dd></dl>
+<tt class="descname">tiles</tt><big>(</big><em>points</em>, <em>span=False</em><big>)</big><a class="headerlink" href="#engine.numeric.PointField.tiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate tile values from points (lng, lat).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>span</em> &#8211; cover entire area of points, as if it were a polygon</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="engine.numeric.PointField.within">
@@ -1349,12 +1358,69 @@ See <a class="reference external" href="http://www.maptiler.org/google-maps-coor
 </dd></dl>
 
 </div>
+<div class="section" id="spatialfield">
+<h3>SpatialField<a class="headerlink" href="#spatialfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.spatial.SpatialField">
+<em class="property">class </em><tt class="descclassname">engine.spatial.</tt><tt class="descname">SpatialField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.SpatialField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a title="engine.documents.Field" class="reference internal" href="#engine.documents.Field"><tt class="xref docutils literal"><span class="pre">engine.documents.Field</span></tt></a>, <a title="engine.spatial.Tiler" class="reference internal" href="#engine.spatial.Tiler"><tt class="xref docutils literal"><span class="pre">engine.spatial.Tiler</span></tt></a></p>
+<p>Mixin interface for indexing lat/lngs as a prefix tree of tiles.
+Subclasses should implement items and prefix methods.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>precision</em> &#8211; zoom level, i.e., length of encoded value</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.spatial.SpatialField.near">
+<tt class="descname">near</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>precision=None</em><big>)</big><a class="headerlink" href="#engine.spatial.SpatialField.near" title="Permalink to this definition">¶</a></dt>
+<dd>Return prefix query for point at given precision.</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.SpatialField.tiles">
+<tt class="descname">tiles</tt><big>(</big><em>points</em>, <em>span=False</em><big>)</big><a class="headerlink" href="#engine.spatial.SpatialField.tiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate tile values from points (lng, lat).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>span</em> &#8211; cover entire area of points, as if it were a polygon</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.spatial.SpatialField.within">
+<tt class="descname">within</tt><big>(</big><em>lng</em>, <em>lat</em>, <em>distance</em>, <em>limit=4</em><big>)</big><a class="headerlink" href="#engine.spatial.SpatialField.within" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return prefix queries for any tiles which could be within distance of given point.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>lng, lat</em> &#8211; point</li>
+<li><em>distance</em> &#8211; search radius in meters</li>
+<li><em>limit</em> &#8211; maximum number of tiles to consider</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="id2">
 <h3>PointField<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.spatial.PointField">
 <em class="property">class </em><tt class="descclassname">engine.spatial.</tt><tt class="descname">PointField</tt><big>(</big><em>name</em>, <em>precision=30</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.spatial.PointField" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">engine.spatial.SpatialField</span></tt>, <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a></p>
+<dd><p>Bases: <a title="engine.spatial.SpatialField" class="reference internal" href="#engine.spatial.SpatialField"><tt class="xref docutils literal"><span class="pre">engine.spatial.SpatialField</span></tt></a>, <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a></p>
 <p>Geospatial points, which create a tiered index of tiles.
 Points must still be stored if exact distances are required upon retrieval.</p>
 <dl class="method">
@@ -1433,6 +1499,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 </li>
 <li><a class="reference external" href="#module-engine.spatial">spatial</a><ul>
 <li><a class="reference external" href="#tiler">Tiler</a></li>
+<li><a class="reference external" href="#spatialfield">SpatialField</a></li>
 <li><a class="reference external" href="#id2">PointField</a></li>
 <li><a class="reference external" href="#id3">PolygonField</a></li>
 </ul>
