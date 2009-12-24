@@ -75,9 +75,11 @@ class WebSearcher(object):
             
             :return: {*string*: *int*}
         """
-        if isinstance(self.indexer, lucene.MultiSearcher):
+        if not isinstance(self.indexer, lucene.MultiSearcher):
+            return {str(self.indexer.directory): len(self.indexer)}
+        if hasattr(lucene.MultiReader, 'sequentialSubReaders'):
             return dict((str(reader.directory()), reader.numDocs()) for reader in self.indexer.sequentialSubReaders)
-        return {str(self.indexer.directory): len(self.indexer)}
+        return {str(self.indexer): len(self.indexer)}
     @cherrypy.expose
     def docs(self, id=None, fields='', multifields=''):
         """Return ids or documents.
@@ -162,8 +164,8 @@ class WebSearcher(object):
             
             :return: [*string*,... ]
         
-        **GET** /terms/*chars*/*chars*:*chars*
-            Return slice of term values for given field name.
+        **GET** /terms/*chars*/*chars*\[\*\|:*chars*\|~\ *float*\]
+            Return term values (wildcards, slices, or fuzzy terms) for given field name.
             
             :return: [*string*,... ]
         
@@ -192,6 +194,11 @@ class WebSearcher(object):
         if ':' in value:
             start, stop = value.split(':')
             return list(self.indexer.terms(name, start, stop or None))
+        if '*' in value:
+            return list(self.indexer.terms(name, value))
+        if '~' in value:
+            value, similarity = value.split('~')
+            return list(self.indexer.terms(name, value, minSimilarity=float(similarity or 0.5)))
         docs, stats = (args + ('', ''))[:2]
         if not docs:
             return self.indexer.count(name, value)

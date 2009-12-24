@@ -133,7 +133,8 @@ class TestCase(BaseTest):
         assert sorted(map(int, resource.get('/terms/amendment'))) == range(1, 28)
         assert resource.get('/terms/text/:0') == []
         assert resource.get('/terms/text/z:') == []
-        assert resource.get('/terms/text/right:right~') == ['right', 'rights']
+        assert resource.get('/terms/text/right:right~') == resource.get('/terms/text/right*') == ['right', 'rights']
+        assert resource.get('/terms/text/right~') == resource.get('/terms/text/right~0.5') == ['eight', 'right', 'rights']
         docs = resource.get('/terms/text/people/docs')
         assert resource.get('/terms/text/people') == len(docs) == 8
         counts = dict(resource.get('/terms/text/people/docs/counts'))
