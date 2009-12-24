@@ -75,6 +75,8 @@ class WebSearcher(object):
             
             :return: {*string*: *int*}
         """
+        if isinstance(self.indexer, lucene.MultiSearcher):
+            return dict((str(reader.directory()), reader.numDocs()) for reader in self.indexer.sequentialSubReaders)
         return {str(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
     def docs(self, id=None, fields='', multifields=''):
@@ -288,7 +290,7 @@ if __name__ == '__main__':
     options, args = parser.parse_args()
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
-    root = (WebSearcher if options.read else WebIndexer)(*args)
+    root = (WebSearcher if (options.read or len(args) > 1) else WebIndexer)(*args)
     if options.config and not os.path.exists(options.config):
         options.config = {'global': json.loads(options.config)}
     main(root, config=options.config)

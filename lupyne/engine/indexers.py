@@ -440,7 +440,7 @@ class IndexWriter(lucene.IndexWriter):
         if mode == 'a':
             lucene.IndexWriter.__init__(self, directory, analyzer, mfl)
         else:
-            lucene.IndexWriter.__init__(self, directory, analyzer, (mode == 'w'), mfl)
+            lucene.IndexWriter.__init__(self, directory, analyzer, bool('rw'.index(mode)), mfl)
         self.fields = {}
     @property
     def segments(self):
