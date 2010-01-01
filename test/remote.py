@@ -61,8 +61,12 @@ class TestCase(BaseTest):
         assert resource.get('/docs') == []
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/docs/0')
-        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
-            resource.get('/docs/~')
+        try:
+            assert resource.get('/docs/~')
+        except httplib.HTTPException as (status, reason, body):
+            assert body['status'] == '404 Not Found'
+            assert body['message'].startswith('invalid literal for int')
+            assert body['message'] in body['traceback']
         assert resource.get('/fields') == []
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/fields/name')
@@ -78,6 +82,8 @@ class TestCase(BaseTest):
         assert sorted(resource.get('/fields')) == ['name', 'text']
         assert resource.get('/fields/text')['index'] == 'ANALYZED'
         assert not resource.post('/docs', docs=[{'name': 'sample', 'text': 'hello world'}])
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.post('/docs', docs='')
         (directory, count), = resource.get('/').items()
         assert count == 1
         assert resource.get('/docs') == []
@@ -85,16 +91,25 @@ class TestCase(BaseTest):
         assert resource.post('/commit')
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
-        assert resource.get('/docs/0?fields=missing') == {'missing': None}
-        assert resource.get('/docs/0?multifields=name') == {'name': ['sample']}
+        assert resource.get('/docs/0', fields='missing') == {'missing': None}
+        assert resource.get('/docs/0', multifields='name') == {'name': ['sample']}
         assert resource.get('/terms') == ['name', 'text']
-        assert resource.get('/terms?option=unindexed') == []
+        assert resource.get('/terms', option='unindexed') == []
         assert resource.get('/terms/text') == ['hello', 'world']
         assert resource.get('/terms/text/world') == 1
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.get('/terms/text/world~-')
         assert resource.get('/terms/text/world/docs') == [0]
         assert resource.get('/terms/text/world/docs/counts') == [[0, 1]]
         assert resource.get('/terms/text/world/docs/positions') == [[0, [1]]]
         hits = resource.get('/search', q='text:hello')
+        assert hits['count'] == resource.get('/search')['count']
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.get('/search?count=')
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.get('/search', sort='x,y')
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.get('/search', count=1, sort='x:str')
         assert sorted(hits) == ['count', 'docs']
         assert hits['count'] == 1
         doc, = hits['docs']

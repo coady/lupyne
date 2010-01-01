@@ -31,12 +31,18 @@ def json_tool():
 cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
 
 def allow_tool(methods=['GET', 'HEAD']):
+    "Only allow specified methods."
     request = cherrypy.request
     if request.method not in methods:
         cherrypy.response.headers['allow'] = ', '.join(methods)
         message = "The path {0!r} does not allow {1}.".format(request.path_info, request.method)
         raise cherrypy.HTTPError(httplib.METHOD_NOT_ALLOWED, message)
 cherrypy.tools.allow = cherrypy.Tool('on_start_resource', allow_tool)
+
+def json_error(version, **body):
+    "Transform errors into json format."
+    cherrypy.response.headers['content-type'] = 'text/x-json'
+    return json.dumps(body)
 
 class AttachedThread(WorkerThread):
     "Attach cherrypy threads to lucene VM."
@@ -45,24 +51,16 @@ class AttachedThread(WorkerThread):
         WorkerThread.run(self)
 
 @contextmanager
-def handleNotFound(exception):
-    "Interpret given exception as 404 Not Found."
+def HTTPError(status, *exceptions):
+    "Interpret exceptions as an HTTPError with given status code."
     try:
         yield
-    except exception:
-        raise cherrypy.NotFound()
-
-@contextmanager
-def handleBadRequest(exception):
-    "Interpret given exception as 400 Bad Request."
-    try:
-        yield
-    except exception as exc:
-        raise cherrypy.HTTPError(httplib.BAD_REQUEST, str(exc))
+    except exceptions as exc:
+        raise cherrypy.HTTPError(status, str(exc))
 
 class WebSearcher(object):
     "Dispatch root with a delegated Searcher."
-    _cp_config = {'tools.json.on': True, 'tools.allow.on': True,
+    _cp_config = {'tools.json.on': True, 'tools.allow.on': True, 'error_page.default': json_error,
         'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'text/x-json']}
     def __init__(self, *directories, **kwargs):
         self.indexer = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
@@ -100,12 +98,10 @@ class WebSearcher(object):
         """
         if id is None:
             return list(self.indexer)
-        with handleBadRequest(ValueError):
-            id = int(id)
+        with HTTPError(httplib.NOT_FOUND, ValueError, lucene.JavaError):
+            doc = self.indexer[int(id)]
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
-        with handleNotFound(lucene.JavaError):
-            doc = self.indexer[id]
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
     def search(self, q=None, count=None, fields='', multifields='', sort=None, facets=''):
@@ -122,14 +118,15 @@ class WebSearcher(object):
             
             &multifields=\ *chars*,...
             
-            &sort=\ [-]*chars*[:*chars*],...
+            &sort=\ [-]\ *chars*\ [:*chars*],...
             
             &facets=\ *chars*,...
             
             :return: {"count": *int*, "docs": [{"__id__": *int*, "__score__": *number*, *string*: *string*\|\ *array*,... },... ], "facets": {... }}
         """
-        with handleBadRequest(ValueError):
-            count = count and int(count)
+        if count is not None:
+            with HTTPError(httplib.BAD_REQUEST, ValueError):
+                count = int(count)
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
         reverse = False
@@ -137,11 +134,12 @@ class WebSearcher(object):
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort.split(','))
             sort = [(name, (type.upper() or 'STRING'), (reverse == '-')) for reverse, name, type in sort]
             if count is None:
-                with handleBadRequest(ValueError):
+                with HTTPError(httplib.BAD_REQUEST, ValueError):
                     (name, type, reverse), = sort # only one sort field allowed with unlimited count
                 sort = self.indexer.comparator(name, type).__getitem__
             else:
-                sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
+                with HTTPError(httplib.BAD_REQUEST, AttributeError):
+                    sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
         hits = self.indexer.search(q, count=count, sort=sort, reverse=reverse)
         docs = [hit.dict(*multifields, **fields) for hit in hits]
         result = {'count': hits.count, 'docs': docs}
@@ -149,7 +147,7 @@ class WebSearcher(object):
             result['facets'] = self.indexer.facets(hits.ids, *facets.split(','))
         return result
     @cherrypy.expose
-    def terms(self, name='', value=':', *args, **options):
+    def terms(self, name='', value=':', docs='', counts='', **options):
         """Return data about indexed terms.
         
         **GET** /terms?
@@ -198,15 +196,16 @@ class WebSearcher(object):
             return list(self.indexer.terms(name, value))
         if '~' in value:
             value, similarity = value.split('~')
-            return list(self.indexer.terms(name, value, minSimilarity=float(similarity or 0.5)))
-        docs, stats = (args + ('', ''))[:2]
+            with HTTPError(httplib.BAD_REQUEST, ValueError):
+                similarity = float(similarity or 0.5)
+            return list(self.indexer.terms(name, value, minSimilarity=similarity))
         if not docs:
             return self.indexer.count(name, value)
         if docs == 'docs':
-            if stats == 'positions':
+            if counts == 'positions':
                 return list(self.indexer.positions(name, value))
-            if stats in ('', 'counts'):
-                return list(self.indexer.docs(name, value, counts=bool(stats)))
+            if counts in ('', 'counts'):
+                return list(self.indexer.docs(name, value, counts=bool(counts)))
         raise cherrypy.NotFound()
 
 class WebIndexer(WebSearcher):
@@ -236,7 +235,7 @@ class WebIndexer(WebSearcher):
         """
         if cherrypy.request.method != 'POST':
             return WebSearcher.docs(self, id, fields, multifields)
-        with handleBadRequest(ValueError):
+        with HTTPError(httplib.BAD_REQUEST, ValueError):
             docs = json.loads(docs)
         for doc in docs:
             self.indexer.add(doc)
@@ -278,7 +277,7 @@ class WebIndexer(WebSearcher):
             self.indexer.set(name, **params)
         if not name:
             return sorted(self.indexer.fields)
-        with handleNotFound(KeyError):
+        with HTTPError(httplib.NOT_FOUND, KeyError):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
 

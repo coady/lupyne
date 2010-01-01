@@ -130,7 +130,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 <p>&amp;count=<em>int</em></p>
 <p>&amp;fields=<em>chars</em>,...</p>
 <p>&amp;multifields=<em>chars</em>,...</p>
-<p>&amp;sort=[-]*chars*[:<em>chars</em>],...</p>
+<p>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],...</p>
 <p>&amp;facets=<em>chars</em>,...</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -146,7 +146,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 
 <dl class="method">
 <dt id="server.WebSearcher.terms">
-<tt class="descname">terms</tt><big>(</big><em>name=''</em>, <em>value=':'</em>, <em>*args</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.terms" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">terms</tt><big>(</big><em>name=''</em>, <em>value=':'</em>, <em>docs=''</em>, <em>counts=''</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.terms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return data about indexed terms.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /terms?</dt>
@@ -173,7 +173,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 </table>
 </dd>
 <dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>[*|:<em>chars</em>|~<em>float</em>]</dt>
-<dd><p class="first">Return term values (slices, wildcards, or fuzzy terms) for given field name.</p>
+<dd><p class="first">Return term values (wildcards, slices, or fuzzy terms) for given field name.</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

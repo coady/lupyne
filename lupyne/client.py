@@ -35,11 +35,12 @@ class Response(httplib.HTTPResponse):
         return httplib.OK <= self.status < httplib.MULTIPLE_CHOICES
     def __call__(self):
         "Return evaluated response body or raise exception."
-        if not self:
-            raise httplib.HTTPException(self.status, self.reason, self.body)
-        if self.body and self.getheader('content-type') == 'text/x-json':
-            return json.loads(self.body)
-        return self.body
+        body = self.body
+        if body and self.getheader('content-type') == 'text/x-json':
+            body = json.loads(body)
+        if self:
+            return body
+        raise httplib.HTTPException(self.status, self.reason, body)
 
 class Resource(httplib.HTTPConnection):
     "Synchronous connection which handles json responses."
