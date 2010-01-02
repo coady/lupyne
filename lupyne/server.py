@@ -1,7 +1,7 @@
 """
 Restful json `CherryPy <http://cherrypy.org/>`_ server.
 
-    $ python server.py `directory` [-r|--read-only] [-c|--config filename]
+    $ python server.py `directory`,... [-r|--read-only] [-c|--config filename]
 
 CherryPy and Lucene VM integration issues:
  * Autoreload is not compatible with the VM initialization.
@@ -64,6 +64,19 @@ class WebSearcher(object):
         'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'text/x-json']}
     def __init__(self, *directories, **kwargs):
         self.indexer = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
+    def parse(self, q, **options):
+        "Return parsed query using q.* parser options."
+        options = dict((key[2:], options[key]) for key in options if key.startswith('q.'))
+        field = options.pop('field', [])
+        fields = [field] if isinstance(field, basestring) else field
+        fields = [re.match('(\w+)\^?([\d\.]*)', name).groups() for name in fields]
+        if any(boost for name, boost in fields):
+            field = dict((name, float(boost or 1.0)) for name, boost in fields)
+        elif isinstance(field, basestring):
+            (field, boost), = fields
+        else:
+            field = [name for name, boost in fields]
+        return q and self.indexer.parse(q, field, **options)
     @cherrypy.expose
     def index(self):
         """Return index information.
@@ -104,25 +117,39 @@ class WebSearcher(object):
         multifields = filter(None, multifields.split(','))
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
-    def search(self, q=None, count=None, fields='', multifields='', sort=None, facets=''):
+    def search(self, q=None, count=None, fields='', multifields='', sort=None, facets='', **options):
         """Run query and return documents.
         
         **GET** /search?
             Return list of document objects and total doc count.
             
-            &q=\ *chars*
+            &q=\ *chars*\ &q.\ *chars*\ =...,
+                query and optional parser settings: q.field, q.op,...
             
             &count=\ *int*
+                maximum number of docs to return
             
             &fields=\ *chars*,...
+                only include selected fields
             
             &multifields=\ *chars*,...
+                multi-valued fields return in an array.
             
             &sort=\ [-]\ *chars*\ [:*chars*],...
+                field name, optional type, minus sign indicates descending
             
             &facets=\ *chars*,...
+                include facet counts for given field names
             
-            :return: {"count": *int*, "docs": [{"__id__": *int*, "__score__": *number*, *string*: *string*\|\ *array*,... },... ], "facets": {... }}
+            :return: {
+                
+                "count": *int*,
+                
+                "docs": [{"__id__": *int*, "__score__": *number*, *string*: *string*\|\ *array*,... },... ],
+                
+                "facets": {*chars*: {*chars*: *int*,... },... },
+                
+            }
         """
         if count is not None:
             with HTTPError(httplib.BAD_REQUEST, ValueError):
@@ -140,7 +167,7 @@ class WebSearcher(object):
             else:
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
                     sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
-        hits = self.indexer.search(q, count=count, sort=sort, reverse=reverse)
+        hits = self.indexer.search(self.parse(q, **options), count=count, sort=sort, reverse=reverse)
         docs = [hit.dict(*multifields, **fields) for hit in hits]
         result = {'count': hits.count, 'docs': docs}
         if facets:
@@ -226,7 +253,7 @@ class WebIndexer(WebSearcher):
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
     def docs(self, id=None, fields='', multifields='', docs='[]'):
-        """Add or return documents.
+        """Add or return documents.  See :meth:`WebSearcher.docs` for GET method.
         
         **POST** /docs
             Add documents to index.
@@ -242,15 +269,15 @@ class WebIndexer(WebSearcher):
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
-    def search(self, q=None, count=None, fields='', multifields='', sort=None, facets=''):
-        """Run or delete a query.
+    def search(self, q=None, **options):
+        """Run or delete a query.  See :meth:`WebSearcher.search` for GET method.
         
         **DELETE** /search?q=\ *chars*
             Delete documents which match query.
         """
         if cherrypy.request.method != 'DELETE':
-            return WebSearcher.search(self, q, count, fields, multifields, sort, facets)
-        self.indexer.delete(q)
+            return WebSearcher.search(self, q, **options)
+        self.indexer.delete(self.parse(q, **options))
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT', 'POST'])

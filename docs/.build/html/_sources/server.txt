@@ -6,6 +6,7 @@ WebSearcher
 -----------
 .. autoclass:: server.WebSearcher
   :members:
+  :exclude-members: parse
 
 WebIndexer
 -----------

@@ -52,7 +52,7 @@
 <h1>server<a class="headerlink" href="#module-server" title="Permalink to this headline">¶</a></h1>
 <p>Restful json <a class="reference external" href="http://cherrypy.org/">CherryPy</a> server.</p>
 <blockquote>
-$ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;config filename]</blockquote>
+$ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;config filename]</blockquote>
 <dl class="docutils">
 <dt>CherryPy and Lucene VM integration issues:</dt>
 <dd><ul class="first last simple">
@@ -121,25 +121,38 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 
 <dl class="method">
 <dt id="server.WebSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /search?</dt>
 <dd><p class="first">Return list of document objects and total doc count.</p>
-<p>&amp;q=<em>chars</em></p>
-<p>&amp;count=<em>int</em></p>
-<p>&amp;fields=<em>chars</em>,...</p>
-<p>&amp;multifields=<em>chars</em>,...</p>
-<p>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],...</p>
-<p>&amp;facets=<em>chars</em>,...</p>
-<table class="last docutils field-list" frame="void" rules="none">
+<dl class="docutils">
+<dt>&amp;q=<em>chars</em>&amp;q.<em>chars</em>=...,</dt>
+<dd>query and optional parser settings: q.field, q.op,...</dd>
+<dt>&amp;count=<em>int</em></dt>
+<dd>maximum number of docs to return</dd>
+<dt>&amp;fields=<em>chars</em>,...</dt>
+<dd>only include selected fields</dd>
+<dt>&amp;multifields=<em>chars</em>,...</dt>
+<dd>multi-valued fields return in an array.</dd>
+<dt>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],...</dt>
+<dd>field name, optional type, minus sign indicates descending</dd>
+<dt>&amp;facets=<em>chars</em>,...</dt>
+<dd>include facet counts for given field names</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">return:</th><td class="field-body">{&#8220;count&#8221;: <em>int</em>, &#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>number</em>, <em>string</em>: <em>string</em>|<em>array</em>,... },... ], &#8220;facets&#8221;: {... }}</td>
+<tr class="field"><th class="field-name">return:</th><td class="field-body"><p class="first">{</p>
+<p>&#8220;count&#8221;: <em>int</em>,</p>
+<p>&#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>number</em>, <em>string</em>: <em>string</em>|<em>array</em>,... },... ],</p>
+<p class="last">&#8220;facets&#8221;: {<em>chars</em>: {<em>chars</em>: <em>int</em>,... },... },</p>
+</td>
 </tr>
 </tbody>
 </table>
+<p class="last">}</p>
 </dd>
 </dl>
 </dd></dl>
@@ -250,7 +263,7 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 <dl class="method">
 <dt id="server.WebIndexer.docs">
 <tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>docs='</em><span class="optional">[</span><span class="optional">]</span>, <em>'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.docs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add or return documents.</p>
+<dd><p>Add or return documents.  See <a title="server.WebSearcher.docs" class="reference internal" href="#server.WebSearcher.docs"><tt class="xref docutils literal"><span class="pre">WebSearcher.docs()</span></tt></a> for GET method.</p>
 <dl class="docutils">
 <dt><strong>POST</strong> /docs</dt>
 <dd><p class="first">Add documents to index.</p>
@@ -294,8 +307,8 @@ $ python server.py <cite>directory</cite> [-r|&#8211;read-only] [-c|&#8211;confi
 
 <dl class="method">
 <dt id="server.WebIndexer.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run or delete a query.</p>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run or delete a query.  See <a title="server.WebSearcher.search" class="reference internal" href="#server.WebSearcher.search"><tt class="xref docutils literal"><span class="pre">WebSearcher.search()</span></tt></a> for GET method.</p>
 <dl class="docutils">
 <dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>
 <dd>Delete documents which match query.</dd>

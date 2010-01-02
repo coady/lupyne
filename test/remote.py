@@ -103,6 +103,7 @@ class TestCase(BaseTest):
         assert resource.get('/terms/text/world/docs/counts') == [[0, 1]]
         assert resource.get('/terms/text/world/docs/positions') == [[0, [1]]]
         hits = resource.get('/search', q='text:hello')
+        assert hits == resource.get('/search?q=hello&q.field=text')
         assert hits['count'] == resource.get('/search')['count']
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search?count=')
@@ -115,6 +116,12 @@ class TestCase(BaseTest):
         doc, = hits['docs']
         assert sorted(doc) == ['__id__', '__score__', 'name']
         assert doc['__id__'] == 0 and doc['__score__'] > 0 and doc['name'] == 'sample' 
+        hit, = resource.get('/search', q='hello world', **{'q.field': ['text', 'body']})['docs']
+        assert hit['__id__'] == doc['__id__'] and hit['__score__'] < doc['__score__']
+        hit, = resource.get('/search', q='hello world', **{'q.field': 'text', 'q.op': 'and'})['docs']
+        assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
+        hit, = resource.get('/search?q=hello+world&q.field=text^4.0&q.field=body')['docs']
+        assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
         assert not resource.delete('/search', q='name:sample')
         assert resource.get('/docs') == [0]
         assert not resource.post('/commit')

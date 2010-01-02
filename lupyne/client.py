@@ -59,7 +59,7 @@ class Resource(httplib.HTTPConnection):
         return self.getresponse()()
     def get(self, path, **params):
         if params:
-            path += '?' + urllib.urlencode(params)
+            path += '?' + urllib.urlencode(params, doseq=True)
         return self('GET', path)
     def post(self, path, **body):
         return self('POST', path, body)
@@ -67,7 +67,7 @@ class Resource(httplib.HTTPConnection):
         return self('PUT', path, body)
     def delete(self, path, **params):
         if params:
-            path += '?' + urllib.urlencode(params)
+            path += '?' + urllib.urlencode(params, doseq=True)
         return self('DELETE', path)
 
 class Resources(dict):
