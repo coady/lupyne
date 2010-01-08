@@ -435,6 +435,7 @@ class TestCase(BaseTest):
     def testHighlighting(self):
         "Highlighting text fragments."
         indexer = engine.Indexer()
+        indexer.set('text', store=True)
         amendments = dict((doc['amendment'], doc['text']) for doc in fixture.constitution.docs() if 'amendment' in doc)
         for amendment in amendments.values():
             fragments = indexer.highlight('persons', amendment)
@@ -447,8 +448,12 @@ class TestCase(BaseTest):
         assert len(fragments) == 2 and fragments[0].count('*') == 2*3 and '*persons*' in fragments[1]
         fragment, = indexer.highlight(query, text, count=3, span=False, textFragmenter=lucene.SimpleFragmenter(200))
         assert len(fragment) > len(text) and fragment.count('<B>persons</B>') == 2
-        fragment, = indexer.highlight(query, text, count=3)
-        assert len(fragment) < len(text) and fragment.count('<B>') == 3
+        fragment, = indexer.highlight(query, text, count=3, formatter='em')
+        assert len(fragment) < len(text) and fragment.count('<em>') == 3
+        indexer.add(text=text)
+        indexer.commit()
+        fragment, = indexer.highlight(query, 0, field='text')
+        assert fragment.count('<B>') == fragment.count('</B>') == 3
 
 if __name__ == '__main__':
     lucene.initVM(lucene.CLASSPATH)

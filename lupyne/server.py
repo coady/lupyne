@@ -117,7 +117,7 @@ class WebSearcher(object):
         multifields = filter(None, multifields.split(','))
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
-    def search(self, q=None, count=None, fields='', multifields='', sort=None, facets='', **options):
+    def search(self, q=None, count=None, fields='', multifields='', sort=None, facets='', hl='', **options):
         """Run query and return documents.
         
         **GET** /search?
@@ -133,7 +133,7 @@ class WebSearcher(object):
                 only include selected fields
             
             &multifields=\ *chars*,...
-                multi-valued fields return in an array.
+                multi-valued fields returned in an array
             
             &sort=\ [-]\ *chars*\ [:*chars*],...
                 field name, optional type, minus sign indicates descending
@@ -141,15 +141,16 @@ class WebSearcher(object):
             &facets=\ *chars*,...
                 include facet counts for given field names
             
-            :return: {
-                
-                "count": *int*,
-                
-                "docs": [{"__id__": *int*, "__score__": *number*, *string*: *string*\|\ *array*,... },... ],
-                
-                "facets": {*chars*: {*chars*: *int*,... },... },
-                
-            }
+            &hl=\ *chars*,... &hl.count=1&hl.tag=strong
+                | stored fields to return highlighted
+                | optional maximum fragment count and html tag name
+            
+            :return:
+                | {
+                | "count": *int*,
+                | "docs": [{"__id__": *int*, "__score__": *number*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
+                | "facets": {*chars*: {*chars*: *int*,... },... },
+                | }
         """
         if count is not None:
             with HTTPError(httplib.BAD_REQUEST, ValueError):
@@ -167,9 +168,19 @@ class WebSearcher(object):
             else:
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
                     sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
-        hits = self.indexer.search(self.parse(q, **options), count=count, sort=sort, reverse=reverse)
-        docs = [hit.dict(*multifields, **fields) for hit in hits]
-        result = {'count': hits.count, 'docs': docs}
+        q = self.parse(q, **options)
+        hits = self.indexer.search(q, count=count, sort=sort, reverse=reverse)
+        result = {'count': hits.count, 'docs': []}
+        tag = options.get('hl.tag', 'strong')
+        if hl:
+            hl = dict((name, self.indexer.highlighter(q, field=name, formatter=tag)) for name in hl.split(','))
+        with HTTPError(httplib.BAD_REQUEST, ValueError):
+            count = int(options.get('hl.count', 1))
+        for hit in hits:
+            doc = hit.dict(*multifields, **fields)
+            result['docs'].append(doc)
+            if hl:
+                doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], count)) for name in hl if name in hit)
         if facets:
             result['facets'] = self.indexer.facets(hits.ids, *facets.split(','))
         return result

@@ -9,7 +9,7 @@ import contextlib
 import abc, collections
 import warnings
 import lucene
-from .queries import Query, HitCollector, Filter
+from .queries import Query, HitCollector, Filter, Highlighter
 from .documents import Field, Document, Hits
 
 class Atomic(object):
@@ -106,9 +106,9 @@ class Analyzer(lucene.PythonAnalyzer):
         for filter in self.filters:
             tokens = filter(tokens)
         return tokens if isinstance(tokens, lucene.TokenStream) else TokenFilter(tokens)
-    def tokens(self, text):
+    def tokens(self, text, field=None):
         "Return lucene TokenStream from text."
-        return self.tokenStream('', lucene.StringReader(text))
+        return self.tokenStream(field, lucene.StringReader(text))
     def parse(self, query, field='', op='', version='current', **attrs):
         """Return parsed lucene Query.
         
@@ -301,31 +301,24 @@ class Searcher(object):
         if isinstance(query, lucene.Query):
             return query
         return Analyzer.parse.im_func(self.analyzer, query, *args, **kwargs)
-    def highlight(self, query, text, count=1, span=True, formatter=None, encoder=None, field='', **attrs):
-        """Return highlighted text fragments which match the query.
+    def highlighter(self, query, span=True, formatter=None, encoder=None, field=None):
+        "Return `Highlighter`_ specific to the searcher's analyzer and index."
+        query = self.parse(query, field or '')
+        return Highlighter(query, self.analyzer, span, formatter, encoder, field, (field and self.indexReader))
+    def highlight(self, query, doc, count=1, span=True, formatter=None, encoder=None, field=None, **attrs):
+        """Return highlighted text fragments which match the query, using internal :meth:`highlighter`.
         
         :param query: query string or lucene Query
-        :param text: text string to be searched
+        :param doc: text string or doc id to be highlighted
         :param count: maximum number of fragments
-        :param span: only highlight terms which would contribute to a hit
-        :param formatter: optional lucene Formatter
-        :param encoder: optional lucene Encoder
-        :param field: default query field name
         :param attrs: additional attributes to set on the highlighter
         """
-        query = self.parse(query, field)
-        highlighter = lucene.Highlighter(*filter(None, [formatter, encoder, lucene.QueryScorer(query, field)]))
+        highlighter = self.highlighter(query, span, formatter, encoder, field)
         for name, value in attrs.items():
             setattr(highlighter, name, value)
-        if lucene.VERSION <= '2.4.1': # memory leak in string array
-            tokens = self.analyzer.tokenStream(field, lucene.StringReader(text))
-            if span:
-                tokens = lucene.CachingTokenFilter(tokens)
-                highlighter.fragmentScorer = lucene.HighlighterSpanScorer(query, field, tokens)
-            return map(unicode, highlighter.getBestTextFragments(tokens, text, True, count))
-        if not span:
-            highlighter.fragmentScorer = lucene.QueryTermScorer(query, field)
-        return list(highlighter.getBestFragments(self.analyzer, field, text, count))
+        if not isinstance(doc, basestring):
+            doc = self[doc][field]
+        return highlighter.fragments(doc, count)
     def count(self, *query, **options):
         """Return number of hits for given query or term.
         

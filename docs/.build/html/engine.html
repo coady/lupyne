@@ -140,7 +140,7 @@ attributes are cached as properties to create a Token interface.</p>
 
 <dl class="method">
 <dt id="engine.indexers.Analyzer.tokens">
-<tt class="descname">tokens</tt><big>(</big><em>text</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.tokens" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">tokens</tt><big>(</big><em>text</em>, <em>field=None</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.tokens" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene TokenStream from text.</dd></dl>
 
 </dd></dl>
@@ -357,20 +357,16 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.highlight">
-<tt class="descname">highlight</tt><big>(</big><em>query</em>, <em>text</em>, <em>count=1</em>, <em>span=True</em>, <em>formatter=None</em>, <em>encoder=None</em>, <em>field=''</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.highlight" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return highlighted text fragments which match the query.</p>
+<tt class="descname">highlight</tt><big>(</big><em>query</em>, <em>doc</em>, <em>count=1</em>, <em>span=True</em>, <em>formatter=None</em>, <em>encoder=None</em>, <em>field=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.highlight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return highlighted text fragments which match the query, using internal <a title="engine.indexers.Searcher.highlighter" class="reference internal" href="#engine.indexers.Searcher.highlighter"><tt class="xref docutils literal"><span class="pre">highlighter()</span></tt></a>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>query</em> &#8211; query string or lucene Query</li>
-<li><em>text</em> &#8211; text string to be searched</li>
+<li><em>doc</em> &#8211; text string or doc id to be highlighted</li>
 <li><em>count</em> &#8211; maximum number of fragments</li>
-<li><em>span</em> &#8211; only highlight terms which would contribute to a hit</li>
-<li><em>formatter</em> &#8211; optional lucene Formatter</li>
-<li><em>encoder</em> &#8211; optional lucene Encoder</li>
-<li><em>field</em> &#8211; default query field name</li>
 <li><em>attrs</em> &#8211; additional attributes to set on the highlighter</li>
 </ul>
 </td>
@@ -378,6 +374,11 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.highlighter">
+<tt class="descname">highlighter</tt><big>(</big><em>query</em>, <em>span=True</em>, <em>formatter=None</em>, <em>encoder=None</em>, <em>field=None</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.highlighter" title="Permalink to this definition">¶</a></dt>
+<dd>Return <a class="reference internal" href="#highlighter">Highlighter</a> specific to the searcher&#8217;s analyzer and index.</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.search">
@@ -1306,6 +1307,52 @@ Uses class methods and operator overloading for convenient query construction.</
 </dd></dl>
 
 </div>
+<div class="section" id="highlighter">
+<h3>Highlighter<a class="headerlink" href="#highlighter" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.queries.Highlighter">
+<em class="property">class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">Highlighter</tt><big>(</big><em>query</em>, <em>analyzer</em>, <em>span=True</em>, <em>formatter=None</em>, <em>encoder=None</em>, <em>field=None</em>, <em>reader=None</em><big>)</big><a class="headerlink" href="#engine.queries.Highlighter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inherited lucene Filter with stored analysis options.
+Using span scoring in lucene 2.4 is not thread-safe.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>query</em> &#8211; lucene Query</li>
+<li><em>analyzer</em> &#8211; analyzer for texts</li>
+<li><em>span</em> &#8211; only highlight terms which would contribute to a hit</li>
+<li><em>formatter</em> &#8211; optional lucene Formatter or html tag name</li>
+<li><em>encoder</em> &#8211; optional lucene Encoder</li>
+<li><em>field</em> &#8211; optional field name used to match query terms</li>
+<li><em>reader</em> &#8211; optional lucene IndexReader to compute term weights</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.queries.Highlighter.fragments">
+<tt class="descname">fragments</tt><big>(</big><em>text</em>, <em>count=1</em>, <em>field=None</em><big>)</big><a class="headerlink" href="#engine.queries.Highlighter.fragments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return highlighted text fragments.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>text</em> &#8211; text string to be searched</li>
+<li><em>count</em> &#8211; maximum number of fragments</li>
+<li><em>field</em> &#8211; optional field to use for text analysis</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 </div>
 <div class="section" id="module-engine.spatial">
 <h2>spatial<a class="headerlink" href="#module-engine.spatial" title="Permalink to this headline">¶</a></h2>
@@ -1495,6 +1542,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 <li><a class="reference external" href="#booleanquery">BooleanQuery</a></li>
 <li><a class="reference external" href="#spanquery">SpanQuery</a></li>
 <li><a class="reference external" href="#filter">Filter</a></li>
+<li><a class="reference external" href="#highlighter">Highlighter</a></li>
 </ul>
 </li>
 <li><a class="reference external" href="#module-engine.spatial">spatial</a><ul>

@@ -249,6 +249,11 @@ Filter
 .. autoclass:: engine.queries.Filter
   :members:
 
+Highlighter
+^^^^^^^^^^^^^
+.. autoclass:: engine.queries.Highlighter
+  :members:
+
 
 spatial
 ---------

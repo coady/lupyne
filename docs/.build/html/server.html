@@ -121,7 +121,7 @@ $ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;c
 
 <dl class="method">
 <dt id="server.WebSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>hl=''</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /search?</dt>
@@ -134,25 +134,33 @@ $ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;c
 <dt>&amp;fields=<em>chars</em>,...</dt>
 <dd>only include selected fields</dd>
 <dt>&amp;multifields=<em>chars</em>,...</dt>
-<dd>multi-valued fields return in an array.</dd>
+<dd>multi-valued fields returned in an array</dd>
 <dt>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],...</dt>
 <dd>field name, optional type, minus sign indicates descending</dd>
 <dt>&amp;facets=<em>chars</em>,...</dt>
 <dd>include facet counts for given field names</dd>
+<dt>&amp;hl=<em>chars</em>,... &amp;hl.count=1&amp;hl.tag=strong</dt>
+<dd><div class="first last line-block">
+<div class="line">stored fields to return highlighted</div>
+<div class="line">optional maximum fragment count and html tag name</div>
+</div>
+</dd>
 </dl>
-<table class="docutils field-list" frame="void" rules="none">
+<table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">return:</th><td class="field-body"><p class="first">{</p>
-<p>&#8220;count&#8221;: <em>int</em>,</p>
-<p>&#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>number</em>, <em>string</em>: <em>string</em>|<em>array</em>,... },... ],</p>
-<p class="last">&#8220;facets&#8221;: {<em>chars</em>: {<em>chars</em>: <em>int</em>,... },... },</p>
+<tr class="field"><th class="field-name">return:</th><td class="field-body"><div class="first last line-block">
+<div class="line">{</div>
+<div class="line">&#8220;count&#8221;: <em>int</em>,</div>
+<div class="line">&#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>number</em>, &#8220;__highlights__&#8221;: {<em>string</em>: <em>array</em>,... }, <em>string</em>: <em>string</em>|<em>array</em>,... },... ],</div>
+<div class="line">&#8220;facets&#8221;: {<em>chars</em>: {<em>chars</em>: <em>int</em>,... },... },</div>
+<div class="line">}</div>
+</div>
 </td>
 </tr>
 </tbody>
 </table>
-<p class="last">}</p>
 </dd>
 </dl>
 </dd></dl>

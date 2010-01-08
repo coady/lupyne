@@ -174,3 +174,37 @@ class Filter(lucene.PythonFilter):
     def getDocIdSet(self, reader=None):
         "Return cached OpenBitSet, reader is ignored."
         return self.docIdSet
+
+class Highlighter(lucene.Highlighter):
+    """Inherited lucene Filter with stored analysis options.
+    Using span scoring in lucene 2.4 is not thread-safe.
+    
+    :param query: lucene Query
+    :param analyzer: analyzer for texts
+    :param span: only highlight terms which would contribute to a hit
+    :param formatter: optional lucene Formatter or html tag name
+    :param encoder: optional lucene Encoder
+    :param field: optional field name used to match query terms
+    :param reader: optional lucene IndexReader to compute term weights
+    """
+    def __init__(self, query, analyzer, span=True, formatter=None, encoder=None, field=None, reader=None):
+        if isinstance(formatter, basestring):
+            formatter = lucene.SimpleHTMLFormatter('<{0}>'.format(formatter), '</{0}>'.format(formatter))
+        scorer = lucene.QueryScorer if (span or not hasattr(lucene, 'QueryTermScorer')) else lucene.QueryTermScorer
+        scorer = scorer(*filter(None, [query, reader, field]))
+        lucene.Highlighter.__init__(self, *filter(None, [formatter, encoder, scorer]))
+        self.query, self.analyzer, self.span, self.field = query, analyzer, span, field
+    def fragments(self, text, count=1, field=None):
+        """Return highlighted text fragments.
+        
+        :param text: text string to be searched
+        :param count: maximum number of fragments
+        :param field: optional field to use for text analysis
+        """
+        if lucene.VERSION <= '2.4.1': # memory leak in string array
+            tokens = self.analyzer.tokenStream(field, lucene.StringReader(text))
+            if self.span:
+                tokens = lucene.CachingTokenFilter(tokens)
+                self.fragmentScorer = lucene.HighlighterSpanScorer(self.query, self.field, tokens)
+            return map(unicode, self.getBestTextFragments(tokens, text, True, count))
+        return list(self.getBestFragments(self.analyzer, field, text, count))

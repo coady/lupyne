@@ -120,8 +120,12 @@ class TestCase(BaseTest):
         assert hit['__id__'] == doc['__id__'] and hit['__score__'] < doc['__score__']
         hit, = resource.get('/search', q='hello world', **{'q.field': 'text', 'q.op': 'and'})['docs']
         assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
-        hit, = resource.get('/search?q=hello+world&q.field=text^4.0&q.field=body')['docs']
-        assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
+        try:
+            hit, = resource.get('/search?q=hello+world&q.field=text^4.0&q.field=body')['docs']
+        except httplib.HTTPException as (status, reason, body): # unsupported in lucene 2.4
+            assert body['traceback'].splitlines()[-1] == "AttributeError: 'module' object has no attribute 'Float'"
+        else:
+            assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
         assert not resource.delete('/search', q='name:sample')
         assert resource.get('/docs') == [0]
         assert not resource.post('/commit')
@@ -189,6 +193,13 @@ class TestCase(BaseTest):
         assert result['count'] == 1
         doc, = result['docs']
         assert doc['amendment'] == '1'
+        doc, = resource.get('/search', q='amendment:1', hl='amendment')['docs']
+        assert doc['__highlights__'] == {'amendment': ['<strong>1</strong>']}
+        doc, = resource.get('/search', q='amendment:1', hl='amendment,article', **{'hl.count': 2, 'hl.tag': 'em'})['docs']
+        assert doc['__highlights__'] == {'amendment': ['<em>1</em>']}
+        result = resource.get('/search', q='text:1', hl='amendment,article')
+        highlights = [doc['__highlights__'] for doc in result['docs']]
+        assert all(highlight and not any(highlight.values()) for highlight in highlights)
 
 if __name__ == '__main__':
     unittest.main()
