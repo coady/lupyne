@@ -292,8 +292,9 @@ class TestCase(BaseTest):
         assert count > len(hits)
         assert count == indexer.count(field.range(lng[:3], lng[:3]+'~'))
         assert count > indexer.count(engine.Query.term('state', 'CA'), filter=engine.Query.term(longitude, lng).filter())
-        hits = indexer.search('zipcode:90*')
-        (field, facets), = indexer.facets(hits.ids, 'state:county').items()
+        query = engine.Query.prefix('zipcode', '90')
+        (field, facets), = indexer.facets(indexer.search(query).ids, 'state:county').items()
+        assert [facets] == indexer.facets(query.filter(), 'state:county').values()
         assert field == 'state:county'
         la, orange = sorted(filter(facets.get, facets))
         assert la == 'CA:Los Angeles' and facets[la] > 100

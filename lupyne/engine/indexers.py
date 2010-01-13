@@ -360,24 +360,25 @@ class Searcher(object):
     def facets(self, ids, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
-        :param ids: document ids
+        :param ids: document ids or lucene Filter
         :param keys: field names, term tuples, or any keys to previously cached filters
         """
         counts = collections.defaultdict(dict)
-        ids = Filter(ids)
+        if not isinstance(ids, lucene.Filter):
+            ids = Filter(ids)
         for key in keys:
             filters = self.filters.get(key)
             if isinstance(filters, Filter):
-                counts[key] = ids.overlap(filters, self.indexReader)
+                counts[key] = Filter.overlap(ids, filters, self.indexReader)
             elif isinstance(key, basestring):
                 values = self.terms(key) if filters is None else filters
-                counts.update(self.facets(ids.docIdSet, *((key, value) for value in values)))
+                counts.update(self.facets(ids, *((key, value) for value in values)))
             else:
                 name, value = key
                 filters = self.filters.setdefault(name, {})
                 if value not in filters:
                     filters[value] = Query.term(name, value).filter()
-                counts[name][value] = ids.overlap(filters[value], self.indexReader)
+                counts[name][value] = Filter.overlap(ids, filters[value], self.indexReader)
         return dict(counts)
 
 class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):

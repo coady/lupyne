@@ -165,6 +165,7 @@ class Filter(lucene.PythonFilter):
             setter = self.bitSet.set
             for id in itertools.ifilter(self.docIdSet.get, xrange(self.docIdSet.size())):
                 setter(id)
+    @staticmethod
     def overlap(self, other, reader=None):
         "Return intersection count of the filters."
         return int(lucene.OpenBitSet.intersectionCount(self.getDocIdSet(reader), other.getDocIdSet(reader)))
