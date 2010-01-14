@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    '#',
         VERSION:     '0.4+',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
@@ -139,10 +139,11 @@ $ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;c
 <dd>field name, optional type, minus sign indicates descending</dd>
 <dt>&amp;facets=<em>chars</em>,...</dt>
 <dd>include facet counts for given field names</dd>
-<dt>&amp;hl=<em>chars</em>,... &amp;hl.count=1&amp;hl.tag=strong</dt>
+<dt>&amp;hl=<em>chars</em>,... &amp;hl.count=1&amp;hl.tag=strong&amp;hl.enable=[fields|terms]</dt>
 <dd><div class="first last line-block">
 <div class="line">stored fields to return highlighted</div>
 <div class="line">optional maximum fragment count and html tag name</div>
+<div class="line">optionally enable matching any field or any term</div>
 </div>
 </dd>
 </dl>
@@ -341,7 +342,7 @@ $ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;c
         <div class="sphinxsidebarwrapper">
             <h3><a href="index.html">Table Of Contents</a></h3>
             <ul>
-<li><a class="reference external" href="">server</a><ul>
+<li><a class="reference external" href="#">server</a><ul>
 <li><a class="reference external" href="#websearcher">WebSearcher</a></li>
 <li><a class="reference external" href="#webindexer">WebIndexer</a></li>
 </ul>
@@ -396,7 +397,7 @@ $ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;c
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.3.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.4.
     </div>
   </body>
 </html>

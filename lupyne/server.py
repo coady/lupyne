@@ -141,9 +141,10 @@ class WebSearcher(object):
             &facets=\ *chars*,...
                 include facet counts for given field names
             
-            &hl=\ *chars*,... &hl.count=1&hl.tag=strong
+            &hl=\ *chars*,... &hl.count=1&hl.tag=strong&hl.enable=[fields|terms]
                 | stored fields to return highlighted
                 | optional maximum fragment count and html tag name
+                | optionally enable matching any field or any term
             
             :return:
                 | {
@@ -172,8 +173,10 @@ class WebSearcher(object):
         hits = self.indexer.search(q, count=count, sort=sort, reverse=reverse)
         result = {'count': hits.count, 'docs': []}
         tag = options.get('hl.tag', 'strong')
+        field = 'fields' not in options.get('hl.enable', '') or None
+        span = 'terms' not in options.get('hl.enable', '')
         if hl:
-            hl = dict((name, self.indexer.highlighter(q, field=name, formatter=tag)) for name in hl.split(','))
+            hl = dict((name, self.indexer.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             count = int(options.get('hl.count', 1))
         for hit in hits:
