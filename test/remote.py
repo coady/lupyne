@@ -186,7 +186,9 @@ class TestCase(BaseTest):
         assert [doc.get('amendment') for doc in result['docs']] == [None, None, '1', '2', '4']
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', q='text:people', sort='-article,amendment:int')
-        result = resource.get('/search', q='text:people', facets='article,amendment')
+        result = resource.get('/search', q='text:people', start=2, count=2, facets='article,amendment')
+        assert [doc['amendment'] for doc in result['docs']] == ['10', '1']
+        assert result['count'] == sum(sum(facets.values()) for facets in result['facets'].values())
         for name, keys in [('article', ['1', 'Preamble']), ('amendment', ['1', '10', '17', '2', '4', '9'])]:
             assert sorted(key for key, value in result['facets'][name].items() if value) == keys
         result = resource.get('/search', q='text:freedom')

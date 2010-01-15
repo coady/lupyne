@@ -121,7 +121,7 @@ $ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;c
 
 <dl class="method">
 <dt id="server.WebSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>hl=''</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>start=0</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>hl=''</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /search?</dt>
@@ -129,8 +129,8 @@ $ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;c
 <dl class="docutils">
 <dt>&amp;q=<em>chars</em>&amp;q.<em>chars</em>=...,</dt>
 <dd>query and optional parser settings: q.field, q.op,...</dd>
-<dt>&amp;count=<em>int</em></dt>
-<dd>maximum number of docs to return</dd>
+<dt>&amp;count=<em>int</em>&amp;start=0</dt>
+<dd>maximum number of docs to return and offset to start at</dd>
 <dt>&amp;fields=<em>chars</em>,...</dt>
 <dd>only include selected fields</dd>
 <dt>&amp;multifields=<em>chars</em>,...</dt>

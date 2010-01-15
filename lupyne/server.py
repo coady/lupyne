@@ -117,7 +117,7 @@ class WebSearcher(object):
         multifields = filter(None, multifields.split(','))
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
-    def search(self, q=None, count=None, fields='', multifields='', sort=None, facets='', hl='', **options):
+    def search(self, q=None, count=None, start=0, fields='', multifields='', sort=None, facets='', hl='', **options):
         """Run query and return documents.
         
         **GET** /search?
@@ -126,8 +126,8 @@ class WebSearcher(object):
             &q=\ *chars*\ &q.\ *chars*\ =...,
                 query and optional parser settings: q.field, q.op,...
             
-            &count=\ *int*
-                maximum number of docs to return
+            &count=\ *int*\ &start=0
+                maximum number of docs to return and offset to start at
             
             &fields=\ *chars*,...
                 only include selected fields
@@ -153,9 +153,11 @@ class WebSearcher(object):
                 | "facets": {*chars*: {*chars*: *int*,... },... },
                 | }
         """
+        with HTTPError(httplib.BAD_REQUEST, ValueError):
+            start = int(start)
         if count is not None:
             with HTTPError(httplib.BAD_REQUEST, ValueError):
-                count = int(count)
+                count = int(count) + start
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
         reverse = False
@@ -179,13 +181,13 @@ class WebSearcher(object):
             hl = dict((name, self.indexer.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             count = int(options.get('hl.count', 1))
-        for hit in hits:
+        for hit in hits[start:]:
             doc = hit.dict(*multifields, **fields)
             result['docs'].append(doc)
             if hl:
                 doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], count)) for name in hl if name in hit)
         if facets:
-            result['facets'] = self.indexer.facets(hits.ids, *facets.split(','))
+            result['facets'] = self.indexer.facets(engine.Query.filter.im_func(q), *facets.split(','))
         return result
     @cherrypy.expose
     def terms(self, name='', value=':', docs='', counts='', **options):
