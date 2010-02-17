@@ -368,7 +368,7 @@ class Searcher(object):
             ids = Filter(ids)
         for key in keys:
             filters = self.filters.get(key)
-            if isinstance(filters, Filter):
+            if isinstance(filters, lucene.Filter):
                 counts[key] = Filter.overlap(ids, filters, self.indexReader)
             elif isinstance(key, basestring):
                 values = self.terms(key) if filters is None else filters

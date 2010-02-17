@@ -183,6 +183,9 @@ class TestCase(BaseTest):
         assert hit['amendment'] == '1'
         assert sorted(hit.dict()) == ['__id__', '__score__', 'amendment', 'date']
         hits = indexer.search('text:right')
+        for name in ('amendment', 'article'):
+            indexer.filters[name] = engine.Query.prefix(name, '').filter()
+        assert indexer.facets(hits.ids, 'amendment', 'article') == {'amendment': 12, 'article': 1}
         hits = indexer.search('text:people', filter=hits.ids)
         assert len(hits) == 4
         hit, = indexer.search('date:192*')
