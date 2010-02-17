@@ -1134,27 +1134,27 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="method">
 <dt id="engine.queries.Query.__and__">
 <tt class="descname">__and__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__and__" title="Permalink to this definition">¶</a></dt>
-<dd>&lt;BooleanQuery +self +other&gt;</dd></dl>
+<dd>&lt;<a title="engine.queries.BooleanQuery" class="reference internal" href="#engine.queries.BooleanQuery"><tt class="xref docutils literal"><span class="pre">BooleanQuery</span></tt></a> +self +other&gt;</dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.Query.__or__">
 <tt class="descname">__or__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__or__" title="Permalink to this definition">¶</a></dt>
-<dd>&lt;BooleanQuery self other&gt;</dd></dl>
+<dd>&lt;<a title="engine.queries.BooleanQuery" class="reference internal" href="#engine.queries.BooleanQuery"><tt class="xref docutils literal"><span class="pre">BooleanQuery</span></tt></a> self other&gt;</dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.Query.__sub__">
 <tt class="descname">__sub__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__sub__" title="Permalink to this definition">¶</a></dt>
-<dd>&lt;BooleanQuery self -other&gt;</dd></dl>
+<dd>&lt;<a title="engine.queries.BooleanQuery" class="reference internal" href="#engine.queries.BooleanQuery"><tt class="xref docutils literal"><span class="pre">BooleanQuery</span></tt></a> self -other&gt;</dd></dl>
 
 <dl class="classmethod">
 <dt id="engine.queries.Query.all">
 <em class="property">classmethod </em><tt class="descname">all</tt><big>(</big><em>*queries</em>, <em>**terms</em><big>)</big><a class="headerlink" href="#engine.queries.Query.all" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene BooleanQuery (AND) from queries and terms.</dd></dl>
+<dd>Return <a title="engine.queries.BooleanQuery" class="reference internal" href="#engine.queries.BooleanQuery"><tt class="xref docutils literal"><span class="pre">BooleanQuery</span></tt></a> (AND) from queries and terms.</dd></dl>
 
 <dl class="classmethod">
 <dt id="engine.queries.Query.any">
 <em class="property">classmethod </em><tt class="descname">any</tt><big>(</big><em>*queries</em>, <em>**terms</em><big>)</big><a class="headerlink" href="#engine.queries.Query.any" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene BooleanQuery (OR) from queries and terms.</dd></dl>
+<dd>Return <a title="engine.queries.BooleanQuery" class="reference internal" href="#engine.queries.BooleanQuery"><tt class="xref docutils literal"><span class="pre">BooleanQuery</span></tt></a> (OR) from queries and terms.</dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.Query.filter">
@@ -1170,6 +1170,11 @@ Uses class methods and operator overloading for convenient query construction.</
 <dt id="engine.queries.Query.multiphrase">
 <em class="property">classmethod </em><tt class="descname">multiphrase</tt><big>(</big><em>name</em>, <em>*values</em><big>)</big><a class="headerlink" href="#engine.queries.Query.multiphrase" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene MultiPhraseQuery.  None may be used as a placeholder.</dd></dl>
+
+<dl class="classmethod">
+<dt id="engine.queries.Query.near">
+<em class="property">classmethod </em><tt class="descname">near</tt><big>(</big><em>name</em>, <em>*values</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.queries.Query.near" title="Permalink to this definition">¶</a></dt>
+<dd>Return <a title="engine.queries.SpanQuery.near" class="reference internal" href="#engine.queries.SpanQuery.near"><tt class="xref docutils literal"><span class="pre">SpanNearQuery</span></tt></a> from terms.</dd></dl>
 
 <dl class="classmethod">
 <dt id="engine.queries.Query.phrase">
@@ -1189,7 +1194,7 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="classmethod">
 <dt id="engine.queries.Query.span">
 <em class="property">classmethod </em><tt class="descname">span</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.queries.Query.span" title="Permalink to this definition">¶</a></dt>
-<dd>Return lucene SpanTermQuery.</dd></dl>
+<dd>Return <a title="engine.queries.SpanQuery" class="reference internal" href="#engine.queries.SpanQuery"><tt class="xref docutils literal"><span class="pre">SpanTermQuery</span></tt></a>.</dd></dl>
 
 <dl class="classmethod">
 <dt id="engine.queries.Query.term">
@@ -1209,7 +1214,8 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="class">
 <dt id="engine.queries.BooleanQuery">
 <em class="property">class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">BooleanQuery</tt><big>(</big><em>base</em>, <em>*args</em><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Inherited lucene BooleanQuery with sequence interface to clauses.</p>
+<dl class="method">
 <dt id="engine.queries.BooleanQuery.__len__">
 <tt class="descname">__len__</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.queries.BooleanQuery.__len__" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1247,7 +1253,8 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="class">
 <dt id="engine.queries.SpanQuery">
 <em class="property">class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">SpanQuery</tt><big>(</big><em>base</em>, <em>*args</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
+<dd><p>Inherited lucene SpanQuery with additional span constructors.</p>
+<dl class="method">
 <dt id="engine.queries.SpanQuery.__getitem__">
 <tt class="descname">__getitem__</tt><big>(</big><em>slc</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.__getitem__" title="Permalink to this definition">¶</a></dt>
 <dd>&lt;SpanFirstQuery: spanFirst(self, other.stop)&gt;</dd></dl>
@@ -1265,7 +1272,7 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="method">
 <dt id="engine.queries.SpanQuery.near">
 <tt class="descname">near</tt><big>(</big><em>*spans</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.near" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return lucene SpanNearQuery.</p>
+<dd><p>Return lucene SpanNearQuery from SpanQueries.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

@@ -194,15 +194,15 @@ Query
 
   .. automethod:: __and__
 
-    <BooleanQuery +self +other>
+    <:class:`BooleanQuery` +self +other>
 
   .. automethod:: __or__
 
-    <BooleanQuery self other>
+    <:class:`BooleanQuery` self other>
 
   .. automethod:: __sub__
 
-    <BooleanQuery self -other>
+    <:class:`BooleanQuery` self -other>
 
 BooleanQuery
 ^^^^^^^^^^^^^

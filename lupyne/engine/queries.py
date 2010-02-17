@@ -32,16 +32,21 @@ class Query(object):
         return self
     @classmethod
     def any(cls, *queries, **terms):
-        "Return lucene BooleanQuery (OR) from queries and terms."
+        "Return :class:`BooleanQuery` (OR) from queries and terms."
         return cls.boolean(lucene.BooleanClause.Occur.SHOULD, *queries, **terms)
     @classmethod
     def all(cls, *queries, **terms):
-        "Return lucene BooleanQuery (AND) from queries and terms."
+        "Return :class:`BooleanQuery` (AND) from queries and terms."
         return cls.boolean(lucene.BooleanClause.Occur.MUST, *queries, **terms)
     @classmethod
     def span(cls, name, value):
-        "Return lucene SpanTermQuery."
+        "Return :class:`SpanTermQuery <SpanQuery>`."
         return SpanQuery(lucene.SpanTermQuery, lucene.Term(name, value))
+    @classmethod
+    def near(cls, name, *values, **kwargs):
+        "Return :meth:`SpanNearQuery <SpanQuery.near>` from terms."
+        queries = (cls.span(name, value) for value in values)
+        return SpanQuery.near(*queries, **kwargs)
     @classmethod
     def prefix(cls, name, value):
         "Return lucene PrefixQuery."
@@ -95,6 +100,7 @@ class Query(object):
         return Query.any(other).__isub__(self)
 
 class BooleanQuery(Query):
+    "Inherited lucene BooleanQuery with sequence interface to clauses."
     def __len__(self):
         return len(self.getClauses())
     def __iter__(self):
@@ -112,6 +118,7 @@ class BooleanQuery(Query):
         return self
 
 class SpanQuery(Query):
+    "Inherited lucene SpanQuery with additional span constructors."
     def __getitem__(self, slc):
         assert slc.start is slc.step is None, 'only prefix slice supported'
         return SpanQuery(lucene.SpanFirstQuery, self, slc.stop)
@@ -120,7 +127,7 @@ class SpanQuery(Query):
     def __or__(*spans):
         return SpanQuery(lucene.SpanOrQuery, spans)
     def near(*spans, **kwargs):
-        """Return lucene SpanNearQuery.
+        """Return lucene SpanNearQuery from SpanQueries.
         
         :param slop: default 0
         :param inOrder: default True

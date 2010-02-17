@@ -220,16 +220,16 @@ class TestCase(BaseTest):
         query -= engine.Query.term('text', 'papers')
         assert str(query[-1]) == '-text:papers'
         assert len(query) == len(list(query)) == 2
-        queries = [engine.Query.span('text', word) for word in ('persons', 'papers', 'things')]
-        count = indexer.count(queries[0])
-        near = queries[0].near(queries[1], slop=1)
-        assert indexer.count(queries[0] - near) == count
-        near = queries[0].near(queries[1] | queries[2], slop=1)
-        assert indexer.count(queries[0] - near) == count - 1
-        assert 0 < indexer.count(queries[0][:100]) < count
-        spans = dict(indexer.spans(queries[0]))
+        span = engine.Query.span('text', 'persons')
+        count = indexer.count(span)
+        near = engine.Query.near('text', 'persons', 'papers', slop=1)
+        assert indexer.count(span - near) == count
+        near = span.near(engine.Query.span('text', 'papers') | engine.Query.span('text', 'things'), slop=1)
+        assert indexer.count(span - near) == count - 1
+        assert 0 < indexer.count(span[:100]) < count
+        spans = dict(indexer.spans(span))
         assert len(spans) == count and spans == dict(indexer.docs('text', 'persons', counts=True))
-        near = queries[0].near(queries[1], slop=2)
+        near = engine.Query.near('text', 'persons', 'papers', slop=2)
         (id, positions), = indexer.spans(near, positions=True)
         assert indexer[id]['amendment'] == '4' and positions in ([(3, 6)], [(10, 13)])
         with warnings.catch_warnings(record=True) as leaks:
