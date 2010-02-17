@@ -99,10 +99,11 @@ class Resources(dict):
         return -len(self[host])
     def choice(self, hosts):
         "Return chosen host according to priority."
-        hosts = dict(zip(hosts, map(self.priority, hosts)))
-        for priority, candidates in itertools.groupby(sorted(hosts, key=hosts.get), hosts.get):
-            if priority is not None:
-                return random.choice(list(candidates))
+        priorities = collections.defaultdict(list)
+        for host in hosts:
+            priorities[self.priority(host)].append(host)
+        priorities.pop(None, None)
+        return random.choice(priorities[min(priorities)])
     def unicast(self, method, path, body=None, hosts=()):
         "Send request and return response from any host, optionally from given subset."
         host = self.choice(tuple(hosts) or self)

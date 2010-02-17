@@ -43,6 +43,8 @@ class TestCase(remote.BaseTest):
         self.stop(self.servers.pop())
         self.assertRaises((socket.error, httplib.BadStatusLine), resources.broadcast, 'GET', '/')
         assert resources.unicast('GET', '/')()
+        resources.clear()
+        self.assertRaises(ValueError, resources.unicast, 'GET', '/')
     
     def testSharding(self):
         "Sharding of indices across servers."
