@@ -58,6 +58,8 @@ class TestCase(BaseTest):
         assert not resource('HEAD', '/')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.put('/')
+        with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
+            resource.post('/fields')
         assert resource.get('/docs') == []
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/docs/0')

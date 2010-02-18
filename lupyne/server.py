@@ -9,14 +9,14 @@ CherryPy and Lucene VM integration issues:
  * Also recommended that the VM ignores keyboard interrupts for clean server shutdown.
 """
 
-try:    # optimization
-    import simplejson as json
-except ImportError:
-    import json
 import re
 import httplib
 import threading
 from contextlib import contextmanager
+try:
+    import simplejson as json
+except ImportError:
+    import json
 import lucene
 import cherrypy
 from cherrypy.wsgiserver import WorkerThread
@@ -296,7 +296,7 @@ class WebIndexer(WebSearcher):
         self.indexer.delete(self.parse(q, **options))
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
-    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT', 'POST'])
+    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT'])
     def fields(self, name='', **params):
         """Return or store a field's parameters.
         
@@ -305,7 +305,7 @@ class WebIndexer(WebSearcher):
             
             :return: [*string*,... ]
         
-        **GET, PUT, POST** /fields/*chars*
+        **GET, PUT** /fields/*chars*
             Set and return parameters for given field name.
             
             store=\ *chars*
@@ -316,7 +316,7 @@ class WebIndexer(WebSearcher):
             
             :return: {"store": *string*, "index": *string*, "termvector": *string*}
         """
-        if cherrypy.request.method in ('PUT', 'POST'):
+        if cherrypy.request.method == 'PUT':
             self.indexer.set(name, **params)
         if not name:
             return sorted(self.indexer.fields)
