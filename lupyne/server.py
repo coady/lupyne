@@ -19,7 +19,6 @@ except ImportError:
     import json
 import lucene
 import cherrypy
-from cherrypy.wsgiserver import WorkerThread
 import engine
 
 def json_tool():
@@ -44,11 +43,9 @@ def json_error(version, **body):
     cherrypy.response.headers['content-type'] = 'text/x-json'
     return json.dumps(body)
 
-class AttachedThread(WorkerThread):
-    "Attach cherrypy threads to lucene VM."
-    def run(self):
-        lucene.getVMEnv().attachCurrentThread()
-        WorkerThread.run(self)
+def attach_thread(id):
+    "Attach current cherrypy worker thread to lucene VM."
+    lucene.getVMEnv().attachCurrentThread()
 
 @contextmanager
 def HTTPError(status, *exceptions):
@@ -326,7 +323,7 @@ class WebIndexer(WebSearcher):
 
 def main(root, path='', config=None):
     "Attach root and run server."
-    cherrypy.wsgiserver.WorkerThread = AttachedThread
+    cherrypy.engine.subscribe('start_thread', attach_thread)
     cherrypy.engine.subscribe('stop', root.indexer.close)
     cherrypy.config['engine.autoreload.on'] = False
     cherrypy.quickstart(root, path, config)
@@ -335,11 +332,18 @@ if __name__ == '__main__':
     import os, optparse
     parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
     parser.add_option('-r', '--read-only', action='store_true', dest='read', help='expose only GET methods; no write lock')
-    parser.add_option('-c', '--config', dest='config', help='optional configuration file or global json dict')
+    parser.add_option('-c', '--config', dest='config', help='optional configuration file or json object of global params')
+    parser.add_option('-p', '--pidfile', dest='pidfile', help='store the process id in the given file')
+    parser.add_option('-d', '--daemonize', action='store_true', dest='daemonize', help='run the server as a daemon')
     options, args = parser.parse_args()
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
     root = (WebSearcher if (options.read or len(args) > 1) else WebIndexer)(*args)
     if options.config and not os.path.exists(options.config):
         options.config = {'global': json.loads(options.config)}
+    if options.pidfile:
+        cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(options.pidfile)).subscribe()
+    if options.daemonize:
+        cherrypy.config['log.screen'] = False
+        cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe() 
     main(root, config=options.config)
