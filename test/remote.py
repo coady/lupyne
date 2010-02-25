@@ -89,7 +89,7 @@ class TestCase(BaseTest):
         (directory, count), = resource.get('/').items()
         assert count == 1
         assert resource.get('/docs') == []
-        assert resource.get('/search?q=text:hello') == {'count': 0, 'docs': []}
+        assert resource.get('/search?q=text:hello') == {'query': 'text:hello', 'count': 0, 'docs': []}
         assert resource.post('/commit')
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
@@ -113,7 +113,7 @@ class TestCase(BaseTest):
             resource.get('/search', sort='x,y')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', count=1, sort='x:str')
-        assert sorted(hits) == ['count', 'docs']
+        assert sorted(hits) == ['count', 'docs', 'query']
         assert hits['count'] == 1
         doc, = hits['docs']
         assert sorted(doc) == ['__id__', '__score__', 'name']
@@ -170,7 +170,7 @@ class TestCase(BaseTest):
         positions = dict(resource.get('/terms/text/people/docs/positions'))
         assert sorted(positions) == docs and map(len, positions.values()) == counts.values()
         result = resource.get('/search', q='text:"We the People"')
-        assert sorted(result) == ['count', 'docs'] and result['count'] == 1
+        assert sorted(result) == ['count', 'docs', 'query'] and result['count'] == 1
         doc, = result['docs']
         assert sorted(doc) == ['__id__', '__score__', 'article']
         assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__'] < 1
@@ -215,6 +215,12 @@ class TestCase(BaseTest):
         highlights = [doc['__highlights__'] for doc in result['docs']]
         highlight, = [highlight['article'] for highlight in highlights if highlight.get('article')]
         assert highlight == ['<strong>1</strong>']
+        result = resource.get('/search', mlt=0)
+        assert result['count'] == 25 and result['query'] == 'text:united text:states'
+        assert [doc['amendment'] for doc in result['docs'][:4]] == ['10', '11', '15', '19']
+        result = resource.get('/search', q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})
+        assert result['count'] == 11 and result['query'] == 'text:necessary text:people'
+        assert [doc['amendment'] for doc in result['docs'][:4]] == ['2', '9', '10', '1']
 
 if __name__ == '__main__':
     unittest.main()

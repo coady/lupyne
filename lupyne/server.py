@@ -63,7 +63,7 @@ class WebSearcher(object):
         self.indexer = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
     def parse(self, q, **options):
         "Return parsed query using q.* parser options."
-        options = dict((key[2:], options[key]) for key in options if key.startswith('q.'))
+        options = dict((key.partition('.')[-1], options[key]) for key in options if key.startswith('q.'))
         field = options.pop('field', [])
         fields = [field] if isinstance(field, basestring) else field
         fields = [re.match('(\w+)\^?([\d\.]*)', name).groups() for name in fields]
@@ -114,7 +114,7 @@ class WebSearcher(object):
         multifields = filter(None, multifields.split(','))
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
-    def search(self, q=None, count=None, start=0, fields='', multifields='', sort=None, facets='', hl='', **options):
+    def search(self, q=None, count=None, start=0, fields='', multifields='', sort=None, facets='', hl='', mlt=None, **options):
         """Run query and return documents.
         
         **GET** /search?
@@ -143,8 +143,14 @@ class WebSearcher(object):
                 | optional maximum fragment count and html tag name
                 | optionally enable matching any field or any term
             
+            &mlt=\ *int*\ &mlt.fields=\ *chars*,... &mlt.\ *chars*\ =...,
+                | doc index (or id without a query) to find MoreLikeThis
+                | optional document fields to match
+                | optional MoreLikeThis settings: mlt.minTermFreq, mlt.minDocFreq,...
+            
             :return:
                 | {
+                | "query": *string*,
                 | "count": *int*,
                 | "docs": [{"__id__": *int*, "__score__": *number*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
                 | "facets": {*chars*: {*chars*: *int*,... },... },
@@ -158,24 +164,34 @@ class WebSearcher(object):
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
         reverse = False
+        searcher = getattr(self.indexer, 'indexSearcher', self.indexer)
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort.split(','))
             sort = [(name, (type.upper() or 'STRING'), (reverse == '-')) for reverse, name, type in sort]
             if count is None:
                 with HTTPError(httplib.BAD_REQUEST, ValueError):
                     (name, type, reverse), = sort # only one sort field allowed with unlimited count
-                sort = self.indexer.comparator(name, type).__getitem__
+                sort = searcher.comparator(name, type).__getitem__
             else:
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
                     sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
         q = self.parse(q, **options)
-        hits = self.indexer.search(q, count=count, sort=sort, reverse=reverse)
-        result = {'count': hits.count, 'docs': []}
+        if mlt is not None:
+            with HTTPError(httplib.BAD_REQUEST, ValueError):
+                mlt = int(mlt)
+            if q is not None:
+                mlt = searcher.search(q, count=mlt+1, sort=sort, reverse=reverse).ids[mlt]
+            mltfields = filter(None, options.pop('mlt.fields', '').split(','))
+            with HTTPError(httplib.BAD_REQUEST, ValueError):
+                attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))
+            q = searcher.morelikethis(mlt, *mltfields, **attrs)
+        hits = searcher.search(q, count=count, sort=sort, reverse=reverse)
+        result = {'query': unicode(q), 'count': hits.count, 'docs': []}
         tag = options.get('hl.tag', 'strong')
         field = 'fields' not in options.get('hl.enable', '') or None
         span = 'terms' not in options.get('hl.enable', '')
         if hl:
-            hl = dict((name, self.indexer.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
+            hl = dict((name, searcher.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             count = int(options.get('hl.count', 1))
         for hit in hits[start:]:
@@ -184,7 +200,7 @@ class WebSearcher(object):
             if hl:
                 doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], count)) for name in hl if name in hit)
         if facets:
-            result['facets'] = self.indexer.facets(engine.Query.filter.im_func(q), *facets.split(','))
+            result['facets'] = searcher.facets(engine.Query.filter.im_func(q), *facets.split(','))
         return result
     @cherrypy.expose
     def terms(self, name='', value=':', docs='', counts='', **options):
