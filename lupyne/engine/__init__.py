@@ -5,6 +5,10 @@ Provides high-level interfaces to indexes and documents,
 abstracting away java lucene primitives.
 """
 
+import warnings, lucene
+if lucene.VERSION <= '2.4.1':
+    warnings.warn('Support for lucene 2.4 will be removed in a future release.', DeprecationWarning)
+
 from .queries import Query, Filter
 from .documents import Document, Field, FormatField, PrefixField, NestedField, DateTimeField
 from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, ParallelMultiSearcher, IndexWriter, Indexer

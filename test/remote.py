@@ -123,10 +123,12 @@ class TestCase(BaseTest):
         hit, = resource.get('/search', q='hello world', **{'q.field': 'text', 'q.op': 'and'})['docs']
         assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
         try:
-            hit, = resource.get('/search?q=hello+world&q.field=text^4.0&q.field=body')['docs']
+            result = resource.get('/search?q=hello+world&q.field=text^4&q.field=body')
         except httplib.HTTPException as (status, reason, body): # unsupported in lucene 2.4
             assert body['traceback'].splitlines()[-1] == "AttributeError: 'module' object has no attribute 'Float'"
         else:
+            assert result['query'] == '(body:hello text:hello^4.0) (body:world text:world^4.0)'
+            hit, = result['docs']
             assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
         assert not resource.delete('/search', q='name:sample')
         assert resource.get('/docs') == [0]
