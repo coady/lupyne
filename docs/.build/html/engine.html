@@ -381,6 +381,11 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 <dd>Return <a class="reference internal" href="#highlighter">Highlighter</a> specific to the searcher&#8217;s analyzer and index.</dd></dl>
 
 <dl class="method">
+<dt id="engine.indexers.Searcher.reopen">
+<tt class="descname">reopen</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.reopen" title="Permalink to this definition">¶</a></dt>
+<dd>Return current Searcher, only creating a new one if necessary.</dd></dl>
+
+<dl class="method">
 <dt id="engine.indexers.Searcher.search">
 <tt class="descname">search</tt><big>(</big><em>query=None</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return <a class="reference internal" href="#hits">Hits</a>.</p>
@@ -440,7 +445,7 @@ All sub searchers will be closed when the MultiSearcher is closed.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>searchers</em> &#8211; directory paths, lucene Directories, lucene IndexReaders, or lucene Searchers</li>
+<li><em>searchers</em> &#8211; directory paths, Directories, IndexReaders, Searchers, or a MultiReader</li>
 <li><em>analyzer</em> &#8211; lucene Analyzer, default StandardAnalyzer</li>
 </ul>
 </td>

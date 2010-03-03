@@ -75,6 +75,15 @@ class WebSearcher(object):
             field = [name for name, boost in fields]
         return q and self.indexer.parse(q, field, **options)
     @cherrypy.expose
+    @cherrypy.tools.allow(methods=['POST'])
+    def refresh(self):
+        """Reopen searcher.
+        
+        **POST** /refresh
+        """
+        self.indexer = self.indexer.reopen()
+        return len(self.indexer)
+    @cherrypy.expose
     def index(self):
         """Return index information.
         
@@ -271,6 +280,10 @@ class WebIndexer(WebSearcher):
         self.lock = threading.Lock()
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
+    def refresh(self):
+        raise cherrypy.HTTPRedirect('/commit', httplib.MOVED_PERMANENTLY)
+    @cherrypy.expose
+    @cherrypy.tools.allow(methods=['POST'])
     def commit(self):
         """Commit write operations.
         
@@ -347,7 +360,7 @@ def main(root, path='', config=None):
 if __name__ == '__main__':
     import os, optparse
     parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
-    parser.add_option('-r', '--read-only', action='store_true', dest='read', help='expose only GET methods; no write lock')
+    parser.add_option('-r', '--read-only', action='store_true', dest='read', help='expose only read methods; no write lock')
     parser.add_option('-c', '--config', dest='config', help='optional configuration file or json object of global params')
     parser.add_option('-p', '--pidfile', dest='pidfile', help='store the process id in the given file')
     parser.add_option('-d', '--daemonize', action='store_true', dest='daemonize', help='run the server as a daemon')

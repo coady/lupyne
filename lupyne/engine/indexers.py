@@ -279,22 +279,30 @@ class Searcher(object):
         super(Searcher, self).__init__(arg)
         if analyzer is None:
             analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
-            self.closing.add(analyzer)
+            self.shared.add(analyzer)
         self.analyzer = analyzer
         self.filters = {}
     def __del__(self):
         if hash(self):
             self.close()
     def open(self, *directories):
-        self.closing = closing()
+        self.shared = closing()
         for directory in directories:
             if isinstance(directory, basestring):
                 if hasattr(lucene.FSDirectory, 'open'):
                     directory = lucene.FSDirectory.open(lucene.File(directory))
                 else:
                     directory = lucene.FSDirectory.getDirectory(directory)
-                self.closing.add(directory)
+                self.shared.add(directory)
             yield directory
+    def reopen(self):
+        "Return current Searcher, only creating a new one if necessary."
+        reader = self.indexReader.reopen()
+        if reader == self.indexReader:
+            return self
+        other = type(self)(reader, self.analyzer)
+        other.shared, other.owned = self.shared, closing([reader])
+        return other
     def __getitem__(self, id):
         return Document(self.doc(id))
     def parse(self, query, *args, **kwargs):
@@ -394,14 +402,18 @@ class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
     """Inherited lucene MultiSearcher.
     All sub searchers will be closed when the MultiSearcher is closed.
     
-    :param searchers: directory paths, lucene Directories, lucene IndexReaders, or lucene Searchers
+    :param searchers: directory paths, Directories, IndexReaders, Searchers, or a MultiReader
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
     def __init__(self, searchers, analyzer=None):
-        searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(searcher) for searcher in self.open(*searchers)]
+        if lucene.MultiReader.instance_(searchers):
+            self.indexReader = searchers
+            searchers = map(lucene.IndexSearcher, searchers.sequentialSubReaders)
+        else:
+            searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(searcher) for searcher in self.open(*searchers)]
+            self.indexReader = lucene.MultiReader(map(operator.attrgetter('indexReader'), searchers), False)
+            self.owned = closing([self.indexReader])
         Searcher.__init__(self, searchers, analyzer)
-        self.indexReader = lucene.MultiReader([lucene.IndexSearcher.cast_(searchable).indexReader for searchable in self.searchables], False)
-        self.closing.add(self.indexReader)
 
 class ParallelMultiSearcher(MultiSearcher, lucene.ParallelMultiSearcher):
     "Inherited lucene ParallelMultiSearcher."
@@ -418,10 +430,10 @@ class IndexWriter(lucene.IndexWriter):
     __del__ = IndexSearcher.__del__.im_func
     parse = Searcher.parse.im_func
     def __init__(self, directory=None, mode='a', analyzer=None):
-        self.closing = closing()
+        self.shared = closing()
         if analyzer is None:
             analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
-            self.closing.add(analyzer)
+            self.shared.add(analyzer)
         if not isinstance(directory, lucene.Directory):
             if directory is None:
                 directory = lucene.RAMDirectory()
@@ -429,7 +441,7 @@ class IndexWriter(lucene.IndexWriter):
                 directory = lucene.FSDirectory.open(lucene.File(directory))
             else:
                 directory = lucene.FSDirectory.getDirectory(directory)
-            self.closing.add(directory)
+            self.shared.add(directory)
         mfl = lucene.IndexWriter.MaxFieldLength.LIMITED
         if mode == 'a':
             lucene.IndexWriter.__init__(self, directory, analyzer, mfl)
@@ -509,6 +521,4 @@ class Indexer(IndexWriter):
     def commit(self):
         "Commit writes and refresh searcher.  Not thread-safe."
         IndexWriter.commit(self)
-        if not self.current:
-            searcher = self.indexSearcher = IndexSearcher(self.reopen(), self.analyzer)
-            searcher.closing.add(searcher.indexReader)
+        self.indexSearcher = self.indexSearcher.reopen()

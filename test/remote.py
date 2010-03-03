@@ -15,7 +15,7 @@ def assertRaises(exception, code):
     try:
         yield
     except exception as exc:
-        assert exc[0] == code
+        assert exc[0] == code, exc
     else:
         raise AssertionError(exception.__name__ + ' not raised')
 
@@ -130,18 +130,26 @@ class TestCase(BaseTest):
             assert result['query'] == '(body:hello text:hello^4.0) (body:world text:world^4.0)'
             hit, = result['docs']
             assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
+        resource = client.Resource('localhost', self.ports[-1])
+        assert resource.get('/docs') == []
+        try:
+            assert resource.post('/refresh') == 2
+        except httplib.HTTPException as (status, reason, body): # unsupported in lucene 2.4
+            assert body['traceback'].splitlines()[-1] == "AttributeError: 'IndexReader' object has no attribute 'sequentialSubReaders'"
+        else:
+            assert resource.get('/docs') == [0, 1]
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/fields')
+        resource = client.Resource('localhost', self.ports[0])
         assert not resource.delete('/search', q='name:sample')
         assert resource.get('/docs') == [0]
         assert not resource.post('/commit')
         assert resource.get('/docs') == []
+        with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
+            resource.post('/refresh')
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
-        resource = client.Resource('localhost', self.ports[-1])
-        assert resource.get('/docs') == []
-        assert resource.get('/').values() == [0]
-        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
-            resource.get('/fields')
     
     def testBasic(self):
         "Remote text indexing and searching."

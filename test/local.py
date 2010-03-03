@@ -137,8 +137,11 @@ class TestCase(BaseTest):
         indexer.commit()
         searcher = engine.MultiSearcher([indexer.directory, self.tempdir])
         assert searcher.count() == len(searcher) == 2 * len(indexer)
+        searcher = searcher.reopen()
         assert searcher.facets(searcher, 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
+        reader = searcher.indexReader
         del searcher
+        self.assertRaises(lucene.JavaError, reader.isCurrent)
         assert len(indexer) == len(indexer.search()) == 35
         assert sorted(indexer.names()) == ['amendment', 'article', 'date', 'text']
         articles = list(indexer.terms('article'))

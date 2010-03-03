@@ -120,6 +120,13 @@ $ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;c
 </dd></dl>
 
 <dl class="method">
+<dt id="server.WebSearcher.refresh">
+<tt class="descname">refresh</tt><big>(</big><big>)</big><a class="headerlink" href="#server.WebSearcher.refresh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reopen searcher.</p>
+<p><strong>POST</strong> /refresh</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="server.WebSearcher.search">
 <tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>start=0</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>hl=''</em>, <em>mlt=None</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
