@@ -1,6 +1,4 @@
 """
-*Pythonic extensions to PyLucene, including a standalone search server based on CherryPy.*
-
 Project highlights
 ==================
 The core engine is a high level interface to PyLucene, which is a Python extension for accessing the popular Java Lucene search engine.
@@ -22,16 +20,26 @@ Advanced search features:
  * Optimized prefix and range queries.
  * Geospatial support.
 
-Changes in 0.4:
+Changes in 0.5:
 ==================
- * PyLucene 3.0 support; deprecated calls have been dropped where possible.
- * Alternative numeric implementations of SpatialFields and DateTimeFields.
- * Custom TokenFilters, with support for generators.
- * Expanded custom Analyzers and parsing.
- * Term enumerations support wildcards and fuzziness.
- * IndexReaders support MoreLikeThis queries.
- * Index writers and searchers support managing their analyzers and directories.
- * Optimized and more versatile sorting and comparators.
+ * PyLucene 2.4 support is deprecated
+ * Optimized facets
+ * MultiSearchers support full searching interface
+ * Reopening searchers with resource closing managed
+ * Query parsing supports boost mapping
+ * Remote searching support:
+ 
+   - production configuration
+   - refreshing searcher
+   - "more like this" queries
+   - retrieving document slices
+   - hit text highlighting
+   - query parsing options
+   - json errors
+   - advanced term enumeration
+   - multisearchers
+   - sorting options
+   - facets
 """
 
 import os
@@ -44,8 +52,8 @@ for dirpath, dirnames, filenames in os.walk('lupyne'):
 
 setup(
     name='lupyne',
-    version='0.4+',
-    description='A pythonic search engine, based on PyLucene and CherryPy.',
+    version='0.5',
+    description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',
     author_email='aric.coady@gmail.com',
