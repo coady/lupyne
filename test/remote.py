@@ -179,8 +179,8 @@ class TestCase(BaseTest):
         assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
         positions = dict(resource.get('/terms/text/people/docs/positions'))
         assert sorted(positions) == docs and map(len, positions.values()) == counts.values()
-        result = resource.get('/search', q='text:"We the People"')
-        assert sorted(result) == ['count', 'docs', 'query'] and result['count'] == 1
+        result = resource.get('/search', q='text:"We the People"', **{'q.phraseSlop': 3})
+        assert sorted(result) == ['count', 'docs', 'query'] and result['count'] == 1 and result['query'] == 'text:"we ? people"~3'
         doc, = result['docs']
         assert sorted(doc) == ['__id__', '__score__', 'article']
         assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__'] < 1

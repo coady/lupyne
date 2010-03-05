@@ -72,7 +72,10 @@ class WebSearcher(object):
         elif isinstance(field, basestring):
             (field, boost), = fields
         else:
-            field = [name for name, boost in fields]
+            field = [name for name, boost in fields] or ''
+        for key in set(options) - set(['op', 'version']):
+            with HTTPError(httplib.BAD_REQUEST, ValueError):
+                options[key] = json.loads(options[key])
         return q and self.indexer.parse(q, field, **options)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])

@@ -52,7 +52,7 @@ for dirpath, dirnames, filenames in os.walk('lupyne'):
 
 setup(
     name='lupyne',
-    version='0.5',
+    version='0.5+',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',
