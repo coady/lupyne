@@ -32,7 +32,7 @@ class BaseTest(local.BaseTest):
     def start(self, port, *args):
         "Start server in separate process on given port."
         params = sys.executable, '-m', 'lupyne.server', '-c', '{{"server.socket_port": {0:n}}}'.format(port)
-        stderr = None if self.verbose else subprocess.PIPE
+        stderr = None if local.options.verbose else subprocess.PIPE
         cherrypy.process.servers.wait_for_free_port('localhost', port)
         server = subprocess.Popen(params + args, stderr=stderr)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
@@ -140,6 +140,8 @@ class TestCase(BaseTest):
             assert resource.get('/docs') == [0, 1]
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/fields')
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.post('/commit')
         resource = client.Resource('localhost', self.ports[0])
         assert not resource.delete('/search', q='name:sample')
         assert resource.get('/docs') == [0]

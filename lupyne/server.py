@@ -32,7 +32,7 @@ cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
 def allow_tool(methods=['GET', 'HEAD']):
     "Only allow specified methods."
     request = cherrypy.request
-    if request.method not in methods:
+    if request.method not in methods and not isinstance(request.handler, cherrypy.HTTPError):
         cherrypy.response.headers['allow'] = ', '.join(methods)
         message = "The path {0!r} does not allow {1}.".format(request.path_info, request.method)
         raise cherrypy.HTTPError(httplib.METHOD_NOT_ALLOWED, message)
@@ -363,19 +363,19 @@ def main(root, path='', config=None):
 if __name__ == '__main__':
     import os, optparse
     parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
-    parser.add_option('-r', '--read-only', action='store_true', dest='read', help='expose only read methods; no write lock')
-    parser.add_option('-c', '--config', dest='config', help='optional configuration file or json object of global params')
-    parser.add_option('-p', '--pidfile', dest='pidfile', help='store the process id in the given file')
-    parser.add_option('-d', '--daemonize', action='store_true', dest='daemonize', help='run the server as a daemon')
+    parser.add_option('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
+    parser.add_option('-c', '--config', help='optional configuration file or json object of global params')
+    parser.add_option('-p', '--pidfile', help='store the process id in the given file')
+    parser.add_option('-d', '--daemonize', action='store_true', help='run the server as a daemon')
     options, args = parser.parse_args()
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
-    root = (WebSearcher if (options.read or len(args) > 1) else WebIndexer)(*args)
+    root = (WebSearcher if (options.read_only or len(args) > 1) else WebIndexer)(*args)
     if options.config and not os.path.exists(options.config):
         options.config = {'global': json.loads(options.config)}
     if options.pidfile:
         cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(options.pidfile)).subscribe()
     if options.daemonize:
         cherrypy.config['log.screen'] = False
-        cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe() 
+        cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
     main(root, config=options.config)
