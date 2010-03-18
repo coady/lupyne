@@ -1,17 +1,16 @@
 """
 Restful json `CherryPy <http://cherrypy.org/>`_ server.
 
-    $ python server.py `directory`,... [-r|--read-only] [-c|--config filename]
-
 CherryPy and Lucene VM integration issues:
- * Autoreload is not compatible with the VM initialization.
- * WorkerThreads must be attached to the VM.
- * Also recommended that the VM ignores keyboard interrupts for clean server shutdown.
+ * Monitors (such as autoreload) are not compatible with the VM unless threads are attached.
+ * WorkerThreads must be also attached to the VM.
+ * Recommended that the VM ignores keyboard interrupts (-Xrs) for clean server shutdown.
 """
 
 import re
 import httplib
 import threading
+import os, optparse
 from contextlib import contextmanager
 try:
     import simplejson as json
@@ -46,6 +45,21 @@ def json_error(version, **body):
 def attach_thread(id):
     "Attach current cherrypy worker thread to lucene VM."
     lucene.getVMEnv().attachCurrentThread()
+
+class Autoreloader(cherrypy.process.plugins.Autoreloader):
+    "Autoreload monitor compatible with lucene VM."
+    def run(self):
+        lucene.getVMEnv().attachCurrentThread()
+        cherrypy.process.plugins.Autoreloader.run(self)
+
+class Autorefresher(cherrypy.process.plugins.Monitor):
+    "Automatically refresh WebSearcher."
+    def __init__(self, bus, root, frequency):
+        cherrypy.process.plugins.Monitor.__init__(self, bus, self.run, frequency)
+        self.method = getattr(root, 'commit', root.refresh)
+    def run(self):
+        lucene.getVMEnv().attachCurrentThread()
+        self.method()
 
 @contextmanager
 def HTTPError(status, *exceptions):
@@ -360,13 +374,15 @@ def main(root, path='', config=None):
     cherrypy.config['engine.autoreload.on'] = False
     cherrypy.quickstart(root, path, config)
 
+parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
+parser.add_option('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
+parser.add_option('-c', '--config', help='optional configuration file or json object of global params')
+parser.add_option('-p', '--pidfile', metavar='FILE', help='store the process id in the given file')
+parser.add_option('-d', '--daemonize', action='store_true', help='run the server as a daemon')
+parser.add_option('--autoreload', type=int, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
+parser.add_option('--autorefresh', type=int, metavar='SECONDS', help='automatically refresh index')
+
 if __name__ == '__main__':
-    import os, optparse
-    parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
-    parser.add_option('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
-    parser.add_option('-c', '--config', help='optional configuration file or json object of global params')
-    parser.add_option('-p', '--pidfile', help='store the process id in the given file')
-    parser.add_option('-d', '--daemonize', action='store_true', help='run the server as a daemon')
     options, args = parser.parse_args()
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
@@ -378,4 +394,8 @@ if __name__ == '__main__':
     if options.daemonize:
         cherrypy.config['log.screen'] = False
         cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
+    if options.autoreload:
+        Autoreloader(cherrypy.engine, options.autoreload).subscribe()
+    if options.autorefresh:
+        Autorefresher(cherrypy.engine, root, options.autorefresh).subscribe()
     main(root, config=options.config)

@@ -1,5 +1,6 @@
 import unittest
 import sys
+import time
 import subprocess
 import operator
 import httplib
@@ -23,7 +24,7 @@ class BaseTest(local.BaseTest):
     ports = 8080, 8081
     def setUp(self):
         local.BaseTest.setUp(self)
-        self.servers = [self.start(self.ports[0], self.tempdir)]
+        self.servers = [self.start(self.ports[0], self.tempdir, '--autoreload=1', '--autorefresh=1')]
         self.servers += [self.start(port, self.tempdir, self.tempdir) for port in self.ports[1:]] # concurrent searchers
     def tearDown(self):
         for server in self.servers:
@@ -165,7 +166,7 @@ class TestCase(BaseTest):
             assert sorted(resource.get('/fields/' + name)) == ['index', 'store', 'termvector']
         resource.post('/docs/', docs=list(fixture.constitution.docs()))
         assert resource.get('/').values() == [35]
-        resource.post('/commit')
+        time.sleep(1.1) # wait for autorefresh
         assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
         articles = resource.get('/terms/article')
         articles.remove('Preamble')

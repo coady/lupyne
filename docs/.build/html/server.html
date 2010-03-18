@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>server &mdash; LuPyne v0.5 documentation</title>
+    <title>server &mdash; LuPyne v0.5+ documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '#',
-        VERSION:     '0.5',
+        VERSION:     '0.5+',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.5 documentation" href="index.html" />
+    <link rel="top" title="LuPyne v0.5+ documentation" href="index.html" />
     <link rel="next" title="client" href="client.html" />
     <link rel="prev" title="engine" href="engine.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="engine.html" title="engine"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.5 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.5+ documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -51,15 +51,53 @@
   <div class="section" id="module-server">
 <h1>server<a class="headerlink" href="#module-server" title="Permalink to this headline">¶</a></h1>
 <p>Restful json <a class="reference external" href="http://cherrypy.org/">CherryPy</a> server.</p>
-<blockquote>
-$ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;config filename]</blockquote>
 <dl class="docutils">
 <dt>CherryPy and Lucene VM integration issues:</dt>
 <dd><ul class="first last simple">
-<li>Autoreload is not compatible with the VM initialization.</li>
-<li>WorkerThreads must be attached to the VM.</li>
-<li>Also recommended that the VM ignores keyboard interrupts for clean server shutdown.</li>
+<li>Monitors (such as autoreload) are not compatible with the VM unless threads are attached.</li>
+<li>WorkerThreads must be also attached to the VM.</li>
+<li>Recommended that the VM ignores keyboard interrupts (-Xrs) for clean server shutdown.</li>
 </ul>
+</dd>
+</dl>
+<p>Usage: python server.py [index_directory ...]</p>
+<dl class="docutils">
+<dt>Options:</dt>
+<dd><table class="first last docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group">
+<kbd><span class="option">-h</span>, <span class="option">--help</span></kbd></td>
+<td>show this help message and exit</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-r</span>, <span class="option">--read-only</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>expose only read methods; no write lock</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-c <var>CONFIG</var></span>, <span class="option">--config=<var>CONFIG</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>optional configuration file or json object of global
+params</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-p <var>FILE</var></span>, <span class="option">--pidfile=<var>FILE</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>store the process id in the given file</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-d</span>, <span class="option">--daemonize</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>run the server as a daemon</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--autoreload=<var>SECONDS</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>automatically reload modules; replacement for
+engine.autoreload</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--autorefresh=<var>SECONDS</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>automatically refresh index</td></tr>
+</tbody>
+</table>
 </dd>
 </dl>
 <div class="section" id="websearcher">
@@ -407,7 +445,7 @@ $ python server.py <cite>directory</cite>,... [-r|&#8211;read-only] [-c|&#8211;c
         <li class="right" >
           <a href="engine.html" title="engine"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.5 documentation</a> &raquo;</li> 
+        <li><a href="index.html">LuPyne v0.5+ documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
