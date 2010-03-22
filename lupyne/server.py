@@ -75,6 +75,8 @@ class WebSearcher(object):
         'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'text/x-json']}
     def __init__(self, *directories, **kwargs):
         self.indexer = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
+    def close(self):
+        self.indexer.close()
     def parse(self, q, **options):
         "Return parsed query using q.* parser options."
         options = dict((key.partition('.')[-1], options[key]) for key in options if key.startswith('q.'))
@@ -370,7 +372,7 @@ class WebIndexer(WebSearcher):
 def main(root, path='', config=None):
     "Attach root and run server."
     cherrypy.engine.subscribe('start_thread', attach_thread)
-    cherrypy.engine.subscribe('stop', root.indexer.close)
+    cherrypy.engine.subscribe('stop', root.close)
     cherrypy.config['engine.autoreload.on'] = False
     cherrypy.quickstart(root, path, config)
 
