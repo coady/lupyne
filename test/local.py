@@ -1,5 +1,5 @@
 import unittest
-import os, optparse
+import os
 import tempfile, shutil
 import itertools
 import collections
@@ -11,9 +11,6 @@ from lupyne import engine
 import fixture
 
 numeric = hasattr(lucene, 'NumericField')
-parser = optparse.OptionParser()
-parser.add_option('-v', '--verbose', action='store_true')
-options, args = parser.parse_args()
 
 if issubclass(lucene.TokenFilter, collections.Iterable):
     def typeAsPayload(tokens):

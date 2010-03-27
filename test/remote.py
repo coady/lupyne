@@ -26,6 +26,9 @@ class BaseTest(local.BaseTest):
         local.BaseTest.setUp(self)
         self.servers = [self.start(self.ports[0], self.tempdir, '--autoreload=1', '--autorefresh=1')]
         self.servers += [self.start(port, self.tempdir, self.tempdir) for port in self.ports[1:]] # concurrent searchers
+    def run(self, result):
+        self.stderr = None if result.showAll else subprocess.PIPE
+        local.BaseTest.run(self, result)
     def tearDown(self):
         for server in self.servers:
             self.stop(server)
@@ -33,9 +36,8 @@ class BaseTest(local.BaseTest):
     def start(self, port, *args):
         "Start server in separate process on given port."
         params = sys.executable, '-m', 'lupyne.server', '-c', '{{"server.socket_port": {0:n}}}'.format(port)
-        stderr = None if local.options.verbose else subprocess.PIPE
         cherrypy.process.servers.wait_for_free_port('localhost', port)
-        server = subprocess.Popen(params + args, stderr=stderr)
+        server = subprocess.Popen(params + args, stderr=self.stderr)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
         assert server.poll() is None
         return server
