@@ -1,6 +1,5 @@
 import unittest
 import sys
-import time
 import subprocess
 import operator
 import httplib
@@ -24,7 +23,7 @@ class BaseTest(local.BaseTest):
     ports = 8080, 8081
     def setUp(self):
         local.BaseTest.setUp(self)
-        self.servers = [self.start(self.ports[0], self.tempdir, '--autoreload=1', '--autorefresh=1')]
+        self.servers = [self.start(self.ports[0], self.tempdir, '--autoreload=1')]
         self.servers += [self.start(port, self.tempdir, self.tempdir) for port in self.ports[1:]] # concurrent searchers
     def run(self, result):
         self.stderr = None if result.showAll else subprocess.PIPE
@@ -35,7 +34,7 @@ class BaseTest(local.BaseTest):
         local.BaseTest.tearDown(self)
     def start(self, port, *args):
         "Start server in separate process on given port."
-        params = sys.executable, '-m', 'lupyne.server', '-c', '{{"server.socket_port": {0:n}}}'.format(port)
+        params = sys.executable, '-m', 'lupyne.server', '-c', '{{"server.socket_port": {0:d}}}'.format(port)
         cherrypy.process.servers.wait_for_free_port('localhost', port)
         server = subprocess.Popen(params + args, stderr=self.stderr)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
@@ -168,7 +167,7 @@ class TestCase(BaseTest):
             assert sorted(resource.get('/fields/' + name)) == ['index', 'store', 'termvector']
         resource.post('/docs/', docs=list(fixture.constitution.docs()))
         assert resource.get('/').values() == [35]
-        time.sleep(1.1) # wait for autorefresh
+        resource.post('/commit')
         assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
         articles = resource.get('/terms/article')
         articles.remove('Preamble')
@@ -185,7 +184,8 @@ class TestCase(BaseTest):
         positions = dict(resource.get('/terms/text/people/docs/positions'))
         assert sorted(positions) == docs and map(len, positions.values()) == counts.values()
         result = resource.get('/search', q='text:"We the People"', **{'q.phraseSlop': 3})
-        assert sorted(result) == ['count', 'docs', 'query'] and result['count'] == 1 and result['query'] == 'text:"we ? people"~3'
+        assert sorted(result) == ['count', 'docs', 'query'] and result['count'] == 1
+        assert result['query'] in ('text:"we ? people"~3', 'text:"we people"~3') # second query is 2.4 analysis
         doc, = result['docs']
         assert sorted(doc) == ['__id__', '__score__', 'article']
         assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__'] < 1

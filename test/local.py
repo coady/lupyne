@@ -346,9 +346,9 @@ class TestCase(BaseTest):
     def testFields(self):
         "Custom field tests."
         indexer = engine.Indexer(self.tempdir)
-        indexer.set('amendment', engine.FormatField, format='{0:02n}', store=True)
+        indexer.set('amendment', engine.FormatField, format='{0:02d}', store=True)
         indexer.set('date', engine.DateTimeField, store=True)
-        indexer.set('size', engine.FormatField, format='{0:04n}', store=True)
+        indexer.set('size', engine.FormatField, format='{0:04d}', store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=doc['date'], size=len(doc['text']))

@@ -66,7 +66,7 @@ class PrefixField(Field):
         return words
     def getname(self, depth):
         "Return prefix field name for given depth."
-        return '{0}[:{1:n}]'.format(self.name, depth)
+        return '{0}[:{1:d}]'.format(self.name, depth)
     def indices(self, depth):
         "Return range of valid depth indices."
         return xrange(*self.depths.indices(depth + self.depths.step))
@@ -153,7 +153,7 @@ class DateTimeField(PrefixField):
         dates = (map(float, self.split(str(date))) for date in (start, stop))
         items = []
         for dates in self._range(*dates):
-            items.append(tuple(self.join(map('{0:02n}'.format, date)) for date in dates))
+            items.append(tuple(self.join(map('{0:02g}'.format, date)) for date in dates))
         queries = [PrefixField.range(self, str(start), items[0][1], lower=lower)]
         queries += [PrefixField.range(self, *item) for item in items[1:-1]]
         queries.append(PrefixField.range(self, items[-1][0], str(stop), upper=upper))

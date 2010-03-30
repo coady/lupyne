@@ -6,7 +6,7 @@ import local, remote
 
 class TestCase(remote.BaseTest):
     ports = 8080, 8081, 8082
-    hosts = map('localhost:{0:n}'.format, ports)
+    hosts = map('localhost:{0:d}'.format, ports)
     def setUp(self):
         local.BaseTest.setUp(self)
         self.servers = map(self.start, self.ports)
