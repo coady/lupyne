@@ -231,16 +231,25 @@ class IndexReader(object):
         bases = getattr(lucene, 'Python{0}Parser'.format(type)),
         parser = object.__class__('', bases, {'parse' + type: staticmethod(parser)})
         return method(self.indexReader, name, parser())
-    def spans(self, query, positions=False):
+    def spans(self, query, positions=False, payloads=False):
         """Generate docs with occurrence counts for a span query.
         
         :param query: lucene SpanQuery
         :param positions: optionally include slice positions instead of counts
+        :param payloads: optionally only include slice positions with payloads
         """
         spans = query.getSpans(self.indexReader)
         spans = itertools.takewhile(lucene.Spans.next, itertools.repeat(spans))
         for doc, spans in itertools.groupby(spans, key=lucene.Spans.doc):
-            if positions:
+            if payloads:
+                items = []
+                for span in spans:
+                    if span.payloadAvailable:
+                        payloads = map(lucene.JArray_byte.cast_, span.payload)
+                        payloads = [data.string_ if hasattr(data, 'string_') else ''.join(data) for data in payloads]
+                        items.append((span.start(), span.end(), payloads))
+                yield doc, items
+            elif positions:
                 yield doc, [(span.start(), span.end()) for span in spans]
             else:
                 yield doc, sum(1 for span in spans)

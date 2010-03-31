@@ -102,6 +102,17 @@ class TestCase(BaseTest):
         assert not indexer.search('hello') and indexer.search('hello', field='text')
         assert indexer.search('text:hello hi') and not indexer.search('text:hello hi', op='and')
         assert indexer.search('text:*hello', allowLeadingWildcard=True)
+        query = engine.Query.span('text', 'world')
+        self.assertRaises(AssertionError, query.near, option=None)
+        if lucene.VERSION >= '2.9':
+            assert str(query.mask('name')) == 'mask(text:world) as name'
+            query = engine.Query.near('text', 'hello', 'world')
+            (doc, items), = indexer.spans(query, payloads=True)
+            (start, stop, payloads), = items
+            assert doc == 0 and start == 0 and stop == 2 and payloads == ['<ALPHANUM>', '<ALPHANUM>']
+            query = engine.Query.near('text', 'hello', 'world', collectPayloads=False)
+            (doc, items), = indexer.spans(query, payloads=True)
+            assert doc == 0 and items == []
         indexer.delete('name:sample')
         indexer.delete('tag', 'python')
         assert 0 in indexer
@@ -221,7 +232,7 @@ class TestCase(BaseTest):
         assert len(query) == len(list(query)) == 2
         span = engine.Query.span('text', 'persons')
         count = indexer.count(span)
-        near = engine.Query.near('text', 'persons', 'papers', slop=1)
+        near = engine.Query.near('text', 'persons', 'papers', slop=1, inOrder=False)
         assert indexer.count(span - near) == count
         near = span.near(engine.Query.span('text', 'papers') | engine.Query.span('text', 'things'), slop=1)
         assert indexer.count(span - near) == count - 1

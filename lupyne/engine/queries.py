@@ -131,10 +131,16 @@ class SpanQuery(Query):
         
         :param slop: default 0
         :param inOrder: default True
+        :param collectPayloads: default True
         """
-        slop = kwargs.pop('slop', 0)
-        inOrder = kwargs.pop('inOrder', True)
-        return SpanQuery(lucene.SpanNearQuery, spans, slop, inOrder, **kwargs)
+        args = map(kwargs.pop, ('slop', 'inOrder'), (0, True))
+        if 'collectPayloads' in kwargs:
+            args.append(kwargs.pop('collectPayloads'))
+        assert not kwargs, 'unexpected keyword arguments: {0}'.format(list(kwargs))
+        return SpanQuery(lucene.SpanNearQuery, spans, *args)
+    def mask(self, name):
+        "Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."
+        return SpanQuery(lucene.FieldMaskingSpanQuery, self, name)
 
 class HitCollector(lucene.PythonCollector if hasattr(lucene, 'PythonCollector') else lucene.PythonHitCollector):
     "Collect all ids and scores efficiently."

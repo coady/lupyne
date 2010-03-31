@@ -252,7 +252,7 @@ Map values into a list for speed optimization.</p>
 
 <dl class="method">
 <dt id="engine.indexers.IndexReader.spans">
-<tt class="descname">spans</tt><big>(</big><em>query</em>, <em>positions=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.spans" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">spans</tt><big>(</big><em>query</em>, <em>positions=False</em>, <em>payloads=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.spans" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate docs with occurrence counts for a span query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -261,6 +261,7 @@ Map values into a list for speed optimization.</p>
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>query</em> &#8211; lucene SpanQuery</li>
 <li><em>positions</em> &#8211; optionally include slice positions instead of counts</li>
+<li><em>payloads</em> &#8211; optionally only include slice positions with payloads</li>
 </ul>
 </td>
 </tr>
@@ -1275,6 +1276,11 @@ Uses class methods and operator overloading for convenient query construction.</
 <dd>&lt;SpanOrQuery: spanOr(spans)&gt;</dd></dl>
 
 <dl class="method">
+<dt id="engine.queries.SpanQuery.mask">
+<tt class="descname">mask</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.mask" title="Permalink to this definition">¶</a></dt>
+<dd>Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields.</dd></dl>
+
+<dl class="method">
 <dt id="engine.queries.SpanQuery.near">
 <tt class="descname">near</tt><big>(</big><em>*spans</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.queries.SpanQuery.near" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return lucene SpanNearQuery from SpanQueries.</p>
@@ -1285,6 +1291,7 @@ Uses class methods and operator overloading for convenient query construction.</
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><em>slop</em> &#8211; default 0</li>
 <li><em>inOrder</em> &#8211; default True</li>
+<li><em>collectPayloads</em> &#8211; default True</li>
 </ul>
 </td>
 </tr>
