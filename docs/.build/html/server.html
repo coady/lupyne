@@ -379,10 +379,14 @@ engine.autoreload</td></tr>
 
 </dd></dl>
 
+</div>
+<div class="section" id="start">
+<h2>start<a class="headerlink" href="#start" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="server.main">
-<tt class="descclassname">server.</tt><tt class="descname">main</tt><big>(</big><em>root</em>, <em>path=''</em>, <em>config=None</em><big>)</big><a class="headerlink" href="#server.main" title="Permalink to this definition">¶</a></dt>
-<dd>Attach root and run server.</dd></dl>
+<dt id="server.start">
+<tt class="descclassname">server.</tt><tt class="descname">start</tt><big>(</big><em>root</em>, <em>path=''</em>, <em>config=None</em>, <em>pidfile=''</em>, <em>daemonize=False</em>, <em>autoreload=0</em>, <em>autorefresh=0</em><big>)</big><a class="headerlink" href="#server.start" title="Permalink to this definition">¶</a></dt>
+<dd>Attach root, subscribe to plugins, and start server.
+See cherrypy.quickstart and command-line options for documentation.</dd></dl>
 
 </div>
 </div>
@@ -398,6 +402,7 @@ engine.autoreload</td></tr>
 <li><a class="reference external" href="#">server</a><ul>
 <li><a class="reference external" href="#websearcher">WebSearcher</a></li>
 <li><a class="reference external" href="#webindexer">WebIndexer</a></li>
+<li><a class="reference external" href="#start">start</a></li>
 </ul>
 </li>
 </ul>

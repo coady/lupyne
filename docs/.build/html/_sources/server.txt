@@ -30,4 +30,6 @@ WebIndexer
   :show-inheritance:
   :members:
 
-.. autofunction:: main
+start
+-----------
+.. autofunction:: start

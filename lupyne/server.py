@@ -10,6 +10,7 @@ CherryPy and Lucene VM integration issues:
 import re
 import httplib
 import threading
+import warnings
 import os, optparse
 from contextlib import contextmanager
 try:
@@ -369,12 +370,26 @@ class WebIndexer(WebSearcher):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
 
-def main(root, path='', config=None):
-    "Attach root and run server."
+def start(root, path='', config=None, pidfile='', daemonize=False, autoreload=0, autorefresh=0):
+    """Attach root, subscribe to plugins, and start server.
+    See cherrypy.quickstart and command-line options for documentation."""
     cherrypy.engine.subscribe('start_thread', attach_thread)
     cherrypy.engine.subscribe('stop', root.close)
     cherrypy.config['engine.autoreload.on'] = False
+    if pidfile:
+        cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(options.pidfile)).subscribe()
+    if daemonize:
+        cherrypy.config['log.screen'] = False
+        cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
+    if autoreload:
+        Autoreloader(cherrypy.engine, options.autoreload).subscribe()
+    if autorefresh:
+        Autorefresher(cherrypy.engine, root, options.autorefresh).subscribe()
     cherrypy.quickstart(root, path, config)
+
+def main(root, path='', config=None):
+    warnings.warn("'main' function has been renamed 'start'.", DeprecationWarning)
+    start(root, path, config)
 
 parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
 parser.add_option('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
@@ -388,16 +403,8 @@ if __name__ == '__main__':
     options, args = parser.parse_args()
     if lucene.getVMEnv() is None:
         lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
-    root = (WebSearcher if (options.read_only or len(args) > 1) else WebIndexer)(*args)
+    read_only = options.__dict__.pop('read_only')
+    root = (WebSearcher if (read_only or len(args) > 1) else WebIndexer)(*args)
     if options.config and not os.path.exists(options.config):
         options.config = {'global': json.loads(options.config)}
-    if options.pidfile:
-        cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(options.pidfile)).subscribe()
-    if options.daemonize:
-        cherrypy.config['log.screen'] = False
-        cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
-    if options.autoreload:
-        Autoreloader(cherrypy.engine, options.autoreload).subscribe()
-    if options.autorefresh:
-        Autorefresher(cherrypy.engine, root, options.autorefresh).subscribe()
-    main(root, config=options.config)
+    start(root, **options.__dict__)

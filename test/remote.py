@@ -1,5 +1,5 @@
 import unittest
-import sys
+import os, sys
 import subprocess
 import operator
 import httplib
@@ -23,8 +23,12 @@ class BaseTest(local.BaseTest):
     ports = 8080, 8081
     def setUp(self):
         local.BaseTest.setUp(self)
-        self.servers = [self.start(self.ports[0], self.tempdir, '--autoreload=1')]
-        self.servers += [self.start(port, self.tempdir, self.tempdir) for port in self.ports[1:]] # concurrent searchers
+        pidfile = os.path.join(self.tempdir, 'pid')
+        self.servers = (
+            self.start(self.ports[0], self.tempdir, '--autoreload=1'),
+            self.start(self.ports[1], self.tempdir, self.tempdir, '-p', pidfile), # concurrent searchers
+        )
+        assert int(open(pidfile).read()) == self.servers[-1].pid
     def run(self, result):
         self.stderr = None if result.showAll else subprocess.PIPE
         local.BaseTest.run(self, result)
@@ -157,7 +161,7 @@ class TestCase(BaseTest):
     
     def testBasic(self):
         "Remote text indexing and searching."
-        resource = client.Resource('localhost', str(self.ports[0]))
+        resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/fields') == []
         for name, settings in fixture.constitution.fields.items():
             assert resource.put('/fields/' + name, **settings)
