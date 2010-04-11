@@ -314,6 +314,9 @@ class Searcher(object):
         return other
     def __getitem__(self, id):
         return Document(self.doc(id))
+    def get(self, id, *fields):
+        "Return `Document`_ with only selected fields loaded."
+        return Document(self.doc(id, lucene.MapFieldSelector(fields)))
     def parse(self, query, *args, **kwargs):
         if isinstance(query, lucene.Query):
             return query

@@ -78,6 +78,7 @@ class TestCase(BaseTest):
         doc['name'] == 'sample' and doc['tag'] in ('python', 'search')
         self.assertRaises(KeyError, doc.__getitem__, 'key')
         assert doc.getlist('name') == ['sample'] and doc.getlist('key') == []
+        assert indexer.get(0, 'name').dict() == {'name': 'sample'}
         assert indexer.count('text', 'hello') == indexer.count('text:hello') == 1
         assert sorted(indexer.names()) == ['name', 'tag', 'text']
         assert sorted(indexer.names('indexed')) == ['tag', 'text']

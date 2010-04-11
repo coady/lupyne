@@ -137,10 +137,12 @@ class WebSearcher(object):
         """
         if id is None:
             return list(self.indexer)
-        with HTTPError(httplib.NOT_FOUND, ValueError, lucene.JavaError):
-            doc = self.indexer[int(id)]
+        with HTTPError(httplib.NOT_FOUND, ValueError):
+            id = int(id)
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
+        with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
+            doc = self.indexer.get(id, *(list(fields) + multifields)) if fields else self.indexer[id]
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
     def search(self, q=None, count=None, start=0, fields='', multifields='', sort=None, facets='', hl='', mlt=None, **options):
@@ -187,8 +189,7 @@ class WebSearcher(object):
         """
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             start = int(start)
-        if count is not None:
-            with HTTPError(httplib.BAD_REQUEST, ValueError):
+            if count is not None:
                 count = int(count) + start
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
@@ -223,6 +224,8 @@ class WebSearcher(object):
             hl = dict((name, searcher.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             count = int(options.get('hl.count', 1))
+        if fields:
+            hits.fields = lucene.MapFieldSelector(list(set(fields) | set(multifields) | set(hl)))
         for hit in hits[start:]:
             doc = hit.dict(*multifields, **fields)
             result['docs'].append(doc)

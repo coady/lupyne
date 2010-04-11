@@ -308,7 +308,7 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 <dl class="method">
 <dt id="engine.indexers.Searcher.__getitem__">
 <tt class="descname">__getitem__</tt><big>(</big><em>id</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.__getitem__" title="Permalink to this definition">¶</a></dt>
-<dd>Return <a class="reference internal" href="#document">Document</a></dd></dl>
+<dd>Return <a class="reference internal" href="#document">Document</a>.</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.__del__">
@@ -355,6 +355,11 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.get">
+<tt class="descname">get</tt><big>(</big><em>id</em>, <em>*fields</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.get" title="Permalink to this definition">¶</a></dt>
+<dd>Return <a class="reference internal" href="#document">Document</a> with only selected fields loaded.</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.highlight">
@@ -695,7 +700,7 @@ Provides mapping interface of field names to values, but duplicate field names a
 <h3>Hits<a class="headerlink" href="#hits" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.documents.Hits">
-<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">Hits</tt><big>(</big><em>searcher</em>, <em>ids</em>, <em>scores</em>, <em>count=0</em><big>)</big><a class="headerlink" href="#engine.documents.Hits" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">Hits</tt><big>(</big><em>searcher</em>, <em>ids</em>, <em>scores</em>, <em>count=0</em>, <em>fields=None</em><big>)</big><a class="headerlink" href="#engine.documents.Hits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Search results: lazily evaluated and memory efficient.
 Provides a read-only sequence interface to hit objects.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -707,6 +712,7 @@ Provides a read-only sequence interface to hit objects.</p>
 <li><em>ids</em> &#8211; ordered doc ids</li>
 <li><em>scores</em> &#8211; ordered doc scores</li>
 <li><em>count</em> &#8211; total number of hits</li>
+<li><em>fields</em> &#8211; optional field selectors</li>
 </ul>
 </td>
 </tr>

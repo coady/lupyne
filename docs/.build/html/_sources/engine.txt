@@ -37,7 +37,7 @@ Searcher
 
   .. automethod:: __getitem__
 
-    Return `Document`_
+    Return `Document`_.
 
   .. automethod:: __del__
 

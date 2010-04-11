@@ -216,7 +216,7 @@ class TestCase(BaseTest):
         assert result['count'] == 1
         doc, = result['docs']
         assert doc['amendment'] == '1'
-        doc, = resource.get('/search', q='amendment:1', hl='amendment')['docs']
+        doc, = resource.get('/search', q='amendment:1', hl='amendment', fields='article')['docs']
         assert doc['__highlights__'] == {'amendment': ['<strong>1</strong>']}
         doc, = resource.get('/search', q='amendment:1', hl='amendment,article', **{'hl.count': 2, 'hl.tag': 'em'})['docs']
         assert doc['__highlights__'] == {'amendment': ['<em>1</em>']}
