@@ -380,14 +380,14 @@ def start(root, path='', config=None, pidfile='', daemonize=False, autoreload=0,
     cherrypy.engine.subscribe('stop', root.close)
     cherrypy.config['engine.autoreload.on'] = False
     if pidfile:
-        cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(options.pidfile)).subscribe()
+        cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(pidfile)).subscribe()
     if daemonize:
         cherrypy.config['log.screen'] = False
         cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
     if autoreload:
-        Autoreloader(cherrypy.engine, options.autoreload).subscribe()
+        Autoreloader(cherrypy.engine, autoreload).subscribe()
     if autorefresh:
-        Autorefresher(cherrypy.engine, root, options.autorefresh).subscribe()
+        Autorefresher(cherrypy.engine, root, autorefresh).subscribe()
     cherrypy.quickstart(root, path, config)
 
 def main(root, path='', config=None):

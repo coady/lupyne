@@ -6,7 +6,7 @@ import httplib
 import socket, errno
 from contextlib import contextmanager
 import cherrypy
-from lupyne import client
+from lupyne import client, server
 import fixture, local
 
 @contextmanager
@@ -158,6 +158,8 @@ class TestCase(BaseTest):
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
+        config = {'global': {'server.socket_port': self.ports[0], 'log.screen': not self.stderr}}
+        self.assertRaises(IOError, server.start, server.WebIndexer(), config=config, autoreload=1, autorefresh=1)
     
     def testBasic(self):
         "Remote text indexing and searching."
