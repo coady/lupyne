@@ -44,9 +44,10 @@ class Query(object):
         return SpanQuery(lucene.SpanTermQuery, lucene.Term(name, value))
     @classmethod
     def near(cls, name, *values, **kwargs):
-        "Return :meth:`SpanNearQuery <SpanQuery.near>` from terms."
-        queries = (cls.span(name, value) for value in values)
-        return SpanQuery.near(*queries, **kwargs)
+        """Return :meth:`SpanNearQuery <SpanQuery.near>` from terms.
+        Term values which supply another field name will be masked."""
+        spans = (cls.span(name, value) if isinstance(value, basestring) else cls.span(*value).mask(name) for value in values)
+        return SpanQuery.near(*spans, **kwargs)
     @classmethod
     def prefix(cls, name, value):
         "Return lucene PrefixQuery."

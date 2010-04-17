@@ -1186,7 +1186,8 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="classmethod">
 <dt id="engine.queries.Query.near">
 <em class="property">classmethod </em><tt class="descname">near</tt><big>(</big><em>name</em>, <em>*values</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.queries.Query.near" title="Permalink to this definition">¶</a></dt>
-<dd>Return <a title="engine.queries.SpanQuery.near" class="reference internal" href="#engine.queries.SpanQuery.near"><tt class="xref docutils literal"><span class="pre">SpanNearQuery</span></tt></a> from terms.</dd></dl>
+<dd>Return <a title="engine.queries.SpanQuery.near" class="reference internal" href="#engine.queries.SpanQuery.near"><tt class="xref docutils literal"><span class="pre">SpanNearQuery</span></tt></a> from terms.
+Term values which supply another field name will be masked.</dd></dl>
 
 <dl class="classmethod">
 <dt id="engine.queries.Query.phrase">

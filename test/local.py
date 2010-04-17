@@ -107,6 +107,8 @@ class TestCase(BaseTest):
         self.assertRaises(AssertionError, query.near, option=None)
         if lucene.VERSION >= '2.9':
             assert str(query.mask('name')) == 'mask(text:world) as name'
+            query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
+            assert str(query) == 'spanNear([text:hello, mask(tag:python) as text], -1, false)' and indexer.count(query) == 1
             query = engine.Query.near('text', 'hello', 'world')
             (doc, items), = indexer.spans(query, payloads=True)
             (start, stop, payloads), = items
