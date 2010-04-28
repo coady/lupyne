@@ -104,8 +104,6 @@ Document
 
   .. automethod:: __getitem__
 
-  .. automethod:: __delitem__
-
 Hit
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.Hit

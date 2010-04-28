@@ -143,7 +143,7 @@ class TestCase(BaseTest):
         for name, params in fixture.constitution.fields.items():
             indexer.set(name, **params)
         for doc in fixture.constitution.docs():
-            indexer.add(doc)
+            indexer.add(doc, boost=('article' in doc) + 1.0)
         indexer.commit()
         searcher = engine.MultiSearcher([indexer.directory, self.tempdir])
         assert searcher.count() == len(searcher) == 2 * len(indexer)
@@ -172,6 +172,7 @@ class TestCase(BaseTest):
         assert hit['article'] == 'Preamble'
         assert sorted(hit.dict()) == ['__id__', '__score__', 'article']
         hits = indexer.search('people', field='text')
+        assert hits[0]['article'] == 'Preamble'
         assert len(hits) == hits.count == 8
         assert set(map(type, hits.ids)) == set([int]) and set(map(type, hits.scores)) == set([float])
         ids = hits.ids

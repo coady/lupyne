@@ -56,8 +56,8 @@ class PrefixField(Field):
     
     :param start, stop, step: optional slice parameters of the prefix depths (not indices)
     """
-    def __init__(self, name, start=1, stop=None, step=1, store=False, index=True, termvector=False):
-        Field.__init__(self, name, store, index, termvector)
+    def __init__(self, name, start=1, stop=None, step=1, index=True, **kwargs):
+        Field.__init__(self, name, index=index, **kwargs)
         self.depths = slice(start, stop, step)
     def split(self, text):
         "Return immutable sequence of words from name or value."
@@ -186,13 +186,10 @@ class DateTimeField(PrefixField):
 class Document(object):
     """Delegated lucene Document.
     Provides mapping interface of field names to values, but duplicate field names are allowed.
-    
-    :param doc: optional lucene Document
     """
     def __init__(self, doc=None):
         self.doc = lucene.Document() if doc is None else doc
     def add(self, name, value, cls=Field, **params):
-        "Add field to document with given parameters."
         for field in cls(name, **params).items(value):
             self.doc.add(field)
     def fields(self):

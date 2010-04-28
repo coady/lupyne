@@ -473,7 +473,7 @@ class IndexWriter(lucene.IndexWriter):
         :param params: store,index,termvector options compatible with `Field`_
         """
         self.fields[name] = cls(name, **params)
-    def add(self, document=(), **terms):
+    def add(self, document=(), boost=1.0, **terms):
         """Add document to index.
         Document is comprised of name: value pairs, where the values may be one or multiple strings.
         
@@ -482,6 +482,7 @@ class IndexWriter(lucene.IndexWriter):
         """
         terms.update(document)
         doc = lucene.Document()
+        doc.boost = boost
         for name, values in terms.items():
             if isinstance(values, Atomic):
                 values = [values] 

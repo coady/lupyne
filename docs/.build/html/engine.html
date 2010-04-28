@@ -514,7 +514,7 @@ Supports setting fields parameters explicitly, so documents can be represented a
 
 <dl class="method">
 <dt id="engine.indexers.IndexWriter.add">
-<tt class="descname">add</tt><big>(</big><em>document=()</em>, <em>**terms</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.add" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">add</tt><big>(</big><em>document=()</em>, <em>boost=1.0</em>, <em>**terms</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexWriter.add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add document to index.
 Document is comprised of name: value pairs, where the values may be one or multiple strings.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -603,14 +603,6 @@ Creates an <a class="reference internal" href="#indexwriter">IndexWriter</a> wit
 <em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">Document</tt><big>(</big><em>doc=None</em><big>)</big><a class="headerlink" href="#engine.documents.Document" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delegated lucene Document.
 Provides mapping interface of field names to values, but duplicate field names are allowed.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>doc</em> &#8211; optional lucene Document</td>
-</tr>
-</tbody>
-</table>
 <dl class="method">
 <dt id="engine.documents.Document.__len__">
 <tt class="descname">__len__</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.documents.Document.__len__" title="Permalink to this definition">¶</a></dt>
@@ -630,16 +622,6 @@ Provides mapping interface of field names to values, but duplicate field names a
 <dt id="engine.documents.Document.__getitem__">
 <tt class="descname">__getitem__</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#engine.documents.Document.__getitem__" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="method">
-<dt id="engine.documents.Document.__delitem__">
-<tt class="descname">__delitem__</tt><big>(</big><em>name</em><big>)</big><a class="headerlink" href="#engine.documents.Document.__delitem__" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="engine.documents.Document.add">
-<tt class="descname">add</tt><big>(</big><em>name</em>, <em>value</em>, <em>cls=&lt;class 'engine.documents.Field'&gt;</em>, <em>**params</em><big>)</big><a class="headerlink" href="#engine.documents.Document.add" title="Permalink to this definition">¶</a></dt>
-<dd>Add field to document with given parameters.</dd></dl>
 
 <dl class="method">
 <dt id="engine.documents.Document.dict">
@@ -795,7 +777,7 @@ Provides a read-only sequence interface to hit objects.</p>
 <h3>PrefixField<a class="headerlink" href="#prefixfield" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.documents.PrefixField">
-<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">PrefixField</tt><big>(</big><em>name</em>, <em>start=1</em>, <em>stop=None</em>, <em>step=1</em>, <em>store=False</em>, <em>index=True</em>, <em>termvector=False</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">PrefixField</tt><big>(</big><em>name</em>, <em>start=1</em>, <em>stop=None</em>, <em>step=1</em>, <em>index=True</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a title="engine.documents.Field" class="reference internal" href="#engine.documents.Field"><tt class="xref docutils literal"><span class="pre">engine.documents.Field</span></tt></a></p>
 <p>Field which indexes every prefix of a value into a separate component field.
 The customizable component field names are expressed as slices.
@@ -884,7 +866,7 @@ Optimized to handle duplicate values.</dd></dl>
 <h3>DateTimeField<a class="headerlink" href="#datetimefield" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.documents.DateTimeField">
-<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">DateTimeField</tt><big>(</big><em>name</em>, <em>start=1</em>, <em>stop=None</em>, <em>step=1</em>, <em>store=False</em>, <em>index=True</em>, <em>termvector=False</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">DateTimeField</tt><big>(</big><em>name</em>, <em>start=1</em>, <em>stop=None</em>, <em>step=1</em>, <em>index=True</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.documents.DateTimeField" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a title="engine.documents.PrefixField" class="reference internal" href="#engine.documents.PrefixField"><tt class="xref docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a></p>
 <p>Field which indexes each datetime component in sortable ISO format: Y-m-d H:M:S.
 Works with datetimes, dates, and any object whose string form is a prefix of ISO.</p>
