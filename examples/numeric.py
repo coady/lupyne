@@ -1,7 +1,7 @@
 """
 Numeric fields.
 
-Lupyne's PrefixField was created before Lucene's Numericfield was added in version 2.9.
+Lupyne's PrefixField was created before Lucene's NumericField was added in version 2.9.
 Both support indexing a prefix tree of values, in order to optimize range and prefix queries, but use different approaches.
 
 NumericFields encode numbers to be sortable, so it is also able to cluster prefixes into the same field.
@@ -10,7 +10,7 @@ There are trade-offs to each approach:
  * NumericFields support range queries natively, but must translate prefix queries.
  * PrefixFields support prefix queries optimally, but must translate range queries.
  * NumericFields only support numbers, and result in unreadable values in the index.
- * PrefixFields support any supportable values, but pollute the field namespace.
+ * PrefixFields support any searchable values, but pollute the field namespace.
 
 Spatial and datetime fields are two common examples that need prefix tree support.
 Currently SpatialFields and DateTimeFields are based on PrefixFields, but have an alternate NumericField implementation.
@@ -46,7 +46,7 @@ for doc in docs:
 indexer.commit()
 
 query = indexer.fields['incorporated'].prefix([1850])
-assert datetime.utcfromtimestamp(query.min.doubleValue()).year == 1850
+assert query.max.doubleValue() - query.min.doubleValue() == 60 * 60 * 24 * 365
 assert [hit['city'] for hit in indexer.search(query)] == ['San Francisco', 'Los Angeles']
 query = indexer.fields['incorporated'].range(date(1850, 4, 10), None)
 assert query.max is None

@@ -109,7 +109,7 @@
 <div class="highlight-python"><div class="highlight"><pre><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Numeric fields.</span>
 
-<span class="sd">Lupyne&#39;s PrefixField was created before Lucene&#39;s Numericfield was added in version 2.9.</span>
+<span class="sd">Lupyne&#39;s PrefixField was created before Lucene&#39;s NumericField was added in version 2.9.</span>
 <span class="sd">Both support indexing a prefix tree of values, in order to optimize range and prefix queries, but use different approaches.</span>
 
 <span class="sd">NumericFields encode numbers to be sortable, so it is also able to cluster prefixes into the same field.</span>
@@ -118,11 +118,11 @@
 <span class="sd"> * NumericFields support range queries natively, but must translate prefix queries.</span>
 <span class="sd"> * PrefixFields support prefix queries optimally, but must translate range queries.</span>
 <span class="sd"> * NumericFields only support numbers, and result in unreadable values in the index.</span>
-<span class="sd"> * PrefixFields support any supportable values, but pollute the field namespace.</span>
+<span class="sd"> * PrefixFields support any searchable values, but pollute the field namespace.</span>
 
 <span class="sd">Spatial and datetime fields are two common examples that need prefix tree support.</span>
 <span class="sd">Currently SpatialFields and DateTimeFields are based on PrefixFields, but have an alternate NumericField implementation.</span>
-<span class="sd">Because both are easily encodable by numbers, the plan is to make the numeric implementation the default when support for 2.4 is dropped.</span>
+<span class="sd">Because both are easily encodable as numbers, the plan is to make the numeric implementation the default when support for 2.4 is dropped.</span>
 
 <span class="sd">So the long term support for PrefixField is unclear, although sometimes it is convenient to index into different fields.</span>
 <span class="sd">For example, breaking datetimes into their components makes searching by year optimal, and it&#39;s easier to introspect the index.</span>
@@ -154,7 +154,7 @@
 <span class="n">indexer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
 <span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;incorporated&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">prefix</span><span class="p">([</span><span class="mi">1850</span><span class="p">])</span>
-<span class="k">assert</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">doubleValue</span><span class="p">())</span><span class="o">.</span><span class="n">year</span> <span class="o">==</span> <span class="mi">1850</span>
+<span class="k">assert</span> <span class="n">query</span><span class="o">.</span><span class="n">max</span><span class="o">.</span><span class="n">doubleValue</span><span class="p">()</span> <span class="o">-</span> <span class="n">query</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">doubleValue</span><span class="p">()</span> <span class="o">==</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">365</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">]</span>
 <span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;incorporated&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="mi">1850</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="bp">None</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">query</span><span class="o">.</span><span class="n">max</span> <span class="ow">is</span> <span class="bp">None</span>

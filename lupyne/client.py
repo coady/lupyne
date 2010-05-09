@@ -28,6 +28,7 @@ class Response(httplib.HTTPResponse):
     def begin(self):
         httplib.HTTPResponse.begin(self)
         self.body = self.read()
+        self.close()
         if self.getheader('content-encoding') == 'gzip':
             self.body = gzip.GzipFile(fileobj=StringIO(self.body)).read()
     def __nonzero__(self):
@@ -47,11 +48,11 @@ class Resource(httplib.HTTPConnection):
     response_class = Response
     def request(self, method, path, body=None):
         "Send request after handling body and headers."
-        headers = {'accept-encoding': 'compress, gzip', 'content-length': 0}
+        headers = {'accept-encoding': 'compress, gzip', 'content-length': '0'}
         if body is not None:
             body = urllib.urlencode(dict((name, value if isinstance(value, basestring) else json.dumps(value)) \
                 for name, value in body.items()))
-            headers.update({'content-length': len(body), 'content-type': 'application/x-www-form-urlencoded'})
+            headers.update({'content-length': str(len(body)), 'content-type': 'application/x-www-form-urlencoded'})
         httplib.HTTPConnection.request(self, method, path, body, headers)
     def __call__(self, method, path, body=None):
         "Send request and return evaluated response body."
