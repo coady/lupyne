@@ -49,18 +49,17 @@ if hasattr(lucene, 'PythonFieldComparatorSource'):
             def __init__(self, name, numHits, sortPos, reversed):
                 lucene.PythonFieldComparator.__init__(self)
                 self.name = name
-                self.comparator = []
+                self.values = [None] * numHits
             def setNextReader(self, reader, base):
-                self.base = base
-                self.comparator += lucene.FieldCache.DEFAULT.getStrings(reader, self.name)
+                self.comparator = lucene.FieldCache.DEFAULT.getStrings(reader, self.name)
             def compare(self, slot1, slot2):
-                return cmp(self.comparator[slot1], self.comparator[slot2])
+                return cmp(self.values[slot1], self.values[slot2])
             def setBottom(self, slot):
-                self._bottom = self.comparator[slot]
+                self._bottom = self.values[slot]
             def compareBottom(self, doc):
-                return cmp(self._bottom, self.comparator[doc + self.base])
+                return cmp(self._bottom, self.comparator[doc])
             def copy(self, slot, doc):
-                pass
+                self.values[slot] = self.comparator[doc]
             def value(self, slot):
                 return lucene.String()
 else:
@@ -68,11 +67,11 @@ else:
         class newComparator(lucene.PythonScoreDocComparator):
             def __init__(self, reader, name):
                 lucene.PythonScoreDocComparator.__init__(self)
-                self.comparator = list(lucene.FieldCache.DEFAULT.getStrings(reader, name))
+                self.comparator = lucene.FieldCache.DEFAULT.getStrings(reader, name)
             def compare(self, i, j):
                 return cmp(self.comparator[i.doc], self.comparator[j.doc])
             def sortValue(self, i):
-                 return lucene.String()
+                return lucene.String()
             def sortType(self):
                 return lucene.SortField.STRING
 
