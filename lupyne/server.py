@@ -167,7 +167,7 @@ class WebSearcher(object):
                 field name, optional type, minus sign indicates descending
             
             &facets=\ *chars*,...
-                include facet counts for given field names
+                include facet counts for given field names;  facets filters are cached
             
             &hl=\ *chars*,... &hl.count=1&hl.tag=strong&hl.enable=[fields|terms]
                 | stored fields to return highlighted
@@ -250,8 +250,14 @@ class WebSearcher(object):
             
             :return: [*string*,... ]
         
-        **GET** /terms/*chars*/*chars*\[\*\|:*chars*\|~\ *float*\]
+        **GET** /terms/*chars*/*chars*\[\*\|?\|:*chars*\|~\ *float*\]
             Return term values (wildcards, slices, or fuzzy terms) for given field name.
+            
+            :return: [*string*,... ]
+        
+        **GET** /terms/*chars*/*chars*\*?count=\ *int*
+            Return term values which match prefix ordered by decreasing document frequency.
+            Optimized to be suitable for real-time query suggestions;  all terms are cached.
             
             :return: [*string*,... ]
         
@@ -280,7 +286,9 @@ class WebSearcher(object):
         if ':' in value:
             start, stop = value.split(':')
             return list(self.indexer.terms(name, start, stop or None))
-        if '*' in value:
+        if value.endswith('*') and 'count' in options:
+            return self.indexer.suggest(name, value.rstrip('*'))[:int(options['count'])]
+        if '*' in value or '?' in value:
             return list(self.indexer.terms(name, value))
         if '~' in value:
             value, similarity = value.split('~')

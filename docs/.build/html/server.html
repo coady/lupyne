@@ -183,7 +183,7 @@ engine.autoreload</td></tr>
 <dt>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],...</dt>
 <dd>field name, optional type, minus sign indicates descending</dd>
 <dt>&amp;facets=<em>chars</em>,...</dt>
-<dd>include facet counts for given field names</dd>
+<dd>include facet counts for given field names;  facets filters are cached</dd>
 <dt>&amp;hl=<em>chars</em>,... &amp;hl.count=1&amp;hl.tag=strong&amp;hl.enable=[fields|terms]</dt>
 <dd><div class="first last line-block">
 <div class="line">stored fields to return highlighted</div>
@@ -247,8 +247,20 @@ engine.autoreload</td></tr>
 </tbody>
 </table>
 </dd>
-<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>[*|:<em>chars</em>|~<em>float</em>]</dt>
+<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>[*|?|:<em>chars</em>|~<em>float</em>]</dt>
 <dd><p class="first">Return term values (wildcards, slices, or fuzzy terms) for given field name.</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body">[<em>string</em>,... ]</td>
+</tr>
+</tbody>
+</table>
+</dd>
+<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>*?count=<em>int</em></dt>
+<dd><p class="first">Return term values which match prefix ordered by decreasing document frequency.
+Optimized to be suitable for real-time query suggestions;  all terms are cached.</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
