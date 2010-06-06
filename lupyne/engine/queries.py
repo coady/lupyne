@@ -3,6 +3,7 @@ Query wrappers and search utilities.
 """
 
 import itertools
+import bisect
 import lucene
 
 class Query(object):
@@ -223,3 +224,36 @@ class Highlighter(lucene.Highlighter):
                 self.fragmentScorer = lucene.HighlighterSpanScorer(self.query, self.field, tokens)
             return map(unicode, self.getBestTextFragments(tokens, text, True, count))
         return list(self.getBestFragments(self.analyzer, field, text, count))
+
+class SpellChecker(dict):
+    """Correct spellings and suggest words for queries.
+    Supply a vocabulary mapping words to (reverse) sort keys, such as document frequencies.
+    """
+    def __init__(self, *args, **kwargs):
+        dict.__init__(self, *args, **kwargs)
+        self.words = sorted(self)
+        self.alphabet = sorted(set(itertools.chain.from_iterable(self.words)))
+        self.suffix = self.alphabet[-1] * max(itertools.imap(len, self.words)) if self else ''
+    def suggest(self, prefix):
+        "Return ordered suggested words for prefix."
+        start = bisect.bisect_left(self.words, prefix)
+        stop = bisect.bisect_right(self.words, prefix + self.suffix)
+        words = self.words[start:stop]
+        words.sort(key=self.__getitem__, reverse=True)
+        return words
+    def edits(self, word):
+        "Return set of potential words one edit distance away."
+        pairs = [(word[:index], word[index:]) for index in range(len(word) + 1)]
+        deletes = (head + tail[1:] for head, tail in pairs[:-1])
+        transposes = (head + tail[1::-1] + tail[2:] for head, tail in pairs[:-2])
+        replaces = (head + char + tail[1:] for head, tail in pairs[:-1] for char in self.alphabet)
+        inserts = (head + char + tail for head, tail in pairs for char in self.alphabet)
+        return set(itertools.chain(deletes, transposes, replaces, inserts))
+    def correct(self, word):
+        "Generate ordered sets of words by increasing edit distance."
+        corrections, edits = set(), set([word])
+        for distance in range(len(word)):
+            words = set(itertools.ifilter(self.__contains__, edits)) - corrections
+            yield sorted(words, key=self.__getitem__, reverse=True)
+            corrections |= words
+            edits = set(itertools.chain.from_iterable(itertools.imap(self.edits, edits)))

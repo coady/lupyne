@@ -261,6 +261,19 @@ class TestCase(BaseTest):
         assert str(indexer.morelikethis('jury', 'text', minDocFreq=4, minTermFreq=1)) == 'text:jury'
         assert str(indexer.morelikethis('jury', 'article')) == ''
         self.assertRaises(lucene.JavaError, indexer.morelikethis, 'jury')
+        assert indexer.suggest('missing', '') == list(indexer.correct('missing', '')) == []
+        assert indexer.suggest('text', '')[:8] == ['shall', 'states', 'any', 'have', 'united', 'congress', 'state', 'constitution']
+        assert indexer.suggest('text', 'con')[:2] == ['congress', 'constitution']
+        assert indexer.suggest('text', 'congress') == ['congress']
+        assert indexer.suggest('text', 'congresses') == []
+        assert list(indexer.correct('text', 'writ', distance=0, minSimilarity=None)) == ['writ']
+        assert list(indexer.correct('text', 'write', distance=0, minSimilarity=None)) == []
+        assert list(indexer.correct('text', 'write', distance=0)) == ['crime', 'writs', 'written', 'writ']
+        assert list(indexer.correct('text', 'write', distance=0, minSimilarity=0.7)) == ['writs', 'writ']
+        assert list(indexer.correct('text', 'write', distance=1, minSimilarity=None)) == ['writs', 'writ']
+        assert list(indexer.correct('text', 'write', distance=1)) == ['writs', 'writ', 'crime', 'written']
+        assert list(indexer.correct('text', 'write', distance=1, minSimilarity=0.7)) == ['writs', 'writ']
+        assert list(indexer.correct('text', 'write', minSimilarity=0.9)) == ['writs', 'writ', 'crime', 'written']
         del indexer
         assert engine.Indexer(self.tempdir)
     
