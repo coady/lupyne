@@ -5,12 +5,12 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>engine &mdash; LuPyne v0.5+ documentation</title>
+    <title>engine &mdash; Lupyne v0.5+ documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '#',
+        URL_ROOT:    '',
         VERSION:     '0.5+',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="LuPyne v0.5+ documentation" href="index.html" />
+    <link rel="top" title="Lupyne v0.5+ documentation" href="index.html" />
     <link rel="next" title="server" href="server.html" />
     <link rel="prev" title="Welcome to LuPyne’s documentation!" href="index.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.5+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.5+ documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -321,6 +321,25 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 <dd>Mapping of cached filters, which are also used for facet counts.</dd></dl>
 
 <dl class="method">
+<dt id="engine.indexers.Searcher.correct">
+<tt class="descname">correct</tt><big>(</big><em>field</em>, <em>text</em>, <em>distance=2</em>, <em>minSimilarity=0.5</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.correct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate potential words ordered by increasing edit distance and decreasing frequency.
+For optimal performance only iterate the required slice size of corrections.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>distance</em> &#8211; the maximum edit distance to consider for enumeration</li>
+<li><em>minSimilarity</em> &#8211; threshold for additional fuzzy terms after edits have been exhausted</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="engine.indexers.Searcher.count">
 <tt class="descname">count</tt><big>(</big><em>*query</em>, <em>**options</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.count" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return number of hits for given query or term.</p>
@@ -412,6 +431,11 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.suggest">
+<tt class="descname">suggest</tt><big>(</big><em>field</em>, <em>prefix</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.suggest" title="Permalink to this definition">¶</a></dt>
+<dd>Return ordered suggested words for prefix.</dd></dl>
 
 </dd></dl>
 
@@ -1361,6 +1385,32 @@ Using span scoring in lucene 2.4 is not thread-safe.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="spellchecker">
+<h3>SpellChecker<a class="headerlink" href="#spellchecker" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.queries.SpellChecker">
+<em class="property">class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">SpellChecker</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.queries.SpellChecker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">dict</span></tt></p>
+<p>Correct spellings and suggest words for queries.
+Supply a vocabulary mapping words to (reverse) sort keys, such as document frequencies.</p>
+<dl class="method">
+<dt id="engine.queries.SpellChecker.correct">
+<tt class="descname">correct</tt><big>(</big><em>word</em><big>)</big><a class="headerlink" href="#engine.queries.SpellChecker.correct" title="Permalink to this definition">¶</a></dt>
+<dd>Generate ordered sets of words by increasing edit distance.</dd></dl>
+
+<dl class="method">
+<dt id="engine.queries.SpellChecker.edits">
+<tt class="descname">edits</tt><big>(</big><em>word</em><big>)</big><a class="headerlink" href="#engine.queries.SpellChecker.edits" title="Permalink to this definition">¶</a></dt>
+<dd>Return set of potential words one edit distance away.</dd></dl>
+
+<dl class="method">
+<dt id="engine.queries.SpellChecker.suggest">
+<tt class="descname">suggest</tt><big>(</big><em>prefix</em><big>)</big><a class="headerlink" href="#engine.queries.SpellChecker.suggest" title="Permalink to this definition">¶</a></dt>
+<dd>Return ordered suggested words for prefix.</dd></dl>
+
+</dd></dl>
+
+</div>
 </div>
 <div class="section" id="module-engine.spatial">
 <h2>spatial<a class="headerlink" href="#module-engine.spatial" title="Permalink to this headline">¶</a></h2>
@@ -1551,6 +1601,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 <li><a class="reference external" href="#spanquery">SpanQuery</a></li>
 <li><a class="reference external" href="#filter">Filter</a></li>
 <li><a class="reference external" href="#highlighter">Highlighter</a></li>
+<li><a class="reference external" href="#spellchecker">SpellChecker</a></li>
 </ul>
 </li>
 <li><a class="reference external" href="#module-engine.spatial">spatial</a><ul>
@@ -1607,12 +1658,12 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
         <li class="right" >
           <a href="index.html" title="Welcome to LuPyne’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">LuPyne v0.5+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.5+ documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.5.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.7.
     </div>
   </body>
 </html>

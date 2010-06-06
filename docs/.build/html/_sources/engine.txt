@@ -252,6 +252,12 @@ Highlighter
 .. autoclass:: engine.queries.Highlighter
   :members:
 
+SpellChecker
+^^^^^^^^^^^^^
+.. autoclass:: engine.queries.SpellChecker
+  :show-inheritance:
+  :members:
+
 
 spatial
 ---------

@@ -1,16 +1,16 @@
-.. LuPyne documentation master file, created by sphinx-quickstart on Sun Jan 25 12:46:46 2009.
+.. Lupyne documentation master file, created by sphinx-quickstart on Sun Jan 25 12:46:46 2009.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to LuPyne's documentation!
+Welcome to Lupyne's documentation!
 ==========================================
 
-`LuPyne <http://code.google.com/p/lupyne/>`_ provides:
+`Lupyne <http://code.google.com/p/lupyne/>`_ provides:
  * high-level Pythonic search `engine <engine.html>`_ interface to `PyLucene <http://lucene.apache.org/pylucene/>`_
  * `RESTful <http://en.wikipedia.org/wiki/Representational_State_Transfer>`_ `JSON <http://json.org/>`_ `CherryPy <http://cherrypy.org/>`_ `server <server.html>`_
  * simple Python `client <client.html>`_ for interacting with the server
 
-Quickstart::
+Quickstart:
 
   >>> from lupyne import engine                       # don't forget to call lucene.initVM
   >>> indexer = engine.Indexer()                      # create an in-memory index (no filename supplied)

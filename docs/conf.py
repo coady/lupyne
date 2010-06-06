@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# LuPyne documentation build configuration file, created by
+# Lupyne documentation build configuration file, created by
 # sphinx-quickstart on Sun Jan 25 12:46:46 2009.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -41,7 +41,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'LuPyne'
+project = u'Lupyne'
 copyright = u'2009, Aric Coady'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -153,7 +153,7 @@ html_static_path = ['.static']
 html_file_suffix = '.html'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'LuPynedoc'
+htmlhelp_basename = 'Lupynedoc'
 
 
 # Options for LaTeX output
@@ -168,7 +168,7 @@ htmlhelp_basename = 'LuPynedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, document class [howto/manual]).
 latex_documents = [
-  ('index', 'LuPyne.tex', ur'LuPyne Documentation',
+  ('index', 'Lupyne.tex', ur'Lupyne Documentation',
    ur'Aric Coady', 'manual'),
 ]
 
