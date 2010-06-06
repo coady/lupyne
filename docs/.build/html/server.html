@@ -159,7 +159,7 @@ engine.autoreload</td></tr>
 
 <dl class="method">
 <dt id="server.WebSearcher.refresh">
-<tt class="descname">refresh</tt><big>(</big><big>)</big><a class="headerlink" href="#server.WebSearcher.refresh" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">refresh</tt><big>(</big><em>**caches</em><big>)</big><a class="headerlink" href="#server.WebSearcher.refresh" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reopen searcher.</p>
 <p><strong>POST</strong> /refresh</p>
 </dd></dl>
@@ -329,7 +329,7 @@ Optimized to be suitable for real-time query suggestions;  all terms are cached.
 <p>Dispatch root which extends searcher to include write methods.</p>
 <dl class="method">
 <dt id="server.WebIndexer.commit">
-<tt class="descname">commit</tt><big>(</big><big>)</big><a class="headerlink" href="#server.WebIndexer.commit" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">commit</tt><big>(</big><em>**caches</em><big>)</big><a class="headerlink" href="#server.WebIndexer.commit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Commit write operations.</p>
 <p><strong>POST</strong> /commit</p>
 </dd></dl>

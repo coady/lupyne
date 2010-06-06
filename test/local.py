@@ -145,6 +145,13 @@ class TestCase(BaseTest):
         for doc in fixture.constitution.docs():
             indexer.add(doc, boost=('article' in doc) + 1.0)
         indexer.commit()
+        assert indexer.filters == indexer.spellcheckers == {}
+        assert indexer.facets([], 'amendment') and indexer.suggest('amendment', '')
+        assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
+        indexer.delete('amendment', doc['amendment'])
+        indexer.add(doc)
+        indexer.commit(filters=True, spellcheckers=True)
+        assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
         searcher = engine.MultiSearcher([indexer.directory, self.tempdir])
         assert searcher.count() == len(searcher) == 2 * len(indexer)
         searcher = searcher.reopen()

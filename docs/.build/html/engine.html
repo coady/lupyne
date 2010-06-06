@@ -318,7 +318,12 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 <dl class="attribute">
 <dt id="engine.indexers.Searcher.filters">
 <tt class="descname">filters</tt><a class="headerlink" href="#engine.indexers.Searcher.filters" title="Permalink to this definition">¶</a></dt>
-<dd>Mapping of cached filters, which are also used for facet counts.</dd></dl>
+<dd>Mapping of cached filters by field, which are used for facet counts.</dd></dl>
+
+<dl class="attribute">
+<dt id="engine.indexers.Searcher.spellcheckers">
+<tt class="descname">spellcheckers</tt><a class="headerlink" href="#engine.indexers.Searcher.spellcheckers" title="Permalink to this definition">¶</a></dt>
+<dd>Mapping of cached spellcheckers by field.</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.correct">
@@ -407,8 +412,21 @@ For optimal performance only iterate the required slice size of corrections.</p>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.reopen">
-<tt class="descname">reopen</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.reopen" title="Permalink to this definition">¶</a></dt>
-<dd>Return current Searcher, only creating a new one if necessary.</dd></dl>
+<tt class="descname">reopen</tt><big>(</big><em>filters=False</em>, <em>spellcheckers=False</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.reopen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return current Searcher, only creating a new one if necessary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><em>filters</em> &#8211; refresh cached facet <a title="engine.indexers.Searcher.filters" class="reference internal" href="#engine.indexers.Searcher.filters"><tt class="xref docutils literal"><span class="pre">filters</span></tt></a></li>
+<li><em>spellcheckers</em> &#8211; refresh cached <a title="engine.indexers.Searcher.spellcheckers" class="reference internal" href="#engine.indexers.Searcher.spellcheckers"><tt class="xref docutils literal"><span class="pre">spellcheckers</span></tt></a></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.search">
@@ -610,8 +628,17 @@ Document is comprised of name: value pairs, where the values may be one or multi
 Creates an <a class="reference internal" href="#indexwriter">IndexWriter</a> with a delegated <a class="reference internal" href="#indexsearcher">IndexSearcher</a>.</p>
 <dl class="method">
 <dt id="engine.indexers.Indexer.commit">
-<tt class="descname">commit</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.indexers.Indexer.commit" title="Permalink to this definition">¶</a></dt>
-<dd>Commit writes and refresh searcher.  Not thread-safe.</dd></dl>
+<tt class="descname">commit</tt><big>(</big><em>**caches</em><big>)</big><a class="headerlink" href="#engine.indexers.Indexer.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Commit writes and refresh searcher.  Not thread-safe.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameter:</th><td class="field-body"><em>caches</em> &#8211; <a title="engine.indexers.Searcher.reopen" class="reference internal" href="#engine.indexers.Searcher.reopen"><tt class="xref docutils literal"><span class="pre">Searcher.reopen()</span></tt></a> caches to refresh</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 

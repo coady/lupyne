@@ -45,7 +45,11 @@ Searcher
 
   .. attribute:: filters
 
-    Mapping of cached filters, which are also used for facet counts.
+    Mapping of cached filters by field, which are used for facet counts.
+
+  .. attribute:: spellcheckers
+
+    Mapping of cached spellcheckers by field.
 
 IndexSearcher
 ^^^^^^^^^^^^^

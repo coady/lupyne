@@ -305,13 +305,22 @@ class Searcher(object):
                     directory = lucene.FSDirectory.getDirectory(directory)
                 self.shared.add(directory)
             yield directory
-    def reopen(self):
-        "Return current Searcher, only creating a new one if necessary."
+    def reopen(self, filters=False, spellcheckers=False):
+        """Return current Searcher, only creating a new one if necessary.
+        
+        :param filters: refresh cached facet :attr:`filters`
+        :param spellcheckers: refresh cached :attr:`spellcheckers`
+        """
         reader = self.indexReader.reopen()
         if reader == self.indexReader:
             return self
         other = type(self)(reader, self.analyzer)
         other.shared, other.owned = self.shared, closing([reader])
+        if filters:
+            other.facets([], *self.filters)
+        if spellcheckers:
+            for field in self.spellcheckers:
+                other.suggest(field, '')
         return other
     def __getitem__(self, id):
         return Document(self.doc(id))
@@ -552,7 +561,10 @@ class Indexer(IndexWriter):
         return iter(self.indexSearcher)
     def __getitem__(self, id):
         return self.indexSearcher[id]
-    def commit(self):
-        "Commit writes and refresh searcher.  Not thread-safe."
+    def commit(self, **caches):
+        """Commit writes and refresh searcher.  Not thread-safe.
+        
+        :param caches: :meth:`Searcher.reopen` caches to refresh
+        """
         IndexWriter.commit(self)
-        self.indexSearcher = self.indexSearcher.reopen()
+        self.indexSearcher = self.indexSearcher.reopen(**caches)

@@ -96,12 +96,12 @@ class WebSearcher(object):
         return q and self.indexer.parse(q, field, **options)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
-    def refresh(self):
+    def refresh(self, **caches):
         """Reopen searcher.
         
         **POST** /refresh
         """
-        self.indexer = self.indexer.reopen()
+        self.indexer = self.indexer.reopen(**dict.fromkeys(caches, True))
         return len(self.indexer)
     @cherrypy.expose
     def index(self):
@@ -311,17 +311,17 @@ class WebIndexer(WebSearcher):
         self.lock = threading.Lock()
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
-    def refresh(self):
+    def refresh(self, **caches):
         raise cherrypy.HTTPRedirect('/commit', httplib.MOVED_PERMANENTLY)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
-    def commit(self):
+    def commit(self, **caches):
         """Commit write operations.
         
         **POST** /commit
         """
         with self.lock:
-            self.indexer.commit()
+            self.indexer.commit(**dict.fromkeys(caches, True))
         return len(self.indexer)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])

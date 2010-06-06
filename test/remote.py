@@ -139,7 +139,7 @@ class TestCase(BaseTest):
         resource = client.Resource('localhost', self.ports[-1])
         assert resource.get('/docs') == []
         try:
-            assert resource.post('/refresh') == 2
+            assert resource.post('/refresh', filters=True) == 2
         except httplib.HTTPException as (status, reason, body): # unsupported in lucene 2.4
             assert body['traceback'].splitlines()[-1] == "AttributeError: 'IndexReader' object has no attribute 'sequentialSubReaders'"
         else:
@@ -154,7 +154,7 @@ class TestCase(BaseTest):
         assert not resource.post('/commit')
         assert resource.get('/docs') == []
         with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
-            resource.post('/refresh')
+            resource.post('/refresh', spellcheckers=True)
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
@@ -173,7 +173,7 @@ class TestCase(BaseTest):
             assert sorted(resource.get('/fields/' + name)) == ['index', 'store', 'termvector']
         resource.post('/docs/', docs=list(fixture.constitution.docs()))
         assert resource.get('/').values() == [35]
-        resource.post('/commit')
+        resource.post('/commit', spellcheckers=True, filters='')
         assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
         articles = resource.get('/terms/article')
         articles.remove('Preamble')
