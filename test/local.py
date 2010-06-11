@@ -239,6 +239,7 @@ class TestCase(BaseTest):
         assert str(-query) == '-text:persons'
         query = +query
         query -= engine.Query.term('text', 'papers')
+        assert set(query.terms()) == set([('text', 'persons'), ('text', 'papers')])
         assert str(query[-1]) == '-text:papers'
         assert len(query) == len(list(query)) == 2
         span = engine.Query.span('text', 'persons')

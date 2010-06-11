@@ -18,6 +18,12 @@ class Query(object):
         "Return lucene CachingWrapperFilter, optionally just QueryWrapperFilter."
         filter = lucene.QueryWrapperFilter(self)
         return lucene.CachingWrapperFilter(filter) if cache else filter
+    def terms(self):
+        "Generate set of query term items."
+        terms = lucene.HashSet()
+        self.extractTerms(terms)
+        for term in itertools.imap(lucene.Term.cast_, terms):
+            yield term.field(), term.text()
     @classmethod
     def term(cls, name, value):
         "Return lucene TermQuery."
@@ -233,7 +239,7 @@ class SpellChecker(dict):
         dict.__init__(self, *args, **kwargs)
         self.words = sorted(self)
         self.alphabet = sorted(set(itertools.chain.from_iterable(self.words)))
-        self.suffix = self.alphabet[-1] * max(itertools.imap(len, self.words)) if self else ''
+        self.suffix = self.alphabet[-1] * max(itertools.imap(len, self.words)) if self.alphabet else ''
     def suggest(self, prefix):
         "Return ordered suggested words for prefix."
         start = bisect.bisect_left(self.words, prefix)
