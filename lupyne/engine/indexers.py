@@ -9,7 +9,7 @@ import contextlib
 import abc, collections
 import warnings
 import lucene
-from .queries import Query, HitCollector, Filter, Highlighter, SpellChecker
+from .queries import Query, HitCollector, Filter, Highlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
 
 class Atomic(object):
@@ -109,19 +109,23 @@ class Analyzer(lucene.PythonAnalyzer):
     def tokens(self, text, field=None):
         "Return lucene TokenStream from text."
         return self.tokenStream(field, lucene.StringReader(text))
-    def parse(self, query, field='', op='', version='current', **attrs):
+    def parse(self, query, field='', op='', version=lucene.VERSION[:3], parser=None, **attrs):
         """Return parsed lucene Query.
         
         :param query: query string
         :param field: default query field name, sequence of names, or (in lucene 2.9 or higher) boost mapping
         :param op: default query operator ('or', 'and')
         :param version: lucene Version string, leave blank for deprecated constructor
+        :param parser: custom PythonQueryParser class
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        args = []
-        if version and lucene.VERSION >= '2.9.1':
-            args += getattr(lucene.Version, 'LUCENE_' + version.replace('.', '').upper()),
+        try:
+            version = getattr(lucene.Version, 'LUCENE_' + version.replace('.', ''))
+        except AttributeError:
+            args = []
+        else:
+            args = [] if lucene.VERSION.startswith('2.9') and parser is not None else [version]
         if isinstance(field, collections.Mapping):
             boosts = lucene.HashMap()
             for key in field:
@@ -129,14 +133,18 @@ class Analyzer(lucene.PythonAnalyzer):
             args += list(field), self, boosts
         else:
             args += field, self
-        parser = (lucene.QueryParser if isinstance(field, basestring) else lucene.MultiFieldQueryParser)(*args)
+        parser = (parser or lucene.QueryParser if isinstance(field, basestring) else lucene.MultiFieldQueryParser)(*args)
         if op:
             parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
         for name, value in attrs.items():
             setattr(parser, name, value)
         if isinstance(parser, lucene.MultiFieldQueryParser):
             return parser.parse(parser, query) # bug in method binding
-        return parser.parse(query)
+        try:
+            return parser.parse(query)
+        finally:
+            if isinstance(parser, lucene.PythonQueryParser):
+                parser.finalize()
 
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
@@ -327,13 +335,15 @@ class Searcher(object):
     def get(self, id, *fields):
         "Return `Document`_ with only selected fields loaded."
         return Document(self.doc(id, lucene.MapFieldSelector(fields)))
-    def parse(self, query, *args, **kwargs):
+    def parse(self, query, spellcheck=False, **kwargs):
         if isinstance(query, lucene.Query):
             return query
-        return Analyzer.parse.im_func(self.analyzer, query, *args, **kwargs)
+        if spellcheck:
+            kwargs['parser'], kwargs['searcher'] = SpellParser, self
+        return Analyzer.parse.im_func(self.analyzer, query, **kwargs)
     def highlighter(self, query, span=True, formatter=None, encoder=None, field=None):
         "Return `Highlighter`_ specific to the searcher's analyzer and index."
-        query = self.parse(query, field or '')
+        query = self.parse(query, field=field or '')
         return Highlighter(query, self.analyzer, span, formatter, encoder, field, (field and self.indexReader))
     def highlight(self, query, doc, count=1, span=True, formatter=None, encoder=None, field=None, **attrs):
         """Return highlighted text fragments which match the query, using internal :meth:`highlighter`.
@@ -375,7 +385,10 @@ class Searcher(object):
         if count is None:
             collector = HitCollector()
             super(Searcher, self).search(query, filter, collector)
-            return Hits(self, *collector.sorted(key=sort, reverse=reverse))
+            try:
+                return Hits(self, *collector.sorted(key=sort, reverse=reverse))
+            finally:
+                collector.finalize()
         if isinstance(sort, basestring):
             sort = lucene.SortField(sort, lucene.SortField.STRING, reverse)
         if not isinstance(sort, (lucene.Sort, type(None))):

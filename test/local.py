@@ -282,6 +282,10 @@ class TestCase(BaseTest):
         assert list(indexer.correct('text', 'write', distance=1)) == ['writs', 'writ', 'crime', 'written']
         assert list(indexer.correct('text', 'write', distance=1, minSimilarity=0.7)) == ['writs', 'writ']
         assert list(indexer.correct('text', 'write', minSimilarity=0.9)) == ['writs', 'writ', 'crime', 'written']
+        query = indexer.parse('text:write', spellcheck=True)
+        assert lucene.TermQuery.instance_(query) and str(query) == 'text:writs'
+        query = indexer.parse('"hello world"', field='text', spellcheck=True)
+        assert lucene.PhraseQuery.instance_(query) and str(query) == 'text:"held would"'
         del indexer
         assert engine.Indexer(self.tempdir)
     

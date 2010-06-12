@@ -93,7 +93,7 @@ class WebSearcher(object):
         for key in set(options) - set(['op', 'version']):
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 options[key] = json.loads(options[key])
-        return q and self.indexer.parse(q, field, **options)
+        return q and self.indexer.parse(q, field=field, **options)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
     def refresh(self, **caches):

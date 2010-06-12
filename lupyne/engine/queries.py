@@ -263,3 +263,27 @@ class SpellChecker(dict):
             yield sorted(words, key=self.__getitem__, reverse=True)
             corrections |= words
             edits = set(itertools.chain.from_iterable(itertools.imap(self.edits, edits)))
+
+class SpellParser(lucene.PythonQueryParser):
+    """Inherited lucene QueryParser which corrects spelling.
+    Assign a `searcher`_ attribute or override :meth:`correct` implementation.
+    """
+    def correct(self, term):
+        "Return term with text replaced as necessary."
+        field = term.field()
+        for text in self.searcher.correct(field, term.text()):
+            return lucene.Term(field, text)
+        return term
+    def getFieldQuery(self, field, text, *args):
+        "Correct term and phrase queries."
+        query = lucene.PythonQueryParser.getFieldQuery(self, field, text, *args)
+        if args:
+            return query
+        if lucene.TermQuery.instance_(query):
+            term = lucene.TermQuery.cast_(query).term
+            return lucene.TermQuery(self.correct(term))
+        query = lucene.PhraseQuery.cast_(query)
+        phrase = lucene.PhraseQuery()
+        for position, term in zip(query.positions, query.terms):
+            phrase.add(self.correct(term), position)
+        return phrase
