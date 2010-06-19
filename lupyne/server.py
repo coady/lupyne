@@ -287,7 +287,7 @@ class WebSearcher(object):
             start, stop = value.split(':')
             return list(self.indexer.terms(name, start, stop or None))
         if value.endswith('*') and 'count' in options:
-            return self.indexer.suggest(name, value.rstrip('*'))[:int(options['count'])]
+            return self.indexer.suggest(name, value.rstrip('*'), int(options['count']))
         if '*' in value or '?' in value:
             return list(self.indexer.terms(name, value))
         if '~' in value:

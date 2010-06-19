@@ -4,6 +4,7 @@ Query wrappers and search utilities.
 
 import itertools
 import bisect
+import heapq
 import lucene
 
 class Query(object):
@@ -240,21 +241,31 @@ class SpellChecker(dict):
         self.words = sorted(self)
         self.alphabet = sorted(set(itertools.chain.from_iterable(self.words)))
         self.suffix = self.alphabet[-1] * max(itertools.imap(len, self.words)) if self.alphabet else ''
-    def suggest(self, prefix):
+        self.prefixes = set()
+        for word in self.words:
+            self.prefixes.update(word[:stop] for stop in range(len(word) + 1))
+    def suggest(self, prefix, count=None):
         "Return ordered suggested words for prefix."
         start = bisect.bisect_left(self.words, prefix)
-        stop = bisect.bisect_right(self.words, prefix + self.suffix)
+        stop = bisect.bisect_right(self.words, prefix + self.suffix, start)
         words = self.words[start:stop]
+        if count is not None and count < len(words):
+            return heapq.nlargest(count, words, key=self.__getitem__)
         words.sort(key=self.__getitem__, reverse=True)
         return words
     def edits(self, word):
         "Return set of potential words one edit distance away."
         pairs = [(word[:index], word[index:]) for index in range(len(word) + 1)]
-        deletes = (head + tail[1:] for head, tail in pairs[:-1])
-        transposes = (head + tail[1::-1] + tail[2:] for head, tail in pairs[:-2])
-        replaces = (head + char + tail[1:] for head, tail in pairs[:-1] for char in self.alphabet)
-        inserts = (head + char + tail for head, tail in pairs for char in self.alphabet)
-        return set(itertools.chain(deletes, transposes, replaces, inserts))
+        result = set(head + tail[1:] for head, tail in pairs[:-1])
+        result.update(head + tail[1::-1] + tail[2:] for head, tail in pairs[:-2])
+        for head, tail in pairs:
+            if head not in self.prefixes:
+                break
+            for char in self.alphabet:
+                prefix = head + char
+                if prefix in self.prefixes:
+                    result.update((prefix + tail, prefix + tail[1:]))
+        return result
     def correct(self, word):
         "Generate ordered sets of words by increasing edit distance."
         corrections, edits = set(), set([word])

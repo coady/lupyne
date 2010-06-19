@@ -420,11 +420,11 @@ class Searcher(object):
                     filters[value] = Query.term(name, value).filter()
                 counts[name][value] = Filter.overlap(ids, filters[value], self.indexReader)
         return dict(counts)
-    def suggest(self, field, prefix):
+    def suggest(self, field, prefix, count=None):
         "Return ordered suggested words for prefix."
         if field not in self.spellcheckers:
             self.spellcheckers[field] = SpellChecker(self.terms(field, counts=True))
-        return self.spellcheckers[field].suggest(prefix)
+        return self.spellcheckers[field].suggest(prefix, count)
     def correct(self, field, text, distance=2, minSimilarity=0.5):
         """Generate potential words ordered by increasing edit distance and decreasing frequency.
         For optimal performance only iterate the required slice size of corrections.
