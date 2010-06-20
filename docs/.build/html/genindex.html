@@ -136,11 +136,12 @@
   <dd><dl>
     <dt><a href="server.html#server.WebIndexer.commit">(server.WebIndexer method)</a></dt>
   </dl></dd>
-<dt><a href="engine.html#engine.indexers.IndexReader.comparator">comparator() (engine.indexers.IndexReader method)</a></dt></dl></td><td width="33%" valign="top"><dl>
-<dt><a href="engine.html#engine.spatial.Tiler.coords">coords() (engine.spatial.Tiler method)</a></dt>
+<dt><a href="engine.html#engine.indexers.IndexReader.comparator">comparator() (engine.indexers.IndexReader method)</a></dt>
+<dt><a href="engine.html#engine.spatial.Tiler.coords">coords() (engine.spatial.Tiler method)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.indexers.Searcher.correct">correct() (engine.indexers.Searcher method)</a></dt>
   <dd><dl>
     <dt><a href="engine.html#engine.queries.SpellChecker.correct">(engine.queries.SpellChecker method)</a></dt>
+    <dt><a href="engine.html#engine.queries.SpellParser.correct">(engine.queries.SpellParser method)</a></dt>
   </dl></dd>
 <dt><a href="engine.html#engine.indexers.IndexReader.count">count() (engine.indexers.IndexReader method)</a></dt>
   <dd><dl>
@@ -222,12 +223,13 @@
     <dt><a href="engine.html#engine.indexers.Searcher.get">(engine.indexers.Searcher method)</a></dt>
   </dl></dd>
 <dt><a href="engine.html#engine.queries.Filter.getDocIdSet">getDocIdSet() (engine.queries.Filter method)</a></dt>
-<dt><a href="engine.html#engine.documents.Document.getlist">getlist() (engine.documents.Document method)</a></dt>
+<dt><a href="engine.html#engine.queries.SpellParser.getFieldQuery">getFieldQuery() (engine.queries.SpellParser method)</a></dt>
+<dt><a href="engine.html#engine.documents.Document.getlist">getlist() (engine.documents.Document method)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.documents.DateTimeField.getname">getname() (engine.documents.DateTimeField method)</a></dt>
   <dd><dl>
     <dt><a href="engine.html#engine.documents.NestedField.getname">(engine.documents.NestedField method)</a></dt>
     <dt><a href="engine.html#engine.documents.PrefixField.getname">(engine.documents.PrefixField method)</a></dt>
-  </dl></dd></dl></td><td width="33%" valign="top"><dl>
+  </dl></dd>
 <dt><a href="client.html#client.Resource.getresponse">getresponse() (client.Resource method)</a></dt>
   <dd><dl>
     <dt><a href="client.html#client.Resources.getresponse">(client.Resources method)</a></dt>
@@ -401,10 +403,11 @@
 <dt><a href="client.html#client.Shards">Shards (class in client)</a></dt>
 <dt><a href="engine.html#engine.queries.Query.span">span() (engine.queries.Query class method)</a></dt>
 <dt><a href="engine.html#engine.queries.SpanQuery">SpanQuery (class in engine.queries)</a></dt>
-<dt><a href="engine.html#engine.indexers.IndexReader.spans">spans() (engine.indexers.IndexReader method)</a></dt></dl></td><td width="33%" valign="top"><dl>
-<dt><a href="engine.html#engine.spatial.SpatialField">SpatialField (class in engine.spatial)</a></dt>
+<dt><a href="engine.html#engine.indexers.IndexReader.spans">spans() (engine.indexers.IndexReader method)</a></dt>
+<dt><a href="engine.html#engine.spatial.SpatialField">SpatialField (class in engine.spatial)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.queries.SpellChecker">SpellChecker (class in engine.queries)</a></dt>
 <dt><a href="engine.html#engine.indexers.Searcher.spellcheckers">spellcheckers (engine.indexers.Searcher attribute)</a></dt>
+<dt><a href="engine.html#engine.queries.SpellParser">SpellParser (class in engine.queries)</a></dt>
 <dt><a href="engine.html#engine.documents.DateTimeField.split">split() (engine.documents.DateTimeField method)</a></dt>
   <dd><dl>
     <dt><a href="engine.html#engine.documents.NestedField.split">(engine.documents.NestedField method)</a></dt>
@@ -426,14 +429,15 @@
 <dt><a href="engine.html#engine.queries.Query.term">term() (engine.queries.Query class method)</a></dt>
 <dt><a href="engine.html#engine.indexers.IndexReader.terms">terms() (engine.indexers.IndexReader method)</a></dt>
   <dd><dl>
+    <dt><a href="engine.html#engine.queries.Query.terms">(engine.queries.Query method)</a></dt>
     <dt><a href="server.html#server.WebSearcher.terms">(server.WebSearcher method)</a></dt>
   </dl></dd>
 <dt><a href="engine.html#engine.indexers.IndexReader.termvector">termvector() (engine.indexers.IndexReader method)</a></dt>
-<dt><a href="engine.html#engine.spatial.Tiler">Tiler (class in engine.spatial)</a></dt>
+<dt><a href="engine.html#engine.spatial.Tiler">Tiler (class in engine.spatial)</a></dt></dl></td><td width="33%" valign="top"><dl>
 <dt><a href="engine.html#engine.numeric.PointField.tiles">tiles() (engine.numeric.PointField method)</a></dt>
   <dd><dl>
     <dt><a href="engine.html#engine.spatial.SpatialField.tiles">(engine.spatial.SpatialField method)</a></dt>
-  </dl></dd></dl></td><td width="33%" valign="top"><dl>
+  </dl></dd>
 <dt><a href="engine.html#engine.numeric.DateTimeField.timestamp">timestamp() (engine.numeric.DateTimeField method)</a></dt>
 <dt><a href="engine.html#engine.indexers.TokenFilter">TokenFilter (class in engine.indexers)</a></dt>
 <dt><a href="engine.html#engine.indexers.Analyzer.tokens">tokens() (engine.indexers.Analyzer method)</a></dt>

@@ -188,6 +188,9 @@ class TestCase(BaseTest):
         assert resource.get('/terms/text/writ*?count=10') == ['writs', 'writ', 'writing', 'writings', 'written']
         assert resource.get('/terms/text/writ*?count=3') == ['writs', 'writ', 'writing']
         assert resource.get('/terms/text/right~') == resource.get('/terms/text/right~0.5') == ['eight', 'right', 'rights']
+        assert resource.get('/terms/text/right~?count=3') == ['right', 'eight', 'rights']
+        assert resource.get('/terms/text/right~?count=5') == ['right', 'eight', 'rights', 'high']
+        assert resource.get('/terms/text/write~?count=5') == ['writs', 'writ', 'crime', 'written']
         docs = resource.get('/terms/text/people/docs')
         assert resource.get('/terms/text/people') == len(docs) == 8
         counts = dict(resource.get('/terms/text/people/docs/counts'))

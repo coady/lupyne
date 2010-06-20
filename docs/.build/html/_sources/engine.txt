@@ -262,6 +262,11 @@ SpellChecker
   :show-inheritance:
   :members:
 
+SpellParser
+^^^^^^^^^^^^^
+.. autoclass:: engine.queries.SpellParser
+  :members:
+
 
 spatial
 ---------

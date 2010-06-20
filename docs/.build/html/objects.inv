@@ -25,6 +25,7 @@ client.Response.status attribute client.html
 engine.indexers.IndexReader.termvector method engine.html
 server.WebIndexer class server.html
 engine.spatial.Tiler class engine.html
+engine.queries.Query.terms method engine.html
 engine.queries.Query.near classmethod engine.html
 engine.indexers.IndexWriter.__len__ method engine.html
 engine.indexers.TokenFilter.offset attribute engine.html
@@ -70,6 +71,7 @@ engine.queries.BooleanQuery.__isub__ method engine.html
 client.Resource.post method client.html
 engine.documents.PrefixField.items method engine.html
 engine.documents.FormatField.format method engine.html
+engine.queries.SpellParser.correct method engine.html
 client.Resource.getresponse method client.html
 server.WebIndexer.commit method server.html
 engine.spatial.Tiler.project method engine.html
@@ -105,6 +107,7 @@ engine.documents.PrefixField class engine.html
 engine.queries.Highlighter.fragments method engine.html
 engine.indexers.Analyzer.tokens method engine.html
 client.Resources.broadcast method client.html
+engine.queries.SpellParser.getFieldQuery method engine.html
 engine.queries.SpellChecker class engine.html
 engine.indexers.IndexReader.count method engine.html
 engine.indexers.TokenFilter.type attribute engine.html
@@ -144,6 +147,7 @@ engine.queries.Query.__and__ method engine.html
 engine.indexers.IndexReader.comparator method engine.html
 engine.indexers.Searcher.search method engine.html
 engine.spatial.PolygonField class engine.html
+engine.queries.SpellParser class engine.html
 engine.queries.Query.phrase classmethod engine.html
 client.Resources.request method client.html
 engine.spatial.SpatialField.tiles method engine.html

@@ -119,7 +119,7 @@ attributes are cached as properties to create a Token interface.</p>
 </table>
 <dl class="method">
 <dt id="engine.indexers.Analyzer.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>version='current'</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.parse" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>version='3.0'</em>, <em>parser=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return parsed lucene Query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -130,6 +130,7 @@ attributes are cached as properties to create a Token interface.</p>
 <li><em>field</em> &#8211; default query field name, sequence of names, or (in lucene 2.9 or higher) boost mapping</li>
 <li><em>op</em> &#8211; default query operator (&#8216;or&#8217;, &#8216;and&#8217;)</li>
 <li><em>version</em> &#8211; lucene Version string, leave blank for deprecated constructor</li>
+<li><em>parser</em> &#8211; custom PythonQueryParser class</li>
 <li><em>attrs</em> &#8211; additional attributes to set on the parser</li>
 </ul>
 </td>
@@ -452,7 +453,7 @@ For optimal performance only iterate the required slice size of corrections.</p>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.suggest">
-<tt class="descname">suggest</tt><big>(</big><em>field</em>, <em>prefix</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.suggest" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">suggest</tt><big>(</big><em>field</em>, <em>prefix</em>, <em>count=None</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.suggest" title="Permalink to this definition">¶</a></dt>
 <dd>Return ordered suggested words for prefix.</dd></dl>
 
 </dd></dl>
@@ -1247,6 +1248,11 @@ Term values which supply another field name will be masked.</dd></dl>
 <em class="property">classmethod </em><tt class="descname">term</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.queries.Query.term" title="Permalink to this definition">¶</a></dt>
 <dd>Return lucene TermQuery.</dd></dl>
 
+<dl class="method">
+<dt id="engine.queries.Query.terms">
+<tt class="descname">terms</tt><big>(</big><big>)</big><a class="headerlink" href="#engine.queries.Query.terms" title="Permalink to this definition">¶</a></dt>
+<dd>Generate set of query term items.</dd></dl>
+
 <dl class="classmethod">
 <dt id="engine.queries.Query.wildcard">
 <em class="property">classmethod </em><tt class="descname">wildcard</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.queries.Query.wildcard" title="Permalink to this definition">¶</a></dt>
@@ -1427,13 +1433,33 @@ Supply a vocabulary mapping words to (reverse) sort keys, such as document frequ
 
 <dl class="method">
 <dt id="engine.queries.SpellChecker.edits">
-<tt class="descname">edits</tt><big>(</big><em>word</em><big>)</big><a class="headerlink" href="#engine.queries.SpellChecker.edits" title="Permalink to this definition">¶</a></dt>
-<dd>Return set of potential words one edit distance away.</dd></dl>
+<tt class="descname">edits</tt><big>(</big><em>word</em>, <em>length=0</em><big>)</big><a class="headerlink" href="#engine.queries.SpellChecker.edits" title="Permalink to this definition">¶</a></dt>
+<dd>Return set of potential words one edit distance away, mapped to valid prefix lengths.</dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.SpellChecker.suggest">
-<tt class="descname">suggest</tt><big>(</big><em>prefix</em><big>)</big><a class="headerlink" href="#engine.queries.SpellChecker.suggest" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">suggest</tt><big>(</big><em>prefix</em>, <em>count=None</em><big>)</big><a class="headerlink" href="#engine.queries.SpellChecker.suggest" title="Permalink to this definition">¶</a></dt>
 <dd>Return ordered suggested words for prefix.</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="spellparser">
+<h3>SpellParser<a class="headerlink" href="#spellparser" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.queries.SpellParser">
+<em class="property">class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">SpellParser</tt><a class="headerlink" href="#engine.queries.SpellParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inherited lucene QueryParser which corrects spelling.
+Assign a <a class="reference internal" href="#searcher">searcher</a> attribute or override <a title="engine.queries.SpellParser.correct" class="reference internal" href="#engine.queries.SpellParser.correct"><tt class="xref docutils literal"><span class="pre">correct()</span></tt></a> implementation.</p>
+<dl class="method">
+<dt id="engine.queries.SpellParser.correct">
+<tt class="descname">correct</tt><big>(</big><em>term</em><big>)</big><a class="headerlink" href="#engine.queries.SpellParser.correct" title="Permalink to this definition">¶</a></dt>
+<dd>Return term with text replaced as necessary.</dd></dl>
+
+<dl class="method">
+<dt id="engine.queries.SpellParser.getFieldQuery">
+<tt class="descname">getFieldQuery</tt><big>(</big><em>field</em>, <em>text</em>, <em>*args</em><big>)</big><a class="headerlink" href="#engine.queries.SpellParser.getFieldQuery" title="Permalink to this definition">¶</a></dt>
+<dd>Correct term and phrase queries.</dd></dl>
 
 </dd></dl>
 
@@ -1629,6 +1655,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 <li><a class="reference external" href="#filter">Filter</a></li>
 <li><a class="reference external" href="#highlighter">Highlighter</a></li>
 <li><a class="reference external" href="#spellchecker">SpellChecker</a></li>
+<li><a class="reference external" href="#spellparser">SpellParser</a></li>
 </ul>
 </li>
 <li><a class="reference external" href="#module-engine.spatial">spatial</a><ul>

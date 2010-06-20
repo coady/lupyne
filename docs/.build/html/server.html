@@ -258,9 +258,9 @@ engine.autoreload</td></tr>
 </tbody>
 </table>
 </dd>
-<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>*?count=<em>int</em></dt>
-<dd><p class="first">Return term values which match prefix ordered by decreasing document frequency.
-Optimized to be suitable for real-time query suggestions;  all terms are cached.</p>
+<dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>[*|~]?count=<em>int</em></dt>
+<dd><p class="first">Return spellchecked term values ordered by decreasing document frequency.
+Prefixes (*) are optimized to be suitable for real-time query suggestions;  all terms are cached.</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

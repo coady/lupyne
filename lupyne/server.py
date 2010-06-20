@@ -11,6 +11,7 @@ import re
 import httplib
 import threading
 import warnings
+import itertools
 import os, optparse
 from contextlib import contextmanager
 try:
@@ -255,9 +256,9 @@ class WebSearcher(object):
             
             :return: [*string*,... ]
         
-        **GET** /terms/*chars*/*chars*\*?count=\ *int*
-            Return term values which match prefix ordered by decreasing document frequency.
-            Optimized to be suitable for real-time query suggestions;  all terms are cached.
+        **GET** /terms/*chars*/*chars*\[\*\|~\]?count=\ *int*
+            Return spellchecked term values ordered by decreasing document frequency.
+            Prefixes (*) are optimized to be suitable for real-time query suggestions;  all terms are cached.
             
             :return: [*string*,... ]
         
@@ -286,8 +287,12 @@ class WebSearcher(object):
         if ':' in value:
             start, stop = value.split(':')
             return list(self.indexer.terms(name, start, stop or None))
-        if value.endswith('*') and 'count' in options:
-            return self.indexer.suggest(name, value.rstrip('*'), int(options['count']))
+        if 'count' in options:
+            count = int(options['count'])
+            if value.endswith('*'):
+                return self.indexer.suggest(name, value.rstrip('*'), count)
+            if value.endswith('~'):
+                return list(itertools.islice(self.indexer.correct(name, value.rstrip('~')), count))
         if '*' in value or '?' in value:
             return list(self.indexer.terms(name, value))
         if '~' in value:

@@ -253,27 +253,28 @@ class SpellChecker(dict):
             return heapq.nlargest(count, words, key=self.__getitem__)
         words.sort(key=self.__getitem__, reverse=True)
         return words
-    def edits(self, word):
-        "Return set of potential words one edit distance away."
+    def edits(self, word, length=0):
+        "Return set of potential words one edit distance away, mapped to valid prefix lengths."
         pairs = [(word[:index], word[index:]) for index in range(len(word) + 1)]
-        result = set(head + tail[1:] for head, tail in pairs[:-1])
-        result.update(head + tail[1::-1] + tail[2:] for head, tail in pairs[:-2])
-        for head, tail in pairs:
+        deletes = (head + tail[1:] for head, tail in pairs[:-1])
+        transposes = (head + tail[1::-1] + tail[2:] for head, tail in pairs[:-2])
+        edits = {} if length else dict.fromkeys(itertools.chain(deletes, transposes), 0)
+        for head, tail in pairs[length:]:
             if head not in self.prefixes:
                 break
             for char in self.alphabet:
                 prefix = head + char
                 if prefix in self.prefixes:
-                    result.update((prefix + tail, prefix + tail[1:]))
-        return result
+                    edits[prefix + tail] = edits[prefix + tail[1:]] = len(prefix)
+        return edits
     def correct(self, word):
         "Generate ordered sets of words by increasing edit distance."
-        corrections, edits = set(), set([word])
+        previous, edits = set(), {word: 0}
         for distance in range(len(word)):
-            words = set(itertools.ifilter(self.__contains__, edits)) - corrections
-            yield sorted(words, key=self.__getitem__, reverse=True)
-            corrections |= words
-            edits = set(itertools.chain.from_iterable(itertools.imap(self.edits, edits)))
+            yield sorted(itertools.ifilter(self.__contains__, edits), key=self.__getitem__, reverse=True)
+            previous.update(edits)
+            groups = itertools.imap(self.edits, edits, edits.values())
+            edits = dict((edit, group[edit]) for group in groups for edit in group if edit not in previous)
 
 class SpellParser(lucene.PythonQueryParser):
     """Inherited lucene QueryParser which corrects spelling.
