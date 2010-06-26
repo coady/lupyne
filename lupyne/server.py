@@ -119,7 +119,7 @@ class WebSearcher(object):
             return dict((str(reader.directory()), reader.numDocs()) for reader in self.indexer.sequentialSubReaders)
         return {str(self.indexer): len(self.indexer)}
     @cherrypy.expose
-    def docs(self, id=None, fields='', multifields=''):
+    def docs(self, id=None, fields=None, multifields=''):
         """Return ids or documents.
         
         **GET** /docs
@@ -140,13 +140,14 @@ class WebSearcher(object):
             return list(self.indexer)
         with HTTPError(httplib.NOT_FOUND, ValueError):
             id = int(id)
-        fields = dict.fromkeys(filter(None, fields.split(',')))
+        if fields is not None:
+            fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
         with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
-            doc = self.indexer.get(id, *(list(fields) + multifields)) if fields else self.indexer[id]
-        return doc.dict(*multifields, **fields)
+            doc = self.indexer[id] if fields is None else self.indexer.get(id, *itertools.chain(fields, multifields))
+        return doc.dict(*multifields, **(fields or {}))
     @cherrypy.expose
-    def search(self, q=None, count=None, start=0, fields='', multifields='', sort=None, facets='', hl='', mlt=None, spellcheck=0, **options):
+    def search(self, q=None, count=None, start=0, fields=None, multifields='', sort=None, facets='', hl='', mlt=None, spellcheck=0, **options):
         """Run query and return documents.
         
         **GET** /search?
@@ -198,8 +199,6 @@ class WebSearcher(object):
             if count is not None:
                 count = int(count) + start
             spellcheck = int(spellcheck)
-        fields = dict.fromkeys(filter(None, fields.split(',')))
-        multifields = filter(None, multifields.split(','))
         reverse = False
         searcher = getattr(self.indexer, 'indexSearcher', self.indexer)
         if sort is not None:
@@ -222,8 +221,11 @@ class WebSearcher(object):
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))
             q = searcher.morelikethis(mlt, *mltfields, **attrs)
-        hits = searcher.search(q, count=count, sort=sort, reverse=reverse)
-        result = {'query': unicode(q), 'count': hits.count, 'docs': []}
+        if count == 0:
+            hits = searcher.search(q, count=1, sort=sort, reverse=reverse)[:0]
+        else:
+            hits = searcher.search(q, count=count, sort=sort, reverse=reverse)
+        result = {'query': q and unicode(q), 'count': hits.count, 'docs': []}
         tag = options.get('hl.tag', 'strong')
         field = 'fields' not in options.get('hl.enable', '') or None
         span = 'terms' not in options.get('hl.enable', '')
@@ -231,8 +233,11 @@ class WebSearcher(object):
             hl = dict((name, searcher.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             count = int(options.get('hl.count', 1))
-        if fields:
-            hits.fields = lucene.MapFieldSelector(list(set(fields) | set(multifields) | set(hl)))
+        if fields is not None:
+            fields = dict.fromkeys(filter(None, fields.split(',')))
+            hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multifields, hl)))
+        fields = fields or {}
+        multifields = filter(None, multifields.split(','))
         for hit in hits[start:]:
             doc = hit.dict(*multifields, **fields)
             result['docs'].append(doc)
@@ -340,7 +345,7 @@ class WebIndexer(WebSearcher):
         return len(self.indexer)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
-    def docs(self, id=None, fields='', multifields='', docs='[]'):
+    def docs(self, id=None, fields=None, multifields='', docs='[]'):
         """Add or return documents.  See :meth:`WebSearcher.docs` for GET method.
         
         **POST** /docs

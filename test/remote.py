@@ -101,6 +101,7 @@ class TestCase(BaseTest):
         assert resource.get('/docs/0') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
         assert resource.get('/docs/0', multifields='name') == {'name': ['sample']}
+        assert resource.get('/docs/0', fields='', multifields='missing') == {'missing': []}
         assert resource.get('/terms') == ['name', 'text']
         assert resource.get('/terms', option='unindexed') == []
         assert resource.get('/terms/text') == ['hello', 'world']
@@ -119,6 +120,8 @@ class TestCase(BaseTest):
             resource.get('/search', sort='x,y')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', count=1, sort='x:str')
+        assert resource.get('/search', count=0) == {'count': 1, 'query': None, 'docs': []}
+        assert resource.get('/search', fields='')['docs'] == [{'__id__': 0, '__score__': 1.0}]
         assert sorted(hits) == ['count', 'docs', 'query']
         assert hits['count'] == 1
         doc, = hits['docs']
