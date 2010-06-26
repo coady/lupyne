@@ -11,7 +11,7 @@ import re
 import httplib
 import threading
 import warnings
-import itertools
+import itertools, collections
 import os, optparse
 from contextlib import contextmanager
 try:
@@ -146,7 +146,7 @@ class WebSearcher(object):
             doc = self.indexer.get(id, *(list(fields) + multifields)) if fields else self.indexer[id]
         return doc.dict(*multifields, **fields)
     @cherrypy.expose
-    def search(self, q=None, count=None, start=0, fields='', multifields='', sort=None, facets='', hl='', mlt=None, **options):
+    def search(self, q=None, count=None, start=0, fields='', multifields='', sort=None, facets='', hl='', mlt=None, spellcheck=0, **options):
         """Run query and return documents.
         
         **GET** /search?
@@ -180,18 +180,24 @@ class WebSearcher(object):
                 | optional document fields to match
                 | optional MoreLikeThis settings: mlt.minTermFreq, mlt.minDocFreq,...
             
+            &spellcheck=\ *int*
+                | maximum number of spelling corrections to return for each query term, grouped by field
+                | original query is still run;  use q.spellcheck=true to affect query parsing
+            
             :return:
                 | {
                 | "query": *string*,
                 | "count": *int*,
                 | "docs": [{"__id__": *int*, "__score__": *number*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
-                | "facets": {*chars*: {*chars*: *int*,... },... },
+                | "facets": {*string*: {*string*: *int*,... },... },
+                | "spellcheck": {*string*: {*string*: [*string*,... ],... },... },
                 | }
         """
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             start = int(start)
             if count is not None:
                 count = int(count) + start
+            spellcheck = int(spellcheck)
         fields = dict.fromkeys(filter(None, fields.split(',')))
         multifields = filter(None, multifields.split(','))
         reverse = False
@@ -234,6 +240,10 @@ class WebSearcher(object):
                 doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], count)) for name in hl if name in hit)
         if facets:
             result['facets'] = searcher.facets(engine.Query.filter.im_func(q), *facets.split(','))
+        if spellcheck:
+            terms = result['spellcheck'] = collections.defaultdict(dict)
+            for name, value in engine.Query.terms.im_func(q):
+                terms[name][value] = list(itertools.islice(searcher.correct(name, value), spellcheck))
         return result
     @cherrypy.expose
     def terms(self, name='', value=':', docs='', counts='', **options):

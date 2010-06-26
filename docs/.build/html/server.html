@@ -166,7 +166,7 @@ engine.autoreload</td></tr>
 
 <dl class="method">
 <dt id="server.WebSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>start=0</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>hl=''</em>, <em>mlt=None</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>start=0</em>, <em>fields=''</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>hl=''</em>, <em>mlt=None</em>, <em>spellcheck=0</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /search?</dt>
@@ -198,6 +198,12 @@ engine.autoreload</td></tr>
 <div class="line">optional MoreLikeThis settings: mlt.minTermFreq, mlt.minDocFreq,...</div>
 </div>
 </dd>
+<dt>&amp;spellcheck=<em>int</em></dt>
+<dd><div class="first last line-block">
+<div class="line">maximum number of spelling corrections to return for each query term, grouped by field</div>
+<div class="line">original query is still run;  use q.spellcheck=true to affect query parsing</div>
+</div>
+</dd>
 </dl>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -208,7 +214,8 @@ engine.autoreload</td></tr>
 <div class="line">&#8220;query&#8221;: <em>string</em>,</div>
 <div class="line">&#8220;count&#8221;: <em>int</em>,</div>
 <div class="line">&#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>number</em>, &#8220;__highlights__&#8221;: {<em>string</em>: <em>array</em>,... }, <em>string</em>: <em>string</em>|<em>array</em>,... },... ],</div>
-<div class="line">&#8220;facets&#8221;: {<em>chars</em>: {<em>chars</em>: <em>int</em>,... },... },</div>
+<div class="line">&#8220;facets&#8221;: {<em>string</em>: {<em>string</em>: <em>int</em>,... },... },</div>
+<div class="line">&#8220;spellcheck&#8221;: {<em>string</em>: {<em>string</em>: [<em>string</em>,... ],... },... },</div>
 <div class="line">}</div>
 </div>
 </td>

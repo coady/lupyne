@@ -241,9 +241,7 @@ class SpellChecker(dict):
         self.words = sorted(self)
         self.alphabet = sorted(set(itertools.chain.from_iterable(self.words)))
         self.suffix = self.alphabet[-1] * max(itertools.imap(len, self.words)) if self.alphabet else ''
-        self.prefixes = set()
-        for word in self.words:
-            self.prefixes.update(word[:stop] for stop in range(len(word) + 1))
+        self.prefixes = set(word[:stop] for word in self.words for stop in range(len(word) + 1))
     def suggest(self, prefix, count=None):
         "Return ordered suggested words for prefix."
         start = bisect.bisect_left(self.words, prefix)

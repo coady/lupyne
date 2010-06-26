@@ -197,6 +197,13 @@ class TestCase(BaseTest):
         assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
         positions = dict(resource.get('/terms/text/people/docs/positions'))
         assert sorted(positions) == docs and map(len, positions.values()) == counts.values()
+        result = resource.get('/search', **{'q.field': 'text', 'q': 'write "hello world"', 'spellcheck': 3})
+        terms = result['spellcheck'].pop('text')
+        assert result['docs'] == [] and result['spellcheck'] == {}
+        assert terms == {'write': ['writs', 'writ', 'crime'], 'world': ['would', 'hold', 'gold'], 'hello': ['held', 'well']}
+        result = resource.get('/search', **{'q.field': 'text', 'q': 'write "hello world"', 'q.spellcheck': 'true'})
+        assert result['query'] == 'text:writs text:"held would"'
+        assert result['count'] == len(result['docs']) == resource.get('/terms/text/writs') == 2
         result = resource.get('/search', q='text:"We the People"', **{'q.phraseSlop': 3})
         assert sorted(result) == ['count', 'docs', 'query'] and result['count'] == 1
         assert result['query'] in ('text:"we ? people"~3', 'text:"we people"~3') # second query is 2.4 analysis
