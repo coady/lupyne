@@ -12,7 +12,7 @@ Finally the custom sorting interface, although well-supported in PyLucene, is ba
 The sort key of every potential doc must realistically be cached anyway,
 but the performance overhead of O(n log n) comparison calls in java is still horrid.
 
-To mitigate all these problems, LuPyne first provides a unified search interface.
+To mitigate all these problems, Lupyne first provides a unified search interface.
 The same Hits type is returned regardless of whether a doc count is supplied.
 As with lucene, the result is fully evaluated but each individual Hit object will only be loaded on demand.
 Internally an optimized custom hit Collector is used when all docs are requested.

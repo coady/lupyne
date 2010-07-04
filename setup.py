@@ -19,27 +19,25 @@ Advanced search features:
  * Optimized faceted search.
  * Optimized prefix and range queries.
  * Geospatial support.
+ * Spellchecking
 
-Changes in 0.5:
+Changes in 0.6:
 ==================
- * PyLucene 2.4 support is deprecated
- * Optimized facets
- * MultiSearchers support full searching interface
- * Reopening searchers with resource closing managed
- * Query parsing supports boost mapping
+ * Python 2.7 compatible
+ * Efficient spellchecking:  suggestions (auto-complete) and corrections (did you mean?)
+ * Support for custom query parsers, including a spellchecker
+ * Queries support extracting terms
+ * Indexing supports boosting documents
+ * Optimized document field selection
+ * More configurable server start options, similar to cherryd
+ * Span queries support masking and payloads
  * Remote searching support:
  
-   - production configuration
-   - refreshing searcher
-   - "more like this" queries
-   - retrieving document slices
-   - hit text highlighting
-   - query parsing options
-   - json errors
-   - advanced term enumeration
-   - multisearchers
-   - sorting options
-   - facets
+   - extended query parsing options
+   - spellchecking for queries and individual terms
+   - automated code reloading and index refreshing
+   - index refreshing optionally maintains cached
+   - search allows minimal document selection
 """
 
 import os
@@ -52,7 +50,7 @@ for dirpath, dirnames, filenames in os.walk('lupyne'):
 
 setup(
     name='lupyne',
-    version='0.5+',
+    version='0.6',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',

@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>examples &mdash; Lupyne v0.5+ documentation</title>
+    <title>examples &mdash; Lupyne v0.6 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.5+',
+        VERSION:     '0.6',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Lupyne v0.5+ documentation" href="index.html" />
+    <link rel="top" title="Lupyne v0.6 documentation" href="index.html" />
     <link rel="prev" title="client" href="client.html" /> 
   </head>
   <body>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.5+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.6 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -227,7 +227,7 @@
 <span class="sd">In any case the principle can be generalized to indexing every prefix of a term.</span>
 <span class="sd">The cost in indexing time and space is well worth the optimal search times.</span>
 
-<span class="sd">LuPyne&#39;s PrefixField automates the indexing of such prefix trees into different fields.</span>
+<span class="sd">Lupyne&#39;s PrefixField automates the indexing of such prefix trees into different fields.</span>
 <span class="sd">The default naming convention makes each field look like a python slice of the original field.</span>
 <span class="sd">The fields also provide prefix and range query generators that optimally utilize the underlying fields.</span>
 
@@ -309,7 +309,7 @@
 <span class="sd">The sort key of every potential doc must realistically be cached anyway,</span>
 <span class="sd">but the performance overhead of O(n log n) comparison calls in java is still horrid.</span>
 
-<span class="sd">To mitigate all these problems, LuPyne first provides a unified search interface.</span>
+<span class="sd">To mitigate all these problems, Lupyne first provides a unified search interface.</span>
 <span class="sd">The same Hits type is returned regardless of whether a doc count is supplied.</span>
 <span class="sd">As with lucene, the result is fully evaluated but each individual Hit object will only be loaded on demand.</span>
 <span class="sd">Internally an optimized custom hit Collector is used when all docs are requested.</span>
@@ -445,7 +445,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              >previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.5+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.6 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

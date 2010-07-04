@@ -11,7 +11,7 @@ But this may not be sufficient, or the datetimes may be necessary for other sear
 In any case the principle can be generalized to indexing every prefix of a term.
 The cost in indexing time and space is well worth the optimal search times.
 
-LuPyne's PrefixField automates the indexing of such prefix trees into different fields.
+Lupyne's PrefixField automates the indexing of such prefix trees into different fields.
 The default naming convention makes each field look like a python slice of the original field.
 The fields also provide prefix and range query generators that optimally utilize the underlying fields.
 
