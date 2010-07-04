@@ -19,7 +19,7 @@ Advanced search features:
  * Optimized faceted search.
  * Optimized prefix and range queries.
  * Geospatial support.
- * Spellchecking
+ * Spellchecking.
 
 Changes in 0.6:
 ==================
@@ -50,7 +50,7 @@ for dirpath, dirnames, filenames in os.walk('lupyne'):
 
 setup(
     name='lupyne',
-    version='0.6',
+    version='0.6+',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',

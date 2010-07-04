@@ -3,6 +3,7 @@ Wrappers for lucene NumericFields, available since version 2.9.
 Alternative implementations of spatial and datetime fields.
 """
 
+import itertools
 import datetime, calendar
 import lucene
 from .documents import Field
@@ -61,14 +62,17 @@ class PointField(spatial.SpatialField, NumericField):
         :param distance: search radius in meters
         :param limit: maximum number of tiles to consider
         """
-        queries = []
-        for tile in sorted(self.radiate(lat, lng, distance, self.precision, limit)):
-            query = self.prefix(tile)
-            if queries and queries[-1].max.equals(query.min):
-                queries[-1] = self.range(queries[-1].min.longValue(), query.max.longValue())
+        tiles = sorted(self.radiate(lat, lng, distance, self.precision, limit))
+        precision, = set(itertools.imap(len, tiles))
+        shift = self.base ** (self.precision - precision)
+        slices = []
+        for tile in tiles:
+            tile = int(tile, self.base) * shift
+            if slices and slices[-1][1] == tile:
+                slices[-1] = slices[-1][0], tile + shift
             else:
-                queries.append(query)
-        return Query.any(*queries)
+                slices.append((tile, tile + shift))
+        return Query.any(*itertools.starmap(self.range, slices))
 
 class PolygonField(PointField):
     __doc__ = spatial.PolygonField.__doc__

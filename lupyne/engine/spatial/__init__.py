@@ -54,7 +54,7 @@ class Tiler(GlobalMercator):
             left, bottom, right, top = self.TileBounds(i, j, precision)
             dx = min(0, x-left, right-x)
             dy = min(0, y-bottom, top-y)
-            if (dx**2 + dy**2) ** 0.5 <= distance:
+            if (dx**2 + dy**2) <= distance**2:
                 yield self.QuadTree(i, j, precision)
     def zoom(self, tiles):
         "Return reduced number of tiles, by zooming out where all sub-tiles are present."
