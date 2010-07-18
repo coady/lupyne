@@ -55,7 +55,6 @@ engine.documents.NestedField.split method engine.html
 engine.numeric.PointField class engine.html
 engine.documents.FormatField.items method engine.html
 engine.indexers.IndexReader.terms method engine.html
-engine.numeric.PointField.prefix method engine.html
 client.Resource.get method client.html
 client.Shards.priority method client.html
 client.Shards.unicast method client.html
@@ -106,8 +105,9 @@ engine.spatial.SpatialField.within method engine.html
 engine.documents.PrefixField.join method engine.html
 engine.documents.PrefixField class engine.html
 engine.queries.Highlighter.fragments method engine.html
-engine.indexers.Analyzer.tokens method engine.html
+client.Response class client.html
 client.Resources.broadcast method client.html
+engine.queries.SpellParser.getFieldQuery method engine.html
 engine.queries.SpellChecker class engine.html
 engine.indexers.IndexReader.count method engine.html
 engine.indexers.TokenFilter.type attribute engine.html
@@ -147,6 +147,7 @@ engine.queries.Query.__and__ method engine.html
 engine.indexers.IndexReader.comparator method engine.html
 engine.indexers.Searcher.search method engine.html
 engine.queries.SpellParser class engine.html
+server.WebSearcher class server.html
 engine.queries.Query.phrase classmethod engine.html
 engine.numeric.DateTimeField.duration method engine.html
 engine.spatial.SpatialField.tiles method engine.html
@@ -169,14 +170,13 @@ engine.documents.Hit class engine.html
 engine.numeric.DateTimeField.range method engine.html
 engine.queries.Query.prefix classmethod engine.html
 engine.spatial.SpatialField class engine.html
-server.WebSearcher class server.html
 engine.queries.SpanQuery.__sub__ method engine.html
 client.Shards class client.html
 engine.documents.Hits.__len__ method engine.html
 engine.queries.BooleanQuery class engine.html
 engine.indexers.IndexReader.spans method engine.html
 engine.documents.Hit.dict method engine.html
-engine.queries.SpellParser.getFieldQuery method engine.html
+engine.indexers.Analyzer.tokens method engine.html
 engine.documents.Document.get method engine.html
 engine.documents.PrefixField.indices method engine.html
 engine.queries.BooleanQuery.__getitem__ method engine.html
@@ -197,7 +197,7 @@ engine.queries.Query.filter method engine.html
 engine.numeric.DateTimeField.prefix method engine.html
 engine.indexers.Analyzer.parse method engine.html
 engine.numeric.PointField.items method engine.html
-client.Response class client.html
+engine.numeric.PointField.prefix method engine.html
 engine.queries.SpanQuery.__or__ method engine.html
 engine.numeric.DateTimeField.items method engine.html
 client.Resources.getresponse method client.html

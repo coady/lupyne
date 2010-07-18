@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import os, sys
 import lucene
@@ -12,7 +13,7 @@ from distributed import TestCase as distributed
 class TestRunner(unittest.TextTestRunner):
     def run(self, test):
         if self.verbosity > 1:
-            print 'lucene version', lucene.VERSION
+            print('lucene version', lucene.VERSION)
         return unittest.TextTestRunner.run(self, test)
 
 if __name__ == '__main__':

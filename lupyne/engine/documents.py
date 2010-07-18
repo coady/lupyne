@@ -256,6 +256,7 @@ class Hits(object):
     :param ids: ordered doc ids
     :param scores: ordered doc scores
     :param count: total number of hits
+    :param maxscore: maximum score
     :param fields: optional field selectors
     """
     def __init__(self, searcher, ids, scores, count=None, maxscore=None, fields=None):

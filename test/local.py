@@ -14,14 +14,14 @@ if issubclass(lucene.TokenFilter, collections.Iterable):
     def typeAsPayload(tokens):
         "Generator variant of lucene TypeAsPayloadTokenFilter."
         for token in tokens:
-            token.payload = lucene.Payload(lucene.JArray_byte(bytes(token.type())))
+            token.payload = lucene.Payload(lucene.JArray_byte(token.type().encode('utf8')))
             yield token
 else:
     class typeAsPayload(engine.TokenFilter):
         "Custom implementation of lucene TypeAsPayloadTokenFilter."
         def incrementToken(self):
             result = engine.TokenFilter.incrementToken(self)
-            self.payload = bytes(self.type)
+            self.payload = self.type.encode('utf8')
             return result
 
 class BaseTest(unittest.TestCase):

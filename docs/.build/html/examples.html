@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>examples &mdash; Lupyne v0.6 documentation</title>
+    <title>examples &mdash; Lupyne v0.6+ documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.6',
+        VERSION:     '0.6+',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Lupyne v0.6 documentation" href="index.html" />
+    <link rel="top" title="Lupyne v0.6+ documentation" href="index.html" />
     <link rel="prev" title="client" href="client.html" /> 
   </head>
   <body>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.6 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.6+ documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -51,7 +51,7 @@
 <h2>indexers<a class="headerlink" href="#indexers" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Basic indexing and searching example adapted from http://lucene.apache.org/java/2_9_1/api/core/index.html</span>
-<span class="sd">Compatible with lucene versions 2.4 through 3.0.</span>
+<span class="sd">Compatible with lucene versions 2.9 through 3.0.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">lucene</span>
@@ -60,7 +60,7 @@
 
 <span class="c">### lucene ###</span>
 
-<span class="n">analyzer</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">StandardAnalyzer</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Version</span><span class="o">.</span><span class="n">LUCENE_CURRENT</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lucene</span><span class="p">,</span> <span class="s">&#39;Version&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">lucene</span><span class="o">.</span><span class="n">StandardAnalyzer</span><span class="p">()</span>
+<span class="n">analyzer</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">StandardAnalyzer</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Version</span><span class="o">.</span><span class="n">LUCENE_CURRENT</span><span class="p">)</span>
 
 <span class="c"># Store the index in memory:</span>
 <span class="n">directory</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">RAMDirectory</span><span class="p">()</span>
@@ -76,7 +76,7 @@
 <span class="c"># Now search the index:</span>
 <span class="n">isearcher</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">IndexSearcher</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
 <span class="c"># Parse a simple query that searches for &quot;text&quot;:</span>
-<span class="n">parser</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">QueryParser</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Version</span><span class="o">.</span><span class="n">LUCENE_CURRENT</span><span class="p">,</span> <span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">)</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lucene</span><span class="p">,</span> <span class="s">&#39;Version&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">lucene</span><span class="o">.</span><span class="n">QueryParser</span><span class="p">(</span><span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">)</span>
+<span class="n">parser</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">QueryParser</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">Version</span><span class="o">.</span><span class="n">LUCENE_CURRENT</span><span class="p">,</span> <span class="s">&quot;fieldname&quot;</span><span class="p">,</span> <span class="n">analyzer</span><span class="p">)</span>
 <span class="n">query</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s">&quot;text&quot;</span><span class="p">)</span>
 <span class="n">hits</span> <span class="o">=</span> <span class="n">isearcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">scoreDocs</span>
 <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">hits</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
@@ -122,7 +122,7 @@
 
 <span class="sd">Spatial and datetime fields are two common examples that need prefix tree support.</span>
 <span class="sd">Currently SpatialFields and DateTimeFields are based on PrefixFields, but have an alternate NumericField implementation.</span>
-<span class="sd">Because both are easily encodable as numbers, the plan is to make the numeric implementation the default when support for 2.4 is dropped.</span>
+<span class="sd">Because both are easily encodable as numbers, the plan is to make the numeric implementation the default.</span>
 
 <span class="sd">So the long term support for PrefixField is unclear, although sometimes it is convenient to index into different fields.</span>
 <span class="sd">For example, breaking datetimes into their components makes searching by year optimal, and it&#39;s easier to introspect the index.</span>
@@ -320,7 +320,7 @@
 <span class="sd">The upshot is custom sorting and sorting large results are both easier and faster.</span>
 
 <span class="sd">Custom sorting isn&#39;t necessary in the below example of course, just there for demonstration.</span>
-<span class="sd">Compatible with lucene versions 2.4 through 3.0.</span>
+<span class="sd">Compatible with lucene versions 2.9 through 3.0.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">lucene</span>
@@ -445,7 +445,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              >previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.6 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.6+ documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
