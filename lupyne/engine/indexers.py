@@ -7,7 +7,6 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 import itertools, operator
 import contextlib
 import abc, collections
-import warnings
 import lucene
 from .queries import Query, HitCollector, Filter, Highlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
@@ -113,19 +112,15 @@ class Analyzer(lucene.PythonAnalyzer):
         """Return parsed lucene Query.
         
         :param query: query string
-        :param field: default query field name, sequence of names, or (in lucene 2.9 or higher) boost mapping
+        :param field: default query field name, sequence of names, or boost mapping
         :param op: default query operator ('or', 'and')
         :param version: lucene Version string, leave blank for deprecated constructor
         :param parser: custom PythonQueryParser class
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        try:
-            version = getattr(lucene.Version, 'LUCENE_' + version.replace('.', ''))
-        except AttributeError:
-            args = []
-        else:
-            args = [] if lucene.VERSION.startswith('2.9') and parser is not None else [version]
+        version = getattr(lucene.Version, 'LUCENE_' + version.replace('.', ''))
+        args = [] if lucene.VERSION.startswith('2.9') and parser is not None else [version]
         if isinstance(field, collections.Mapping):
             boosts = lucene.HashMap()
             for key in field:
@@ -139,7 +134,7 @@ class Analyzer(lucene.PythonAnalyzer):
         for name, value in attrs.items():
             setattr(parser, name, value)
         if isinstance(parser, lucene.MultiFieldQueryParser):
-            return parser.parse(parser, query) # bug in method binding
+            return lucene.MultiFieldQueryParser.parse(parser, query) # bug in method binding
         try:
             return parser.parse(query)
         finally:
@@ -230,7 +225,7 @@ class IndexReader(object):
         
         :param name: field name
         :param type: type of field values compatible with lucene FieldCache
-        :param parser: callable applied to field values, available in lucene 2.9 or higher
+        :param parser: callable applied to field values
         """
         type = getattr(type, '__name__', type).capitalize()
         method = getattr(lucene.FieldCache.DEFAULT, 'get{0}s'.format(type))
@@ -263,14 +258,10 @@ class IndexReader(object):
                 yield doc, sum(1 for span in spans)
     def termvector(self, id, field, counts=False):
         "Generate terms for given doc id and field, optionally with frequency counts."
-        if lucene.VERSION <= '2.4.1':
-            warnings.warn('TermFreqVector.terms leaks memory')
         tfv = self.getTermFreqVector(id, field)
         return itertools.izip(tfv.terms, tfv.termFrequencies) if counts else iter(tfv.terms)
     def positionvector(self, id, field, offsets=False):
         "Generate terms and positions for given doc id and field, optionally with character offsets."
-        if lucene.VERSION <= '2.4.1':
-            warnings.warn('TermPositionVector.terms leaks memory')
         tpv = lucene.TermPositionVector.cast_(self.getTermFreqVector(id, field))
         for index, term in enumerate(tpv.terms):
             if offsets:
@@ -295,7 +286,7 @@ class Searcher(object):
     def __init__(self, arg, analyzer=None):
         super(Searcher, self).__init__(arg)
         if analyzer is None:
-            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
+            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
             self.shared.add(analyzer)
         self.analyzer = analyzer
         self.filters = {}
@@ -307,10 +298,7 @@ class Searcher(object):
         self.shared = closing()
         for directory in directories:
             if isinstance(directory, basestring):
-                if hasattr(lucene.FSDirectory, 'open'):
-                    directory = lucene.FSDirectory.open(lucene.File(directory))
-                else:
-                    directory = lucene.FSDirectory.getDirectory(directory)
+                directory = lucene.FSDirectory.open(lucene.File(directory))
                 self.shared.add(directory)
             yield directory
     def reopen(self, filters=False, spellcheckers=False):
@@ -494,15 +482,10 @@ class IndexWriter(lucene.IndexWriter):
     def __init__(self, directory=None, mode='a', analyzer=None):
         self.shared = closing()
         if analyzer is None:
-            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
+            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
             self.shared.add(analyzer)
         if not isinstance(directory, lucene.Directory):
-            if directory is None:
-                directory = lucene.RAMDirectory()
-            elif hasattr(lucene.FSDirectory, 'open'):
-                directory = lucene.FSDirectory.open(lucene.File(directory))
-            else:
-                directory = lucene.FSDirectory.getDirectory(directory)
+            directory = lucene.RAMDirectory() if directory is None else lucene.FSDirectory.open(lucene.File(directory))
             self.shared.add(directory)
         mfl = lucene.IndexWriter.MaxFieldLength.LIMITED
         if mode == 'a':
@@ -552,11 +535,7 @@ class IndexWriter(lucene.IndexWriter):
     def __iadd__(self, directory):
         "Add directory (or reader, searcher, writer) to index."
         if isinstance(directory, basestring):
-            if hasattr(lucene.FSDirectory, 'open'):
-                directory = lucene.FSDirectory.open(lucene.File(directory))
-            else:
-                directory = lucene.FSDirectory.getDirectory(directory)
-            with contextlib.closing(directory):
+            with contextlib.closing(lucene.FSDirectory.open(lucene.File(directory))) as directory:
                 self.addIndexesNoOptimize([directory])
         else:
             if not isinstance(directory, lucene.Directory):

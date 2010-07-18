@@ -1,5 +1,5 @@
 """
-Wrappers for lucene NumericFields, available since version 2.9.
+Wrappers for lucene NumericFields.
 Alternative implementations of spatial and datetime fields.
 """
 

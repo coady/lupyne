@@ -5,6 +5,7 @@ import operator
 import httplib
 import socket, errno
 from contextlib import contextmanager
+import lucene
 import cherrypy
 from lupyne import client, server
 import fixture, local
@@ -71,7 +72,8 @@ class TestCase(BaseTest):
             resource.get('/docs/0')
         try:
             assert resource.get('/docs/~')
-        except httplib.HTTPException as (status, reason, body):
+        except httplib.HTTPException as exc:
+            status, reason, body = exc
             assert body['status'] == '404 Not Found'
             assert body['message'].startswith('invalid literal for int')
             assert body['message'] in body['traceback']
@@ -131,22 +133,14 @@ class TestCase(BaseTest):
         assert hit['__id__'] == doc['__id__'] and hit['__score__'] < doc['__score__']
         hit, = resource.get('/search', q='hello world', **{'q.field': 'text', 'q.op': 'and'})['docs']
         assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
-        try:
-            result = resource.get('/search?q=hello+world&q.field=text^4&q.field=body')
-        except httplib.HTTPException as (status, reason, body): # unsupported in lucene 2.4
-            assert body['traceback'].splitlines()[-1] == "AttributeError: 'module' object has no attribute 'Float'"
-        else:
-            assert result['query'] == '(body:hello text:hello^4.0) (body:world text:world^4.0)'
-            hit, = result['docs']
-            assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
+        result = resource.get('/search?q=hello+world&q.field=text^4&q.field=body')
+        assert result['query'] == '(body:hello text:hello^4.0) (body:world text:world^4.0)'
+        hit, = result['docs']
+        assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
         resource = client.Resource('localhost', self.ports[-1])
         assert resource.get('/docs') == []
-        try:
-            assert resource.post('/refresh', filters=True) == 2
-        except httplib.HTTPException as (status, reason, body): # unsupported in lucene 2.4
-            assert body['traceback'].splitlines()[-1] == "AttributeError: 'IndexReader' object has no attribute 'sequentialSubReaders'"
-        else:
-            assert resource.get('/docs') == [0, 1]
+        assert resource.post('/refresh', filters=True) == 2
+        assert resource.get('/docs') == [0, 1]
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/fields')
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
@@ -209,7 +203,7 @@ class TestCase(BaseTest):
         assert result['count'] == len(result['docs']) == resource.get('/terms/text/writs') == 2
         result = resource.get('/search', q='text:"We the People"', **{'q.phraseSlop': 3})
         assert sorted(result) == ['count', 'docs', 'query'] and result['count'] == 1
-        assert result['query'] in ('text:"we ? people"~3', 'text:"we people"~3') # second query is 2.4 analysis
+        assert result['query'] == 'text:"we ? people"~3'
         doc, = result['docs']
         assert sorted(doc) == ['__id__', '__score__', 'article']
         assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__'] < 1
@@ -262,4 +256,5 @@ class TestCase(BaseTest):
         assert [doc['amendment'] for doc in result['docs'][:4]] == ['2', '9', '10', '1']
 
 if __name__ == '__main__':
+    lucene.initVM(lucene.CLASSPATH)
     unittest.main()

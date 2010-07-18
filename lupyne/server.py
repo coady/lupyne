@@ -10,7 +10,6 @@ CherryPy and Lucene VM integration issues:
 import re
 import httplib
 import threading
-import warnings
 import itertools, collections
 import os, optparse
 from contextlib import contextmanager
@@ -113,11 +112,9 @@ class WebSearcher(object):
             
             :return: {*string*: *int*}
         """
-        if not isinstance(self.indexer, lucene.MultiSearcher):
-            return {str(self.indexer.directory): len(self.indexer)}
-        if hasattr(lucene.MultiReader, 'sequentialSubReaders'):
-            return dict((str(reader.directory()), reader.numDocs()) for reader in self.indexer.sequentialSubReaders)
-        return {str(self.indexer): len(self.indexer)}
+        if isinstance(self.indexer, lucene.MultiSearcher):
+            return dict((unicode(reader.directory()), reader.numDocs()) for reader in self.indexer.sequentialSubReaders)
+        return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
     def docs(self, id=None, fields=None, multifields=''):
         """Return ids or documents.
@@ -417,10 +414,6 @@ def start(root, path='', config=None, pidfile='', daemonize=False, autoreload=0,
     if autorefresh:
         Autorefresher(cherrypy.engine, root, autorefresh).subscribe()
     cherrypy.quickstart(root, path, config)
-
-def main(root, path='', config=None):
-    warnings.warn("'main' function has been renamed 'start'.", DeprecationWarning)
-    start(root, path, config)
 
 parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
 parser.add_option('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')

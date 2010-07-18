@@ -8,6 +8,7 @@ See http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/.
 The quadkeys are then indexed using a prefix tree, creating a cartesian tier of tiles.
 """
 
+import warnings
 import itertools, operator
 import lucene
 from .globalmaptiles import GlobalMercator
@@ -103,6 +104,9 @@ class PointField(SpatialField, PrefixField):
     """Geospatial points, which create a tiered index of tiles.
     Points must still be stored if exact distances are required upon retrieval.
     """
+    def __init__(self, *args, **kwargs):
+        warnings.warn('engine.{Point,Polygon}Field will be replaced with engine.numeric.{Point,Polygon}Field.', DeprecationWarning)
+        return SpatialField.__init__(self, *args, **kwargs)
     def items(self, *points):
         "Generate tiles from points (lng, lat)."
         return super(SpatialField, self).items(*self.tiles(points))

@@ -2,6 +2,7 @@
 Wrappers for lucene Fields and Documents.
 """
 
+import warnings
 import itertools
 import datetime
 import collections
@@ -118,6 +119,9 @@ class DateTimeField(PrefixField):
     """Field which indexes each datetime component in sortable ISO format: Y-m-d H:M:S.
     Works with datetimes, dates, and any object whose string form is a prefix of ISO.
     """
+    def __init__(self, *args, **kwargs):
+        warnings.warn('engine.DateTimeField will be replaced with engine.numeric.DateTimeField.', DeprecationWarning)
+        PrefixField.__init__(self, *args, **kwargs)
     def split(self, text):
         "Return immutable sequence of datetime components."
         words = (words.split(char) for words, char in zip(text.split(), '-:'))
@@ -219,8 +223,6 @@ class Document(object):
         self.doc.removeFields(name)
     def getlist(self, name):
         "Return list of all values for given field."
-        if lucene.VERSION <= '2.4.1': # memory leak in string array
-            return [field.stringValue() for field in self.doc.getFields(name)]
         return list(self.doc.getValues(name))
     def dict(self, *names, **defaults):
         """Return dict representation of document.

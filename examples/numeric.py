@@ -14,7 +14,7 @@ There are trade-offs to each approach:
 
 Spatial and datetime fields are two common examples that need prefix tree support.
 Currently SpatialFields and DateTimeFields are based on PrefixFields, but have an alternate NumericField implementation.
-Because both are easily encodable as numbers, the plan is to make the numeric implementation the default when support for 2.4 is dropped.
+Because both are easily encodable as numbers, the plan is to make the numeric implementation the default.
 
 So the long term support for PrefixField is unclear, although sometimes it is convenient to index into different fields.
 For example, breaking datetimes into their components makes searching by year optimal, and it's easier to introspect the index.

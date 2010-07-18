@@ -63,8 +63,7 @@ class Query(object):
     @classmethod
     def range(cls, name, start, stop, lower=True, upper=False):
         "Return lucene RangeQuery, by default with a half-open interval."
-        base = lucene.TermRangeQuery if hasattr(lucene, 'TermRangeQuery') else lucene.ConstantScoreRangeQuery
-        return cls(base, name, start, stop, lower, upper)
+        return cls(lucene.TermRangeQuery, name, start, stop, lower, upper)
     @classmethod
     def phrase(cls, name, *values):
         "Return lucene PhraseQuery.  None may be used as a placeholder."
@@ -200,7 +199,6 @@ class Filter(lucene.PythonFilter):
 
 class Highlighter(lucene.Highlighter):
     """Inherited lucene Filter with stored analysis options.
-    Using span scoring in lucene 2.4 is not thread-safe.
     
     :param query: lucene Query
     :param analyzer: analyzer for texts
@@ -213,10 +211,9 @@ class Highlighter(lucene.Highlighter):
     def __init__(self, query, analyzer, span=True, formatter=None, encoder=None, field=None, reader=None):
         if isinstance(formatter, basestring):
             formatter = lucene.SimpleHTMLFormatter('<{0}>'.format(formatter), '</{0}>'.format(formatter))
-        scorer = lucene.QueryScorer if (span or not hasattr(lucene, 'QueryTermScorer')) else lucene.QueryTermScorer
-        scorer = scorer(*filter(None, [query, reader, field]))
+        scorer = (lucene.QueryScorer if span else lucene.QueryTermScorer)(*filter(None, [query, reader, field]))
         lucene.Highlighter.__init__(self, *filter(None, [formatter, encoder, scorer]))
-        self.query, self.analyzer, self.span, self.field = query, analyzer, span, field
+        self.analyzer = analyzer
     def fragments(self, text, count=1, field=None):
         """Return highlighted text fragments.
         
@@ -224,12 +221,6 @@ class Highlighter(lucene.Highlighter):
         :param count: maximum number of fragments
         :param field: optional field to use for text analysis
         """
-        if lucene.VERSION <= '2.4.1': # memory leak in string array
-            tokens = self.analyzer.tokenStream(field, lucene.StringReader(text))
-            if self.span:
-                tokens = lucene.CachingTokenFilter(tokens)
-                self.fragmentScorer = lucene.HighlighterSpanScorer(self.query, self.field, tokens)
-            return map(unicode, self.getBestTextFragments(tokens, text, True, count))
         return list(self.getBestFragments(self.analyzer, field, text, count))
 
 class SpellChecker(dict):

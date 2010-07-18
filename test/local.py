@@ -10,8 +10,6 @@ import lucene
 from lupyne import engine
 import fixture
 
-numeric = hasattr(lucene, 'NumericField')
-
 if issubclass(lucene.TokenFilter, collections.Iterable):
     def typeAsPayload(tokens):
         "Generator variant of lucene TypeAsPayloadTokenFilter."
@@ -37,7 +35,7 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Indexer and document interfaces."
         self.assertRaises(TypeError, engine.IndexSearcher)
-        analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
+        analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
         stemmer = engine.Analyzer(analyzer, lucene.PorterStemFilter, typeAsPayload)
         token = stemmer.tokens('hello').next()
         assert token.positionIncrement == 1
@@ -47,8 +45,7 @@ class TestCase(BaseTest):
             assert token.type == token.payload == '<ALPHANUM>'
             assert token.offset == (0, 5)
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
-        if lucene.VERSION >= '2.9':
-            assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
+        assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
         indexer = engine.Indexer(analyzer=stemmer)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
@@ -105,17 +102,16 @@ class TestCase(BaseTest):
         assert indexer.search('text:*hello', allowLeadingWildcard=True)
         query = engine.Query.span('text', 'world')
         self.assertRaises(AssertionError, query.near, option=None)
-        if lucene.VERSION >= '2.9':
-            assert str(query.mask('name')) == 'mask(text:world) as name'
-            query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
-            assert str(query) == 'spanNear([text:hello, mask(tag:python) as text], -1, false)' and indexer.count(query) == 1
-            query = engine.Query.near('text', 'hello', 'world')
-            (doc, items), = indexer.spans(query, payloads=True)
-            (start, stop, payloads), = items
-            assert doc == 0 and start == 0 and stop == 2 and payloads == ['<ALPHANUM>', '<ALPHANUM>']
-            query = engine.Query.near('text', 'hello', 'world', collectPayloads=False)
-            (doc, items), = indexer.spans(query, payloads=True)
-            assert doc == 0 and items == []
+        assert str(query.mask('name')) == 'mask(text:world) as name'
+        query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
+        assert str(query) == 'spanNear([text:hello, mask(tag:python) as text], -1, false)' and indexer.count(query) == 1
+        query = engine.Query.near('text', 'hello', 'world')
+        (doc, items), = indexer.spans(query, payloads=True)
+        (start, stop, payloads), = items
+        assert doc == 0 and start == 0 and stop == 2 and payloads == ['<ALPHANUM>', '<ALPHANUM>']
+        query = engine.Query.near('text', 'hello', 'world', collectPayloads=False)
+        (doc, items), = indexer.spans(query, payloads=True)
+        assert doc == 0 and items == []
         indexer.delete('name:sample')
         indexer.delete('tag', 'python')
         assert 0 in indexer
@@ -192,15 +188,13 @@ class TestCase(BaseTest):
         sort = lucene.SortField('amendment', lucene.SortField.INT)
         hits = indexer.search('text:people', count=5, sort=sort)
         assert [hit.get('amendment') for hit in hits] == [None, None, '1', '2', '4']
-        if lucene.VERSION >= '2.9':
-            assert all(map(math.isnan, hits.scores))
+        assert all(map(math.isnan, hits.scores))
         hits = indexer.search('text:right', count=10**7, sort=sort, scores=True)
         assert not any(map(math.isnan, hits.scores)) and sorted(hits.scores, reverse=True) != hits.scores
         assert math.isnan(hits.maxscore)
         hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
         assert hits.maxscore > max(hits.scores)
-        parser = (lambda value: int(value or -1)) if hasattr(lucene, 'PythonIntParser') else None
-        comparator = indexer.comparator('amendment', type=int, parser=parser)
+        comparator = indexer.comparator('amendment', type=int, parser=lambda value: int(value or -1))
         hits = indexer.search('text:people', sort=comparator.__getitem__)
         assert sorted(hits.ids) == hits.ids and hits.ids != ids
         comparator = zip(*map(indexer.comparator, ['article', 'amendment']))
@@ -262,12 +256,10 @@ class TestCase(BaseTest):
         near = engine.Query.near('text', 'persons', 'papers', slop=2)
         (id, positions), = indexer.spans(near, positions=True)
         assert indexer[id]['amendment'] == '4' and positions in ([(3, 6)], [(10, 13)])
-        with warnings.catch_warnings(record=True) as leaks:
-            assert 'persons' in indexer.termvector(id, 'text')
-            assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
-            assert dict(indexer.positionvector(id, 'text'))['persons'] in ([3, 26], [10, 48])
-            assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
-        assert len(leaks) == 2 * (lucene.VERSION <= '2.4.1')
+        assert 'persons' in indexer.termvector(id, 'text')
+        assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
+        assert dict(indexer.positionvector(id, 'text'))['persons'] in ([3, 26], [10, 48])
+        assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
         query = indexer.morelikethis(0)
         assert str(query) == 'text:united text:states'
         hits = indexer.search(query & engine.Query.prefix('article', ''))
@@ -352,12 +344,14 @@ class TestCase(BaseTest):
     
     def testSpatial(self):
         "Spatial tile test."
-        for PolygonField in [engine.PolygonField] + [engine.numeric.PolygonField] * numeric:
+        for PolygonField in (engine.PolygonField, engine.numeric.PolygonField):
             PointField, = PolygonField.__bases__
             indexer = engine.Indexer(self.tempdir, 'w')
             for name, params in fixture.zipcodes.fields.items():
                 indexer.set(name, **params)
-            field = indexer.fields['tile'] = PointField('tile', precision=15, step=2, store=True)
+            with warnings.catch_warnings(record=True) as deprecations:
+                field = indexer.fields['tile'] = PointField('tile', precision=15, step=2, store=True)
+            assert deprecations or isinstance(field, engine.numeric.PointField)
             points = []
             for doc in fixture.zipcodes.docs():
                 if doc['state'] == 'CA':
@@ -395,7 +389,9 @@ class TestCase(BaseTest):
         "Custom field tests."
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.FormatField, format='{0:02d}', store=True)
-        indexer.set('date', engine.DateTimeField, store=True)
+        with warnings.catch_warnings(record=True) as deprecations:
+            indexer.set('date', engine.DateTimeField, store=True)
+        assert deprecations
         indexer.set('size', engine.FormatField, format='{0:04d}', store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
@@ -412,8 +408,7 @@ class TestCase(BaseTest):
         assert str(query) == 'date:Y:{ TO 1921} date:Ym:[1921 TO 1921-12]'
         assert indexer.count(query) == 19
         query = field.range(datetime.date(1919, 1, 1), datetime.date(1921, 12, 31))
-        cls = lucene.TermRangeQuery if hasattr(lucene, 'TermRangeQuery') else lucene.ConstantScoreRangeQuery
-        fields = [cls.cast_(clause.query).field for clause in query]
+        fields = [lucene.TermRangeQuery.cast_(clause.query).field for clause in query]
         assert fields == ['date:Ymd', 'date:Ym', 'date:Y', 'date:Ym', 'date:Ymd']
         hits = indexer.search(query)
         assert [hit['amendment'] for hit in hits] == ['18', '19']
@@ -437,51 +432,50 @@ class TestCase(BaseTest):
         query = engine.Query.range('size', None, '1000')
         assert indexer.count(query) == len(sizes) - len(ids)
     
-    if numeric:
-        def testNumericFields(self):
-            "Numeric variant fields."
-            indexer = engine.Indexer(self.tempdir)
-            indexer.set('amendment', engine.numeric.NumericField, store=True)
-            indexer.set('date', engine.numeric.DateTimeField, store=True)
-            indexer.set('size', engine.numeric.NumericField, store=True)
-            for doc in fixture.constitution.docs():
-                if 'amendment' in doc:
-                    indexer.add(amendment=int(doc['amendment']), date=[map(int, doc['date'].split('-'))], size=len(doc['text']))
-            indexer.commit()
-            query = indexer.fields['amendment'].range(None, 10)
-            assert indexer.count(query) == 9
-            field = indexer.fields['date']
-            query = field.prefix((1791, 12))
-            assert indexer.count(query) == 10
-            query = field.prefix(datetime.date(1791, 12, 15))
-            assert indexer.count(query) == 10
-            query = field.range(None, (1921, 12), lower=False, upper=True)
-            assert indexer.count(query) == 19
-            query = field.range(datetime.date(1919, 1, 1), datetime.date(1921, 12, 31))
-            hits = indexer.search(query)
-            assert [hit['amendment'] for hit in hits] == ['18', '19']
-            assert [datetime.datetime.utcfromtimestamp(float(hit['date'])).year for hit in hits] == [1919, 1920]
-            query = field.within(seconds=100)
-            assert indexer.count(query) == 0
-            query = field.duration([2009], days=-100*365)
-            assert indexer.count(query) == 12
-            field = indexer.fields['size']
-            assert len(list(indexer.terms('size'))) > len(indexer)
-            sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
-            ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
-            query = field.range(1000, None)
-            hits = indexer.search(query, sort=sizes.get)
-            assert hits.ids == ids
-            hits = indexer.search(query, count=3, sort=lucene.SortField('size', lucene.SortField.LONG))
-            assert hits.ids == ids[:len(hits)]
-            query = field.range(None, 1000)
-            assert indexer.count(query) == len(sizes) - len(ids)
-            self.assertRaises(OverflowError, list, field.items(-2**64))
-            nf, = field.items(0.5)
-            assert nf.numericValue.doubleValue() == 0.5
-            assert str(field.range(-2**64, 0)) == 'size:[* TO 0}'
-            assert str(field.range(0, 2**64)) == 'size:[0 TO *}'
-            assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
+    def testNumericFields(self):
+        "Numeric variant fields."
+        indexer = engine.Indexer(self.tempdir)
+        indexer.set('amendment', engine.numeric.NumericField, store=True)
+        indexer.set('date', engine.numeric.DateTimeField, store=True)
+        indexer.set('size', engine.numeric.NumericField, store=True)
+        for doc in fixture.constitution.docs():
+            if 'amendment' in doc:
+                indexer.add(amendment=int(doc['amendment']), date=[map(int, doc['date'].split('-'))], size=len(doc['text']))
+        indexer.commit()
+        query = indexer.fields['amendment'].range(None, 10)
+        assert indexer.count(query) == 9
+        field = indexer.fields['date']
+        query = field.prefix((1791, 12))
+        assert indexer.count(query) == 10
+        query = field.prefix(datetime.date(1791, 12, 15))
+        assert indexer.count(query) == 10
+        query = field.range(None, (1921, 12), lower=False, upper=True)
+        assert indexer.count(query) == 19
+        query = field.range(datetime.date(1919, 1, 1), datetime.date(1921, 12, 31))
+        hits = indexer.search(query)
+        assert [hit['amendment'] for hit in hits] == ['18', '19']
+        assert [datetime.datetime.utcfromtimestamp(float(hit['date'])).year for hit in hits] == [1919, 1920]
+        query = field.within(seconds=100)
+        assert indexer.count(query) == 0
+        query = field.duration([2009], days=-100*365)
+        assert indexer.count(query) == 12
+        field = indexer.fields['size']
+        assert len(list(indexer.terms('size'))) > len(indexer)
+        sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
+        ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
+        query = field.range(1000, None)
+        hits = indexer.search(query, sort=sizes.get)
+        assert hits.ids == ids
+        hits = indexer.search(query, count=3, sort=lucene.SortField('size', lucene.SortField.LONG))
+        assert hits.ids == ids[:len(hits)]
+        query = field.range(None, 1000)
+        assert indexer.count(query) == len(sizes) - len(ids)
+        self.assertRaises(OverflowError, list, field.items(-2**64))
+        nf, = field.items(0.5)
+        assert nf.numericValue.doubleValue() == 0.5
+        assert str(field.range(-2**64, 0)) == 'size:[* TO 0}'
+        assert str(field.range(0, 2**64)) == 'size:[0 TO *}'
+        assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
     
     def testHighlighting(self):
         "Highlighting text fragments."

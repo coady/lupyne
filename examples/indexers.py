@@ -1,6 +1,6 @@
 """
 Basic indexing and searching example adapted from http://lucene.apache.org/java/2_9_1/api/core/index.html
-Compatible with lucene versions 2.4 through 3.0.
+Compatible with lucene versions 2.9 through 3.0.
 """
 
 import lucene
@@ -9,7 +9,7 @@ from lupyne import engine
 
 ### lucene ###
 
-analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT) if hasattr(lucene, 'Version') else lucene.StandardAnalyzer()
+analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
 
 # Store the index in memory:
 directory = lucene.RAMDirectory()
@@ -25,7 +25,7 @@ iwriter.close()
 # Now search the index:
 isearcher = lucene.IndexSearcher(directory)
 # Parse a simple query that searches for "text":
-parser = lucene.QueryParser(lucene.Version.LUCENE_CURRENT, "fieldname", analyzer) if hasattr(lucene, 'Version') else lucene.QueryParser("fieldname", analyzer)
+parser = lucene.QueryParser(lucene.Version.LUCENE_CURRENT, "fieldname", analyzer)
 query = parser.parse("text")
 hits = isearcher.search(query, None, 1000).scoreDocs
 assert len(hits) == 1
