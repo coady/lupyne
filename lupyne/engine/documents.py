@@ -256,17 +256,17 @@ class Hits(object):
     :param count: total number of hits
     :param fields: optional field selectors
     """
-    def __init__(self, searcher, ids, scores, count=0, fields=None):
+    def __init__(self, searcher, ids, scores, count=None, maxscore=None, fields=None):
         self.searcher = searcher
         self.ids, self.scores = ids, scores
-        self.count = count or len(self)
+        self.count, self.maxscore = count, maxscore
         self.fields = lucene.MapFieldSelector(fields) if isinstance(fields, collections.Iterable) else fields
     def __len__(self):
         return len(self.ids)
     def __getitem__(self, index):
         id, score = self.ids[index], self.scores[index]
         if isinstance(index, slice):
-            return type(self)(self.searcher, id, score, self.count, self.fields)
+            return type(self)(self.searcher, id, score, self.count, self.maxscore, self.fields)
         return Hit(self.searcher.doc(id, self.fields), id, score)
     def items(self):
         "Generate zipped ids and scores."

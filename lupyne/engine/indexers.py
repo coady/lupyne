@@ -366,9 +366,9 @@ class Searcher(object):
         :param options: additional :meth:`search` options
         """
         if len(query) <= 1:
-            return self.search(*query, count=1, **options).count
+            return self.search(*query, count=1, sort=lucene.Sort.INDEXORDER, **options).count
         return self.docFreq(lucene.Term(*query))
-    def search(self, query=None, filter=None, count=None, sort=None, reverse=False, **parser):
+    def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, **parser):
         """Run query and return `Hits`_.
         
         :param query: query string or lucene Query
@@ -376,6 +376,8 @@ class Searcher(object):
         :param count: maximum number of hits to retrieve
         :param sort: if count is given, lucene Sort parameters, else a callable key
         :param reverse: reverse flag used with sort
+        :param scores: compute scores for candidate results when using lucene Sort
+        :param maxscore: compute maximum score of all results when using lucene Sort
         :param parser: :meth:`Analyzer.parse` options
         """
         query = lucene.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
@@ -385,18 +387,23 @@ class Searcher(object):
         if count is None:
             collector = HitCollector()
             super(Searcher, self).search(query, filter, collector)
-            try:
-                return Hits(self, *collector.sorted(key=sort, reverse=reverse))
-            finally:
-                collector.finalize()
-        if isinstance(sort, basestring):
-            sort = lucene.SortField(sort, lucene.SortField.STRING, reverse)
-        if not isinstance(sort, (lucene.Sort, type(None))):
-            sort = lucene.Sort(sort)
-        topdocs = super(Searcher, self).search(query, filter, count, *([sort] * bool(sort)))
+            ids, scores = collector.sorted(key=sort, reverse=reverse)
+            collector.finalize()
+            return Hits(self, ids, scores, len(ids), max(scores or [float('nan')]))
+        if sort is None:
+            topdocs = super(Searcher, self).search(query, filter, count)
+        else:
+            if isinstance(sort, basestring):
+                sort = lucene.SortField(sort, lucene.SortField.STRING, reverse)
+            if not isinstance(sort, lucene.Sort):
+                sort = lucene.Sort(sort)
+            weight = query.weight(self)
+            collector = lucene.TopFieldCollector.create(sort, min(count, self.maxDoc()), False, scores, maxscore, not weight.scoresDocsOutOfOrder())
+            super(Searcher, self).search(weight, filter, collector)
+            topdocs = collector.topDocs()
         scoredocs = list(topdocs.scoreDocs)
         ids, scores = (map(operator.attrgetter(name), scoredocs) for name in ('doc', 'score'))
-        return Hits(self, ids, scores, topdocs.totalHits)
+        return Hits(self, ids, scores, topdocs.totalHits, topdocs.maxScore)
     def facets(self, ids, *keys):
         """Return mapping of document counts for the intersection with each facet.
         

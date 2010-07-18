@@ -182,15 +182,23 @@ class TestCase(BaseTest):
         assert hits[0]['article'] == 'Preamble'
         assert len(hits) == hits.count == 8
         assert set(map(type, hits.ids)) == set([int]) and set(map(type, hits.scores)) == set([float])
+        assert hits.maxscore == max(hits.scores)
         ids = hits.ids
         hits = indexer.search('people', count=5, field='text')
         assert hits.ids == ids[:len(hits)]
         assert len(hits) == 5 and hits.count == 8
         assert not any(map(math.isnan, hits.scores))
-        hits = indexer.search('text:people', count=5, sort=lucene.SortField('amendment', lucene.SortField.INT))
-        assert [hit.get('amendment') for hit in hits] == [None, None, '1', u'2', u'4']
+        assert hits.maxscore == max(hits.scores)
+        sort = lucene.SortField('amendment', lucene.SortField.INT)
+        hits = indexer.search('text:people', count=5, sort=sort)
+        assert [hit.get('amendment') for hit in hits] == [None, None, '1', '2', '4']
         if lucene.VERSION >= '2.9':
             assert all(map(math.isnan, hits.scores))
+        hits = indexer.search('text:right', count=10**7, sort=sort, scores=True)
+        assert not any(map(math.isnan, hits.scores)) and sorted(hits.scores, reverse=True) != hits.scores
+        assert math.isnan(hits.maxscore)
+        hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
+        assert hits.maxscore > max(hits.scores)
         parser = (lambda value: int(value or -1)) if hasattr(lucene, 'PythonIntParser') else None
         comparator = indexer.comparator('amendment', type=int, parser=parser)
         hits = indexer.search('text:people', sort=comparator.__getitem__)
