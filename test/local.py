@@ -341,6 +341,11 @@ class TestCase(BaseTest):
         la, orange = sorted(filter(facets.get, facets))
         assert la == 'CA:Los Angeles' and facets[la] > 100
         assert orange == 'CA:Orange' and facets[orange] > 10
+        for count in (None, len(indexer)):
+            hits = indexer.search(query, count=count, timeout=0.01)
+            assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)
+            hits = indexer.search(query, count=count, timeout=-1)
+            assert len(hits) == 0 and hits.count is hits.maxscore is None
     
     def testSpatial(self):
         "Spatial tile test."

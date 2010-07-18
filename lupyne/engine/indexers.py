@@ -356,7 +356,7 @@ class Searcher(object):
         if len(query) <= 1:
             return self.search(*query, count=1, sort=lucene.Sort.INDEXORDER, **options).count
         return self.docFreq(lucene.Term(*query))
-    def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, **parser):
+    def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
         
         :param query: query string or lucene Query
@@ -366,32 +366,44 @@ class Searcher(object):
         :param reverse: reverse flag used with sort
         :param scores: compute scores for candidate results when using lucene Sort
         :param maxscore: compute maximum score of all results when using lucene Sort
+        :param timeout: stop search after elapsed number of seconds
         :param parser: :meth:`Analyzer.parse` options
         """
         query = lucene.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
         if not isinstance(filter, (lucene.Filter, type(None))):
             filter = Filter(filter)
-        # use custom HitCollector if all results are necessary, otherwise let lucene's TopDocs handle it
+        weight = query.weight(self)
+        # use custom HitCollector if all results are necessary, otherwise use lucene's TopDocsCollectors
         if count is None:
             collector = HitCollector()
-            super(Searcher, self).search(query, filter, collector)
+        else:
+            count, inorder = min(count, self.maxDoc()), not weight.scoresDocsOutOfOrder()
+            if sort is None:
+                collector = lucene.TopScoreDocCollector.create(count, inorder)
+            else:
+                if isinstance(sort, basestring):
+                    sort = lucene.SortField(sort, lucene.SortField.STRING, reverse)
+                if not isinstance(sort, lucene.Sort):
+                    sort = lucene.Sort(sort)
+                collector = lucene.TopFieldCollector.create(sort, count, False, scores, maxscore, inorder)
+        TimeLimitingCollector = lucene.TimeLimitingCollector if isinstance(collector, lucene.Collector) else lucene.TimeLimitedCollector
+        results = collector if timeout is None else TimeLimitingCollector(collector, long(timeout * 1000))
+        try:
+            super(Searcher, self).search(weight, filter, results)
+        except lucene.JavaError as timeout:
+            if not TimeLimitingCollector.TimeExceededException.instance_(timeout.getJavaException()):
+                raise
+        if isinstance(collector, HitCollector):
             ids, scores = collector.sorted(key=sort, reverse=reverse)
             collector.finalize()
-            return Hits(self, ids, scores, len(ids), max(scores or [float('nan')]))
-        if sort is None:
-            topdocs = super(Searcher, self).search(query, filter, count)
+            stats = len(ids), max(scores or [float('nan')])
         else:
-            if isinstance(sort, basestring):
-                sort = lucene.SortField(sort, lucene.SortField.STRING, reverse)
-            if not isinstance(sort, lucene.Sort):
-                sort = lucene.Sort(sort)
-            weight = query.weight(self)
-            collector = lucene.TopFieldCollector.create(sort, min(count, self.maxDoc()), False, scores, maxscore, not weight.scoresDocsOutOfOrder())
-            super(Searcher, self).search(weight, filter, collector)
             topdocs = collector.topDocs()
-        scoredocs = list(topdocs.scoreDocs)
-        ids, scores = (map(operator.attrgetter(name), scoredocs) for name in ('doc', 'score'))
-        return Hits(self, ids, scores, topdocs.totalHits, topdocs.maxScore)
+            scoredocs = list(topdocs.scoreDocs)
+            ids, scores = (map(operator.attrgetter(name), scoredocs) for name in ('doc', 'score'))
+            stats = topdocs.totalHits, topdocs.maxScore
+        stats *= not isinstance(timeout, lucene.JavaError)
+        return Hits(self, ids, scores, *stats)
     def facets(self, ids, *keys):
         """Return mapping of document counts for the intersection with each facet.
         

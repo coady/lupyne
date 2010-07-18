@@ -431,7 +431,7 @@ For optimal performance only iterate the required slice size of corrections.</p>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.search">
-<tt class="descname">search</tt><big>(</big><em>query=None</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>scores=False</em>, <em>maxscore=False</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>query=None</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>scores=False</em>, <em>maxscore=False</em>, <em>timeout=None</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return <a class="reference internal" href="#hits">Hits</a>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -445,6 +445,7 @@ For optimal performance only iterate the required slice size of corrections.</p>
 <li><em>reverse</em> &#8211; reverse flag used with sort</li>
 <li><em>scores</em> &#8211; compute scores for candidate results when using lucene Sort</li>
 <li><em>maxscore</em> &#8211; compute maximum score of all results when using lucene Sort</li>
+<li><em>timeout</em> &#8211; stop search after elapsed number of seconds</li>
 <li><em>parser</em> &#8211; <a title="engine.indexers.Analyzer.parse" class="reference internal" href="#engine.indexers.Analyzer.parse"><tt class="xref docutils literal"><span class="pre">Analyzer.parse()</span></tt></a> options</li>
 </ul>
 </td>
