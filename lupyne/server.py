@@ -163,8 +163,9 @@ class WebSearcher(object):
             &multifields=\ *chars*,...
                 multi-valued fields returned in an array
             
-            &sort=\ [-]\ *chars*\ [:*chars*],...
+            &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores[=max]
                 field name, optional type, minus sign indicates descending
+                optionally score docs, additionally compute maximum score
             
             &facets=\ *chars*,...
                 include facet counts for given field names;  facets filters are cached
@@ -223,8 +224,9 @@ class WebSearcher(object):
             q = searcher.morelikethis(mlt, *mltfields, **attrs)
         if count == 0:
             start = count = 1
-        hits = searcher.search(q, count=count, sort=sort, reverse=reverse)
-        result = {'query': q and unicode(q), 'count': hits.count, 'docs': []}
+        scores = options.get('sort.scores')
+        hits = searcher.search(q, count=count, sort=sort, reverse=reverse, scores=(scores is not None), maxscore=(scores == 'max'))
+        result = {'query': q and unicode(q), 'count': hits.count, 'maxscore': hits.maxscore, 'docs': []}
         tag = options.get('hl.tag', 'strong')
         field = 'fields' not in options.get('hl.enable', '') or None
         span = 'terms' not in options.get('hl.enable', '')

@@ -3,6 +3,7 @@ import os, sys
 import subprocess
 import operator
 import httplib
+import math
 import socket, errno
 from contextlib import contextmanager
 import lucene
@@ -97,7 +98,9 @@ class TestCase(BaseTest):
         (directory, count), = resource.get('/').items()
         assert count == 1
         assert resource.get('/docs') == []
-        assert resource.get('/search?q=text:hello') == {'query': 'text:hello', 'count': 0, 'docs': []}
+        result = resource.get('/search?q=text:hello')
+        assert math.isnan(result.pop('maxscore'))
+        assert result == {'query': 'text:hello', 'count': 0, 'docs': []}
         assert resource.post('/commit')
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
@@ -113,20 +116,20 @@ class TestCase(BaseTest):
         assert resource.get('/terms/text/world/docs') == [0]
         assert resource.get('/terms/text/world/docs/counts') == [[0, 1]]
         assert resource.get('/terms/text/world/docs/positions') == [[0, [1]]]
-        hits = resource.get('/search', q='text:hello')
-        assert hits == resource.get('/search?q=hello&q.field=text')
-        assert hits['count'] == resource.get('/search')['count']
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search?count=')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', sort='-x,y')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', count=1, sort='x:str')
-        assert resource.get('/search', count=0) == {'count': 1, 'query': None, 'docs': []}
+        assert resource.get('/search', count=0) == {'count': 1, 'maxscore': 1.0, 'query': None, 'docs': []}
         assert resource.get('/search', fields='')['docs'] == [{'__id__': 0, '__score__': 1.0}]
-        assert sorted(hits) == ['count', 'docs', 'query']
-        assert hits['count'] == 1
-        doc, = hits['docs']
+        result = resource.get('/search', q='text:hello')
+        assert result == resource.get('/search?q=hello&q.field=text')
+        assert result['count'] == resource.get('/search')['count'] == 1
+        assert result['query'] == 'text:hello'
+        assert 0 < result['maxscore'] < 1
+        doc, = result['docs']
         assert sorted(doc) == ['__id__', '__score__', 'name']
         assert doc['__id__'] == 0 and doc['__score__'] > 0 and doc['name'] == 'sample' 
         hit, = resource.get('/search', q='hello world', **{'q.field': ['text', 'body']})['docs']
@@ -202,7 +205,7 @@ class TestCase(BaseTest):
         assert result['query'] == 'text:writs text:"held would"'
         assert result['count'] == len(result['docs']) == resource.get('/terms/text/writs') == 2
         result = resource.get('/search', q='text:"We the People"', **{'q.phraseSlop': 3})
-        assert sorted(result) == ['count', 'docs', 'query'] and result['count'] == 1
+        assert 0 < result['maxscore'] < 1 and result['count'] == 1
         assert result['query'] == 'text:"we ? people"~3'
         doc, = result['docs']
         assert sorted(doc) == ['__id__', '__score__', 'article']
@@ -214,10 +217,17 @@ class TestCase(BaseTest):
         result = resource.get('/search', q='text:people', count=5)
         assert docs[:5] == result['docs'] and result['count'] == len(docs)
         result = resource.get('/search', q='text:people', count=5, sort='-amendment:int')
+        assert math.isnan(result['maxscore']) and all(math.isnan(doc['__score__']) for doc in result['docs'])
         assert [doc['amendment'] for doc in result['docs']] == ['17', '10', '9', '4', '2']
         result = resource.get('/search', q='text:people', sort='-amendment:int')
         assert [doc.get('amendment') for doc in result['docs']] == ['17', '10', '9', '4', '2', '1', None, None]
         assert result == resource.get('/search', q='text:people', sort='-date,-amendment:int')
+        maxscore = result['maxscore']
+        assert maxscore == max(doc['__score__'] for doc in result['docs'])
+        result = resource.get('/search', q='text:people', count=5, sort='-amendment:int', **{'sort.scores': ''})
+        assert math.isnan(result['maxscore']) and maxscore in (doc['__score__'] for doc in result['docs'])
+        result = resource.get('/search', q='text:people', count=1, sort='-amendment:int', **{'sort.scores': 'max'})
+        assert maxscore == result['maxscore'] and maxscore not in (doc['__score__'] for doc in result['docs'])
         result = resource.get('/search', q='text:people', count=5, sort='-article,amendment:int')
         assert [doc.get('amendment') for doc in result['docs']] == [None, None, '1', '2', '4']
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
