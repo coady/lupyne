@@ -119,7 +119,7 @@ class TestCase(BaseTest):
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search?count=')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
-            resource.get('/search', sort='x,y')
+            resource.get('/search', sort='-x,y')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', count=1, sort='x:str')
         assert resource.get('/search', count=0) == {'count': 1, 'query': None, 'docs': []}
@@ -217,6 +217,7 @@ class TestCase(BaseTest):
         assert [doc['amendment'] for doc in result['docs']] == ['17', '10', '9', '4', '2']
         result = resource.get('/search', q='text:people', sort='-amendment:int')
         assert [doc.get('amendment') for doc in result['docs']] == ['17', '10', '9', '4', '2', '1', None, None]
+        assert result == resource.get('/search', q='text:people', sort='-date,-amendment:int')
         result = resource.get('/search', q='text:people', count=5, sort='-article,amendment:int')
         assert [doc.get('amendment') for doc in result['docs']] == [None, None, '1', '2', '4']
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):

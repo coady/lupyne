@@ -10,7 +10,8 @@ CherryPy and Lucene VM integration issues:
 import re
 import httplib
 import threading
-import itertools, collections
+import collections
+import itertools, operator
 import os, optparse
 from contextlib import contextmanager
 try:
@@ -203,8 +204,10 @@ class WebSearcher(object):
             sort = [(name, (type.upper() or 'STRING'), (reverse == '-')) for reverse, name, type in sort]
             if count is None:
                 with HTTPError(httplib.BAD_REQUEST, ValueError):
-                    (name, type, reverse), = sort # only one sort field allowed with unlimited count
-                sort = searcher.comparator(name, type).__getitem__
+                    reverse, = set(reverse for name, type, reverse in sort) # only one sort direction allowed with unlimited count
+                with HTTPError(httplib.BAD_REQUEST, AttributeError):
+                    comparators = [searcher.comparator(name, type) for name, type, reverse in sort]
+                sort = comparators[0].__getitem__ if len(comparators) == 1 else lambda id: map(operator.itemgetter(id), comparators)
             else:
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
                     sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
@@ -219,9 +222,8 @@ class WebSearcher(object):
                 attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))
             q = searcher.morelikethis(mlt, *mltfields, **attrs)
         if count == 0:
-            hits = searcher.search(q, count=1, sort=sort, reverse=reverse)[:0]
-        else:
-            hits = searcher.search(q, count=count, sort=sort, reverse=reverse)
+            start = count = 1
+        hits = searcher.search(q, count=count, sort=sort, reverse=reverse)
         result = {'query': q and unicode(q), 'count': hits.count, 'docs': []}
         tag = options.get('hl.tag', 'strong')
         field = 'fields' not in options.get('hl.enable', '') or None

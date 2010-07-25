@@ -43,37 +43,24 @@ searcher = lucene.IndexSearcher(indexer.directory)
 topdocs = searcher.search(lucene.MatchAllDocsQuery(), None, 10, lucene.Sort(lucene.SortField('color', lucene.SortField.STRING)))
 assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] == sorted(colors)
 
-if hasattr(lucene, 'PythonFieldComparatorSource'):
-    class ComparatorSource(lucene.PythonFieldComparatorSource):
-        class newComparator(lucene.PythonFieldComparator):
-            def __init__(self, name, numHits, sortPos, reversed):
-                lucene.PythonFieldComparator.__init__(self)
-                self.name = name
-                self.values = [None] * numHits
-            def setNextReader(self, reader, base):
-                self.comparator = lucene.FieldCache.DEFAULT.getStrings(reader, self.name)
-            def compare(self, slot1, slot2):
-                return cmp(self.values[slot1], self.values[slot2])
-            def setBottom(self, slot):
-                self._bottom = self.values[slot]
-            def compareBottom(self, doc):
-                return cmp(self._bottom, self.comparator[doc])
-            def copy(self, slot, doc):
-                self.values[slot] = self.comparator[doc]
-            def value(self, slot):
-                return lucene.String()
-else:
-    class ComparatorSource(lucene.PythonSortComparatorSource):
-        class newComparator(lucene.PythonScoreDocComparator):
-            def __init__(self, reader, name):
-                lucene.PythonScoreDocComparator.__init__(self)
-                self.comparator = lucene.FieldCache.DEFAULT.getStrings(reader, name)
-            def compare(self, i, j):
-                return cmp(self.comparator[i.doc], self.comparator[j.doc])
-            def sortValue(self, i):
-                return lucene.String()
-            def sortType(self):
-                return lucene.SortField.STRING
+class ComparatorSource(lucene.PythonFieldComparatorSource):
+    class newComparator(lucene.PythonFieldComparator):
+        def __init__(self, name, numHits, sortPos, reversed):
+            lucene.PythonFieldComparator.__init__(self)
+            self.name = name
+            self.values = [None] * numHits
+        def setNextReader(self, reader, base):
+            self.comparator = lucene.FieldCache.DEFAULT.getStrings(reader, self.name)
+        def compare(self, slot1, slot2):
+            return cmp(self.values[slot1], self.values[slot2])
+        def setBottom(self, slot):
+            self._bottom = self.values[slot]
+        def compareBottom(self, doc):
+            return cmp(self._bottom, self.comparator[doc])
+        def copy(self, slot, doc):
+            self.values[slot] = self.comparator[doc]
+        def value(self, slot):
+            return lucene.String()
 
 sorter = lucene.Sort(lucene.SortField('color', ComparatorSource()))
 # still must supply excessive doc count to use the sorter
