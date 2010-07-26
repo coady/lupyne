@@ -265,6 +265,10 @@ class TestCase(BaseTest):
         result = resource.get('/search', q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})
         assert result['count'] == 11 and result['query'] == 'text:necessary text:people'
         assert [doc['amendment'] for doc in result['docs'][:4]] == ['2', '9', '10', '1']
+        result = resource.get('/search', q='text:people', count=1, timeout=-1)
+        assert result == {'query': 'text:people', 'count': None, 'maxscore': None, 'docs': []}
+        result = resource.get('/search', q='text:people', timeout=0.01)
+        assert result['count'] in (None, 8) and result['maxscore'] in (None, maxscore)
 
 if __name__ == '__main__':
     lucene.initVM(lucene.CLASSPATH)

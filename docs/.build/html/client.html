@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -12,12 +14,13 @@
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
         VERSION:     '0.6+',
-        COLLAPSE_MODINDEX: false,
+        COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Lupyne v0.6+ documentation" href="index.html" />
     <link rel="next" title="examples" href="examples.html" />
@@ -31,8 +34,8 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
-             accesskey="M">modules</a> |</li>
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
         <li class="right" >
           <a href="examples.html" title="examples"
              accesskey="N">next</a> |</li>
@@ -49,12 +52,12 @@
           <div class="body">
             
   <div class="section" id="module-client">
-<h1>client<a class="headerlink" href="#module-client" title="Permalink to this headline">¶</a></h1>
+<span id="client"></span><h1>client<a class="headerlink" href="#module-client" title="Permalink to this headline">¶</a></h1>
 <p>Restful json clients.</p>
-<p>Use <a class="reference internal" href="#resource">Resource</a> for a single host.
-Use <a class="reference internal" href="#resources">Resources</a> for multiple hosts with simple partitioning or redundancy.
-Use <a class="reference internal" href="#shards">Shards</a> for horizontally partitioning hosts by different keys.</p>
-<p><a class="reference internal" href="#resources">Resources</a> optionally reuse connections, handling request timeouts.
+<p>Use <a class="reference external" href="#resource">Resource</a> for a single host.
+Use <a class="reference external" href="#resources">Resources</a> for multiple hosts with simple partitioning or redundancy.
+Use <a class="reference external" href="#shards">Shards</a> for horizontally partitioning hosts by different keys.</p>
+<p><a class="reference external" href="#resources">Resources</a> optionally reuse connections, handling request timeouts.
 Broadcasting to multiple resources is parallelized with asynchronous requests and responses.</p>
 <p>The load balancing strategy is randomized, biased by the number of cached connections available.
 This inherently provides limited failover support, but applications must still handle exceptions as desired.</p>
@@ -63,32 +66,37 @@ This inherently provides limited failover support, but applications must still h
 <dl class="class">
 <dt id="client.Response">
 <em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Response</tt><big>(</big><em>sock</em>, <em>debuglevel=0</em>, <em>strict=0</em>, <em>method=None</em><big>)</big><a class="headerlink" href="#client.Response" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">httplib.HTTPResponse</span></tt></p>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">httplib.HTTPResponse</span></tt></p>
 <p>A completed response which handles json and caches its body.</p>
 <dl class="attribute">
 <dt id="client.Response.status">
 <tt class="descname">status</tt><a class="headerlink" href="#client.Response.status" title="Permalink to this definition">¶</a></dt>
-<dd>HTTP status code</dd></dl>
+<dd><p>HTTP status code</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="client.Response.reason">
 <tt class="descname">reason</tt><a class="headerlink" href="#client.Response.reason" title="Permalink to this definition">¶</a></dt>
-<dd>HTTP status message</dd></dl>
+<dd><p>HTTP status message</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="client.Response.body">
 <tt class="descname">body</tt><a class="headerlink" href="#client.Response.body" title="Permalink to this definition">¶</a></dt>
-<dd>string of entire response body</dd></dl>
+<dd><p>string of entire response body</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Response.__nonzero__">
 <tt class="descname">__nonzero__</tt><big>(</big><big>)</big><a class="headerlink" href="#client.Response.__nonzero__" title="Permalink to this definition">¶</a></dt>
-<dd>Return whether status is successful.</dd></dl>
+<dd><p>Return whether status is successful.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Response.__call__">
 <tt class="descname">__call__</tt><big>(</big><big>)</big><a class="headerlink" href="#client.Response.__call__" title="Permalink to this definition">¶</a></dt>
-<dd>Return evaluated response body or raise exception.</dd></dl>
+<dd><p>Return evaluated response body or raise exception.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -97,18 +105,20 @@ This inherently provides limited failover support, but applications must still h
 <h2>Resource<a class="headerlink" href="#resource" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="client.Resource">
-<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x1001da410&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <tt class="xref docutils literal"><span class="pre">httplib.HTTPConnection</span></tt></p>
+<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x1001da810&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">httplib.HTTPConnection</span></tt></p>
 <p>Synchronous connection which handles json responses.</p>
 <dl class="method">
 <dt id="client.Resource.__call__">
 <tt class="descname">__call__</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resource.__call__" title="Permalink to this definition">¶</a></dt>
-<dd>Send request and return evaluated response body.</dd></dl>
+<dd><p>Send request and return evaluated response body.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Resource.getresponse">
 <tt class="descname">getresponse</tt><big>(</big><big>)</big><a class="headerlink" href="#client.Resource.getresponse" title="Permalink to this definition">¶</a></dt>
-<dd>Get the response from the server.</dd></dl>
+<dd><p>Get the response from the server.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Resource.delete">
@@ -133,12 +143,14 @@ This inherently provides limited failover support, but applications must still h
 <dl class="method">
 <dt id="client.Resource.request">
 <tt class="descname">request</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resource.request" title="Permalink to this definition">¶</a></dt>
-<dd>Send request after handling body and headers.</dd></dl>
+<dd><p>Send request after handling body and headers.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="client.Resource.response_class">
 <tt class="descname">response_class</tt><a class="headerlink" href="#client.Resource.response_class" title="Permalink to this definition">¶</a></dt>
-<dd>alias of <a title="client.Response" class="reference internal" href="#client.Response"><tt class="xref docutils literal"><span class="pre">Response</span></tt></a></dd></dl>
+<dd><p>alias of <a class="reference internal" href="#client.Response" title="client.Response"><tt class="xref py py-class docutils literal"><span class="pre">Response</span></tt></a></p>
+</dd></dl>
 
 </dd></dl>
 
@@ -154,8 +166,8 @@ This inherently provides limited failover support, but applications must still h
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>hosts</em> &#8211; host[:port] strings</li>
-<li><em>limit</em> &#8211; maximum number of cached connections per host</li>
+<li><strong>hosts</strong> &#8211; host[:port] strings</li>
+<li><strong>limit</strong> &#8211; maximum number of cached connections per host</li>
 </ul>
 </td>
 </tr>
@@ -164,37 +176,44 @@ This inherently provides limited failover support, but applications must still h
 <dl class="class">
 <dt id="client.Resources.Manager">
 <em class="property">class </em><tt class="descname">Manager</tt><a class="headerlink" href="#client.Resources.Manager" title="Permalink to this definition">¶</a></dt>
-<dd>Queue of prioritized resources.</dd></dl>
+<dd><p>Queue of prioritized resources.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.broadcast">
 <tt class="descclassname">Resources.</tt><tt class="descname">broadcast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.broadcast" title="Permalink to this definition">¶</a></dt>
-<dd>Send requests and return responses from all hosts, optionally from given subset.</dd></dl>
+<dd><p>Send requests and return responses from all hosts, optionally from given subset.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.choice">
 <tt class="descclassname">Resources.</tt><tt class="descname">choice</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Resources.choice" title="Permalink to this definition">¶</a></dt>
-<dd>Return chosen host according to priority.</dd></dl>
+<dd><p>Return chosen host according to priority.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.getresponse">
 <tt class="descclassname">Resources.</tt><tt class="descname">getresponse</tt><big>(</big><em>host</em>, <em>resource</em><big>)</big><a class="headerlink" href="#client.Resources.getresponse" title="Permalink to this definition">¶</a></dt>
-<dd>Return response and release resource.</dd></dl>
+<dd><p>Return response and release resource.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.priority">
 <tt class="descclassname">Resources.</tt><tt class="descname">priority</tt><big>(</big><em>host</em><big>)</big><a class="headerlink" href="#client.Resources.priority" title="Permalink to this definition">¶</a></dt>
-<dd>Return priority for host.  None may be used to eliminate from consideration.</dd></dl>
+<dd><p>Return priority for host.  None may be used to eliminate from consideration.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.request">
 <tt class="descclassname">Resources.</tt><tt class="descname">request</tt><big>(</big><em>host</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resources.request" title="Permalink to this definition">¶</a></dt>
-<dd>Send request to given host and return exclusive resource.</dd></dl>
+<dd><p>Send request to given host and return exclusive resource.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.unicast">
 <tt class="descclassname">Resources.</tt><tt class="descname">unicast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.unicast" title="Permalink to this definition">¶</a></dt>
-<dd>Send request and return response from any host, optionally from given subset.</dd></dl>
+<dd><p>Send request and return response from any host, optionally from given subset.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -210,9 +229,9 @@ This inherently provides limited failover support, but applications must still h
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><em>items</em> &#8211; host, key pairs</li>
-<li><em>limit</em> &#8211; maximum number of cached connections per host</li>
-<li><em>multimap</em> &#8211; mapping of hosts to multiple keys</li>
+<li><strong>items</strong> &#8211; host, key pairs</li>
+<li><strong>limit</strong> &#8211; maximum number of cached connections per host</li>
+<li><strong>multimap</strong> &#8211; mapping of hosts to multiple keys</li>
 </ul>
 </td>
 </tr>
@@ -221,33 +240,39 @@ This inherently provides limited failover support, but applications must still h
 <dl class="attribute">
 <dt id="client.Shards.resources">
 <tt class="descname">resources</tt><a class="headerlink" href="#client.Shards.resources" title="Permalink to this definition">¶</a></dt>
-<dd><a class="reference internal" href="#resources">Resources</a> mapping.</dd></dl>
+<dd><p><a class="reference external" href="#resources">Resources</a> mapping.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Shards.broadcast">
 <tt class="descname">broadcast</tt><big>(</big><em>key</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Shards.broadcast" title="Permalink to this definition">¶</a></dt>
-<dd>Send requests and return responses from all hosts for corresponding key.</dd></dl>
+<dd><p>Send requests and return responses from all hosts for corresponding key.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Shards.choice">
 <tt class="descname">choice</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Shards.choice" title="Permalink to this definition">¶</a></dt>
-<dd>Return chosen host according to priority.</dd></dl>
+<dd><p>Return chosen host according to priority.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Shards.multicast">
 <tt class="descname">multicast</tt><big>(</big><em>keys</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Shards.multicast" title="Permalink to this definition">¶</a></dt>
-<dd>Send requests and return responses from a minimal subset of hosts which cover all corresponding keys.
-Response overlap is possible depending on partitioning.</dd></dl>
+<dd><p>Send requests and return responses from a minimal subset of hosts which cover all corresponding keys.
+Response overlap is possible depending on partitioning.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Shards.priority">
 <tt class="descname">priority</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Shards.priority" title="Permalink to this definition">¶</a></dt>
-<dd>Return combined priority for hosts.</dd></dl>
+<dd><p>Return combined priority for hosts.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Shards.unicast">
 <tt class="descname">unicast</tt><big>(</big><em>key</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Shards.unicast" title="Permalink to this definition">¶</a></dt>
-<dd>Send request and return response from any host for corresponding key.</dd></dl>
+<dd><p>Send request and return response from any host for corresponding key.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -260,41 +285,41 @@ Response overlap is possible depending on partitioning.</dd></dl>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <h3><a href="index.html">Table Of Contents</a></h3>
-            <ul>
-<li><a class="reference external" href="#">client</a><ul>
-<li><a class="reference external" href="#response">Response</a></li>
-<li><a class="reference external" href="#resource">Resource</a></li>
-<li><a class="reference external" href="#resources">Resources</a></li>
-<li><a class="reference external" href="#shards">Shards</a></li>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">client</a><ul>
+<li><a class="reference internal" href="#response">Response</a></li>
+<li><a class="reference internal" href="#resource">Resource</a></li>
+<li><a class="reference internal" href="#resources">Resources</a></li>
+<li><a class="reference internal" href="#shards">Shards</a></li>
 </ul>
 </li>
 </ul>
 
-            <h4>Previous topic</h4>
-            <p class="topless"><a href="server.html"
-                                  title="previous chapter">server</a></p>
-            <h4>Next topic</h4>
-            <p class="topless"><a href="examples.html"
-                                  title="next chapter">examples</a></p>
-            <h3>This Page</h3>
-            <ul class="this-page-menu">
-              <li><a href="_sources/client.txt"
-                     rel="nofollow">Show Source</a></li>
-            </ul>
-          <div id="searchbox" style="display: none">
-            <h3>Quick search</h3>
-              <form class="search" action="search.html" method="get">
-                <input type="text" name="q" size="18" />
-                <input type="submit" value="Go" />
-                <input type="hidden" name="check_keywords" value="yes" />
-                <input type="hidden" name="area" value="default" />
-              </form>
-              <p class="searchtip" style="font-size: 90%">
-              Enter search terms or a module, class or function name.
-              </p>
-          </div>
-          <script type="text/javascript">$('#searchbox').show(0);</script>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="server.html"
+                        title="previous chapter">server</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="examples.html"
+                        title="next chapter">examples</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/client.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -306,7 +331,7 @@ Response overlap is possible depending on partitioning.</dd></dl>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
+          <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
           <a href="examples.html" title="examples"
@@ -318,8 +343,8 @@ Response overlap is possible depending on partitioning.</dd></dl>
       </ul>
     </div>
     <div class="footer">
-      &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.7.
+        &copy; Copyright 2009, Aric Coady.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.
     </div>
   </body>
 </html>

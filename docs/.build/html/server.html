@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -12,12 +14,13 @@
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
         VERSION:     '0.6+',
-        COLLAPSE_MODINDEX: false,
+        COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Lupyne v0.6+ documentation" href="index.html" />
     <link rel="next" title="client" href="client.html" />
@@ -31,8 +34,8 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
-             accesskey="M">modules</a> |</li>
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
         <li class="right" >
           <a href="client.html" title="client"
              accesskey="N">next</a> |</li>
@@ -49,7 +52,7 @@
           <div class="body">
             
   <div class="section" id="module-server">
-<h1>server<a class="headerlink" href="#module-server" title="Permalink to this headline">¶</a></h1>
+<span id="server"></span><h1>server<a class="headerlink" href="#module-server" title="Permalink to this headline">¶</a></h1>
 <p>Restful json <a class="reference external" href="http://cherrypy.org/">CherryPy</a> server.</p>
 <dl class="docutils">
 <dt>CherryPy and Lucene VM integration issues:</dt>
@@ -166,7 +169,7 @@ engine.autoreload</td></tr>
 
 <dl class="method">
 <dt id="server.WebSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>start=0</em>, <em>fields=None</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>hl=''</em>, <em>mlt=None</em>, <em>spellcheck=0</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>start=0</em>, <em>fields=None</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>hl=''</em>, <em>mlt=None</em>, <em>spellcheck=0</em>, <em>timeout=None</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /search?</dt>
@@ -180,8 +183,9 @@ engine.autoreload</td></tr>
 <dd>only include selected fields</dd>
 <dt>&amp;multifields=<em>chars</em>,...</dt>
 <dd>multi-valued fields returned in an array</dd>
-<dt>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],...</dt>
-<dd>field name, optional type, minus sign indicates descending</dd>
+<dt>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],... &amp;sort.scores[=max]</dt>
+<dd>field name, optional type, minus sign indicates descending
+optionally score docs, additionally compute maximum score</dd>
 <dt>&amp;facets=<em>chars</em>,...</dt>
 <dd>include facet counts for given field names;  facets filters are cached</dd>
 <dt>&amp;hl=<em>chars</em>,... &amp;hl.count=1&amp;hl.tag=strong&amp;hl.enable=[fields|terms]</dt>
@@ -204,6 +208,8 @@ engine.autoreload</td></tr>
 <div class="line">original query is still run;  use q.spellcheck=true to affect query parsing</div>
 </div>
 </dd>
+<dt>&amp;timeout=<em>float</em></dt>
+<dd>timeout search after elapsed number of seconds</dd>
 </dl>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -212,8 +218,9 @@ engine.autoreload</td></tr>
 <tr class="field"><th class="field-name">return:</th><td class="field-body"><div class="first last line-block">
 <div class="line">{</div>
 <div class="line">&#8220;query&#8221;: <em>string</em>,</div>
-<div class="line">&#8220;count&#8221;: <em>int</em>,</div>
-<div class="line">&#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>number</em>, &#8220;__highlights__&#8221;: {<em>string</em>: <em>array</em>,... }, <em>string</em>: <em>string</em>|<em>array</em>,... },... ],</div>
+<div class="line">&#8220;count&#8221;: <em>int</em>|null,</div>
+<div class="line">&#8220;maxscore&#8221;: <em>float</em>|null,</div>
+<div class="line">&#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>float</em>, &#8220;__highlights__&#8221;: {<em>string</em>: <em>array</em>,... }, <em>string</em>: <em>string</em>|<em>array</em>,... },... ],</div>
 <div class="line">&#8220;facets&#8221;: {<em>string</em>: {<em>string</em>: <em>int</em>,... },... },</div>
 <div class="line">&#8220;spellcheck&#8221;: {<em>string</em>: {<em>string</em>: [<em>string</em>,... ],... },... },</div>
 <div class="line">}</div>
@@ -332,7 +339,7 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
 <dl class="class">
 <dt id="server.WebIndexer">
 <em class="property">class </em><tt class="descclassname">server.</tt><tt class="descname">WebIndexer</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#server.WebIndexer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a title="server.WebSearcher" class="reference internal" href="#server.WebSearcher"><tt class="xref docutils literal"><span class="pre">server.WebSearcher</span></tt></a></p>
+<dd><p>Bases: <a class="reference internal" href="#server.WebSearcher" title="server.WebSearcher"><tt class="xref py py-class docutils literal"><span class="pre">server.WebSearcher</span></tt></a></p>
 <p>Dispatch root which extends searcher to include write methods.</p>
 <dl class="method">
 <dt id="server.WebIndexer.commit">
@@ -344,7 +351,7 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
 <dl class="method">
 <dt id="server.WebIndexer.docs">
 <tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=None</em>, <em>multifields=''</em>, <em>docs='</em><span class="optional">[</span><span class="optional">]</span>, <em>'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.docs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add or return documents.  See <a title="server.WebSearcher.docs" class="reference internal" href="#server.WebSearcher.docs"><tt class="xref docutils literal"><span class="pre">WebSearcher.docs()</span></tt></a> for GET method.</p>
+<dd><p>Add or return documents.  See <a class="reference internal" href="#server.WebSearcher.docs" title="server.WebSearcher.docs"><tt class="xref py py-meth docutils literal"><span class="pre">WebSearcher.docs()</span></tt></a> for GET method.</p>
 <dl class="docutils">
 <dt><strong>POST</strong> /docs</dt>
 <dd><p class="first">Add documents to index.</p>
@@ -389,7 +396,7 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
 <dl class="method">
 <dt id="server.WebIndexer.search">
 <tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebIndexer.search" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run or delete a query.  See <a title="server.WebSearcher.search" class="reference internal" href="#server.WebSearcher.search"><tt class="xref docutils literal"><span class="pre">WebSearcher.search()</span></tt></a> for GET method.</p>
+<dd><p>Run or delete a query.  See <a class="reference internal" href="#server.WebSearcher.search" title="server.WebSearcher.search"><tt class="xref py py-meth docutils literal"><span class="pre">WebSearcher.search()</span></tt></a> for GET method.</p>
 <dl class="docutils">
 <dt><strong>DELETE</strong> /search?q=<em>chars</em></dt>
 <dd>Delete documents which match query.</dd>
@@ -404,8 +411,9 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
 <dl class="function">
 <dt id="server.start">
 <tt class="descclassname">server.</tt><tt class="descname">start</tt><big>(</big><em>root</em>, <em>path=''</em>, <em>config=None</em>, <em>pidfile=''</em>, <em>daemonize=False</em>, <em>autoreload=0</em>, <em>autorefresh=0</em><big>)</big><a class="headerlink" href="#server.start" title="Permalink to this definition">¶</a></dt>
-<dd>Attach root, subscribe to plugins, and start server.
-See cherrypy.quickstart and command-line options for documentation.</dd></dl>
+<dd><p>Attach root, subscribe to plugins, and start server.
+See cherrypy.quickstart and command-line options for documentation.</p>
+</dd></dl>
 
 </div>
 </div>
@@ -416,40 +424,40 @@ See cherrypy.quickstart and command-line options for documentation.</dd></dl>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <h3><a href="index.html">Table Of Contents</a></h3>
-            <ul>
-<li><a class="reference external" href="#">server</a><ul>
-<li><a class="reference external" href="#websearcher">WebSearcher</a></li>
-<li><a class="reference external" href="#webindexer">WebIndexer</a></li>
-<li><a class="reference external" href="#start">start</a></li>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">server</a><ul>
+<li><a class="reference internal" href="#websearcher">WebSearcher</a></li>
+<li><a class="reference internal" href="#webindexer">WebIndexer</a></li>
+<li><a class="reference internal" href="#start">start</a></li>
 </ul>
 </li>
 </ul>
 
-            <h4>Previous topic</h4>
-            <p class="topless"><a href="engine.html"
-                                  title="previous chapter">engine</a></p>
-            <h4>Next topic</h4>
-            <p class="topless"><a href="client.html"
-                                  title="next chapter">client</a></p>
-            <h3>This Page</h3>
-            <ul class="this-page-menu">
-              <li><a href="_sources/server.txt"
-                     rel="nofollow">Show Source</a></li>
-            </ul>
-          <div id="searchbox" style="display: none">
-            <h3>Quick search</h3>
-              <form class="search" action="search.html" method="get">
-                <input type="text" name="q" size="18" />
-                <input type="submit" value="Go" />
-                <input type="hidden" name="check_keywords" value="yes" />
-                <input type="hidden" name="area" value="default" />
-              </form>
-              <p class="searchtip" style="font-size: 90%">
-              Enter search terms or a module, class or function name.
-              </p>
-          </div>
-          <script type="text/javascript">$('#searchbox').show(0);</script>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="engine.html"
+                        title="previous chapter">engine</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="client.html"
+                        title="next chapter">client</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/server.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -461,7 +469,7 @@ See cherrypy.quickstart and command-line options for documentation.</dd></dl>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
+          <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
           <a href="client.html" title="client"
@@ -473,8 +481,8 @@ See cherrypy.quickstart and command-line options for documentation.</dd></dl>
       </ul>
     </div>
     <div class="footer">
-      &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.7.
+        &copy; Copyright 2009, Aric Coady.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.
     </div>
   </body>
 </html>

@@ -145,7 +145,7 @@ class WebSearcher(object):
             doc = self.indexer[id] if fields is None else self.indexer.get(id, *itertools.chain(fields, multifields))
         return doc.dict(*multifields, **(fields or {}))
     @cherrypy.expose
-    def search(self, q=None, count=None, start=0, fields=None, multifields='', sort=None, facets='', hl='', mlt=None, spellcheck=0, **options):
+    def search(self, q=None, count=None, start=0, fields=None, multifields='', sort=None, facets='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
         
         **GET** /search?
@@ -184,11 +184,15 @@ class WebSearcher(object):
                 | maximum number of spelling corrections to return for each query term, grouped by field
                 | original query is still run;  use q.spellcheck=true to affect query parsing
             
+            &timeout=\ *float*
+                timeout search after elapsed number of seconds
+            
             :return:
                 | {
                 | "query": *string*,
-                | "count": *int*,
-                | "docs": [{"__id__": *int*, "__score__": *number*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
+                | "count": *int*\|null,
+                | "maxscore": *float*\|null,
+                | "docs": [{"__id__": *int*, "__score__": *float*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
                 | "facets": {*string*: {*string*: *int*,... },... },
                 | "spellcheck": {*string*: {*string*: [*string*,... ],... },... },
                 | }
@@ -198,6 +202,8 @@ class WebSearcher(object):
             if count is not None:
                 count = int(count) + start
             spellcheck = int(spellcheck)
+            if timeout is not None:
+                timeout = float(timeout)
         reverse = False
         searcher = getattr(self.indexer, 'indexSearcher', self.indexer)
         if sort is not None:
@@ -225,7 +231,7 @@ class WebSearcher(object):
         if count == 0:
             start = count = 1
         scores = options.get('sort.scores')
-        hits = searcher.search(q, count=count, sort=sort, reverse=reverse, scores=(scores is not None), maxscore=(scores == 'max'))
+        hits = searcher.search(q, count=count, sort=sort, reverse=reverse, scores=(scores is not None), maxscore=(scores == 'max'), timeout=timeout)
         result = {'query': q and unicode(q), 'count': hits.count, 'maxscore': hits.maxscore, 'docs': []}
         tag = options.get('hl.tag', 'strong')
         field = 'fields' not in options.get('hl.enable', '') or None

@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -12,12 +14,13 @@
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
         VERSION:     '0.6+',
-        COLLAPSE_MODINDEX: false,
+        COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Lupyne v0.6+ documentation" href="index.html" />
     <link rel="prev" title="client" href="client.html" /> 
@@ -30,8 +33,8 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
-             accesskey="M">modules</a> |</li>
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
         <li class="right" >
           <a href="client.html" title="client"
              accesskey="P">previous</a> |</li>
@@ -340,37 +343,24 @@
 <span class="n">topdocs</span> <span class="o">=</span> <span class="n">searcher</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">MatchAllDocsQuery</span><span class="p">(),</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Sort</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="o">.</span><span class="n">STRING</span><span class="p">)))</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">searcher</span><span class="o">.</span><span class="n">doc</span><span class="p">(</span><span class="n">scoredoc</span><span class="o">.</span><span class="n">doc</span><span class="p">)[</span><span class="s">&#39;color&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">scoredoc</span> <span class="ow">in</span> <span class="n">topdocs</span><span class="o">.</span><span class="n">scoreDocs</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
 
-<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lucene</span><span class="p">,</span> <span class="s">&#39;PythonFieldComparatorSource&#39;</span><span class="p">):</span>
-    <span class="k">class</span> <span class="nc">ComparatorSource</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonFieldComparatorSource</span><span class="p">):</span>
-        <span class="k">class</span> <span class="nc">newComparator</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonFieldComparator</span><span class="p">):</span>
-            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">numHits</span><span class="p">,</span> <span class="n">sortPos</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">):</span>
-                <span class="n">lucene</span><span class="o">.</span><span class="n">PythonFieldComparator</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">numHits</span>
-            <span class="k">def</span> <span class="nf">setNextReader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">FieldCache</span><span class="o">.</span><span class="n">DEFAULT</span><span class="o">.</span><span class="n">getStrings</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot1</span><span class="p">,</span> <span class="n">slot2</span><span class="p">):</span>
-                <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">slot1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">slot2</span><span class="p">])</span>
-            <span class="k">def</span> <span class="nf">setBottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_bottom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span>
-            <span class="k">def</span> <span class="nf">compareBottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc</span><span class="p">):</span>
-                <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bottom</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">doc</span><span class="p">])</span>
-            <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">,</span> <span class="n">doc</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">doc</span><span class="p">]</span>
-            <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">lucene</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="k">class</span> <span class="nc">ComparatorSource</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonSortComparatorSource</span><span class="p">):</span>
-        <span class="k">class</span> <span class="nc">newComparator</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonScoreDocComparator</span><span class="p">):</span>
-            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-                <span class="n">lucene</span><span class="o">.</span><span class="n">PythonScoreDocComparator</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">FieldCache</span><span class="o">.</span><span class="n">DEFAULT</span><span class="o">.</span><span class="n">getStrings</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-            <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
-                <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">doc</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">j</span><span class="o">.</span><span class="n">doc</span><span class="p">])</span>
-            <span class="k">def</span> <span class="nf">sortValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">lucene</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
-            <span class="k">def</span> <span class="nf">sortType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-                <span class="k">return</span> <span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="o">.</span><span class="n">STRING</span>
+<span class="k">class</span> <span class="nc">ComparatorSource</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonFieldComparatorSource</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">newComparator</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">PythonFieldComparator</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">numHits</span><span class="p">,</span> <span class="n">sortPos</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">):</span>
+            <span class="n">lucene</span><span class="o">.</span><span class="n">PythonFieldComparator</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">numHits</span>
+        <span class="k">def</span> <span class="nf">setNextReader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">FieldCache</span><span class="o">.</span><span class="n">DEFAULT</span><span class="o">.</span><span class="n">getStrings</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">compare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot1</span><span class="p">,</span> <span class="n">slot2</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">slot1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">slot2</span><span class="p">])</span>
+        <span class="k">def</span> <span class="nf">setBottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bottom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span>
+        <span class="k">def</span> <span class="nf">compareBottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bottom</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">doc</span><span class="p">])</span>
+        <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">,</span> <span class="n">doc</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">slot</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparator</span><span class="p">[</span><span class="n">doc</span><span class="p">]</span>
+        <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">slot</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">lucene</span><span class="o">.</span><span class="n">String</span><span class="p">()</span>
 
 <span class="n">sorter</span> <span class="o">=</span> <span class="n">lucene</span><span class="o">.</span><span class="n">Sort</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">SortField</span><span class="p">(</span><span class="s">&#39;color&#39;</span><span class="p">,</span> <span class="n">ComparatorSource</span><span class="p">()))</span>
 <span class="c"># still must supply excessive doc count to use the sorter</span>
@@ -396,39 +386,39 @@
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <h3><a href="index.html">Table Of Contents</a></h3>
-            <ul>
-<li><a class="reference external" href="#">examples</a><ul>
-<li><a class="reference external" href="#indexers">indexers</a></li>
-<li><a class="reference external" href="#numeric">numeric</a></li>
-<li><a class="reference external" href="#queries">queries</a></li>
-<li><a class="reference external" href="#searching">searching</a></li>
-<li><a class="reference external" href="#sorting">sorting</a></li>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">examples</a><ul>
+<li><a class="reference internal" href="#indexers">indexers</a></li>
+<li><a class="reference internal" href="#numeric">numeric</a></li>
+<li><a class="reference internal" href="#queries">queries</a></li>
+<li><a class="reference internal" href="#searching">searching</a></li>
+<li><a class="reference internal" href="#sorting">sorting</a></li>
 </ul>
 </li>
 </ul>
 
-            <h4>Previous topic</h4>
-            <p class="topless"><a href="client.html"
-                                  title="previous chapter">client</a></p>
-            <h3>This Page</h3>
-            <ul class="this-page-menu">
-              <li><a href="_sources/examples.txt"
-                     rel="nofollow">Show Source</a></li>
-            </ul>
-          <div id="searchbox" style="display: none">
-            <h3>Quick search</h3>
-              <form class="search" action="search.html" method="get">
-                <input type="text" name="q" size="18" />
-                <input type="submit" value="Go" />
-                <input type="hidden" name="check_keywords" value="yes" />
-                <input type="hidden" name="area" value="default" />
-              </form>
-              <p class="searchtip" style="font-size: 90%">
-              Enter search terms or a module, class or function name.
-              </p>
-          </div>
-          <script type="text/javascript">$('#searchbox').show(0);</script>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="client.html"
+                        title="previous chapter">client</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/examples.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -440,7 +430,7 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="modindex.html" title="Global Module Index"
+          <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
           <a href="client.html" title="client"
@@ -449,8 +439,8 @@
       </ul>
     </div>
     <div class="footer">
-      &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.7.
+        &copy; Copyright 2009, Aric Coady.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.
     </div>
   </body>
 </html>
