@@ -177,6 +177,12 @@ engine.autoreload</td></tr>
 <dl class="docutils">
 <dt>&amp;q=<em>chars</em>&amp;q.<em>chars</em>=...,</dt>
 <dd>query and optional parser settings: q.field, q.op,...</dd>
+<dt>&amp;filter=<em>chars</em></dt>
+<dd><div class="first last line-block">
+<div class="line">cached filter applied to the query</div>
+<div class="line">if a previously cached filter is not found, the value will be parsed as a query</div>
+</div>
+</dd>
 <dt>&amp;count=<em>int</em>&amp;start=0</dt>
 <dd>maximum number of docs to return and offset to start at</dd>
 <dt>&amp;fields=<em>chars</em>,...</dt>
@@ -184,8 +190,11 @@ engine.autoreload</td></tr>
 <dt>&amp;multifields=<em>chars</em>,...</dt>
 <dd>multi-valued fields returned in an array</dd>
 <dt>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],... &amp;sort.scores[=max]</dt>
-<dd>field name, optional type, minus sign indicates descending
-optionally score docs, additionally compute maximum score</dd>
+<dd><div class="first last line-block">
+<div class="line">field name, optional type, minus sign indicates descending</div>
+<div class="line">optionally score docs, additionally compute maximum score</div>
+</div>
+</dd>
 <dt>&amp;facets=<em>chars</em>,...</dt>
 <dd>include facet counts for given field names;  facets filters are cached</dd>
 <dt>&amp;hl=<em>chars</em>,... &amp;hl.count=1&amp;hl.tag=strong&amp;hl.enable=[fields|terms]</dt>

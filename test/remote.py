@@ -269,6 +269,10 @@ class TestCase(BaseTest):
         assert result == {'query': 'text:people', 'count': None, 'maxscore': None, 'docs': []}
         result = resource.get('/search', q='text:people', timeout=0.01)
         assert result['count'] in (None, 8) and result['maxscore'] in (None, maxscore)
+        result = resource.get('/search', filter='text:people')
+        assert result['count'] == 8 and set(doc['__score__'] for doc in result['docs']) == set([1.0])
+        result = resource.get('/search', q='text:right', filter='text:people')
+        assert result['count'] == 4 and 0 < result['maxscore'] < 1.0
 
 if __name__ == '__main__':
     lucene.initVM(lucene.CLASSPATH)

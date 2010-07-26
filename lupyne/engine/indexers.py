@@ -313,7 +313,8 @@ class Searcher(object):
         other = type(self)(reader, self.analyzer)
         other.shared, other.owned = self.shared, closing([reader])
         if filters:
-            other.facets([], *self.filters)
+            other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
+            other.facets([], *other.filters)
         if spellcheckers:
             for field in self.spellcheckers:
                 other.suggest(field, '')

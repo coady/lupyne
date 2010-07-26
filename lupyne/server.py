@@ -154,6 +154,10 @@ class WebSearcher(object):
             &q=\ *chars*\ &q.\ *chars*\ =...,
                 query and optional parser settings: q.field, q.op,...
             
+            &filter=\ *chars*
+                | cached filter applied to the query
+                | if a previously cached filter is not found, the value will be parsed as a query
+            
             &count=\ *int*\ &start=0
                 maximum number of docs to return and offset to start at
             
@@ -164,8 +168,8 @@ class WebSearcher(object):
                 multi-valued fields returned in an array
             
             &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores[=max]
-                field name, optional type, minus sign indicates descending
-                optionally score docs, additionally compute maximum score
+                | field name, optional type, minus sign indicates descending
+                | optionally score docs, additionally compute maximum score
             
             &facets=\ *chars*,...
                 include facet counts for given field names;  facets filters are cached
@@ -219,6 +223,10 @@ class WebSearcher(object):
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
                     sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
         q = self.parse(q, **options)
+        qfilter = options.pop('filter', None)
+        if qfilter is not None and qfilter not in searcher.filters:
+            searcher.filters[qfilter] = engine.Query.filter.im_func(self.parse(qfilter, **options))
+        qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 mlt = int(mlt)
@@ -231,7 +239,8 @@ class WebSearcher(object):
         if count == 0:
             start = count = 1
         scores = options.get('sort.scores')
-        hits = searcher.search(q, count=count, sort=sort, reverse=reverse, scores=(scores is not None), maxscore=(scores == 'max'), timeout=timeout)
+        scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
+        hits = searcher.search(q, filter=qfilter, count=count, sort=sort, reverse=reverse, timeout=timeout, **scores)
         result = {'query': q and unicode(q), 'count': hits.count, 'maxscore': hits.maxscore, 'docs': []}
         tag = options.get('hl.tag', 'strong')
         field = 'fields' not in options.get('hl.enable', '') or None
