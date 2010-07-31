@@ -18,6 +18,11 @@ Options:
   --autorefresh=SECONDS
                         automatically refresh index
 
+tools
+-----------
+.. autofunction:: json_tool
+.. autofunction:: allow_tool
+
 WebSearcher
 -----------
 .. autoclass:: server.WebSearcher

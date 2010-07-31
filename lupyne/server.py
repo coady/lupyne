@@ -22,16 +22,18 @@ import lucene
 import cherrypy
 import engine
 
-def json_tool():
-    "Transform responses into json format."
+def json_tool(indent=None):
+    """Transform responses into json format.
+    Specify tools.json.indent for pretty printing.
+    """
     response = cherrypy.response
     if response.status is None and response.headers['content-type'].startswith('text/'):
         response.headers['content-type'] = 'text/x-json'
-        response.body = json.dumps(response.body)
+        response.body = json.dumps(response.body, indent=indent)
 cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
 
-def allow_tool(methods=['GET', 'HEAD']):
-    "Only allow specified methods."
+def allow_tool(methods=('GET', 'HEAD')):
+    "Only allow methods specified in tools.allow.methods."
     request = cherrypy.request
     if request.method not in methods and not isinstance(request.handler, cherrypy.HTTPError):
         cherrypy.response.headers['allow'] = ', '.join(methods)
@@ -42,7 +44,7 @@ cherrypy.tools.allow = cherrypy.Tool('on_start_resource', allow_tool)
 def json_error(version, **body):
     "Transform errors into json format."
     cherrypy.response.headers['content-type'] = 'text/x-json'
-    return json.dumps(body)
+    return json.dumps(body, indent=2)
 
 def attach_thread(id):
     "Attach current cherrypy worker thread to lucene VM."
