@@ -26,11 +26,15 @@ def json_tool(indent=None):
     """Transform responses into json format.
     Specify tools.json.indent for pretty printing.
     """
-    response = cherrypy.response
-    if response.status is None and response.headers['content-type'].startswith('text/'):
-        response.headers['content-type'] = 'text/x-json'
-        response.body = json.dumps(response.body, indent=indent)
-cherrypy.tools.json = cherrypy.Tool('before_finalize', json_tool)
+    handler = cherrypy.request.handler
+    def json_handler(*args, **kwargs):
+        body = handler(*args, **kwargs)
+        if cherrypy.response.headers['content-type'].startswith('text/'):
+            cherrypy.response.headers['content-type'] = 'text/x-json'
+            body = json.dumps(body, indent=indent)
+        return body
+    cherrypy.request.handler = json_handler
+cherrypy.tools.json = cherrypy.Tool('before_handler', json_tool)
 
 def allow_tool(methods=('GET', 'HEAD')):
     "Only allow methods specified in tools.allow.methods."

@@ -29,7 +29,7 @@ class Response(httplib.HTTPResponse):
         httplib.HTTPResponse.begin(self)
         self.body = self.read()
         self.close()
-        if self.getheader('content-encoding') == 'gzip':
+        if 'gzip' in self.getheader('content-encoding', ''):
             self.body = gzip.GzipFile(fileobj=StringIO(self.body)).read()
     def __nonzero__(self):
         "Return whether status is successful."
@@ -37,7 +37,7 @@ class Response(httplib.HTTPResponse):
     def __call__(self):
         "Return evaluated response body or raise exception."
         body = self.body
-        if body and self.getheader('content-type') == 'text/x-json':
+        if body and 'text/x-json' in self.getheader('content-type'):
             body = json.loads(body)
         if self:
             return body

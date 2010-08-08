@@ -4,6 +4,7 @@ import subprocess
 import operator
 import httplib
 import math
+import json
 import socket, errno
 from contextlib import contextmanager
 import lucene
@@ -32,7 +33,7 @@ class BaseTest(local.BaseTest):
         )
         assert int(open(pidfile).read()) == self.servers[-1].pid
     def run(self, result):
-        self.stderr = None if result.showAll else subprocess.PIPE
+        self.verbose = result.showAll
         local.BaseTest.run(self, result)
     def tearDown(self):
         for server in self.servers:
@@ -40,9 +41,9 @@ class BaseTest(local.BaseTest):
         local.BaseTest.tearDown(self)
     def start(self, port, *args):
         "Start server in separate process on given port."
-        params = sys.executable, '-m', 'lupyne.server', '-c', '{{"server.socket_port": {0:d}}}'.format(port)
+        config = json.dumps({'server.socket_port': port, 'log.screen': self.verbose})
         cherrypy.process.servers.wait_for_free_port('localhost', port)
-        server = subprocess.Popen(params + args, stderr=self.stderr)
+        server = subprocess.Popen((sys.executable, '-m', 'lupyne.server', '-c', config) + args)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
         assert server.poll() is None
         return server
@@ -60,7 +61,7 @@ class TestCase(BaseTest):
         resource.request('GET', '/')
         response = resource.getresponse()
         assert response.status == httplib.OK and response.reason == 'OK'
-        assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type') == 'text/x-json'
+        assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('text/x-json')
         (directory, count), = response().items()
         assert count == 0 and 'FSDirectory@' in directory
         assert not resource('HEAD', '/')
@@ -158,8 +159,6 @@ class TestCase(BaseTest):
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
-        config = {'global': {'server.socket_port': self.ports[0], 'log.screen': not self.stderr}}
-        self.assertRaises(IOError, server.start, server.WebIndexer(), config=config, autoreload=1, autorefresh=1)
     
     def testBasic(self):
         "Remote text indexing and searching."

@@ -27,9 +27,9 @@ class TestCase(remote.BaseTest):
         assert all(response() == {'index': 'NOT_ANALYZED', 'store': 'YES', 'termvector': 'NO'} for response in responses)
         doc = {'name': 'sample', 'text': 'hello world'}
         responses = resources.broadcast('POST', '/docs', {'docs': [doc]})
-        assert all(response() == '' for response in responses)
+        assert all(response() is None for response in responses)
         response = resources.unicast('POST', '/docs', {'docs': [doc]})
-        assert response() == ''
+        assert response() is None
         responses = resources.broadcast('POST', '/commit')
         assert all(response() >= 1 for response in responses)
         responses = resources.broadcast('GET', '/search?q=text:hello')
