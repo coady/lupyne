@@ -388,6 +388,7 @@ class TestCase(BaseTest):
             hits = indexer.search(field.within(x, y, 10**5))
             cities = set(hit['city'] for hit in hits)
             assert city in cities and len(cities) > 100
+            assert len(field.within(x, y, 10**8)) == 1
             del indexer
     
     def testFields(self):

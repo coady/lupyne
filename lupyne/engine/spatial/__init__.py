@@ -49,7 +49,12 @@ class Tiler(GlobalMercator):
         for precision in range(precision, 0, -1):
             left, bottom = self.MetersToTile(x-distance, y-distance, precision)
             right, top = self.MetersToTile(x+distance, y+distance, precision)
-            if (right+1-left) * (top+1-bottom) <= limit:
+            count = (right+1 - left) * (top+1 - bottom)
+            if count > self.base ** precision: # spanned globe
+                for tile in range(self.base):
+                    yield str(tile)
+                return
+            if count <= limit:
                 break
         for i, j in itertools.product(range(left, right+1), range(bottom, top+1)):
             left, bottom, right, top = self.TileBounds(i, j, precision)
