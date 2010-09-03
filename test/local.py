@@ -103,6 +103,8 @@ class TestCase(BaseTest):
         query = engine.Query.span('text', 'world')
         self.assertRaises(AssertionError, query.near, option=None)
         assert str(query.mask('name')) == 'mask(text:world) as name'
+        query = engine.Query.disjunct(0.1, query, name='sample')
+        assert str(query) == '(text:world | name:sample)~0.1'
         query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
         assert str(query) == 'spanNear([text:hello, mask(tag:python) as text], -1, false)' and indexer.count(query) == 1
         query = engine.Query.near('text', 'hello', 'world')

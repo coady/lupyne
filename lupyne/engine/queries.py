@@ -47,6 +47,16 @@ class Query(object):
         "Return :class:`BooleanQuery` (AND) from queries and terms."
         return cls.boolean(lucene.BooleanClause.Occur.MUST, *queries, **terms)
     @classmethod
+    def disjunct(cls, multiplier, *queries, **terms):
+        "Return lucene DisjunctionMaxQuery from queries and terms."
+        self = cls(lucene.DisjunctionMaxQuery, multiplier)
+        for query in queries:
+            self.add(query)
+        for name, values in terms.items():
+            for value in ([values] if isinstance(values, basestring) else values):
+                self.add(cls.term(name, value))
+        return self
+    @classmethod
     def span(cls, name, value):
         "Return :class:`SpanTermQuery <SpanQuery>`."
         return SpanQuery(lucene.SpanTermQuery, lucene.Term(name, value))
