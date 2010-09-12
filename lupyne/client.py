@@ -12,11 +12,10 @@ The load balancing strategy is randomized, biased by the number of cached connec
 This inherently provides limited failover support, but applications must still handle exceptions as desired.
 """
 
-import gzip
 import random
 import itertools
 import collections
-from cStringIO import StringIO
+import io, gzip
 import httplib, urllib
 try:
     import simplejson as json
@@ -30,7 +29,7 @@ class Response(httplib.HTTPResponse):
         self.body = self.read()
         self.close()
         if 'gzip' in self.getheader('content-encoding', ''):
-            self.body = gzip.GzipFile(fileobj=StringIO(self.body)).read()
+            self.body = gzip.GzipFile(fileobj=io.BytesIO(self.body)).read()
     def __nonzero__(self):
         "Return whether status is successful."
         return httplib.OK <= self.status < httplib.MULTIPLE_CHOICES
@@ -133,7 +132,7 @@ class Shards(dict):
     :param limit: maximum number of cached connections per host
     :param multimap: mapping of hosts to multiple keys
     """
-    choice = Resources.choice.im_func
+    choice = Resources.__dict__['choice']
     def __init__(self, items=(), limit=0, **multimap):
         pairs = ((host, key) for host in multimap for key in multimap[host])
         for host, key in itertools.chain(items, pairs):

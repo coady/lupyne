@@ -329,7 +329,7 @@ class Searcher(object):
             return query
         if spellcheck:
             kwargs['parser'], kwargs['searcher'] = SpellParser, self
-        return Analyzer.parse.im_func(self.analyzer, query, **kwargs)
+        return Analyzer.__dict__['parse'](self.analyzer, query, **kwargs)
     def highlighter(self, query, span=True, formatter=None, encoder=None, field=None):
         "Return `Highlighter`_ specific to the searcher's analyzer and index."
         query = self.parse(query, field=field or '')
@@ -490,8 +490,8 @@ class IndexWriter(lucene.IndexWriter):
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
     __len__ = lucene.IndexWriter.numDocs
-    __del__ = IndexSearcher.__del__.im_func
-    parse = Searcher.parse.im_func
+    __del__ = Searcher.__dict__['__del__']
+    parse = Searcher.__dict__['parse']
     def __init__(self, directory=None, mode='a', analyzer=None):
         self.shared = closing()
         if analyzer is None:

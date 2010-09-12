@@ -42,7 +42,7 @@ class NumericField(Field):
 
 class PointField(spatial.SpatialField, NumericField):
     __doc__ = spatial.PointField.__doc__
-    items = spatial.PointField.items.im_func
+    items = spatial.PointField.__dict__['items']
     def tiles(self, points, span=False):
         """Generate tile values from points (lng, lat).
         
@@ -76,14 +76,14 @@ class PointField(spatial.SpatialField, NumericField):
 
 class PolygonField(PointField):
     __doc__ = spatial.PolygonField.__doc__
-    items = spatial.PolygonField.items.im_func
+    items = spatial.PolygonField.__dict__['items']
 
 class DateTimeField(NumericField):
     """Field which indexes datetimes as a NumericField of timestamps.
     Supports datetimes, dates, and any prefix of time tuples.
     """
-    duration = documents.DateTimeField.duration.im_func
-    within = documents.DateTimeField.within.im_func
+    duration = documents.DateTimeField.__dict__['duration']
+    within = documents.DateTimeField.__dict__['within']
     def timestamp(self, date):
         "Return utc timestamp from date or time tuple."
         if isinstance(date, datetime.date):

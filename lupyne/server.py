@@ -231,7 +231,7 @@ class WebSearcher(object):
         q = self.parse(q, **options)
         qfilter = options.pop('filter', None)
         if qfilter is not None and qfilter not in searcher.filters:
-            searcher.filters[qfilter] = engine.Query.filter.im_func(self.parse(qfilter, **options))
+            searcher.filters[qfilter] = engine.Query.__dict__['filter'](self.parse(qfilter, **options))
         qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
             with HTTPError(httplib.BAD_REQUEST, ValueError):
@@ -266,10 +266,10 @@ class WebSearcher(object):
             if hl:
                 doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], count)) for name in hl if name in hit)
         if facets:
-            result['facets'] = searcher.facets(engine.Query.filter.im_func(q), *facets.split(','))
+            result['facets'] = searcher.facets(engine.Query.__dict__['filter'](q), *facets.split(','))
         if spellcheck:
             terms = result['spellcheck'] = collections.defaultdict(dict)
-            for name, value in engine.Query.terms.im_func(q):
+            for name, value in engine.Query.__dict__['terms'](q):
                 terms[name][value] = list(itertools.islice(searcher.correct(name, value), spellcheck))
         return result
     @cherrypy.expose
