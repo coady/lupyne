@@ -1,3 +1,4 @@
+from future_builtins import map
 import unittest
 import os, sys
 import subprocess
@@ -195,7 +196,7 @@ class TestCase(BaseTest):
         counts = dict(resource.get('/terms/text/people/docs/counts'))
         assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
         positions = dict(resource.get('/terms/text/people/docs/positions'))
-        assert sorted(positions) == docs and map(len, positions.values()) == counts.values()
+        assert sorted(positions) == docs and list(map(len, positions.values())) == counts.values()
         result = resource.get('/search', **{'q.field': 'text', 'q': 'write "hello world"', 'spellcheck': 3})
         terms = result['spellcheck'].pop('text')
         assert result['docs'] == [] and result['spellcheck'] == {}

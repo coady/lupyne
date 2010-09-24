@@ -12,6 +12,7 @@ The load balancing strategy is randomized, biased by the number of cached connec
 This inherently provides limited failover support, but applications must still handle exceptions as desired.
 """
 
+from future_builtins import map
 import random
 import itertools
 import collections
@@ -123,7 +124,7 @@ class Resources(dict):
                 response = responses[host] = self.getresponse(host, resource)
                 if response.status == httplib.REQUEST_TIMEOUT:
                     resources[host] = self.request(host, method, path, body)
-        return map(responses.__getitem__, hosts)
+        return list(map(responses.__getitem__, hosts))
 
 class Shards(dict):
     """Mapping of keys to host clusters, with associated resources.
@@ -140,9 +141,9 @@ class Shards(dict):
         self.resources = Resources(itertools.chain(*self.values()), limit)
     def priority(self, hosts):
         "Return combined priority for hosts."
-        priorities = map(self.resources.priority, hosts)
+        priorities = list(map(self.resources.priority, hosts))
         if None not in priorities:
-            return len(hosts), sum(priorities)
+            return len(priorities), sum(priorities)
     def unicast(self, key, method, path, body=None):
         "Send request and return response from any host for corresponding key."
         return self.resources.unicast(method, path, body, self[key])

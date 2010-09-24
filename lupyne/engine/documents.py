@@ -2,6 +2,7 @@
 Wrappers for lucene Fields and Documents.
 """
 
+from future_builtins import map, zip
 import warnings
 import itertools
 import datetime
@@ -79,7 +80,7 @@ class PrefixField(Field):
         if self.store != lucene.Field.Store.NO:
             for value in values:
                 yield lucene.Field(self.name, value, self.store, lucene.Field.Index.NO)
-        values = map(self.split, values)
+        values = list(map(self.split, values))
         for depth in self.indices(max(map(len, values))):
             name = self.getname(depth)
             for value in sorted(set(value[:depth] for value in values if len(value) > (depth-self.depths.step))):
@@ -155,10 +156,10 @@ class DateTimeField(PrefixField):
         """Return optimal union of date range queries.
         May produce invalid dates, but the query is still correct.
         """
-        dates = (map(float, self.split(str(date))) for date in (start, stop))
+        dates = (list(map(float, self.split(str(date)))) for date in (start, stop))
         items = []
         for dates in self._range(*dates):
-            items.append(tuple(self.join(map('{0:02g}'.format, date)) for date in dates))
+            items.append(tuple(self.join(tuple(map('{0:02g}'.format, date))) for date in dates))
         queries = [PrefixField.range(self, str(start), items[0][1], lower=lower)]
         queries += [PrefixField.range(self, *item) for item in items[1:-1]]
         queries.append(PrefixField.range(self, items[-1][0], str(stop), upper=upper))
@@ -198,7 +199,7 @@ class Document(object):
             self.doc.add(field)
     def fields(self):
         "Generate lucene Fields."
-        return itertools.imap(lucene.Field.cast_, self.doc.getFields())
+        return map(lucene.Field.cast_, self.doc.getFields())
     def __len__(self):
         return self.doc.getFields().size()
     def __contains__(self, name):
@@ -273,4 +274,4 @@ class Hits(object):
         return Hit(self.searcher.doc(id, self.fields), id, score)
     def items(self):
         "Generate zipped ids and scores."
-        return itertools.izip(self.ids, self.scores)
+        return zip(self.ids, self.scores)

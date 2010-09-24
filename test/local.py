@@ -1,3 +1,4 @@
+from future_builtins import map, zip
 import unittest
 import os
 import tempfile, shutil
@@ -172,7 +173,7 @@ class TestCase(BaseTest):
         counts = docs.values()
         assert len(docs) == count and all(counts) and sum(counts) > count
         positions = dict(indexer.positions('text', 'people'))
-        assert map(len, positions.values()) == counts
+        assert list(map(len, positions.values())) == counts
         hit, = indexer.search('"We the People"', field='text')
         assert hit['article'] == 'Preamble'
         assert sorted(hit.dict()) == ['__id__', '__score__', 'article']
@@ -199,7 +200,7 @@ class TestCase(BaseTest):
         comparator = indexer.comparator('amendment', type=int, parser=lambda value: int(value or -1))
         hits = indexer.search('text:people', sort=comparator.__getitem__)
         assert sorted(hits.ids) == hits.ids and hits.ids != ids
-        comparator = zip(*map(indexer.comparator, ['article', 'amendment']))
+        comparator = list(zip(*map(indexer.comparator, ['article', 'amendment'])))
         hits = indexer.search('text:people', sort=comparator.__getitem__)
         assert sorted(hits.ids) != hits.ids
         hits = indexer.search('text:people', count=5, sort='amendment', reverse=True)
@@ -448,7 +449,7 @@ class TestCase(BaseTest):
         indexer.set('size', engine.numeric.NumericField, store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
-                indexer.add(amendment=int(doc['amendment']), date=[map(int, doc['date'].split('-'))], size=len(doc['text']))
+                indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
         indexer.commit()
         query = indexer.fields['amendment'].range(None, 10)
         assert indexer.count(query) == 9

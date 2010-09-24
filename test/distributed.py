@@ -1,3 +1,4 @@
+from future_builtins import map
 import unittest
 import heapq
 import socket, httplib
@@ -6,10 +7,10 @@ import local, remote
 
 class TestCase(remote.BaseTest):
     ports = 8080, 8081, 8082
-    hosts = map('localhost:{0:d}'.format, ports)
+    hosts = list(map('localhost:{0:d}'.format, ports))
     def setUp(self):
         local.BaseTest.setUp(self)
-        self.servers = map(self.start, self.ports)
+        self.servers = list(map(self.start, self.ports))
     
     def testInterface(self):
         "Distributed reading and writing."

@@ -7,6 +7,7 @@ CherryPy and Lucene VM integration issues:
  * Recommended that the VM ignores keyboard interrupts (-Xrs) for clean server shutdown.
 """
 
+from future_builtins import filter, map
 import re
 import httplib
 import threading
@@ -146,7 +147,7 @@ class WebSearcher(object):
             id = int(id)
         if fields is not None:
             fields = dict.fromkeys(filter(None, fields.split(',')))
-        multifields = filter(None, multifields.split(','))
+        multifields = list(filter(None, multifields.split(',')))
         with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
             doc = self.indexer[id] if fields is None else self.indexer.get(id, *itertools.chain(fields, multifields))
         return doc.dict(*multifields, **(fields or {}))
@@ -224,7 +225,7 @@ class WebSearcher(object):
                     reverse, = set(reverse for name, type, reverse in sort) # only one sort direction allowed with unlimited count
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
                     comparators = [searcher.comparator(name, type) for name, type, reverse in sort]
-                sort = comparators[0].__getitem__ if len(comparators) == 1 else lambda id: map(operator.itemgetter(id), comparators)
+                sort = comparators[0].__getitem__ if len(comparators) == 1 else lambda id: tuple(map(operator.itemgetter(id), comparators))
             else:
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
                     sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
@@ -259,7 +260,7 @@ class WebSearcher(object):
             fields = dict.fromkeys(filter(None, fields.split(',')))
             hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multifields, hl)))
         fields = fields or {}
-        multifields = filter(None, multifields.split(','))
+        multifields = list(filter(None, multifields.split(',')))
         for hit in hits[start:]:
             doc = hit.dict(*multifields, **fields)
             result['docs'].append(doc)

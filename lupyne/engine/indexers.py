@@ -4,6 +4,7 @@ Wrappers for lucene Index{Read,Search,Writ}ers.
 The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 """
 
+from future_builtins import map, zip
 import itertools, operator
 import contextlib
 import abc, collections
@@ -259,13 +260,13 @@ class IndexReader(object):
     def termvector(self, id, field, counts=False):
         "Generate terms for given doc id and field, optionally with frequency counts."
         tfv = self.getTermFreqVector(id, field)
-        return itertools.izip(tfv.terms, tfv.termFrequencies) if counts else iter(tfv.terms)
+        return zip(tfv.terms, tfv.termFrequencies) if counts else iter(tfv.terms)
     def positionvector(self, id, field, offsets=False):
         "Generate terms and positions for given doc id and field, optionally with character offsets."
         tpv = lucene.TermPositionVector.cast_(self.getTermFreqVector(id, field))
         for index, term in enumerate(tpv.terms):
             if offsets:
-                yield term, map(operator.attrgetter('startOffset', 'endOffset'), tpv.getOffsets(index))
+                yield term, list(map(operator.attrgetter('startOffset', 'endOffset'), tpv.getOffsets(index)))
             else:
                 yield term, list(tpv.getTermPositions(index))
     def morelikethis(self, doc, *fields, **attrs):
@@ -401,7 +402,7 @@ class Searcher(object):
         else:
             topdocs = collector.topDocs()
             scoredocs = list(topdocs.scoreDocs)
-            ids, scores = (map(operator.attrgetter(name), scoredocs) for name in ('doc', 'score'))
+            ids, scores = (list(map(operator.attrgetter(name), scoredocs)) for name in ('doc', 'score'))
             stats = topdocs.totalHits, topdocs.maxScore
         stats *= not isinstance(timeout, lucene.JavaError)
         return Hits(self, ids, scores, *stats)
@@ -471,10 +472,10 @@ class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
     def __init__(self, searchers, analyzer=None):
         if lucene.MultiReader.instance_(searchers):
             self.indexReader = searchers
-            searchers = map(lucene.IndexSearcher, searchers.sequentialSubReaders)
+            searchers = list(map(lucene.IndexSearcher, searchers.sequentialSubReaders))
         else:
             searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(searcher) for searcher in self.open(*searchers)]
-            self.indexReader = lucene.MultiReader(map(operator.attrgetter('indexReader'), searchers), False)
+            self.indexReader = lucene.MultiReader(list(map(operator.attrgetter('indexReader'), searchers)), False)
             self.owned = closing([self.indexReader])
         Searcher.__init__(self, searchers, analyzer)
 

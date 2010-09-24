@@ -2,6 +2,7 @@
 Query wrappers and search utilities.
 """
 
+from future_builtins import filter, map
 import itertools
 import bisect
 import heapq
@@ -23,7 +24,7 @@ class Query(object):
         "Generate set of query term items."
         terms = lucene.HashSet()
         self.extractTerms(terms)
-        for term in itertools.imap(lucene.Term.cast_, terms):
+        for term in map(lucene.Term.cast_, terms):
             yield term.field(), term.text()
     @classmethod
     def term(cls, name, value):
@@ -151,7 +152,7 @@ class SpanQuery(Query):
         :param inOrder: default True
         :param collectPayloads: default True
         """
-        args = map(kwargs.pop, ('slop', 'inOrder'), (0, True))
+        args = list(map(kwargs.pop, ('slop', 'inOrder'), (0, True)))
         if 'collectPayloads' in kwargs:
             args.append(kwargs.pop('collectPayloads'))
         assert not kwargs, 'unexpected keyword arguments: {0}'.format(list(kwargs))
@@ -178,7 +179,7 @@ class HitCollector(lucene.PythonCollector if hasattr(lucene, 'PythonCollector') 
         if key is None:
             key, reverse = self.scores.__getitem__, True
         ids.sort(key=key, reverse=reverse)
-        return ids, map(self.scores.__getitem__, ids)
+        return ids, list(map(self.scores.__getitem__, ids))
 
 class Filter(lucene.PythonFilter):
     "Inherited lucene Filter with a cached BitSet of ids."
@@ -189,12 +190,12 @@ class Filter(lucene.PythonFilter):
             self.docIdSet.union(ids)
         else:
             setter = self.docIdSet.set
-            for id in itertools.imap(long, ids):
+            for id in map(long, ids):
                 setter(id)
         if lucene.VERSION < '3':
             self.bitSet = lucene.BitSet()
             setter = self.bitSet.set
-            for id in itertools.ifilter(self.docIdSet.get, xrange(self.docIdSet.size())):
+            for id in filter(self.docIdSet.get, xrange(self.docIdSet.size())):
                 setter(id)
     @staticmethod
     def overlap(self, other, reader=None):
@@ -241,7 +242,7 @@ class SpellChecker(dict):
         dict.__init__(self, *args, **kwargs)
         self.words = sorted(self)
         self.alphabet = sorted(set(itertools.chain.from_iterable(self.words)))
-        self.suffix = self.alphabet[-1] * max(itertools.imap(len, self.words)) if self.alphabet else ''
+        self.suffix = self.alphabet[-1] * max(map(len, self.words)) if self.alphabet else ''
         self.prefixes = set(word[:stop] for word in self.words for stop in range(len(word) + 1))
     def suggest(self, prefix, count=None):
         "Return ordered suggested words for prefix."
@@ -270,9 +271,9 @@ class SpellChecker(dict):
         "Generate ordered sets of words by increasing edit distance."
         previous, edits = set(), {word: 0}
         for distance in range(len(word)):
-            yield sorted(itertools.ifilter(self.__contains__, edits), key=self.__getitem__, reverse=True)
+            yield sorted(filter(self.__contains__, edits), key=self.__getitem__, reverse=True)
             previous.update(edits)
-            groups = itertools.imap(self.edits, edits, edits.values())
+            groups = map(self.edits, edits, edits.values())
             edits = dict((edit, group[edit]) for group in groups for edit in group if edit not in previous)
 
 class SpellParser(lucene.PythonQueryParser):
