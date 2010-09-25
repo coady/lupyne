@@ -446,7 +446,7 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.numeric.NumericField, store=True)
         indexer.set('date', engine.numeric.DateTimeField, store=True)
-        indexer.set('size', engine.numeric.NumericField, store=True)
+        indexer.set('size', engine.numeric.NumericField, store=True, step=5)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))

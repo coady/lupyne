@@ -34,12 +34,12 @@ class NumericField(Field):
         "Return lucene NumericRangeQuery."
         if isinstance(start, float) or isinstance(stop, float):
             start, stop = (value if value is None else lucene.Double(value) for value in (start, stop))
-            return lucene.NumericRangeQuery.newDoubleRange(self.name, start, stop, lower, upper)
+            return lucene.NumericRangeQuery.newDoubleRange(self.name, self.step, start, stop, lower, upper)
         if start is not None:
             start = None if start < lucene.Long.MIN_VALUE else lucene.Long(long(start))
         if stop is not None:
             stop = None if stop > lucene.Long.MAX_VALUE else lucene.Long(long(stop))
-        return lucene.NumericRangeQuery.newLongRange(self.name, start, stop, lower, upper)
+        return lucene.NumericRangeQuery.newLongRange(self.name, self.step, start, stop, lower, upper)
 
 class PointField(spatial.SpatialField, NumericField):
     __doc__ = spatial.PointField.__doc__
