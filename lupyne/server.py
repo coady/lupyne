@@ -4,6 +4,7 @@ Restful json `CherryPy <http://cherrypy.org/>`_ server.
 CherryPy and Lucene VM integration issues:
  * Monitors (such as autoreload) are not compatible with the VM unless threads are attached.
  * WorkerThreads must be also attached to the VM.
+ * VM initialization must occur after daemonizing.
  * Recommended that the VM ignores keyboard interrupts (-Xrs) for clean server shutdown.
 """
 
@@ -424,9 +425,13 @@ class WebIndexer(WebSearcher):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
 
-def start(root, path='', config=None, pidfile='', daemonize=False, autoreload=0, autorefresh=0):
+def start(root, path='', config=None, pidfile='', daemonize=False, autoreload=0, autorefresh=0, callback=None):
     """Attach root, subscribe to plugins, and start server.
-    See cherrypy.quickstart and command-line options for documentation."""
+    
+    :param root,path,config: see cherrypy.quickstart
+    :param daemonize,autoreload,autorefresh: see command-line options
+    :param callback: optional callback function scheduled after daemonizing
+    """
     cherrypy.engine.subscribe('start_thread', attach_thread)
     cherrypy.engine.subscribe('stop', root.close)
     cherrypy.config['engine.autoreload.on'] = False
@@ -439,6 +444,9 @@ def start(root, path='', config=None, pidfile='', daemonize=False, autoreload=0,
         Autoreloader(cherrypy.engine, autoreload).subscribe()
     if autorefresh:
         Autorefresher(cherrypy.engine, root, autorefresh).subscribe()
+    if callback:
+        priority = (cherrypy.process.plugins.Daemonizer.start.priority + cherrypy.server.start.priority) // 2
+        cherrypy.engine.subscribe('start', callback, priority)
     cherrypy.quickstart(root, path, config)
 
 parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
@@ -451,10 +459,12 @@ parser.add_option('--autorefresh', type=int, metavar='SECONDS', help='automatica
 
 if __name__ == '__main__':
     options, args = parser.parse_args()
-    if lucene.getVMEnv() is None:
-        lucene.initVM(lucene.CLASSPATH, vmargs='-Xrs')
     read_only = options.__dict__.pop('read_only')
-    root = (WebSearcher if (read_only or len(args) > 1) else WebIndexer)(*args)
     if options.config and not os.path.exists(options.config):
         options.config = {'global': json.loads(options.config)}
-    start(root, **options.__dict__)
+    directories = list(map(os.path.abspath, args))
+    root = object.__new__(WebSearcher if (read_only or len(args) > 1) else WebIndexer)
+    def init():
+        lucene.initVM(vmargs='-Xrs')
+        root.__init__(*directories)
+    start(root, callback=init, **options.__dict__)
