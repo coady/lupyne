@@ -59,7 +59,7 @@ abstracting away java lucene primitives.</p>
 <div class="section" id="module-engine.indexers">
 <span id="indexers"></span><h2>indexers<a class="headerlink" href="#module-engine.indexers" title="Permalink to this headline">¶</a></h2>
 <p>Wrappers for lucene Index{Read,Search,Writ}ers.</p>
-<p>The final <a class="reference external" href="#indexer">Indexer</a> classes exposes a high-level Searcher and Writer.</p>
+<p>The final <a class="reference internal" href="#indexer">Indexer</a> classes exposes a high-level Searcher and Writer.</p>
 <div class="section" id="tokenfilter">
 <h3>TokenFilter<a class="headerlink" href="#tokenfilter" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
@@ -128,7 +128,7 @@ attributes are cached as properties to create a Token interface.</p>
 </table>
 <dl class="method">
 <dt id="engine.indexers.Analyzer.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>version='2.9'</em>, <em>parser=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.parse" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>version='3.0'</em>, <em>parser=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return parsed lucene Query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -329,7 +329,7 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 <dl class="method">
 <dt id="engine.indexers.Searcher.__getitem__">
 <tt class="descname">__getitem__</tt><big>(</big><em>id</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.__getitem__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return <a class="reference external" href="#document">Document</a>.</p>
+<dd><p>Return <a class="reference internal" href="#document">Document</a>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -408,7 +408,7 @@ For optimal performance only iterate the required slice size of corrections.</p>
 <dl class="method">
 <dt id="engine.indexers.Searcher.get">
 <tt class="descname">get</tt><big>(</big><em>id</em>, <em>*fields</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.get" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return <a class="reference external" href="#document">Document</a> with only selected fields loaded.</p>
+<dd><p>Return <a class="reference internal" href="#document">Document</a> with only selected fields loaded.</p>
 </dd></dl>
 
 <dl class="method">
@@ -434,13 +434,13 @@ For optimal performance only iterate the required slice size of corrections.</p>
 <dl class="method">
 <dt id="engine.indexers.Searcher.highlighter">
 <tt class="descname">highlighter</tt><big>(</big><em>query</em>, <em>span=True</em>, <em>formatter=None</em>, <em>encoder=None</em>, <em>field=None</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.highlighter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return <a class="reference external" href="#highlighter">Highlighter</a> specific to the searcher&#8217;s analyzer and index.</p>
+<dd><p>Return <a class="reference internal" href="#highlighter">Highlighter</a> specific to the searcher&#8217;s analyzer and index.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.reopen">
 <tt class="descname">reopen</tt><big>(</big><em>filters=False</em>, <em>spellcheckers=False</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.reopen" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return current Searcher, only creating a new one if necessary.</p>
+<dd><p>Return current <a class="reference internal" href="#searcher">Searcher</a>, only creating a new one if necessary.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -458,7 +458,7 @@ For optimal performance only iterate the required slice size of corrections.</p>
 <dl class="method">
 <dt id="engine.indexers.Searcher.search">
 <tt class="descname">search</tt><big>(</big><em>query=None</em>, <em>filter=None</em>, <em>count=None</em>, <em>sort=None</em>, <em>reverse=False</em>, <em>scores=False</em>, <em>maxscore=False</em>, <em>timeout=None</em>, <em>**parser</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.search" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run query and return <a class="reference external" href="#hits">Hits</a>.</p>
+<dd><p>Run query and return <a class="reference internal" href="#hits">Hits</a>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -641,8 +641,8 @@ Document is comprised of name: value pairs, where the values may be one or multi
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>name</strong> &#8211; registered name of field</li>
-<li><strong>cls</strong> &#8211; optional <a class="reference external" href="#field">Field</a> constructor</li>
-<li><strong>params</strong> &#8211; store,index,termvector options compatible with <a class="reference external" href="#field">Field</a></li>
+<li><strong>cls</strong> &#8211; optional <a class="reference internal" href="#field">Field</a> constructor</li>
+<li><strong>params</strong> &#8211; store,index,termvector options compatible with <a class="reference internal" href="#field">Field</a></li>
 </ul>
 </td>
 </tr>
@@ -660,7 +660,7 @@ Document is comprised of name: value pairs, where the values may be one or multi
 <em class="property">class </em><tt class="descclassname">engine.indexers.</tt><tt class="descname">Indexer</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.indexers.Indexer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#engine.indexers.IndexWriter" title="engine.indexers.IndexWriter"><tt class="xref py py-class docutils literal"><span class="pre">engine.indexers.IndexWriter</span></tt></a></p>
 <p>An all-purpose interface to an index.
-Creates an <a class="reference external" href="#indexwriter">IndexWriter</a> with a delegated <a class="reference external" href="#indexsearcher">IndexSearcher</a>.</p>
+Creates an <a class="reference internal" href="#indexwriter">IndexWriter</a> with a delegated <a class="reference internal" href="#indexsearcher">IndexSearcher</a>.</p>
 <dl class="method">
 <dt id="engine.indexers.Indexer.commit">
 <tt class="descname">commit</tt><big>(</big><em>**caches</em><big>)</big><a class="headerlink" href="#engine.indexers.Indexer.commit" title="Permalink to this definition">¶</a></dt>
@@ -784,7 +784,7 @@ Provides a read-only sequence interface to hit objects.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>searcher</strong> &#8211; <a class="reference external" href="#searcher">Searcher</a> which can retrieve documents</li>
+<li><strong>searcher</strong> &#8211; <a class="reference internal" href="#searcher">Searcher</a> which can retrieve documents</li>
 <li><strong>ids</strong> &#8211; ordered doc ids</li>
 <li><strong>scores</strong> &#8211; ordered doc scores</li>
 <li><strong>count</strong> &#8211; total number of hits</li>
@@ -826,7 +826,7 @@ Provides a read-only sequence interface to hit objects.</p>
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>name</strong> &#8211; name of field</li>
-<li><strong>index, termvector</strong> (<em>store,</em>) &#8211; field parameters, expressed as bools or strs, with lucene defaults</li>
+<li><strong>store,index,termvector</strong> &#8211; field parameters, expressed as bools or strs, with lucene defaults</li>
 <li><strong>attrs</strong> &#8211; additional attributes to set on the field</li>
 </ul>
 </td>
@@ -889,7 +889,7 @@ Original value may be stored for convenience.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>stop, step</strong> (<em>start,</em>) &#8211; optional slice parameters of the prefix depths (not indices)</li>
+<li><strong>start,stop,step</strong> &#8211; optional slice parameters of the prefix depths (not indices)</li>
 </ul>
 </td>
 </tr>
@@ -998,7 +998,7 @@ Works with datetimes, dates, and any object whose string form is a prefix of ISO
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>date</strong> &#8211; origin date or tuple</li>
-<li><strong>delta</strong> (<em>days,</em>) &#8211; timedelta parameters</li>
+<li><strong>days,delta</strong> &#8211; timedelta parameters</li>
 </ul>
 </td>
 </tr>
@@ -1047,7 +1047,7 @@ If the delta is an exact number of days, then dates will be used.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>weeks</strong> (<em>days,</em>) &#8211; number of days to offset from today</li>
+<li><strong>days,weeks</strong> &#8211; number of days to offset from today</li>
 <li><strong>utc</strong> &#8211; optionally use utc instead of local time</li>
 <li><strong>delta</strong> &#8211; additional timedelta parameters</li>
 </ul>
@@ -1145,7 +1145,7 @@ Points must still be stored if exact distances are required upon retrieval.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>lat</strong> (<em>lng,</em>) &#8211; point</li>
+<li><strong>lng,lat</strong> &#8211; point</li>
 <li><strong>distance</strong> &#8211; search radius in meters</li>
 <li><strong>limit</strong> &#8211; maximum number of tiles to consider</li>
 </ul>
@@ -1194,7 +1194,7 @@ Supports datetimes, dates, and any prefix of time tuples.</p>
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>date</strong> &#8211; origin date or tuple</li>
-<li><strong>delta</strong> (<em>days,</em>) &#8211; timedelta parameters</li>
+<li><strong>days,delta</strong> &#8211; timedelta parameters</li>
 </ul>
 </td>
 </tr>
@@ -1236,7 +1236,7 @@ If the delta is an exact number of days, then dates will be used.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>weeks</strong> (<em>days,</em>) &#8211; number of days to offset from today</li>
+<li><strong>days,weeks</strong> &#8211; number of days to offset from today</li>
 <li><strong>utc</strong> &#8211; optionally use utc instead of local time</li>
 <li><strong>delta</strong> &#8211; additional timedelta parameters</li>
 </ul>
@@ -1288,6 +1288,12 @@ Uses class methods and operator overloading for convenient query construction.</
 <dt id="engine.queries.Query.any">
 <em class="property">classmethod </em><tt class="descname">any</tt><big>(</big><em>*queries</em>, <em>**terms</em><big>)</big><a class="headerlink" href="#engine.queries.Query.any" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return <a class="reference internal" href="#engine.queries.BooleanQuery" title="engine.queries.BooleanQuery"><tt class="xref py py-class docutils literal"><span class="pre">BooleanQuery</span></tt></a> (OR) from queries and terms.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="engine.queries.Query.disjunct">
+<em class="property">classmethod </em><tt class="descname">disjunct</tt><big>(</big><em>multiplier</em>, <em>*queries</em>, <em>**terms</em><big>)</big><a class="headerlink" href="#engine.queries.Query.disjunct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return lucene DisjunctionMaxQuery from queries and terms.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1561,7 +1567,7 @@ Supply a vocabulary mapping words to (reverse) sort keys, such as document frequ
 <dt id="engine.queries.SpellParser">
 <em class="property">class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">SpellParser</tt><a class="headerlink" href="#engine.queries.SpellParser" title="Permalink to this definition">¶</a></dt>
 <dd><p>Inherited lucene QueryParser which corrects spelling.
-Assign a <a class="reference external" href="#searcher">searcher</a> attribute or override <a class="reference internal" href="#engine.queries.SpellParser.correct" title="engine.queries.SpellParser.correct"><tt class="xref py py-meth docutils literal"><span class="pre">correct()</span></tt></a> implementation.</p>
+Assign a <a class="reference internal" href="#searcher">searcher</a> attribute or override <a class="reference internal" href="#engine.queries.SpellParser.correct" title="engine.queries.SpellParser.correct"><tt class="xref py py-meth docutils literal"><span class="pre">correct()</span></tt></a> implementation.</p>
 <dl class="method">
 <dt id="engine.queries.SpellParser.correct">
 <tt class="descname">correct</tt><big>(</big><em>term</em><big>)</big><a class="headerlink" href="#engine.queries.SpellParser.correct" title="Permalink to this definition">¶</a></dt>
@@ -1687,7 +1693,7 @@ Subclasses should implement items and prefix methods.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>lat</strong> (<em>lng,</em>) &#8211; point</li>
+<li><strong>lng,lat</strong> &#8211; point</li>
 <li><strong>distance</strong> &#8211; search radius in meters</li>
 <li><strong>limit</strong> &#8211; maximum number of tiles to consider</li>
 </ul>
@@ -1845,8 +1851,8 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.
+        &copy; Copyright 2009-2010, Aric Coady.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.4.
     </div>
   </body>
 </html>

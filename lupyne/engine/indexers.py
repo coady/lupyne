@@ -303,7 +303,7 @@ class Searcher(object):
                 self.shared.add(directory)
             yield directory
     def reopen(self, filters=False, spellcheckers=False):
-        """Return current Searcher, only creating a new one if necessary.
+        """Return current `Searcher`_, only creating a new one if necessary.
         
         :param filters: refresh cached facet :attr:`filters`
         :param spellcheckers: refresh cached :attr:`spellcheckers`

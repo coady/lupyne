@@ -14,7 +14,7 @@ class Field(object):
     """Saved parameters which can generate lucene Fields given values.
     
     :param name: name of field
-    :param store, index, termvector: field parameters, expressed as bools or strs, with lucene defaults
+    :param store,index,termvector: field parameters, expressed as bools or strs, with lucene defaults
     :param attrs: additional attributes to set on the field
     """
     def __init__(self, name, store=False, index='analyzed', termvector=False, **attrs):
@@ -56,7 +56,7 @@ class PrefixField(Field):
     The customizable component field names are expressed as slices.
     Original value may be stored for convenience.
     
-    :param start, stop, step: optional slice parameters of the prefix depths (not indices)
+    :param start,stop,step: optional slice parameters of the prefix depths (not indices)
     """
     def __init__(self, name, start=1, stop=None, step=1, index=True, **kwargs):
         Field.__init__(self, name, index=index, **kwargs)
@@ -168,7 +168,7 @@ class DateTimeField(PrefixField):
         """Return date range query within time span of date.
         
         :param date: origin date or tuple
-        :param days, delta: timedelta parameters
+        :param days,delta: timedelta parameters
         """
         if not isinstance(date, datetime.date):
             date = tuple(date) + (None, 1, 1)[len(date):]
@@ -179,7 +179,7 @@ class DateTimeField(PrefixField):
         """Return date range query within current time and delta.
         If the delta is an exact number of days, then dates will be used.
         
-        :param days, weeks: number of days to offset from today
+        :param days,weeks: number of days to offset from today
         :param utc: optionally use utc instead of local time
         :param delta: additional timedelta parameters
         """

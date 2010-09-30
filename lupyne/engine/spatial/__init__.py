@@ -89,7 +89,7 @@ class SpatialField(Field, Tiler):
     def within(self, lng, lat, distance, limit=Tiler.base):
         """Return prefix queries for any tiles which could be within distance of given point.
         
-        :param lng, lat: point
+        :param lng,lat: point
         :param distance: search radius in meters
         :param limit: maximum number of tiles to consider
         """

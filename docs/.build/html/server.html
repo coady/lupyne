@@ -59,6 +59,7 @@
 <dd><ul class="first last simple">
 <li>Monitors (such as autoreload) are not compatible with the VM unless threads are attached.</li>
 <li>WorkerThreads must be also attached to the VM.</li>
+<li>VM initialization must occur after daemonizing.</li>
 <li>Recommended that the VM ignores keyboard interrupts (-Xrs) for clean server shutdown.</li>
 </ul>
 </dd>
@@ -375,7 +376,7 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
 
 <dl class="method">
 <dt id="server.WebIndexer.docs">
-<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=None</em>, <em>multifields=''</em>, <em>docs='</em><span class="optional">[</span><span class="optional">]</span>, <em>'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.docs" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=None</em>, <em>multifields=''</em>, <em>docs='[]'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.docs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add or return documents.  See <a class="reference internal" href="#server.WebSearcher.docs" title="server.WebSearcher.docs"><tt class="xref py py-meth docutils literal"><span class="pre">WebSearcher.docs()</span></tt></a> for GET method.</p>
 <dl class="docutils">
 <dt><strong>POST</strong> /docs</dt>
@@ -435,9 +436,21 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
 <h2>start<a class="headerlink" href="#start" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="server.start">
-<tt class="descclassname">server.</tt><tt class="descname">start</tt><big>(</big><em>root</em>, <em>path=''</em>, <em>config=None</em>, <em>pidfile=''</em>, <em>daemonize=False</em>, <em>autoreload=0</em>, <em>autorefresh=0</em><big>)</big><a class="headerlink" href="#server.start" title="Permalink to this definition">¶</a></dt>
-<dd><p>Attach root, subscribe to plugins, and start server.
-See cherrypy.quickstart and command-line options for documentation.</p>
+<tt class="descclassname">server.</tt><tt class="descname">start</tt><big>(</big><em>root</em>, <em>path=''</em>, <em>config=None</em>, <em>pidfile=''</em>, <em>daemonize=False</em>, <em>autoreload=0</em>, <em>autorefresh=0</em>, <em>callback=None</em><big>)</big><a class="headerlink" href="#server.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attach root, subscribe to plugins, and start server.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>root,path,config</strong> &#8211; see cherrypy.quickstart</li>
+<li><strong>daemonize,autoreload,autorefresh</strong> &#8211; see command-line options</li>
+<li><strong>callback</strong> &#8211; optional callback function scheduled after daemonizing</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -507,8 +520,8 @@ See cherrypy.quickstart and command-line options for documentation.</p>
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.
+        &copy; Copyright 2009-2010, Aric Coady.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.4.
     </div>
   </body>
 </html>

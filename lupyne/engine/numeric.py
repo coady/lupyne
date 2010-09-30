@@ -59,7 +59,7 @@ class PointField(spatial.SpatialField, NumericField):
     def within(self, lng, lat, distance, limit=spatial.Tiler.base):
         """Return range queries for any tiles which could be within distance of given point.
         
-        :param lng, lat: point
+        :param lng,lat: point
         :param distance: search radius in meters
         :param limit: maximum number of tiles to consider
         """

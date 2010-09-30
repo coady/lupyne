@@ -54,10 +54,10 @@
   <div class="section" id="module-client">
 <span id="client"></span><h1>client<a class="headerlink" href="#module-client" title="Permalink to this headline">¶</a></h1>
 <p>Restful json clients.</p>
-<p>Use <a class="reference external" href="#resource">Resource</a> for a single host.
-Use <a class="reference external" href="#resources">Resources</a> for multiple hosts with simple partitioning or redundancy.
-Use <a class="reference external" href="#shards">Shards</a> for horizontally partitioning hosts by different keys.</p>
-<p><a class="reference external" href="#resources">Resources</a> optionally reuse connections, handling request timeouts.
+<p>Use <a class="reference internal" href="#resource">Resource</a> for a single host.
+Use <a class="reference internal" href="#resources">Resources</a> for multiple hosts with simple partitioning or redundancy.
+Use <a class="reference internal" href="#shards">Shards</a> for horizontally partitioning hosts by different keys.</p>
+<p><a class="reference internal" href="#resources">Resources</a> optionally reuse connections, handling request timeouts.
 Broadcasting to multiple resources is parallelized with asynchronous requests and responses.</p>
 <p>The load balancing strategy is randomized, biased by the number of cached connections available.
 This inherently provides limited failover support, but applications must still handle exceptions as desired.</p>
@@ -105,7 +105,7 @@ This inherently provides limited failover support, but applications must still h
 <h2>Resource<a class="headerlink" href="#resource" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="client.Resource">
-<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x1001da810&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x1001da740&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">httplib.HTTPConnection</span></tt></p>
 <p>Synchronous connection which handles json responses.</p>
 <dl class="method">
@@ -240,7 +240,7 @@ This inherently provides limited failover support, but applications must still h
 <dl class="attribute">
 <dt id="client.Shards.resources">
 <tt class="descname">resources</tt><a class="headerlink" href="#client.Shards.resources" title="Permalink to this definition">¶</a></dt>
-<dd><p><a class="reference external" href="#resources">Resources</a> mapping.</p>
+<dd><p><a class="reference internal" href="#resources">Resources</a> mapping.</p>
 </dd></dl>
 
 <dl class="method">
@@ -343,8 +343,8 @@ Response overlap is possible depending on partitioning.</p>
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2009, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.
+        &copy; Copyright 2009-2010, Aric Coady.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.4.
     </div>
   </body>
 </html>
