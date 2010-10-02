@@ -485,6 +485,11 @@ class TestCase(BaseTest):
         assert str(field.range(-2**64, 0)) == 'size:[* TO 0}'
         assert str(field.range(0, 2**64)) == 'size:[0 TO *}'
         assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
+        for step, count in zip(range(0, 20, field.step), (26, 19, 3, 1)):
+            sizes = list(indexer.numbers('size', step))
+            assert len(sizes) == count and all(isinstance(size, int) for size in sizes)
+            numbers = dict(indexer.numbers('size', step, type=float, counts=True))
+            assert sum(numbers.values()) == len(indexer) and all(isinstance(number, float) for number in numbers)
     
     def testHighlighting(self):
         "Highlighting text fragments."

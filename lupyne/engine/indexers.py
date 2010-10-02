@@ -198,6 +198,23 @@ class IndexReader(object):
                     break
                 yield (text, termenum.docFreq()) if counts else text
                 term = termenum.next() and termenum.term()
+    def numbers(self, name, step=0, type=int, counts=False):
+        """Generate decoded numeric term values, optionally with frequency counts.
+        
+        :param name: field name
+        :param step: precision step to select terms
+        :param type: int or float
+        :param counts: include frequency counts
+        """
+        term = lucene.Term(name, chr(ord(' ') + step))
+        decode = lucene.NumericUtils.prefixCodedToLong
+        convert = lucene.NumericUtils.sortableLongToDouble if issubclass(type, float) else int
+        with contextlib.closing(lucene.PrefixTermEnum(self.indexReader, term)) as termenum:
+            term = termenum.term()
+            while term:
+                value = convert(decode(term.text()))
+                yield (value, termenum.docFreq()) if counts else value
+                term = termenum.next() and termenum.term()
     def docs(self, name, value, counts=False):
         "Generate doc ids which contain given term, optionally with frequency counts."
         with contextlib.closing(self.termDocs(lucene.Term(name, value))) as termdocs:
