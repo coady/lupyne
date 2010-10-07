@@ -5,6 +5,7 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 """
 
 from future_builtins import map, zip
+import os
 import itertools, operator
 import contextlib
 import abc, collections
@@ -165,6 +166,32 @@ class IndexReader(object):
     def directory(self):
         "reader's lucene Directory"
         return self.indexReader.directory()
+    def copy(self, dest, query=None, exclude=None, optimize=False):
+        """Copy the index to the destination directory.
+        Optimized to use hard links if the destination is a file system path.
+        
+        :param dest: destination directory path or lucene Directory
+        :param query: optional lucene Query to select documents
+        :param exclude: optional lucene Query to exclude documents
+        :param optimize: optionally optimize destination index
+        """
+        if isinstance(dest, lucene.Directory):
+            lucene.Directory.copy(self.directory, dest, False)
+        else:
+            src = lucene.FSDirectory.cast_(self.directory).file.path
+            os.path.isdir(dest) or os.makedirs(dest)
+            for filename in set(self.directory.listAll()).difference(['write.lock']):
+                os.link(os.path.join(src, filename), os.path.join(dest, filename))
+        with contextlib.closing(IndexWriter(dest)) as writer:
+            if query:
+                writer.delete(Query(lucene.MatchAllDocsQuery) - query)
+            if exclude:
+                writer.delete(exclude)
+            writer.commit()
+            writer.expungeDeletes()
+            if optimize:
+                writer.optimize()
+        return len(writer)
     def count(self, name, value):
         "Return number of documents with given term."
         return self.docFreq(lucene.Term(name, value))

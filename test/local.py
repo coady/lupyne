@@ -349,6 +349,17 @@ class TestCase(BaseTest):
             assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)
             hits = indexer.search(query, count=count, timeout=-1)
             assert len(hits) == 0 and hits.count is hits.maxscore is None
+        directory = lucene.RAMDirectory()
+        query = engine.Query.term('state', 'CA')
+        size = indexer.copy(directory, query)
+        searcher = engine.IndexSearcher(directory)
+        assert len(searcher) == size and list(searcher.terms('state')) == ['CA']
+        path = os.path.join(self.tempdir, 'temp')
+        size = indexer.copy(path, exclude=query, optimize=True)
+        assert len(searcher) + size == len(indexer)
+        searcher = engine.IndexSearcher(path)
+        assert searcher.optimized and 'CA' not in searcher.terms('state')
+        directory.close()
     
     def testSpatial(self):
         "Spatial tile test."
