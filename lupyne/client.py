@@ -90,11 +90,11 @@ class Resources(dict):
         resource.request(method, path, body)
         return resource
     def getresponse(self, host, resource):
-        "Return response and release resource."
+        "Return response and release resource if request completed."
         response = resource.getresponse()
         if response.status != httplib.REQUEST_TIMEOUT:
             self[host].append(resource)
-        return response
+            return response
     def priority(self, host):
         "Return priority for host.  None may be used to eliminate from consideration."
         return -len(self[host])
@@ -108,23 +108,23 @@ class Resources(dict):
     def unicast(self, method, path, body=None, hosts=()):
         "Send request and return response from any host, optionally from given subset."
         host = self.choice(tuple(hosts) or self)
-        while True:
-            resource = self.request(host, method, path, body)
-            response = self.getresponse(host, resource)
-            if response.status != httplib.REQUEST_TIMEOUT:
-                return response
+        resource = self.request(host, method, path, body)
+        response = self.getresponse(host, resource)
+        if response is None:
+            resource.request(method, path, body)
+            response = resource.getresponse()
+        return response
     def broadcast(self, method, path, body=None, hosts=()):
         "Send requests and return responses from all hosts, optionally from given subset."
         hosts = tuple(hosts) or self
-        responses = {}
-        resources = dict((host, self.request(host, method, path, body)) for host in hosts)
-        while resources:
-            for host in list(resources):
-                resource = resources.pop(host)
-                response = responses[host] = self.getresponse(host, resource)
-                if response.status == httplib.REQUEST_TIMEOUT:
-                    resources[host] = self.request(host, method, path, body)
-        return list(map(responses.__getitem__, hosts))
+        resources = [self.request(host, method, path, body) for host in hosts]
+        responses = list(map(self.getresponse, hosts, resources))
+        indices = [index for index, response in enumerate(responses) if response is None]
+        for index in indices:
+            resources[index].request(method, path, body)
+        for index in indices:
+            responses[index] = resources[index].getresponse()
+        return responses
 
 class Shards(dict):
     """Mapping of keys to host clusters, with associated resources.
@@ -154,7 +154,7 @@ class Shards(dict):
         """Send requests and return responses from a minimal subset of hosts which cover all corresponding keys.
         Response overlap is possible depending on partitioning.
         """
-        shards = [frozenset()]
+        shards = frozenset(),
         for key in keys:
             shards = set(hosts.union([host]) for hosts, host in itertools.product(shards, self[key]))
         return self.resources.broadcast(method, path, body, self.choice(shards))
