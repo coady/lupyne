@@ -65,7 +65,7 @@ class TestCase(BaseTest):
         assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('text/x-json')
         (directory, count), = response().items()
         assert count == 0 and 'FSDirectory@' in directory
-        assert not resource('HEAD', '/')
+        assert resource.call('HEAD', '/').status == httplib.OK
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.put('/')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
@@ -157,6 +157,8 @@ class TestCase(BaseTest):
         assert resource.get('/docs') == []
         with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
             resource.post('/refresh', spellcheckers=True)
+        responses = resource.multicall(('POST', '/docs', {'docs': [{}]}), ('POST', '/commit'), ('GET', '/docs'))
+        assert responses[0].status == httplib.ACCEPTED and responses[1]() == 1 and responses[2]() == [1]
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')

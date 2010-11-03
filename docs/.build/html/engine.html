@@ -216,6 +216,27 @@ Map values into a list for speed optimization.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="engine.indexers.IndexReader.copy">
+<tt class="descname">copy</tt><big>(</big><em>dest</em>, <em>query=None</em>, <em>exclude=None</em>, <em>optimize=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy the index to the destination directory.
+Optimized to use hard links if the destination is a file system path.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dest</strong> &#8211; destination directory path or lucene Directory</li>
+<li><strong>query</strong> &#8211; optional lucene Query to select documents</li>
+<li><strong>exclude</strong> &#8211; optional lucene Query to exclude documents</li>
+<li><strong>optimize</strong> &#8211; optionally optimize destination index</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="engine.indexers.IndexReader.count">
 <tt class="descname">count</tt><big>(</big><em>name</em>, <em>value</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.count" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return number of documents with given term.</p>
@@ -256,6 +277,26 @@ Map values into a list for speed optimization.</p>
 <dt id="engine.indexers.IndexReader.names">
 <tt class="descname">names</tt><big>(</big><em>option='all'</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.names" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return field names, given option description.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.IndexReader.numbers">
+<tt class="descname">numbers</tt><big>(</big><em>name</em>, <em>step=0</em>, <em>type=&lt;type 'int'&gt;</em>, <em>counts=False</em><big>)</big><a class="headerlink" href="#engine.indexers.IndexReader.numbers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate decoded numeric term values, optionally with frequency counts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; field name</li>
+<li><strong>step</strong> &#8211; precision step to select terms</li>
+<li><strong>type</strong> &#8211; int or float</li>
+<li><strong>counts</strong> &#8211; include frequency counts</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">

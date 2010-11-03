@@ -55,21 +55,33 @@ class Resource(httplib.HTTPConnection):
             headers.update({'content-length': str(len(body)), 'content-type': 'application/x-www-form-urlencoded'})
         httplib.HTTPConnection.request(self, method, path, body, headers)
     def __call__(self, method, path, body=None):
-        "Send request and return evaluated response body."
+        return self.call(method, path, body)()
+    def call(self, method, path, body=None):
+        "Send request and return completed `response`_."
         self.request(method, path, body)
-        return self.getresponse()()
+        return self.getresponse()
+    def multicall(self, *requests):
+        "Pipeline requests (method, path[, body]) and return completed responses."
+        responses = []
+        for request in requests:
+            self.request(*request)
+            responses.append(self.response_class(self.sock, self.debuglevel, self.strict, self._method))
+            self._HTTPConnection__state = 'Idle'
+        for response in responses:
+            response.begin()
+        return responses
     def get(self, path, **params):
         if params:
             path += '?' + urllib.urlencode(params, doseq=True)
-        return self('GET', path)
+        return self.call('GET', path)()
     def post(self, path, **body):
-        return self('POST', path, body)
+        return self.call('POST', path, body)()
     def put(self, path, **body):
-        return self('PUT', path, body)
+        return self.call('PUT', path, body)()
     def delete(self, path, **params):
         if params:
             path += '?' + urllib.urlencode(params, doseq=True)
-        return self('DELETE', path)
+        return self.call('DELETE', path)()
 
 class Resources(dict):
     """Thread-safe mapping of hosts to optionally persistent resources.
@@ -82,7 +94,7 @@ class Resources(dict):
     def __init__(self, hosts, limit=0):
         self.update((host, self.Manager(maxlen=limit)) for host in hosts)
     def request(self, host, method, path, body=None):
-        "Send request to given host and return exclusive resource."
+        "Send request to given host and return exclusive `resource`_."
         try:
             resource = self[host].popleft()
         except IndexError:
@@ -90,7 +102,7 @@ class Resources(dict):
         resource.request(method, path, body)
         return resource
     def getresponse(self, host, resource):
-        "Return response and release resource if request completed."
+        "Return `response`_ and release `resource`_ if request completed."
         response = resource.getresponse()
         if response.status != httplib.REQUEST_TIMEOUT:
             self[host].append(resource)
@@ -106,14 +118,11 @@ class Resources(dict):
         priorities.pop(None, None)
         return random.choice(priorities[min(priorities)])
     def unicast(self, method, path, body=None, hosts=()):
-        "Send request and return response from any host, optionally from given subset."
+        "Send request and return `response`_ from any host, optionally from given subset."
         host = self.choice(tuple(hosts) or self)
         resource = self.request(host, method, path, body)
         response = self.getresponse(host, resource)
-        if response is None:
-            resource.request(method, path, body)
-            response = resource.getresponse()
-        return response
+        return response or resource.call(method, path, body)
     def broadcast(self, method, path, body=None, hosts=()):
         "Send requests and return responses from all hosts, optionally from given subset."
         hosts = tuple(hosts) or self
@@ -127,7 +136,7 @@ class Resources(dict):
         return responses
 
 class Shards(dict):
-    """Mapping of keys to host clusters, with associated resources.
+    """Mapping of keys to host clusters, with associated `resources`_.
     
     :param items: host, key pairs
     :param limit: maximum number of cached connections per host
@@ -145,7 +154,7 @@ class Shards(dict):
         if None not in priorities:
             return len(priorities), sum(priorities)
     def unicast(self, key, method, path, body=None):
-        "Send request and return response from any host for corresponding key."
+        "Send request and return `response`_ from any host for corresponding key."
         return self.resources.unicast(method, path, body, self[key])
     def broadcast(self, key, method, path, body=None):
         "Send requests and return responses from all hosts for corresponding key."

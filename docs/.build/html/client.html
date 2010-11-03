@@ -105,19 +105,19 @@ This inherently provides limited failover support, but applications must still h
 <h2>Resource<a class="headerlink" href="#resource" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="client.Resource">
-<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x1001da740&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x102391350&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">httplib.HTTPConnection</span></tt></p>
 <p>Synchronous connection which handles json responses.</p>
-<dl class="method">
-<dt id="client.Resource.__call__">
-<tt class="descname">__call__</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resource.__call__" title="Permalink to this definition">¶</a></dt>
-<dd><p>Send request and return evaluated response body.</p>
-</dd></dl>
-
 <dl class="method">
 <dt id="client.Resource.getresponse">
 <tt class="descname">getresponse</tt><big>(</big><big>)</big><a class="headerlink" href="#client.Resource.getresponse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the response from the server.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="client.Resource.call">
+<tt class="descname">call</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resource.call" title="Permalink to this definition">¶</a></dt>
+<dd><p>Send request and return completed <a class="reference internal" href="#response">response</a>.</p>
 </dd></dl>
 
 <dl class="method">
@@ -129,6 +129,12 @@ This inherently provides limited failover support, but applications must still h
 <dt id="client.Resource.get">
 <tt class="descname">get</tt><big>(</big><em>path</em>, <em>**params</em><big>)</big><a class="headerlink" href="#client.Resource.get" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="client.Resource.multicall">
+<tt class="descname">multicall</tt><big>(</big><em>*requests</em><big>)</big><a class="headerlink" href="#client.Resource.multicall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pipeline requests (method, path[, body]) and return completed responses.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="client.Resource.post">
@@ -194,7 +200,7 @@ This inherently provides limited failover support, but applications must still h
 <dl class="method">
 <dt id="client.Resources.getresponse">
 <tt class="descclassname">Resources.</tt><tt class="descname">getresponse</tt><big>(</big><em>host</em>, <em>resource</em><big>)</big><a class="headerlink" href="#client.Resources.getresponse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return response and release resource.</p>
+<dd><p>Return <a class="reference internal" href="#response">response</a> and release <a class="reference internal" href="#resource">resource</a> if request completed.</p>
 </dd></dl>
 
 <dl class="method">
@@ -206,13 +212,13 @@ This inherently provides limited failover support, but applications must still h
 <dl class="method">
 <dt id="client.Resources.request">
 <tt class="descclassname">Resources.</tt><tt class="descname">request</tt><big>(</big><em>host</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Resources.request" title="Permalink to this definition">¶</a></dt>
-<dd><p>Send request to given host and return exclusive resource.</p>
+<dd><p>Send request to given host and return exclusive <a class="reference internal" href="#resource">resource</a>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.unicast">
 <tt class="descclassname">Resources.</tt><tt class="descname">unicast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.unicast" title="Permalink to this definition">¶</a></dt>
-<dd><p>Send request and return response from any host, optionally from given subset.</p>
+<dd><p>Send request and return <a class="reference internal" href="#response">response</a> from any host, optionally from given subset.</p>
 </dd></dl>
 
 </dd></dl>
@@ -223,7 +229,7 @@ This inherently provides limited failover support, but applications must still h
 <dl class="class">
 <dt id="client.Shards">
 <em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Shards</tt><big>(</big><em>items=()</em>, <em>limit=0</em>, <em>**multimap</em><big>)</big><a class="headerlink" href="#client.Shards" title="Permalink to this definition">¶</a></dt>
-<dd><p>Mapping of keys to host clusters, with associated resources.</p>
+<dd><p>Mapping of keys to host clusters, with associated <a class="reference internal" href="#resources">resources</a>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -271,7 +277,7 @@ Response overlap is possible depending on partitioning.</p>
 <dl class="method">
 <dt id="client.Shards.unicast">
 <tt class="descname">unicast</tt><big>(</big><em>key</em>, <em>method</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="headerlink" href="#client.Shards.unicast" title="Permalink to this definition">¶</a></dt>
-<dd><p>Send request and return response from any host for corresponding key.</p>
+<dd><p>Send request and return <a class="reference internal" href="#response">response</a> from any host for corresponding key.</p>
 </dd></dl>
 
 </dd></dl>

@@ -31,8 +31,6 @@ Resource
   :members:
   :undoc-members:
 
-  .. automethod:: __call__
-
   .. automethod:: getresponse
 
 Resources
