@@ -327,7 +327,8 @@ class WebSearcher(object):
             start, stop = value.split(':')
             return list(self.indexer.terms(name, start, stop or None))
         if 'count' in options:
-            count = int(options['count'])
+            with HTTPError(httplib.BAD_REQUEST, ValueError):
+                count = int(options['count'])
             if value.endswith('*'):
                 return self.indexer.suggest(name, value.rstrip('*'), count)
             if value.endswith('~'):
@@ -425,15 +426,16 @@ class WebIndexer(WebSearcher):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
 
-def start(root, path='', config=None, pidfile='', daemonize=False, autoreload=0, autorefresh=0, callback=None):
+def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autorefresh=0, callback=None):
     """Attach root, subscribe to plugins, and start server.
     
     :param root,path,config: see cherrypy.quickstart
-    :param daemonize,autoreload,autorefresh: see command-line options
+    :param pidfile,daemonize,autoreload,autorefresh: see command-line options
     :param callback: optional callback function scheduled after daemonizing
     """
     cherrypy.engine.subscribe('start_thread', attach_thread)
-    cherrypy.engine.subscribe('stop', root.close)
+    if hasattr(root, 'close'):
+        cherrypy.engine.subscribe('stop', root.close)
     cherrypy.config['engine.autoreload.on'] = False
     if pidfile:
         cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(pidfile)).subscribe()

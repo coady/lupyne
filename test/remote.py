@@ -115,6 +115,8 @@ class TestCase(BaseTest):
         assert resource.get('/terms/text/world') == 1
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/terms/text/world~-')
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.get('/terms/text/world~?count=')
         assert resource.get('/terms/text/world/docs') == [0]
         assert resource.get('/terms/text/world/docs/counts') == [[0, 1]]
         assert resource.get('/terms/text/world/docs/positions') == [[0, [1]]]
