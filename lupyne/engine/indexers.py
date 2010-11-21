@@ -505,6 +505,15 @@ class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
     """
     def __init__(self, directory, analyzer=None):
         Searcher.__init__(self, *self.open(directory), analyzer=analyzer)
+    @classmethod
+    def load(cls, directory, analyzer=None):
+        "Open `Searcher`_ with a lucene RAMDirectory, loading index into memory."
+        if isinstance(directory, basestring):
+            directory = lucene.FSDirectory.open(lucene.File(directory))
+            ref = closing([directory])
+        self = cls(lucene.RAMDirectory(directory), analyzer)
+        self.shared.add(self.directory)
+        return self
 
 class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
     """Inherited lucene MultiSearcher.
@@ -576,7 +585,7 @@ class IndexWriter(lucene.IndexWriter):
         doc.boost = boost
         for name, values in terms.items():
             if isinstance(values, Atomic):
-                values = [values] 
+                values = values,
             for field in self.fields[name].items(*values):
                 doc.add(field)
         self.addDocument(doc)

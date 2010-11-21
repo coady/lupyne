@@ -144,6 +144,8 @@ class TestCase(BaseTest):
         for doc in fixture.constitution.docs():
             indexer.add(doc, boost=('article' in doc) + 1.0)
         indexer.commit()
+        searcher = engine.IndexSearcher.load(self.tempdir)
+        assert len(indexer) == len(searcher) and lucene.RAMDirectory.instance_(searcher.directory)
         assert indexer.filters == indexer.spellcheckers == {}
         assert indexer.facets([], 'amendment') and indexer.suggest('amendment', '')
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
