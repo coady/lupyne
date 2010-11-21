@@ -54,8 +54,6 @@ class Resource(httplib.HTTPConnection):
                 for name, value in body.items()))
             headers.update({'content-length': str(len(body)), 'content-type': 'application/x-www-form-urlencoded'})
         httplib.HTTPConnection.request(self, method, path, body, headers)
-    def __call__(self, method, path, body=None):
-        return self.call(method, path, body)()
     def call(self, method, path, body=None):
         "Send request and return completed `response`_."
         self.request(method, path, body)
@@ -122,7 +120,7 @@ class Resources(dict):
         host = self.choice(tuple(hosts) or self)
         resource = self.request(host, method, path, body)
         response = self.getresponse(host, resource)
-        return response or resource.call(method, path, body)
+        return resource.call(method, path, body) if response is None else response
     def broadcast(self, method, path, body=None, hosts=()):
         "Send requests and return responses from all hosts, optionally from given subset."
         hosts = tuple(hosts) or self

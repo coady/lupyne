@@ -192,11 +192,8 @@ class Document(object):
     """Delegated lucene Document.
     Provides mapping interface of field names to values, but duplicate field names are allowed.
     """
-    def __init__(self, doc=None):
-        self.doc = lucene.Document() if doc is None else doc
-    def add(self, name, value, cls=Field, **params):
-        for field in cls(name, **params).items(value):
-            self.doc.add(field)
+    def __init__(self, doc):
+        self.doc = doc
     def fields(self):
         "Generate lucene Fields."
         return map(lucene.Field.cast_, self.doc.getFields())
@@ -220,8 +217,6 @@ class Document(object):
         "Return field value if present, else default."
         value = self.doc[name]
         return default if value is None else value
-    def __delitem__(self, name):
-        self.doc.removeFields(name)
     def getlist(self, name):
         "Return list of all values for given field."
         return list(self.doc.getValues(name))
