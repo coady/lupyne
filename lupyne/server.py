@@ -257,11 +257,11 @@ class WebSearcher(object):
             hl = dict((name, searcher.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             count = int(options.get('hl.count', 1))
+        multifields = list(filter(None, multifields.split(',')))
         if fields is not None:
-            fields = dict.fromkeys(filter(None, fields.split(',')))
+            fields = dict.fromkeys(filter(None, (fields or '__id__').split(',')))
             hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multifields, hl)))
         fields = fields or {}
-        multifields = list(filter(None, multifields.split(',')))
         for hit in hits[start:]:
             doc = hit.dict(*multifields, **fields)
             result['docs'].append(doc)

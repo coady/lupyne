@@ -128,6 +128,10 @@ class TestCase(BaseTest):
             resource.get('/search', count=1, sort='x:str')
         assert resource.get('/search', count=0) == {'count': 1, 'maxscore': 1.0, 'query': None, 'docs': []}
         assert resource.get('/search', fields='')['docs'] == [{'__id__': 0, '__score__': 1.0}]
+        hit, = resource.get('/search', fields='', multifields='name')['docs']
+        assert hit == {'__id__': 0, 'name': ['sample'], '__score__': 1.0}
+        hit, = resource.get('/search', q='name:sample', fields='', hl='name')['docs']
+        assert sorted(hit) == ['__highlights__', '__id__', '__score__']
         result = resource.get('/search', q='text:hello')
         assert result == resource.get('/search?q=hello&q.field=text')
         assert result['count'] == resource.get('/search')['count'] == 1
