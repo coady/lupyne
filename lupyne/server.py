@@ -267,6 +267,7 @@ class WebSearcher(object):
             result['docs'].append(doc)
             if hl:
                 doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], count)) for name in hl if name in hit)
+        q = q or lucene.MatchAllDocsQuery()
         if facets:
             result['facets'] = searcher.facets(engine.Query.__dict__['filter'](q), *facets.split(','))
         if spellcheck:
@@ -357,7 +358,7 @@ class WebIndexer(WebSearcher):
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
     def refresh(self, **caches):
-        raise cherrypy.HTTPRedirect('/commit', httplib.MOVED_PERMANENTLY)
+        raise cherrypy.HTTPRedirect(cherrypy.request.script_name + '/commit', httplib.MOVED_PERMANENTLY)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
     def commit(self, **caches):

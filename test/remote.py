@@ -148,6 +148,8 @@ class TestCase(BaseTest):
         assert result['query'] == '(body:hello text:hello^4.0) (body:world text:world^4.0)'
         hit, = result['docs']
         assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
+        result = resource.get('/search', facets='name', spellcheck=1)
+        assert result['facets'] == {'name': {'sample': 1}} and result['spellcheck'] == {}
         resource = client.Resource('localhost', self.ports[-1])
         assert resource.get('/docs') == []
         assert resource.post('/refresh', filters=True) == 2
