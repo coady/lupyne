@@ -27,7 +27,7 @@ WebSearcher
 -----------
 .. autoclass:: server.WebSearcher
   :members:
-  :exclude-members: parse
+  :exclude-members: parse, select
 
 WebIndexer
 -----------

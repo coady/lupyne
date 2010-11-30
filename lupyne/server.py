@@ -103,6 +103,15 @@ class WebSearcher(object):
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 options[key] = json.loads(options[key])
         return q and self.indexer.parse(q, field=field, **options)
+    def select(self, fields=None, **options):
+        "Return parsed field selectors: single and multi-valued."
+        if fields is not None:
+            fields = dict.fromkeys(filter(None, fields.split(',')))
+        if 'multifields' in options:
+            options['fields.multi'] = options.pop('multifields')
+            cherrypy.response.headers['Warning'] = '199 lupyne "multifields has been deprecated and renamed fields.multi"'
+        multi = list(filter(None, options.get('fields.multi', '').split(',')))
+        return fields, multi
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
     def refresh(self, **caches):
@@ -125,7 +134,7 @@ class WebSearcher(object):
             return dict((unicode(reader.directory()), reader.numDocs()) for reader in self.indexer.sequentialSubReaders)
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
-    def docs(self, id=None, fields=None, multifields=''):
+    def docs(self, id=None, fields=None, **options):
         """Return ids or documents.
         
         **GET** /docs
@@ -136,24 +145,19 @@ class WebSearcher(object):
         **GET** /docs/*int*?
             Return document mappings, optionally selected unique or multi-valued fields.
             
-            &fields=\ *chars*,...
-            
-            &multifields=\ *chars*,...
+            &fields=\ *chars*,... &fields.multi=\ *chars*,...
             
             :return: {*string*: *string*\|\ *array*,... }
         """
         if id is None:
             return list(self.indexer)
-        with HTTPError(httplib.NOT_FOUND, ValueError):
+        fields, multi = self.select(fields, **options)
+        with HTTPError(httplib.NOT_FOUND, ValueError, lucene.JavaError):
             id = int(id)
-        if fields is not None:
-            fields = dict.fromkeys(filter(None, fields.split(',')))
-        multifields = list(filter(None, multifields.split(',')))
-        with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
-            doc = self.indexer[id] if fields is None else self.indexer.get(id, *itertools.chain(fields, multifields))
-        return doc.dict(*multifields, **(fields or {}))
+            doc = self.indexer[id] if fields is None else self.indexer.get(id, *itertools.chain(fields, multi))
+        return doc.dict(*multi, **(fields or {}))
     @cherrypy.expose
-    def search(self, q=None, count=None, start=0, fields=None, multifields='', sort=None, facets='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
+    def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
         
         **GET** /search?
@@ -169,11 +173,8 @@ class WebSearcher(object):
             &count=\ *int*\ &start=0
                 maximum number of docs to return and offset to start at
             
-            &fields=\ *chars*,...
-                only include selected fields
-            
-            &multifields=\ *chars*,...
-                multi-valued fields returned in an array
+            &fields=\ *chars*,... &fields.multi=\ *chars*,...
+                only include selected fields;  multi-valued fields returned in an array
             
             &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores[=max]
                 | field name, optional type, minus sign indicates descending
@@ -257,13 +258,14 @@ class WebSearcher(object):
             hl = dict((name, searcher.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             count = int(options.get('hl.count', 1))
-        multifields = list(filter(None, multifields.split(',')))
-        if fields is not None:
-            fields = dict.fromkeys(filter(None, (fields or '__id__').split(',')))
-            hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multifields, hl)))
-        fields = fields or {}
+        fields, multi = self.select(fields, **options)
+        if fields is None:
+            fields = {}
+        else:
+            fields = fields or {'__id__': None}
+            hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multi, hl)))
         for hit in hits[start:]:
-            doc = hit.dict(*multifields, **fields)
+            doc = hit.dict(*multi, **fields)
             result['docs'].append(doc)
             if hl:
                 doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], count)) for name in hl if name in hit)
@@ -371,7 +373,7 @@ class WebIndexer(WebSearcher):
         return len(self.indexer)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
-    def docs(self, id=None, fields=None, multifields='', docs='[]'):
+    def docs(self, id=None, docs='[]', fields=None, **options):
         """Add or return documents.  See :meth:`WebSearcher.docs` for GET method.
         
         **POST** /docs
@@ -380,7 +382,7 @@ class WebIndexer(WebSearcher):
             docs=[{*string*: *string*\|\ *array*,... },... ]
         """
         if cherrypy.request.method != 'POST':
-            return WebSearcher.docs(self, id, fields, multifields)
+            return WebSearcher.docs(self, id, fields, **options)
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             docs = json.loads(docs)
         for doc in docs:

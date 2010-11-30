@@ -13,6 +13,7 @@ This inherently provides limited failover support, but applications must still h
 """
 
 from future_builtins import map
+import warnings
 import random
 import itertools
 import collections
@@ -39,6 +40,9 @@ class Response(httplib.HTTPResponse):
         body = self.body
         if body and 'text/x-json' in self.getheader('content-type'):
             body = json.loads(body)
+        code, agent, text = self.getheader('warning', '  ').split(' ', 2)
+        if agent == 'lupyne':
+            warnings.warn(json.loads(text))
         if self:
             return body
         raise httplib.HTTPException(self.status, self.reason, body)

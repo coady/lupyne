@@ -1,5 +1,6 @@
 from future_builtins import map
 import unittest
+import warnings
 import os, sys
 import subprocess
 import operator
@@ -107,8 +108,10 @@ class TestCase(BaseTest):
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
-        assert resource.get('/docs/0', multifields='name') == {'name': ['sample']}
-        assert resource.get('/docs/0', fields='', multifields='missing') == {'missing': []}
+        with warnings.catch_warnings(record=True) as deprecations:
+            assert resource.get('/docs/0', multifields='name') == {'name': ['sample']}
+        assert deprecations
+        assert resource.get('/docs/0', fields='', **{'fields.multi': 'missing'}) == {'missing': []}
         assert resource.get('/terms') == ['name', 'text']
         assert resource.get('/terms', option='unindexed') == []
         assert resource.get('/terms/text') == ['hello', 'world']
@@ -128,7 +131,7 @@ class TestCase(BaseTest):
             resource.get('/search', count=1, sort='x:str')
         assert resource.get('/search', count=0) == {'count': 1, 'maxscore': 1.0, 'query': None, 'docs': []}
         assert resource.get('/search', fields='')['docs'] == [{'__id__': 0, '__score__': 1.0}]
-        hit, = resource.get('/search', fields='', multifields='name')['docs']
+        hit, = resource.get('/search', fields='', **{'fields.multi': 'name'})['docs']
         assert hit == {'__id__': 0, 'name': ['sample'], '__score__': 1.0}
         hit, = resource.get('/search', q='name:sample', fields='', hl='name')['docs']
         assert sorted(hit) == ['__highlights__', '__id__', '__score__']
