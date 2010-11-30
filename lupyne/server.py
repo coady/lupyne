@@ -62,14 +62,14 @@ class Autoreloader(cherrypy.process.plugins.Autoreloader):
         lucene.getVMEnv().attachCurrentThread()
         cherrypy.process.plugins.Autoreloader.run(self)
 
-class Autorefresher(cherrypy.process.plugins.Monitor):
-    "Automatically refresh WebSearcher."
-    def __init__(self, bus, root, frequency):
+class AttachedMonitor(cherrypy.process.plugins.Monitor):
+    "Periodically run a callback function in an attached thread."
+    def __init__(self, bus, callback, frequency=cherrypy.process.plugins.Monitor.frequency):
         cherrypy.process.plugins.Monitor.__init__(self, bus, self.run, frequency)
-        self.method = getattr(root, 'commit', root.refresh)
+        self._callback = callback
     def run(self):
         lucene.getVMEnv().attachCurrentThread()
-        self.method()
+        self._callback()
 
 @contextmanager
 def HTTPError(status, *exceptions):
@@ -446,7 +446,7 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
     if autoreload:
         Autoreloader(cherrypy.engine, autoreload).subscribe()
     if autorefresh:
-        Autorefresher(cherrypy.engine, root, autorefresh).subscribe()
+        AttachedMonitor(cherrypy.engine, getattr(root, 'commit', root.refresh), autorefresh).subscribe()
     if callback:
         priority = (cherrypy.process.plugins.Daemonizer.start.priority + cherrypy.server.start.priority) // 2
         cherrypy.engine.subscribe('start', callback, priority)
