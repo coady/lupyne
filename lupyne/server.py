@@ -104,14 +104,15 @@ class WebSearcher(object):
                 options[key] = json.loads(options[key])
         return q and self.indexer.parse(q, field=field, **options)
     def select(self, fields=None, **options):
-        "Return parsed field selectors: single and multi-valued."
+        "Return parsed field selectors: stored, multi-valued, and indexed."
         if fields is not None:
             fields = dict.fromkeys(filter(None, fields.split(',')))
         if 'multifields' in options:
             options['fields.multi'] = options.pop('multifields')
             cherrypy.response.headers['Warning'] = '199 lupyne "multifields has been deprecated and renamed fields.multi"'
         multi = list(filter(None, options.get('fields.multi', '').split(',')))
-        return fields, multi
+        indexed = [field.split(':') for field in options.get('fields.indexed', '').split(',') if field]
+        return fields, multi, indexed
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
     def refresh(self, **caches):
@@ -143,19 +144,21 @@ class WebSearcher(object):
             :return: [*int*,... ]
         
         **GET** /docs/*int*?
-            Return document mappings, optionally selected unique or multi-valued fields.
+            Return document mappings, optionally selecting stored, multi-valued, and cached indexed fields.
             
-            &fields=\ *chars*,... &fields.multi=\ *chars*,...
+            &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
             
             :return: {*string*: *string*\|\ *array*,... }
         """
         if id is None:
             return list(self.indexer)
-        fields, multi = self.select(fields, **options)
+        fields, multi, indexed = self.select(fields, **options)
         with HTTPError(httplib.NOT_FOUND, ValueError, lucene.JavaError):
             id = int(id)
             doc = self.indexer[id] if fields is None else self.indexer.get(id, *itertools.chain(fields, multi))
-        return doc.dict(*multi, **(fields or {}))
+        result = doc.dict(*multi, **(fields or {}))
+        result.update((item[0], self.indexer.comparator(*item)[id]) for item in indexed)
+        return result
     @cherrypy.expose
     def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
@@ -173,8 +176,8 @@ class WebSearcher(object):
             &count=\ *int*\ &start=0
                 maximum number of docs to return and offset to start at
             
-            &fields=\ *chars*,... &fields.multi=\ *chars*,...
-                only include selected fields;  multi-valued fields returned in an array
+            &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
+                only include selected stored fields;  multi-valued fields returned in an array; indexed fields are cached
             
             &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores[=max]
                 | field name, optional type, minus sign indicates descending
@@ -258,15 +261,17 @@ class WebSearcher(object):
             hl = dict((name, searcher.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
         with HTTPError(httplib.BAD_REQUEST, ValueError):
             count = int(options.get('hl.count', 1))
-        fields, multi = self.select(fields, **options)
+        fields, multi, indexed = self.select(fields, **options)
         if fields is None:
             fields = {}
         else:
             fields = fields or {'__id__': None}
             hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multi, hl)))
+        indexed = dict((item[0], searcher.comparator(*item)) for item in indexed)
         for hit in hits[start:]:
             doc = hit.dict(*multi, **fields)
             result['docs'].append(doc)
+            doc.update((name, indexed[name][hit.id]) for name in indexed)
             if hl:
                 doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], count)) for name in hl if name in hit)
         q = q or lucene.MatchAllDocsQuery()

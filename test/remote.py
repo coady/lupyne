@@ -187,6 +187,7 @@ class TestCase(BaseTest):
         resource.post('/docs/', docs=list(fixture.constitution.docs()))
         assert resource.get('/').values() == [35]
         resource.post('/commit', spellcheckers=True, filters='')
+        assert resource.get('/docs/0', **{'fields.indexed': 'amendment:int'}) == {'amendment': 0, 'article': 'Preamble'}
         assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
         articles = resource.get('/terms/article')
         articles.remove('Preamble')
@@ -210,6 +211,8 @@ class TestCase(BaseTest):
         assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
         positions = dict(resource.get('/terms/text/people/docs/positions'))
         assert sorted(positions) == docs and list(map(len, positions.values())) == counts.values()
+        doc, = resource.get('/search', q='amendment:1', fields='', **{'fields.indexed': 'article,amendment:int'})['docs']
+        assert doc['amendment'] == 1 and doc['article'] is None
         result = resource.get('/search', **{'q.field': 'text', 'q': 'write "hello world"', 'spellcheck': 3})
         terms = result['spellcheck'].pop('text')
         assert result['docs'] == [] and result['spellcheck'] == {}
