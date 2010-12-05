@@ -160,7 +160,7 @@ class WebSearcher(object):
         result.update((item[0], self.indexer.comparator(*item)[id]) for item in indexed)
         return result
     @cherrypy.expose
-    def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
+    def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
         
         **GET** /search?
@@ -186,6 +186,9 @@ class WebSearcher(object):
             &facets=\ *chars*,...
                 include facet counts for given field names;  facets filters are cached
             
+            &group=\ *chars*\ &group.count=1
+                group documents by field value, up to given maximum count
+            
             &hl=\ *chars*,... &hl.count=1&hl.tag=strong&hl.enable=[fields|terms]
                 | stored fields to return highlighted
                 | optional maximum fragment count and html tag name
@@ -210,6 +213,7 @@ class WebSearcher(object):
                 | "maxscore": *float*\|null,
                 | "docs": [{"__id__": *int*, "__score__": *float*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
                 | "facets": {*string*: {*string*: *int*,... },... },
+                | "groups": [{"count": *int*, "value": *value*, "docs": [{... },... ]},... ]
                 | "spellcheck": {*string*: {*string*: [*string*,... ],... },... },
                 | }
         """
@@ -220,15 +224,18 @@ class WebSearcher(object):
             spellcheck = int(spellcheck)
             if timeout is not None:
                 timeout = float(timeout)
+            gcount = int(options.get('group.count', 1))
+            hlcount = int(options.get('hl.count', 1))
+            if mlt is not None:
+                mlt = int(mlt)
         reverse = False
         searcher = getattr(self.indexer, 'indexSearcher', self.indexer)
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort.split(','))
             sort = [(name, (type.upper() or 'STRING'), (reverse == '-')) for reverse, name, type in sort]
             if count is None:
-                with HTTPError(httplib.BAD_REQUEST, ValueError):
+                with HTTPError(httplib.BAD_REQUEST, ValueError, AttributeError):
                     reverse, = set(reverse for name, type, reverse in sort) # only one sort direction allowed with unlimited count
-                with HTTPError(httplib.BAD_REQUEST, AttributeError):
                     comparators = [searcher.comparator(name, type) for name, type, reverse in sort]
                 sort = comparators[0].__getitem__ if len(comparators) == 1 else lambda id: tuple(map(operator.itemgetter(id), comparators))
             else:
@@ -240,8 +247,6 @@ class WebSearcher(object):
             searcher.filters[qfilter] = engine.Query.__dict__['filter'](self.parse(qfilter, **options))
         qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
-            with HTTPError(httplib.BAD_REQUEST, ValueError):
-                mlt = int(mlt)
             if q is not None:
                 mlt = searcher.search(q, count=mlt+1, sort=sort, reverse=reverse).ids[mlt]
             mltfields = filter(None, options.pop('mlt.fields', '').split(','))
@@ -252,28 +257,44 @@ class WebSearcher(object):
             start = count = 1
         scores = options.get('sort.scores')
         scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
-        hits = searcher.search(q, filter=qfilter, count=count, sort=sort, reverse=reverse, timeout=timeout, **scores)
-        result = {'query': q and unicode(q), 'count': hits.count, 'maxscore': hits.maxscore, 'docs': []}
+        hits = searcher.search(q, filter=qfilter, count=count, sort=sort, reverse=reverse, timeout=timeout, **scores)[start:]
+        result = {'query': q and unicode(q), 'count': hits.count, 'maxscore': hits.maxscore}
         tag = options.get('hl.tag', 'strong')
         field = 'fields' not in options.get('hl.enable', '') or None
         span = 'terms' not in options.get('hl.enable', '')
         if hl:
             hl = dict((name, searcher.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
-        with HTTPError(httplib.BAD_REQUEST, ValueError):
-            count = int(options.get('hl.count', 1))
         fields, multi, indexed = self.select(fields, **options)
         if fields is None:
             fields = {}
         else:
-            fields = fields or {'__id__': None}
             hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multi, hl)))
+            fields = fields or {'__id__': None}
         indexed = dict((item[0], searcher.comparator(*item)) for item in indexed)
-        for hit in hits[start:]:
+        docs = []
+        groups = collections.defaultdict(lambda: {'docs': [], 'count': 0, 'index': len(groups)})
+        if group:
+            group = searcher.comparator(*group.split(':'))
+            ids, scores = [], []
+            for id, score in hits.items():
+                item = groups[group[id]]
+                item['count'] += 1
+                if item['count'] <= gcount:
+                    ids.append(id)
+                    scores.append(score)
+            hits.ids, hits.scores = ids, scores
+        for hit in hits:
             doc = hit.dict(*multi, **fields)
-            result['docs'].append(doc)
             doc.update((name, indexed[name][hit.id]) for name in indexed)
             if hl:
-                doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], count)) for name in hl if name in hit)
+                doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], hlcount)) for name in hl if name in hit)
+            (groups[group[hit.id]]['docs'] if group else docs).append(doc)
+        for name in groups:
+            groups[name]['value'] = name
+        if group:
+            result['groups'] = sorted(groups.values(), key=lambda item: item.pop('index'))
+        else:
+            result['docs'] = docs
         q = q or lucene.MatchAllDocsQuery()
         if facets:
             result['facets'] = searcher.facets(engine.Query.__dict__['filter'](q), *facets.split(','))

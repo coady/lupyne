@@ -289,6 +289,19 @@ class TestCase(BaseTest):
         assert result['count'] == 8 and set(doc['__score__'] for doc in result['docs']) == set([1.0])
         result = resource.get('/search', q='text:right', filter='text:people')
         assert result['count'] == 4 and 0 < result['maxscore'] < 1.0
+        result = resource.get('/search', q='text:right', group='date', **{'group.count': 2})
+        assert 'docs' not in result and len(result['groups']) == 9
+        assert sum(map(operator.itemgetter('count'), result['groups'])) == result['count'] == 13
+        assert all(min(group['count'], 2) >= len(group['docs']) for group in result['groups'])
+        assert all(doc.get('date') == group['value'] for group in result['groups'] for doc in group['docs'])
+        group = result['groups'][0]
+        assert group['value'] == '1791-12-15' and result['groups'][-1]['value'] is None
+        assert sorted(group) == ['count', 'docs', 'value'] and group['count'] == 5
+        assert len(group['docs']) == 2 and group['docs'][0]['amendment'] == '2'
+        result = resource.get('/search', q='text:right', group='amendment:int')
+        assert set(map(operator.itemgetter('count'), result['groups'])) == set([1])
+        assert all(int(doc.get('amendment', 0)) == group['value'] for group in result['groups'] for doc in group['docs'])
+        assert result['groups'][0]['value'] == 2 and result['groups'][-1]['value'] == 0
 
 if __name__ == '__main__':
     lucene.initVM(lucene.CLASSPATH)
