@@ -107,16 +107,22 @@ engine.autoreload</td></tr>
 <div class="section" id="tools">
 <h2>tools<a class="headerlink" href="#tools" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="server.json_tool">
-<tt class="descclassname">server.</tt><tt class="descname">json_tool</tt><big>(</big><em>indent=None</em><big>)</big><a class="headerlink" href="#server.json_tool" title="Permalink to this definition">¶</a></dt>
+<dt id="server.json_">
+<tt class="descclassname">server.</tt><tt class="descname">json_</tt><big>(</big><em>indent=None</em><big>)</big><a class="headerlink" href="#server.json_" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transform responses into json format.
 Specify tools.json.indent for pretty printing.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="server.allow_tool">
-<tt class="descclassname">server.</tt><tt class="descname">allow_tool</tt><big>(</big><em>methods=('GET'</em>, <em>'HEAD')</em><big>)</big><a class="headerlink" href="#server.allow_tool" title="Permalink to this definition">¶</a></dt>
+<dt id="server.allow">
+<tt class="descclassname">server.</tt><tt class="descname">allow</tt><big>(</big><em>methods=('GET'</em>, <em>'HEAD')</em><big>)</big><a class="headerlink" href="#server.allow" title="Permalink to this definition">¶</a></dt>
 <dd><p>Only allow methods specified in tools.allow.methods.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="server.time_">
+<tt class="descclassname">server.</tt><tt class="descname">time_</tt><big>(</big><big>)</big><a class="headerlink" href="#server.time_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return response time in headers.</p>
 </dd></dl>
 
 </div>
@@ -128,7 +134,7 @@ Specify tools.json.indent for pretty printing.</p>
 <dd><p>Dispatch root with a delegated Searcher.</p>
 <dl class="method">
 <dt id="server.WebSearcher.docs">
-<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=None</em>, <em>multifields=''</em><big>)</big><a class="headerlink" href="#server.WebSearcher.docs" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=None</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.docs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return ids or documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /docs</dt>
@@ -143,9 +149,8 @@ Specify tools.json.indent for pretty printing.</p>
 </table>
 </dd>
 <dt><strong>GET</strong> /docs/<em>int</em>?</dt>
-<dd><p class="first">Return document mappings, optionally selected unique or multi-valued fields.</p>
-<p>&amp;fields=<em>chars</em>,...</p>
-<p>&amp;multifields=<em>chars</em>,...</p>
+<dd><p class="first">Return document mappings, optionally selecting stored, multi-valued, and cached indexed fields.</p>
+<p>&amp;fields=<em>chars</em>,... &amp;fields.multi=<em>chars</em>,... &amp;fields.indexed=<em>chars</em>[:<em>chars</em>],...</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -180,13 +185,26 @@ Specify tools.json.indent for pretty printing.</p>
 <dl class="method">
 <dt id="server.WebSearcher.refresh">
 <tt class="descname">refresh</tt><big>(</big><em>**caches</em><big>)</big><a class="headerlink" href="#server.WebSearcher.refresh" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reopen searcher.</p>
-<p><strong>POST</strong> /refresh</p>
+<dd><p>Refresh index.</p>
+<dl class="docutils">
+<dt><strong>POST</strong> /refresh</dt>
+<dd><p class="first">Reopen searcher, optionally reloading caches, and return document count.</p>
+<p>&amp;filters&amp;spellcheckers</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body"><em>int</em></td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="server.WebSearcher.search">
-<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>start=0</em>, <em>fields=None</em>, <em>multifields=''</em>, <em>sort=None</em>, <em>facets=''</em>, <em>hl=''</em>, <em>mlt=None</em>, <em>spellcheck=0</em>, <em>timeout=None</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">search</tt><big>(</big><em>q=None</em>, <em>count=None</em>, <em>start=0</em>, <em>fields=None</em>, <em>sort=None</em>, <em>facets=''</em>, <em>group=''</em>, <em>hl=''</em>, <em>mlt=None</em>, <em>spellcheck=0</em>, <em>timeout=None</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run query and return documents.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /search?</dt>
@@ -202,10 +220,8 @@ Specify tools.json.indent for pretty printing.</p>
 </dd>
 <dt>&amp;count=<em>int</em>&amp;start=0</dt>
 <dd>maximum number of docs to return and offset to start at</dd>
-<dt>&amp;fields=<em>chars</em>,...</dt>
-<dd>only include selected fields</dd>
-<dt>&amp;multifields=<em>chars</em>,...</dt>
-<dd>multi-valued fields returned in an array</dd>
+<dt>&amp;fields=<em>chars</em>,... &amp;fields.multi=<em>chars</em>,... &amp;fields.indexed=<em>chars</em>[:<em>chars</em>],...</dt>
+<dd>only include selected stored fields; multi-valued fields returned in an array; indexed fields are cached</dd>
 <dt>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],... &amp;sort.scores[=max]</dt>
 <dd><div class="first last line-block">
 <div class="line">field name, optional type, minus sign indicates descending</div>
@@ -213,7 +229,9 @@ Specify tools.json.indent for pretty printing.</p>
 </div>
 </dd>
 <dt>&amp;facets=<em>chars</em>,...</dt>
-<dd>include facet counts for given field names;  facets filters are cached</dd>
+<dd>include facet counts for given field names; facets filters are cached</dd>
+<dt>&amp;group=<em>chars</em>&amp;group.count=1</dt>
+<dd>group documents by field value, up to given maximum count</dd>
 <dt>&amp;hl=<em>chars</em>,... &amp;hl.count=1&amp;hl.tag=strong&amp;hl.enable=[fields|terms]</dt>
 <dd><div class="first last line-block">
 <div class="line">stored fields to return highlighted</div>
@@ -231,7 +249,7 @@ Specify tools.json.indent for pretty printing.</p>
 <dt>&amp;spellcheck=<em>int</em></dt>
 <dd><div class="first last line-block">
 <div class="line">maximum number of spelling corrections to return for each query term, grouped by field</div>
-<div class="line">original query is still run;  use q.spellcheck=true to affect query parsing</div>
+<div class="line">original query is still run; use q.spellcheck=true to affect query parsing</div>
 </div>
 </dd>
 <dt>&amp;timeout=<em>float</em></dt>
@@ -248,6 +266,7 @@ Specify tools.json.indent for pretty printing.</p>
 <div class="line">&#8220;maxscore&#8221;: <em>float</em>|null,</div>
 <div class="line">&#8220;docs&#8221;: [{&#8220;__id__&#8221;: <em>int</em>, &#8220;__score__&#8221;: <em>float</em>, &#8220;__highlights__&#8221;: {<em>string</em>: <em>array</em>,... }, <em>string</em>: <em>string</em>|<em>array</em>,... },... ],</div>
 <div class="line">&#8220;facets&#8221;: {<em>string</em>: {<em>string</em>: <em>int</em>,... },... },</div>
+<div class="line">&#8220;groups&#8221;: [{&#8220;count&#8221;: <em>int</em>, &#8220;value&#8221;: <em>value</em>, &#8220;docs&#8221;: [{... },... ]},... ]</div>
 <div class="line">&#8220;spellcheck&#8221;: {<em>string</em>: {<em>string</em>: [<em>string</em>,... ],... },... },</div>
 <div class="line">}</div>
 </div>
@@ -300,7 +319,7 @@ Specify tools.json.indent for pretty printing.</p>
 </dd>
 <dt><strong>GET</strong> /terms/<em>chars</em>/<em>chars</em>[*|~]?count=<em>int</em></dt>
 <dd><p class="first">Return spellchecked term values ordered by decreasing document frequency.
-Prefixes (*) are optimized to be suitable for real-time query suggestions;  all terms are cached.</p>
+Prefixes (*) are optimized to be suitable for real-time query suggestions; all terms are cached.</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -370,13 +389,26 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
 <dl class="method">
 <dt id="server.WebIndexer.commit">
 <tt class="descname">commit</tt><big>(</big><em>**caches</em><big>)</big><a class="headerlink" href="#server.WebIndexer.commit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Commit write operations.</p>
-<p><strong>POST</strong> /commit</p>
+<dd><p>Commit index changes.</p>
+<dl class="docutils">
+<dt><strong>POST</strong> /commit</dt>
+<dd><p class="first">Commit write operations, optionally reloading caches, and return document count.</p>
+<p>&amp;filters&amp;spellcheckers</p>
+<table class="last docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">return:</th><td class="field-body"><em>int</em></td>
+</tr>
+</tbody>
+</table>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="server.WebIndexer.docs">
-<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>fields=None</em>, <em>multifields=''</em>, <em>docs='[]'</em><big>)</big><a class="headerlink" href="#server.WebIndexer.docs" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">docs</tt><big>(</big><em>id=None</em>, <em>docs='[]'</em>, <em>fields=None</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebIndexer.docs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add or return documents.  See <a class="reference internal" href="#server.WebSearcher.docs" title="server.WebSearcher.docs"><tt class="xref py py-meth docutils literal"><span class="pre">WebSearcher.docs()</span></tt></a> for GET method.</p>
 <dl class="docutils">
 <dt><strong>POST</strong> /docs</dt>
@@ -436,7 +468,7 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
 <h2>start<a class="headerlink" href="#start" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="server.start">
-<tt class="descclassname">server.</tt><tt class="descname">start</tt><big>(</big><em>root</em>, <em>path=''</em>, <em>config=None</em>, <em>pidfile=''</em>, <em>daemonize=False</em>, <em>autoreload=0</em>, <em>autorefresh=0</em>, <em>callback=None</em><big>)</big><a class="headerlink" href="#server.start" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">server.</tt><tt class="descname">start</tt><big>(</big><em>root=None</em>, <em>path=''</em>, <em>config=None</em>, <em>pidfile=''</em>, <em>daemonize=False</em>, <em>autoreload=0</em>, <em>autorefresh=0</em>, <em>callback=None</em><big>)</big><a class="headerlink" href="#server.start" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attach root, subscribe to plugins, and start server.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -444,7 +476,7 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>root,path,config</strong> &#8211; see cherrypy.quickstart</li>
-<li><strong>daemonize,autoreload,autorefresh</strong> &#8211; see command-line options</li>
+<li><strong>pidfile,daemonize,autoreload,autorefresh</strong> &#8211; see command-line options</li>
 <li><strong>callback</strong> &#8211; optional callback function scheduled after daemonizing</li>
 </ul>
 </td>
@@ -521,7 +553,7 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions;  all 
     </div>
     <div class="footer">
         &copy; Copyright 2009-2010, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.4.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.5.
     </div>
   </body>
 </html>

@@ -27,7 +27,10 @@ import engine
 
 def tool(hook):
     "Return decorator to register tool at given hook point."
-    return lambda func: setattr(cherrypy.tools, func.__name__.rstrip('_'), cherrypy.Tool(hook, func))
+    def decorator(func):
+        setattr(cherrypy.tools, func.__name__.rstrip('_'), cherrypy.Tool(hook, func))
+        return func
+    return decorator
 
 @tool('before_handler')
 def json_(indent=None):
@@ -126,9 +129,14 @@ class WebSearcher(object):
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
     def refresh(self, **caches):
-        """Reopen searcher.
+        """Refresh index.
         
         **POST** /refresh
+            Reopen searcher, optionally reloading caches, and return document count.
+            
+            &filters&spellcheckers
+            
+            :return: *int*
         """
         self.indexer = self.indexer.reopen(**dict.fromkeys(caches, True))
         return len(self.indexer)
@@ -187,14 +195,14 @@ class WebSearcher(object):
                 maximum number of docs to return and offset to start at
             
             &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
-                only include selected stored fields;  multi-valued fields returned in an array; indexed fields are cached
+                only include selected stored fields; multi-valued fields returned in an array; indexed fields are cached
             
             &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores[=max]
                 | field name, optional type, minus sign indicates descending
                 | optionally score docs, additionally compute maximum score
             
             &facets=\ *chars*,...
-                include facet counts for given field names;  facets filters are cached
+                include facet counts for given field names; facets filters are cached
             
             &group=\ *chars*\ &group.count=1
                 group documents by field value, up to given maximum count
@@ -211,7 +219,7 @@ class WebSearcher(object):
             
             &spellcheck=\ *int*
                 | maximum number of spelling corrections to return for each query term, grouped by field
-                | original query is still run;  use q.spellcheck=true to affect query parsing
+                | original query is still run; use q.spellcheck=true to affect query parsing
             
             &timeout=\ *float*
                 timeout search after elapsed number of seconds
@@ -336,7 +344,7 @@ class WebSearcher(object):
         
         **GET** /terms/*chars*/*chars*\[\*\|~\]?count=\ *int*
             Return spellchecked term values ordered by decreasing document frequency.
-            Prefixes (*) are optimized to be suitable for real-time query suggestions;  all terms are cached.
+            Prefixes (*) are optimized to be suitable for real-time query suggestions; all terms are cached.
             
             :return: [*string*,... ]
         
@@ -400,9 +408,14 @@ class WebIndexer(WebSearcher):
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
     def commit(self, **caches):
-        """Commit write operations.
+        """Commit index changes.
         
         **POST** /commit
+            Commit write operations, optionally reloading caches, and return document count.
+            
+            &filters&spellcheckers
+            
+            :return: *int*
         """
         with self.lock:
             self.indexer.commit(**dict.fromkeys(caches, True))

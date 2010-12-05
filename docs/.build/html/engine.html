@@ -128,7 +128,7 @@ attributes are cached as properties to create a Token interface.</p>
 </table>
 <dl class="method">
 <dt id="engine.indexers.Analyzer.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>version='3.0'</em>, <em>parser=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.parse" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>version='2.9'</em>, <em>parser=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return parsed lucene Query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -730,7 +730,7 @@ Creates an <a class="reference internal" href="#indexwriter">IndexWriter</a> wit
 <h3>Document<a class="headerlink" href="#document" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.documents.Document">
-<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">Document</tt><big>(</big><em>doc=None</em><big>)</big><a class="headerlink" href="#engine.documents.Document" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">Document</tt><big>(</big><em>doc</em><big>)</big><a class="headerlink" href="#engine.documents.Document" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delegated lucene Document.
 Provides mapping interface of field names to values, but duplicate field names are allowed.</p>
 <dl class="method">
@@ -1304,31 +1304,31 @@ Uses class methods and operator overloading for convenient query construction.</
 <dl class="method">
 <dt id="engine.queries.Query.__and__">
 <tt class="descname">__and__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__and__" title="Permalink to this definition">¶</a></dt>
-<dd><p>&lt;<a class="reference internal" href="#engine.queries.BooleanQuery" title="engine.queries.BooleanQuery"><tt class="xref py py-class docutils literal"><span class="pre">BooleanQuery</span></tt></a> +self +other&gt;</p>
+<dd><p><a class="reference internal" href="#booleanquery">BooleanQuery</a> +self +other&gt;</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.Query.__or__">
 <tt class="descname">__or__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__or__" title="Permalink to this definition">¶</a></dt>
-<dd><p>&lt;<a class="reference internal" href="#engine.queries.BooleanQuery" title="engine.queries.BooleanQuery"><tt class="xref py py-class docutils literal"><span class="pre">BooleanQuery</span></tt></a> self other&gt;</p>
+<dd><p><a class="reference internal" href="#booleanquery">BooleanQuery</a> self other&gt;</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="engine.queries.Query.__sub__">
 <tt class="descname">__sub__</tt><big>(</big><em>other</em><big>)</big><a class="headerlink" href="#engine.queries.Query.__sub__" title="Permalink to this definition">¶</a></dt>
-<dd><p>&lt;<a class="reference internal" href="#engine.queries.BooleanQuery" title="engine.queries.BooleanQuery"><tt class="xref py py-class docutils literal"><span class="pre">BooleanQuery</span></tt></a> self -other&gt;</p>
+<dd><p><a class="reference internal" href="#booleanquery">BooleanQuery</a> self -other&gt;</p>
 </dd></dl>
 
 <dl class="classmethod">
 <dt id="engine.queries.Query.all">
 <em class="property">classmethod </em><tt class="descname">all</tt><big>(</big><em>*queries</em>, <em>**terms</em><big>)</big><a class="headerlink" href="#engine.queries.Query.all" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return <a class="reference internal" href="#engine.queries.BooleanQuery" title="engine.queries.BooleanQuery"><tt class="xref py py-class docutils literal"><span class="pre">BooleanQuery</span></tt></a> (AND) from queries and terms.</p>
+<dd><p>Return <a class="reference internal" href="#booleanquery">BooleanQuery</a> (AND) from queries and terms.</p>
 </dd></dl>
 
 <dl class="classmethod">
 <dt id="engine.queries.Query.any">
 <em class="property">classmethod </em><tt class="descname">any</tt><big>(</big><em>*queries</em>, <em>**terms</em><big>)</big><a class="headerlink" href="#engine.queries.Query.any" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return <a class="reference internal" href="#engine.queries.BooleanQuery" title="engine.queries.BooleanQuery"><tt class="xref py py-class docutils literal"><span class="pre">BooleanQuery</span></tt></a> (OR) from queries and terms.</p>
+<dd><p>Return <a class="reference internal" href="#booleanquery">BooleanQuery</a> (OR) from queries and terms.</p>
 </dd></dl>
 
 <dl class="classmethod">
@@ -1893,7 +1893,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
     </div>
     <div class="footer">
         &copy; Copyright 2009-2010, Aric Coady.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.4.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.5.
     </div>
   </body>
 </html>

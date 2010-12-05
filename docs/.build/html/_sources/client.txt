@@ -20,6 +20,10 @@ Response
 
     string of entire response body
 
+  .. attribute:: time
+
+    server response time
+
   .. automethod:: __nonzero__
 
   .. automethod:: __call__

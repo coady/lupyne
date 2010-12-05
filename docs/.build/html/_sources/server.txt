@@ -20,14 +20,15 @@ Options:
 
 tools
 -----------
-.. autofunction:: json_tool
-.. autofunction:: allow_tool
+.. autofunction:: json_
+.. autofunction:: allow
+.. autofunction:: time_
 
 WebSearcher
 -----------
 .. autoclass:: server.WebSearcher
   :members:
-  :exclude-members: parse
+  :exclude-members: parse, select
 
 WebIndexer
 -----------

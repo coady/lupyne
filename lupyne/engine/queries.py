@@ -41,11 +41,11 @@ class Query(object):
         return self
     @classmethod
     def any(cls, *queries, **terms):
-        "Return :class:`BooleanQuery` (OR) from queries and terms."
+        "Return `BooleanQuery`_ (OR) from queries and terms."
         return cls.boolean(lucene.BooleanClause.Occur.SHOULD, *queries, **terms)
     @classmethod
     def all(cls, *queries, **terms):
-        "Return :class:`BooleanQuery` (AND) from queries and terms."
+        "Return `BooleanQuery`_ (AND) from queries and terms."
         return cls.boolean(lucene.BooleanClause.Occur.MUST, *queries, **terms)
     @classmethod
     def disjunct(cls, multiplier, *queries, **terms):
