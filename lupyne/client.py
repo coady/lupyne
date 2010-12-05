@@ -30,6 +30,7 @@ class Response(httplib.HTTPResponse):
         httplib.HTTPResponse.begin(self)
         self.body = self.read()
         self.close()
+        self.time = float(self.getheader('x-response-time', 'nan'))
         if 'gzip' in self.getheader('content-encoding', ''):
             self.body = gzip.GzipFile(fileobj=io.BytesIO(self.body)).read()
     def __nonzero__(self):

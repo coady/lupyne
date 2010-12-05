@@ -62,7 +62,7 @@ class TestCase(BaseTest):
         assert resource.get('/favicon.ico')
         resource.request('GET', '/')
         response = resource.getresponse()
-        assert response.status == httplib.OK and response.reason == 'OK'
+        assert response.status == httplib.OK and response.reason == 'OK' and response.time > 0
         assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('text/x-json')
         (directory, count), = response().items()
         assert count == 0 and 'FSDirectory@' in directory

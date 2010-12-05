@@ -10,6 +10,7 @@ CherryPy and Lucene VM integration issues:
 
 from future_builtins import filter, map
 import re
+import time
 import httplib
 import threading
 import collections
@@ -24,7 +25,12 @@ import lucene
 import cherrypy
 import engine
 
-def json_tool(indent=None):
+def tool(hook):
+    "Return decorator to register tool at given hook point."
+    return lambda func: setattr(cherrypy.tools, func.__name__.rstrip('_'), cherrypy.Tool(hook, func))
+
+@tool('before_handler')
+def json_(indent=None):
     """Transform responses into json format.
     Specify tools.json.indent for pretty printing.
     """
@@ -36,16 +42,20 @@ def json_tool(indent=None):
             body = json.dumps(body, indent=indent)
         return body
     cherrypy.request.handler = json_handler
-cherrypy.tools.json = cherrypy.Tool('before_handler', json_tool)
 
-def allow_tool(methods=('GET', 'HEAD')):
+@tool('on_start_resource')
+def allow(methods=('GET', 'HEAD')):
     "Only allow methods specified in tools.allow.methods."
     request = cherrypy.request
     if request.method not in methods and not isinstance(request.handler, cherrypy.HTTPError):
         cherrypy.response.headers['allow'] = ', '.join(methods)
         message = "The path {0!r} does not allow {1}.".format(request.path_info, request.method)
         raise cherrypy.HTTPError(httplib.METHOD_NOT_ALLOWED, message)
-cherrypy.tools.allow = cherrypy.Tool('on_start_resource', allow_tool)
+
+@tool('before_finalize')
+def time_():
+    "Return response time in headers."
+    cherrypy.response.headers['x-response-time'] = time.time() - cherrypy.response.time
 
 def json_error(version, **body):
     "Transform errors into json format."
@@ -81,7 +91,7 @@ def HTTPError(status, *exceptions):
 
 class WebSearcher(object):
     "Dispatch root with a delegated Searcher."
-    _cp_config = {'tools.json.on': True, 'tools.allow.on': True, 'error_page.default': json_error,
+    _cp_config = {'tools.json.on': True, 'tools.allow.on': True, 'tools.time.on': True, 'error_page.default': json_error,
         'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'text/x-json']}
     def __init__(self, *directories, **kwargs):
         self.indexer = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)

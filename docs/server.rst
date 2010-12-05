@@ -20,8 +20,9 @@ Options:
 
 tools
 -----------
-.. autofunction:: json_tool
-.. autofunction:: allow_tool
+.. autofunction:: json_
+.. autofunction:: allow
+.. autofunction:: time_
 
 WebSearcher
 -----------
