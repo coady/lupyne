@@ -112,6 +112,9 @@ class WebSearcher(object):
             (field, boost), = fields
         else:
             field = [name for name, boost in fields] or ''
+        if 'type' in options:
+            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+                return getattr(engine.Query, options['type'])(field, q)
         for key in set(options) - set(['op', 'version']):
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 options[key] = json.loads(options[key])
@@ -184,8 +187,8 @@ class WebSearcher(object):
         **GET** /search?
             Return list of document objects and total doc count.
             
-            &q=\ *chars*\ &q.\ *chars*\ =...,
-                query and optional parser settings: q.field, q.op,...
+            &q=\ *chars*\ &q.type=[term|prefix|wildcard]&q.\ *chars*\ =...,
+                query, optional type to skip parsing, and optional parser settings: q.field, q.op,...
             
             &filter=\ *chars*
                 | cached filter applied to the query

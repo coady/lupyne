@@ -162,7 +162,7 @@ class TestCase(BaseTest):
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.post('/commit')
         resource = client.Resource('localhost', self.ports[0])
-        assert not resource.delete('/search', q='name:sample')
+        assert not resource.delete('/search', q='sample', **{'q.field': 'name', 'q.type': 'term'})
         assert resource.get('/docs') == [0]
         assert not resource.post('/commit')
         assert resource.get('/docs') == []
@@ -220,6 +220,9 @@ class TestCase(BaseTest):
         result = resource.get('/search', **{'q.field': 'text', 'q': 'write "hello world"', 'q.spellcheck': 'true'})
         assert result['query'] == 'text:writs text:"held would"'
         assert result['count'] == len(result['docs']) == resource.get('/terms/text/writs') == 2
+        assert resource.get('/search', q='Preamble', **{'q.field': 'article'})['count'] == 0
+        result = resource.get('/search', q='Preamble', **{'q.field': 'article', 'q.type': 'prefix'})
+        assert result['count'] == 1 and result['query'] == 'article:Preamble*'
         result = resource.get('/search', q='text:"We the People"', **{'q.phraseSlop': 3})
         assert 0 < result['maxscore'] < 1 and result['count'] == 1
         assert result['query'] == 'text:"we ? people"~3'
