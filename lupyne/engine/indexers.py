@@ -563,7 +563,7 @@ class IndexWriter(lucene.IndexWriter):
     @property
     def segments(self):
         "segment filenames with document counts"
-        items = (seg.split(':c') for seg in self.segString().split())
+        items = (seg.lower().split(':c') for seg in self.segString().split())
         return dict((name, int(value)) for name, value in items)
     def set(self, name, cls=Field, **params):
         """Assign parameters to field name.
