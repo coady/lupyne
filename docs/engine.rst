@@ -251,6 +251,11 @@ Filter
 .. autoclass:: engine.queries.Filter
   :members:
 
+SortField
+^^^^^^^^^^^^^
+.. autoclass:: engine.queries.SortField
+  :members:
+
 Highlighter
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.Highlighter

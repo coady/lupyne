@@ -190,7 +190,7 @@ class TestCase(BaseTest):
         assert len(hits) == 5 and hits.count == 8
         assert not any(map(math.isnan, hits.scores))
         assert hits.maxscore == max(hits.scores)
-        sort = lucene.SortField('amendment', lucene.SortField.INT)
+        sort = engine.SortField('amendment', type=int)
         hits = indexer.search('text:people', count=5, sort=sort)
         assert [hit.get('amendment') for hit in hits] == [None, None, '1', '2', '4']
         assert all(map(math.isnan, hits.scores))
@@ -449,7 +449,7 @@ class TestCase(BaseTest):
         query = engine.Query.range('size', '1000', None)
         hits = indexer.search(query, sort=sizes.get)
         assert hits.ids == ids
-        hits = indexer.search(query, count=3, sort=lucene.SortField('size', lucene.SortField.LONG))
+        hits = indexer.search(query, count=3, sort=engine.SortField('size', type=long))
         assert hits.ids == ids[:len(hits)]
         query = engine.Query.range('size', None, '1000')
         assert indexer.count(query) == len(sizes) - len(ids)
@@ -488,7 +488,7 @@ class TestCase(BaseTest):
         query = field.range(1000, None)
         hits = indexer.search(query, sort=sizes.get)
         assert hits.ids == ids
-        hits = indexer.search(query, count=3, sort=lucene.SortField('size', lucene.SortField.LONG))
+        hits = indexer.search(query, count=3, sort=engine.SortField('size', type=long))
         assert hits.ids == ids[:len(hits)]
         query = field.range(None, 1000)
         assert indexer.count(query) == len(sizes) - len(ids)

@@ -8,7 +8,7 @@ abstracting away java lucene primitives.
 import warnings
 warnings.simplefilter('default', DeprecationWarning)
 
-from .queries import Query, Filter
+from .queries import Query, Filter, SortField
 from .documents import Document, Field, FormatField, PrefixField, NestedField, DateTimeField
 from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, ParallelMultiSearcher, IndexWriter, Indexer
 from .spatial import PointField, PolygonField

@@ -261,7 +261,7 @@ class WebSearcher(object):
                 sort = comparators[0].__getitem__ if len(comparators) == 1 else lambda id: tuple(map(operator.itemgetter(id), comparators))
             else:
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
-                    sort = [lucene.SortField(name, getattr(lucene.SortField, type), reverse) for name, type, reverse in sort]
+                    sort = [engine.SortField(name, type, reverse=reverse) for name, type, reverse in sort]
         q = self.parse(q, **options)
         qfilter = options.pop('filter', None)
         if qfilter is not None and qfilter not in searcher.filters:

@@ -208,6 +208,28 @@ class Filter(lucene.PythonFilter):
         "Return cached OpenBitSet, reader is ignored."
         return self.docIdSet
 
+class SortField(lucene.SortField):
+    """Inherited lucene SortField used for caching FieldCache parsers.
+        
+    :param name: field name
+    :param type: type object or name compatible with SortField constants
+    :param parser: lucene FieldCache.Parser or callable applied to field values
+    :param reverse: reverse flag used with sort
+    """
+    def __init__(self, name, type='string', parser=None, reverse=False):
+        type = self.typename = getattr(type, '__name__', type).capitalize()
+        if parser is None:
+            parser = getattr(lucene.SortField, type.upper())
+        elif not lucene.FieldCache.Parser.instance_(parser):
+            base = getattr(lucene, 'Python{0}Parser'.format(type))
+            namespace = {'parse' + type: staticmethod(parser)}
+            parser = object.__class__(base.__name__, (base,), namespace)()
+        lucene.SortField.__init__(self, name, parser, reverse)
+    def comparator(self, reader):
+        "Return indexed values from default FieldCache using the given reader."
+        method = getattr(lucene.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
+        return method(reader, self.field, *([self.parser] * bool(self.parser)))
+
 class Highlighter(lucene.Highlighter):
     """Inherited lucene Filter with stored analysis options.
     

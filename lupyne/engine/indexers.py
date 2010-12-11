@@ -10,7 +10,7 @@ import itertools, operator
 import contextlib
 import abc, collections
 import lucene
-from .queries import Query, HitCollector, Filter, Highlighter, SpellChecker, SpellParser
+from .queries import Query, HitCollector, Filter, SortField, Highlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
 
 class Atomic(object):
@@ -269,16 +269,10 @@ class IndexReader(object):
         Map values into a list for speed optimization.
         
         :param name: field name
-        :param type: type of field values compatible with lucene FieldCache
-        :param parser: callable applied to field values
+        :param type: type object or name compatible with FieldCache
+        :param parser: lucene FieldCache.Parser or callable applied to field values
         """
-        type = getattr(type, '__name__', type).capitalize()
-        method = getattr(lucene.FieldCache.DEFAULT, 'get{0}s'.format(type))
-        if parser is None:
-            return method(self.indexReader, name)
-        bases = getattr(lucene, 'Python{0}Parser'.format(type)),
-        parser = object.__class__('', bases, {'parse' + type: staticmethod(parser)})
-        return method(self.indexReader, name, parser())
+        return SortField(name, type, parser).comparator(self.indexReader)
     def spans(self, query, positions=False, payloads=False):
         """Generate docs with occurrence counts for a span query.
         
@@ -428,7 +422,7 @@ class Searcher(object):
                 collector = lucene.TopScoreDocCollector.create(count, inorder)
             else:
                 if isinstance(sort, basestring):
-                    sort = lucene.SortField(sort, lucene.SortField.STRING, reverse)
+                    sort = SortField(sort, reverse=reverse)
                 if not isinstance(sort, lucene.Sort):
                     sort = lucene.Sort(sort)
                 collector = lucene.TopFieldCollector.create(sort, count, False, scores, maxscore, inorder)
