@@ -328,8 +328,7 @@ class Searcher(object):
             analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
             self.shared.add(analyzer)
         self.analyzer = analyzer
-        self.filters = {}
-        self.spellcheckers = {}
+        self.filters, self.sorters, self.spellcheckers = {}, {}, {}
     def __del__(self):
         if hash(self):
             self.close()
@@ -340,10 +339,11 @@ class Searcher(object):
                 directory = lucene.FSDirectory.open(lucene.File(directory))
                 self.shared.add(directory)
             yield directory
-    def reopen(self, filters=False, spellcheckers=False):
+    def reopen(self, filters=False, sorters=False, spellcheckers=False):
         """Return current `Searcher`_, only creating a new one if necessary.
         
         :param filters: refresh cached facet :attr:`filters`
+        :param sorters: refresh cached :attr:`sorters` with associated parsers
         :param spellcheckers: refresh cached :attr:`spellcheckers`
         """
         reader = self.indexReader.reopen()
@@ -354,6 +354,10 @@ class Searcher(object):
         other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
         if filters:
             other.facets([], *other.filters)
+        other.sorters = dict(self.sorters)
+        if sorters:
+            for field in self.sorters:
+                self.comparator(field)
         if spellcheckers:
             for field in self.spellcheckers:
                 other.spellchecker(field)
@@ -424,7 +428,7 @@ class Searcher(object):
                 collector = lucene.TopScoreDocCollector.create(count, inorder)
             else:
                 if isinstance(sort, basestring):
-                    sort = SortField(sort, reverse=reverse)
+                    sort = self.sorter(sort, reverse=reverse)
                 if not isinstance(sort, lucene.Sort):
                     sort = lucene.Sort(sort)
                 collector = lucene.TopFieldCollector.create(sort, count, False, scores, maxscore, inorder)
@@ -469,6 +473,13 @@ class Searcher(object):
                     filters[value] = Query.term(name, value).filter()
                 counts[name][value] = Filter.overlap(ids, filters[value], self.indexReader)
         return dict(counts)
+    def sorter(self, field, type='string', parser=None, reverse=False):
+        "Return `SortField`_ with cached attributes if available."
+        sorter = self.sorters.get(field, SortField(field, type, parser, reverse))
+        return sorter if sorter.reverse == reverse else SortField(sorter.field, sorter.typename, sorter.parser, reverse)
+    def comparator(self, field, type='string', parser=None):
+        "Return :meth:`IndexReader.comparator` using a cached `SortField`_ if available."
+        return self.sorter(field, type, parser).comparator(self.indexReader)
     def spellchecker(self, field):
         "Return and cache spellchecker for given field."
         try:

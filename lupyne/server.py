@@ -137,7 +137,7 @@ class WebSearcher(object):
         **POST** /refresh
             Reopen searcher, optionally reloading caches, and return document count.
             
-            &filters&spellcheckers
+            &filters&sorters&spellcheckers
             
             :return: *int*
         """
@@ -253,7 +253,7 @@ class WebSearcher(object):
         searcher = getattr(self.indexer, 'indexSearcher', self.indexer)
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort.split(','))
-            sort = [(name, (type.upper() or 'STRING'), (reverse == '-')) for reverse, name, type in sort]
+            sort = [(name, (type or 'string'), (reverse == '-')) for reverse, name, type in sort]
             if count is None:
                 with HTTPError(httplib.BAD_REQUEST, ValueError, AttributeError):
                     reverse, = set(reverse for name, type, reverse in sort) # only one sort direction allowed with unlimited count
@@ -261,7 +261,7 @@ class WebSearcher(object):
                 sort = comparators[0].__getitem__ if len(comparators) == 1 else lambda id: tuple(map(operator.itemgetter(id), comparators))
             else:
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
-                    sort = [engine.SortField(name, type, reverse=reverse) for name, type, reverse in sort]
+                    sort = [searcher.sorter(name, type, reverse=reverse) for name, type, reverse in sort]
         q = self.parse(q, **options)
         qfilter = options.pop('filter', None)
         if qfilter is not None and qfilter not in searcher.filters:
@@ -414,11 +414,7 @@ class WebIndexer(WebSearcher):
         """Commit index changes.
         
         **POST** /commit
-            Commit write operations, optionally reloading caches, and return document count.
-            
-            &filters&spellcheckers
-            
-            :return: *int*
+            Commit write operations and return document count.  See :meth:`WebSearcher.refresh` for caching options.
         """
         with self.lock:
             self.indexer.commit(**dict.fromkeys(caches, True))

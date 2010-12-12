@@ -453,6 +453,14 @@ class TestCase(BaseTest):
         assert hits.ids == ids[:len(hits)]
         query = engine.Query.range('size', None, '1000')
         assert indexer.count(query) == len(sizes) - len(ids)
+        indexer.sorters['year'] = engine.SortField('date:Ymd', type=int, parser=lambda date: int(date.split('-')[0]))
+        assert indexer.comparator('year')[:10] == [1791] * 10
+        hits = indexer.search(count=3, sort='year')
+        assert [int(hit['amendment']) for hit in hits] == [1, 2, 3]
+        cache = len(lucene.FieldCache.DEFAULT.cacheEntries)
+        hits = indexer.search(count=3, sort='year', reverse=True)
+        assert [int(hit['amendment']) for hit in hits] == [27, 26, 25]
+        assert cache == len(lucene.FieldCache.DEFAULT.cacheEntries)
     
     def testNumericFields(self):
         "Numeric variant fields."

@@ -47,6 +47,10 @@ Searcher
 
     Mapping of cached filters by field, which are used for facet counts.
 
+  .. attribute:: sorters
+
+    Mapping of cached sorters by field and associated parsers.
+
   .. attribute:: spellcheckers
 
     Mapping of cached spellcheckers by field.
