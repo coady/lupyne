@@ -351,12 +351,14 @@ class Searcher(object):
             return self
         other = type(self)(reader, self.analyzer)
         other.shared, other.owned = self.shared, closing([reader])
+        other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
         if filters:
-            other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
             other.facets([], *other.filters)
         if spellcheckers:
             for field in self.spellcheckers:
-                other.suggest(field, '')
+                other.spellchecker(field)
+        else:
+            other.spellcheckers = dict(self.spellcheckers)
         return other
     def __getitem__(self, id):
         return Document(self.doc(id))
@@ -467,11 +469,15 @@ class Searcher(object):
                     filters[value] = Query.term(name, value).filter()
                 counts[name][value] = Filter.overlap(ids, filters[value], self.indexReader)
         return dict(counts)
+    def spellchecker(self, field):
+        "Return and cache spellchecker for given field."
+        try:
+            return self.spellcheckers[field]
+        except KeyError:
+            return self.spellcheckers.setdefault(field, SpellChecker(self.terms(field, counts=True)))
     def suggest(self, field, prefix, count=None):
         "Return ordered suggested words for prefix."
-        if field not in self.spellcheckers:
-            self.spellcheckers[field] = SpellChecker(self.terms(field, counts=True))
-        return self.spellcheckers[field].suggest(prefix, count)
+        return self.spellchecker(field).suggest(prefix, count)
     def correct(self, field, text, distance=2, minSimilarity=0.5):
         """Generate potential words ordered by increasing edit distance and decreasing frequency.
         For optimal performance only iterate the required slice size of corrections.
@@ -479,16 +485,15 @@ class Searcher(object):
         :param distance: the maximum edit distance to consider for enumeration
         :param minSimilarity: threshold for additional fuzzy terms after edits have been exhausted
         """
-        if field not in self.spellcheckers:
-            self.spellcheckers[field] = SpellChecker(self.terms(field, counts=True))
+        spellchecker = self.spellchecker(field)
         corrections = set()
-        for words in itertools.islice(self.spellcheckers[field].correct(text), distance + 1):
+        for words in itertools.islice(spellchecker.correct(text), distance + 1):
             for word in words:
                 yield word
             corrections.update(words)
         if minSimilarity:
             words = set(self.terms(field, text, minSimilarity=minSimilarity)) - corrections
-            for word in sorted(words, key=self.spellcheckers[field].__getitem__, reverse=True):
+            for word in sorted(words, key=spellchecker.__getitem__, reverse=True):
                 yield word
 
 class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
