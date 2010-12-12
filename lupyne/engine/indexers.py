@@ -357,7 +357,7 @@ class Searcher(object):
         other.sorters = dict(self.sorters)
         if sorters:
             for field in self.sorters:
-                self.comparator(field)
+                other.comparator(field)
         if spellcheckers:
             for field in self.spellcheckers:
                 other.spellchecker(field)

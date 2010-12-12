@@ -461,6 +461,11 @@ class TestCase(BaseTest):
         hits = indexer.search(count=3, sort='year', reverse=True)
         assert [int(hit['amendment']) for hit in hits] == [27, 26, 25]
         assert cache == len(lucene.FieldCache.DEFAULT.cacheEntries)
+        indexer.add()
+        indexer.commit(sorters=True)
+        cache = len(lucene.FieldCache.DEFAULT.cacheEntries)
+        assert indexer.comparator('year')[-1] == 0
+        assert cache == len(lucene.FieldCache.DEFAULT.cacheEntries)
     
     def testNumericFields(self):
         "Numeric variant fields."
