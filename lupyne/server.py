@@ -318,7 +318,8 @@ class WebSearcher(object):
             result['docs'] = docs
         q = q or lucene.MatchAllDocsQuery()
         if facets:
-            result['facets'] = searcher.facets(engine.Query.__dict__['filter'](q), *facets.split(','))
+            facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets.split(','))
+            result['facets'] = searcher.facets(engine.Query.__dict__['filter'](q), *facets)
         if spellcheck:
             terms = result['spellcheck'] = collections.defaultdict(dict)
             for name, value in engine.Query.__dict__['terms'](q):

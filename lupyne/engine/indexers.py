@@ -463,15 +463,17 @@ class Searcher(object):
             filters = self.filters.get(key)
             if isinstance(filters, lucene.Filter):
                 counts[key] = Filter.overlap(ids, filters, self.indexReader)
-            elif isinstance(key, basestring):
-                values = self.terms(key) if filters is None else filters
-                counts.update(self.facets(ids, *((key, value) for value in values)))
             else:
-                name, value = key
+                name, value = (key, None) if isinstance(key, basestring) else key
                 filters = self.filters.setdefault(name, {})
-                if value not in filters:
-                    filters[value] = Query.term(name, value).filter()
-                counts[name][value] = Filter.overlap(ids, filters[value], self.indexReader)
+                if value is None:
+                    values = filters or self.terms(name)
+                else:
+                    values = [value] if value in filters else self.terms(name, value)
+                for value in values:
+                    if value not in filters:
+                        filters[value] = Query.term(name, value).filter()
+                    counts[name][value] = Filter.overlap(ids, filters[value], self.indexReader)
         return dict(counts)
     def sorter(self, field, type='string', parser=None, reverse=False):
         "Return `SortField`_ with cached attributes if available."

@@ -300,11 +300,11 @@ class TestCase(BaseTest):
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
         indexer.set('longitude', engine.PrefixField, store=True)
-        indexer.fields['location'] = engine.NestedField('state:county:city')
+        indexer.fields['location'] = engine.NestedField('state.county.city', sep='.')
         for doc in fixture.zipcodes.docs():
             if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
                 lat, lng = ('{0:08.3f}'.format(doc.pop(l)) for l in ['latitude', 'longitude'])
-                location = ':'.join(doc[name] for name in ['state', 'county', 'city'])
+                location = '.'.join(doc[name] for name in ['state', 'county', 'city'])
                 indexer.add(doc, latitude=lat, longitude=lng, location=location)
         indexer.commit()
         assert set(['state', 'zipcode']) < set(indexer.names('indexed'))
@@ -318,13 +318,13 @@ class TestCase(BaseTest):
         assert hit['state'] == 'PR' and hit['county'] == 'Culebra'
         states = list(indexer.terms('state'))
         assert states[0] == 'AK' and states[-1] == 'WY'
-        counties = [term.split(':')[-1] for term in indexer.terms('state:county', 'CA', 'CA~')]
+        counties = [term.split('.')[-1] for term in indexer.terms('state.county', 'CA', 'CA~')]
         field = indexer.fields['location']
         hits = indexer.search(field.prefix('CA'))
         assert sorted(set(hit['county'] for hit in hits)) == counties
         assert counties[0] == 'Alameda' and counties[-1] == 'Yuba'
-        cities = [term.split(':')[-1] for term in indexer.terms('state:county:city', 'CA:Los Angeles', 'CA:Los Angeles~')]
-        hits = indexer.search(field.prefix('CA:Los Angeles'))
+        cities = [term.split('.')[-1] for term in indexer.terms('state.county.city', 'CA.Los Angeles', 'CA.Los Angeles~')]
+        hits = indexer.search(field.prefix('CA.Los Angeles'))
         assert sorted(set(hit['city'] for hit in hits)) == cities
         assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
         hit, = indexer.search('zipcode:90210')
@@ -340,12 +340,14 @@ class TestCase(BaseTest):
         assert count == indexer.count(field.range(lng[:3], lng[:3]+'~'))
         assert count > indexer.count(engine.Query.term('state', 'CA'), filter=engine.Query.term(longitude, lng).filter())
         query = engine.Query.prefix('zipcode', '90')
-        (field, facets), = indexer.facets(indexer.search(query).ids, 'state:county').items()
-        assert [facets] == indexer.facets(query.filter(), 'state:county').values()
-        assert field == 'state:county'
+        (field, facets), = indexer.facets(indexer.search(query).ids, 'state.county').items()
+        assert [facets] == indexer.facets(query.filter(), 'state.county').values()
+        assert field == 'state.county'
         la, orange = sorted(filter(facets.get, facets))
-        assert la == 'CA:Los Angeles' and facets[la] > 100
-        assert orange == 'CA:Orange' and facets[orange] > 10
+        assert la == 'CA.Los Angeles' and facets[la] > 100
+        assert orange == 'CA.Orange' and facets[orange] > 10
+        (field, facets), = indexer.facets(query.filter(), ('state.county', 'CA.*')).items()
+        assert all(value.startswith('CA.') for value in facets) and set(facets) < set(indexer.filters['state.county'])
         for count in (None, len(indexer)):
             hits = indexer.search(query, count=count, timeout=0.01)
             assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)

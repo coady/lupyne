@@ -256,6 +256,8 @@ class TestCase(BaseTest):
         assert result['count'] == sum(sum(facets.values()) for facets in result['facets'].values())
         for name, keys in [('article', ['1', 'Preamble']), ('amendment', ['1', '10', '17', '2', '4', '9'])]:
             assert sorted(key for key, value in result['facets'][name].items() if value) == keys
+        result = resource.get('/search', q='text:president', facets='date:19*')
+        assert all(key.startswith('19') and value in (0, 1) for key, value in result['facets']['date'].items())
         result = resource.get('/search', q='text:freedom')
         assert result['count'] == 1
         doc, = result['docs']
