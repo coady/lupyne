@@ -7,13 +7,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>server &mdash; Lupyne v0.6+ documentation</title>
+    <title>server &mdash; Lupyne v0.7 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.6+',
+        VERSION:     '0.7',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -22,7 +22,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Lupyne v0.6+ documentation" href="index.html" />
+    <link rel="top" title="Lupyne v0.7 documentation" href="index.html" />
     <link rel="next" title="client" href="client.html" />
     <link rel="prev" title="engine" href="engine.html" /> 
   </head>
@@ -42,7 +42,7 @@
         <li class="right" >
           <a href="engine.html" title="engine"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.6+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.7 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -189,7 +189,7 @@ Specify tools.json.indent for pretty printing.</p>
 <dl class="docutils">
 <dt><strong>POST</strong> /refresh</dt>
 <dd><p class="first">Reopen searcher, optionally reloading caches, and return document count.</p>
-<p>&amp;filters&amp;spellcheckers</p>
+<p>&amp;filters&amp;sorters&amp;spellcheckers</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -210,8 +210,8 @@ Specify tools.json.indent for pretty printing.</p>
 <dt><strong>GET</strong> /search?</dt>
 <dd><p class="first">Return list of document objects and total doc count.</p>
 <dl class="docutils">
-<dt>&amp;q=<em>chars</em>&amp;q.<em>chars</em>=...,</dt>
-<dd>query and optional parser settings: q.field, q.op,...</dd>
+<dt>&amp;q=<em>chars</em>&amp;q.type=[term|prefix|wildcard]&amp;q.<em>chars</em>=...,</dt>
+<dd>query, optional type to skip parsing, and optional parser settings: q.field, q.op,...</dd>
 <dt>&amp;filter=<em>chars</em></dt>
 <dd><div class="first last line-block">
 <div class="line">cached filter applied to the query</div>
@@ -392,17 +392,7 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions; all t
 <dd><p>Commit index changes.</p>
 <dl class="docutils">
 <dt><strong>POST</strong> /commit</dt>
-<dd><p class="first">Commit write operations, optionally reloading caches, and return document count.</p>
-<p>&amp;filters&amp;spellcheckers</p>
-<table class="last docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">return:</th><td class="field-body"><em>int</em></td>
-</tr>
-</tbody>
-</table>
-</dd>
+<dd>Commit write operations and return document count.  See <a class="reference internal" href="#server.WebSearcher.refresh" title="server.WebSearcher.refresh"><tt class="xref py py-meth docutils literal"><span class="pre">WebSearcher.refresh()</span></tt></a> for caching options.</dd>
 </dl>
 </dd></dl>
 
@@ -548,7 +538,7 @@ Prefixes (*) are optimized to be suitable for real-time query suggestions; all t
         <li class="right" >
           <a href="engine.html" title="engine"
              >previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.6+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.7 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

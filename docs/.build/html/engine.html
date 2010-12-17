@@ -7,13 +7,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>engine &mdash; Lupyne v0.6+ documentation</title>
+    <title>engine &mdash; Lupyne v0.7 documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.6+',
+        VERSION:     '0.7',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -22,7 +22,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Lupyne v0.6+ documentation" href="index.html" />
+    <link rel="top" title="Lupyne v0.7 documentation" href="index.html" />
     <link rel="next" title="server" href="server.html" />
     <link rel="prev" title="Welcome to Lupyne’s documentation!" href="index.html" /> 
   </head>
@@ -42,7 +42,7 @@
         <li class="right" >
           <a href="index.html" title="Welcome to Lupyne’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.6+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.7 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -128,7 +128,7 @@ attributes are cached as properties to create a Token interface.</p>
 </table>
 <dl class="method">
 <dt id="engine.indexers.Analyzer.parse">
-<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>version='2.9'</em>, <em>parser=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.parse" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">parse</tt><big>(</big><em>query</em>, <em>field=''</em>, <em>op=''</em>, <em>version='3.0'</em>, <em>parser=None</em>, <em>**attrs</em><big>)</big><a class="headerlink" href="#engine.indexers.Analyzer.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return parsed lucene Query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -206,8 +206,8 @@ Map values into a list for speed optimization.</p>
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>name</strong> &#8211; field name</li>
-<li><strong>type</strong> &#8211; type of field values compatible with lucene FieldCache</li>
-<li><strong>parser</strong> &#8211; callable applied to field values</li>
+<li><strong>type</strong> &#8211; type object or name compatible with FieldCache</li>
+<li><strong>parser</strong> &#8211; lucene FieldCache.Parser or callable applied to field values</li>
 </ul>
 </td>
 </tr>
@@ -386,9 +386,21 @@ Supports a range of terms, wildcard terms, or fuzzy terms.</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="engine.indexers.Searcher.sorters">
+<tt class="descname">sorters</tt><a class="headerlink" href="#engine.indexers.Searcher.sorters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mapping of cached sorters by field and associated parsers.</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="engine.indexers.Searcher.spellcheckers">
 <tt class="descname">spellcheckers</tt><a class="headerlink" href="#engine.indexers.Searcher.spellcheckers" title="Permalink to this definition">¶</a></dt>
 <dd><p>Mapping of cached spellcheckers by field.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.comparator">
+<tt class="descname">comparator</tt><big>(</big><em>field</em>, <em>type='string'</em>, <em>parser=None</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.comparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return <a class="reference internal" href="#engine.indexers.IndexReader.comparator" title="engine.indexers.IndexReader.comparator"><tt class="xref py py-meth docutils literal"><span class="pre">IndexReader.comparator()</span></tt></a> using a cached <a class="reference internal" href="#sortfield">SortField</a> if available.</p>
 </dd></dl>
 
 <dl class="method">
@@ -480,7 +492,7 @@ For optimal performance only iterate the required slice size of corrections.</p>
 
 <dl class="method">
 <dt id="engine.indexers.Searcher.reopen">
-<tt class="descname">reopen</tt><big>(</big><em>filters=False</em>, <em>spellcheckers=False</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.reopen" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">reopen</tt><big>(</big><em>filters=False</em>, <em>sorters=False</em>, <em>spellcheckers=False</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.reopen" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return current <a class="reference internal" href="#searcher">Searcher</a>, only creating a new one if necessary.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -488,6 +500,7 @@ For optimal performance only iterate the required slice size of corrections.</p>
 <tbody valign="top">
 <tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>filters</strong> &#8211; refresh cached facet <a class="reference internal" href="#engine.indexers.Searcher.filters" title="engine.indexers.Searcher.filters"><tt class="xref py py-attr docutils literal"><span class="pre">filters</span></tt></a></li>
+<li><strong>sorters</strong> &#8211; refresh cached <a class="reference internal" href="#engine.indexers.Searcher.sorters" title="engine.indexers.Searcher.sorters"><tt class="xref py py-attr docutils literal"><span class="pre">sorters</span></tt></a> with associated parsers</li>
 <li><strong>spellcheckers</strong> &#8211; refresh cached <a class="reference internal" href="#engine.indexers.Searcher.spellcheckers" title="engine.indexers.Searcher.spellcheckers"><tt class="xref py py-attr docutils literal"><span class="pre">spellcheckers</span></tt></a></li>
 </ul>
 </td>
@@ -519,6 +532,18 @@ For optimal performance only iterate the required slice size of corrections.</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.sorter">
+<tt class="descname">sorter</tt><big>(</big><em>field</em>, <em>type='string'</em>, <em>parser=None</em>, <em>reverse=False</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.sorter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return <a class="reference internal" href="#sortfield">SortField</a> with cached attributes if available.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.indexers.Searcher.spellchecker">
+<tt class="descname">spellchecker</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#engine.indexers.Searcher.spellchecker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return and cache spellchecker for given field.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1528,6 +1553,35 @@ Term values which supply another field name will be masked.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="sortfield">
+<h3>SortField<a class="headerlink" href="#sortfield" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="engine.queries.SortField">
+<em class="property">class </em><tt class="descclassname">engine.queries.</tt><tt class="descname">SortField</tt><big>(</big><em>name</em>, <em>type='string'</em>, <em>parser=None</em>, <em>reverse=False</em><big>)</big><a class="headerlink" href="#engine.queries.SortField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inherited lucene SortField used for caching FieldCache parsers.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; field name</li>
+<li><strong>type</strong> &#8211; type object or name compatible with SortField constants</li>
+<li><strong>parser</strong> &#8211; lucene FieldCache.Parser or callable applied to field values</li>
+<li><strong>reverse</strong> &#8211; reverse flag used with sort</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="engine.queries.SortField.comparator">
+<tt class="descname">comparator</tt><big>(</big><em>reader</em><big>)</big><a class="headerlink" href="#engine.queries.SortField.comparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return indexed values from default FieldCache using the given reader.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="highlighter">
 <h3>Highlighter<a class="headerlink" href="#highlighter" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
@@ -1829,6 +1883,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 <li><a class="reference internal" href="#booleanquery">BooleanQuery</a></li>
 <li><a class="reference internal" href="#spanquery">SpanQuery</a></li>
 <li><a class="reference internal" href="#filter">Filter</a></li>
+<li><a class="reference internal" href="#sortfield">SortField</a></li>
 <li><a class="reference internal" href="#highlighter">Highlighter</a></li>
 <li><a class="reference internal" href="#spellchecker">SpellChecker</a></li>
 <li><a class="reference internal" href="#spellparser">SpellParser</a></li>
@@ -1888,7 +1943,7 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
         <li class="right" >
           <a href="index.html" title="Welcome to Lupyne’s documentation!"
              >previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.6+ documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.7 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

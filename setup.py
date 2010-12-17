@@ -16,28 +16,44 @@ It handles all of the HTTP interactions, with support for compression, json, and
 
 Advanced search features:
  * Distributed searching with support for redundancy, partitioning, and sharding.
- * Optimized faceted search.
+ * Optimized faceted and grouped search.
  * Optimized prefix and range queries.
  * Geospatial support.
  * Spellchecking.
 
-Changes in 0.6:
+Changes in 0.7:
 ==================
- * Python 2.7 compatible
- * Efficient spellchecking:  suggestions (auto-complete) and corrections (did you mean?)
- * Support for custom query parsers, including a spellchecker
- * Queries support extracting terms
- * Indexing supports boosting documents
- * Optimized document field selection
- * More configurable server start options, similar to cherryd
- * Span queries support masking and payloads
- * Remote searching support:
- 
-   - extended query parsing options
-   - spellchecking for queries and individual terms
-   - automated code reloading and index refreshing
-   - index refreshing optionally maintains cached
-   - search allows minimal document selection
+ * Support for Lucene 2.4 dropped
+ * CherryPy 3.2 compatibile
+ * Spatial within queries optimized and allow unlimited distance
+ * Searches can be timed out
+ * Sorted searches allow computing scores and tracking maxscore
+ * Disjunction queries
+ * Numeric range queries with custom precision step
+ * Enumeration of numeric terms
+ * Efficient copying of a subset of indexes
+ * Loading searchers into a RAMDirectory
+ * SortFields support custom parsers and field cache reuse
+ * Server:
+   
+   - response time returned in headers
+   - multiple sort keys with unlimited search results
+   - return maxscore with support for time outs and sorting
+   - filter search results, with caching
+   - json responses configurable for pretty printing
+   - vm initialization compatible with daemonizing
+   - support for mounting mutltiple root websearchers
+   - autorefresh of server data can be customized
+   - documents return cached indexed fields
+   - grouping document results
+   - optional query parsing to support unanalyzed fields
+   - refreshing websearchers has better cache support
+ * Client:
+   
+   - reuses connection in the event of a timeout
+   - pipelining requests
+   - raises deprecation warnings from server
+   - stores response time from server
 """
 
 import os
@@ -50,7 +66,7 @@ for dirpath, dirnames, filenames in os.walk('lupyne'):
 
 setup(
     name='lupyne',
-    version='0.6+',
+    version='0.7',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',
