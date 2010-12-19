@@ -941,79 +941,14 @@ Provides a read-only sequence interface to hit objects.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="prefixfield">
-<h3>PrefixField<a class="headerlink" href="#prefixfield" title="Permalink to this headline">¶</a></h3>
-<dl class="class">
-<dt id="engine.documents.PrefixField">
-<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">PrefixField</tt><big>(</big><em>name</em>, <em>start=1</em>, <em>stop=None</em>, <em>step=1</em>, <em>index=True</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#engine.documents.Field" title="engine.documents.Field"><tt class="xref py py-class docutils literal"><span class="pre">engine.documents.Field</span></tt></a></p>
-<p>Field which indexes every prefix of a value into a separate component field.
-The customizable component field names are expressed as slices.
-Original value may be stored for convenience.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>start,stop,step</strong> &#8211; optional slice parameters of the prefix depths (not indices)</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-<dl class="method">
-<dt id="engine.documents.PrefixField.getname">
-<tt class="descname">getname</tt><big>(</big><em>depth</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.getname" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return prefix field name for given depth.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="engine.documents.PrefixField.indices">
-<tt class="descname">indices</tt><big>(</big><em>depth</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.indices" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return range of valid depth indices.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="engine.documents.PrefixField.items">
-<tt class="descname">items</tt><big>(</big><em>*values</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.items" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate indexed component fields.
-Optimized to handle duplicate values.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="engine.documents.PrefixField.join">
-<tt class="descname">join</tt><big>(</big><em>words</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.join" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return text from separate words.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="engine.documents.PrefixField.prefix">
-<tt class="descname">prefix</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.prefix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return prefix query of the closest possible prefixed field.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="engine.documents.PrefixField.range">
-<tt class="descname">range</tt><big>(</big><em>start</em>, <em>stop</em>, <em>lower=True</em>, <em>upper=False</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.range" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return range query of the closest possible prefixed field.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="engine.documents.PrefixField.split">
-<tt class="descname">split</tt><big>(</big><em>text</em><big>)</big><a class="headerlink" href="#engine.documents.PrefixField.split" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return immutable sequence of words from name or value.</p>
-</dd></dl>
-
-</dd></dl>
-
-</div>
 <div class="section" id="nestedfield">
 <h3>NestedField<a class="headerlink" href="#nestedfield" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="engine.documents.NestedField">
-<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">NestedField</tt><big>(</big><em>name</em>, <em>sep=':'</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#engine.documents.PrefixField" title="engine.documents.PrefixField"><tt class="xref py py-class docutils literal"><span class="pre">engine.documents.PrefixField</span></tt></a></p>
-<p>Field which indexes every component into its own field.</p>
+<em class="property">class </em><tt class="descclassname">engine.documents.</tt><tt class="descname">NestedField</tt><big>(</big><em>name</em>, <em>sep='.'</em>, <em>index=True</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#engine.documents.Field" title="engine.documents.Field"><tt class="xref py py-class docutils literal"><span class="pre">engine.documents.Field</span></tt></a></p>
+<p>Field which indexes every component into its own field.
+Original value may be stored for convenience.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1027,8 +962,14 @@ Optimized to handle duplicate values.</p>
 </table>
 <dl class="method">
 <dt id="engine.documents.NestedField.getname">
-<tt class="descname">getname</tt><big>(</big><em>depth</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.getname" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return component field name for given depth.</p>
+<tt class="descname">getname</tt><big>(</big><em>index</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.getname" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return prefix of field name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.NestedField.items">
+<tt class="descname">items</tt><big>(</big><em>*values</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.items" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate indexed component fields.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1038,9 +979,21 @@ Optimized to handle duplicate values.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="engine.documents.NestedField.prefix">
+<tt class="descname">prefix</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.prefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return prefix query of the closest possible prefixed field.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="engine.documents.NestedField.range">
+<tt class="descname">range</tt><big>(</big><em>start</em>, <em>stop</em>, <em>lower=True</em>, <em>upper=False</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return range query of the closest possible prefixed field.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="engine.documents.NestedField.split">
-<tt class="descname">split</tt><big>(</big><em>text</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.split" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return immutable sequence of words from name or value.</p>
+<tt class="descname">split</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#engine.documents.NestedField.split" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return sequence of words from name or value.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1676,7 +1629,6 @@ As with PointField, the tiered tiles are a search optimization, not a distance c
 <li><a class="reference internal" href="#hits">Hits</a></li>
 <li><a class="reference internal" href="#field">Field</a></li>
 <li><a class="reference internal" href="#formatfield">FormatField</a></li>
-<li><a class="reference internal" href="#prefixfield">PrefixField</a></li>
 <li><a class="reference internal" href="#nestedfield">NestedField</a></li>
 <li><a class="reference internal" href="#numericfield">NumericField</a></li>
 <li><a class="reference internal" href="#datetimefield">DateTimeField</a></li>

@@ -41,7 +41,7 @@ indexer.set('year-month-day', engine.NestedField, sep='-')
 indexer.set('population', engine.NumericField)
 indexer.set('point', engine.PointField, precision=10)
 # assigned fields can have a different key from their underlying field name
-indexer.fields['location'] = engine.NestedField('state.city', sep='.')
+indexer.fields['location'] = engine.NestedField('state.city')
 
 for doc in docs:
     doc['year-month-day'] = doc['incorporated']

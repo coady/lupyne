@@ -3,7 +3,7 @@ Wrappers for lucene Fields and Documents.
 """
 
 from future_builtins import map, zip
-import itertools
+import warnings
 import datetime, calendar
 import collections
 import lucene
@@ -58,6 +58,7 @@ class PrefixField(Field):
     :param start,stop,step: optional slice parameters of the prefix depths (not indices)
     """
     def __init__(self, name, start=1, stop=None, step=1, index=True, **kwargs):
+        warnings.warn('PrefixFields have been deprecated; customize NestedField instead.', DeprecationWarning)
         Field.__init__(self, name, index=index, **kwargs)
         self.depths = slice(start, stop, step)
     def split(self, text):
@@ -95,25 +96,45 @@ class PrefixField(Field):
         depth = depths[-1] if depths else self.depths.start
         return Query.range(self.getname(depth), start, stop, lower, upper)
 
-class NestedField(PrefixField):
+class NestedField(Field):
     """Field which indexes every component into its own field.
+    Original value may be stored for convenience.
     
     :param sep: field separator used on name and values
     """
-    def __init__(self, name, sep=':', **kwargs):
-        PrefixField.__init__(self, name, **kwargs)
+    def __init__(self, name, sep='.', index=True, **kwargs):
+        if sep not in name and ':' in name:
+            warnings.warn("Default separator has changed from ':' to '.'", DeprecationWarning)
+            sep = ':'
+        Field.__init__(self, name, index=index, **kwargs)
         self.sep = sep
-        names = self.split(name)
-        self.names = [self.join(names[:depth]) for depth in range(len(names)+1)]
-    def split(self, text):
-        "Return immutable sequence of words from name or value."
-        return tuple(text.split(self.sep))
+        self.names = self.split(name)
+    def split(self, value):
+        "Return sequence of words from name or value."
+        return tuple(value.split(self.sep))
     def join(self, words):
         "Return text from separate words."
         return self.sep.join(words)
-    def getname(self, depth):
-        "Return component field name for given depth."
-        return self.names[depth]
+    def getname(self, index):
+        "Return prefix of field name."
+        return self.join(self.names[:index])
+    def items(self, *values):
+        "Generate indexed component fields."
+        if self.store != lucene.Field.Store.NO:
+            for value in values:
+                yield lucene.Field(self.name, value, self.store, lucene.Field.Index.NO)
+        for value in values:
+            value = self.split(value)
+            for index in range(1, len(value) + 1):
+                yield lucene.Field(self.getname(index), self.join(value[:index]), lucene.Field.Store.NO, self.index, self.termvector)
+    def prefix(self, value):
+        "Return prefix query of the closest possible prefixed field."
+        index = len(self.split(value))
+        return Query.prefix(self.getname(index), value)
+    def range(self, start, stop, lower=True, upper=False):
+        "Return range query of the closest possible prefixed field."
+        index = max(len(self.split(value)) for value in (start, stop) if value is not None)
+        return Query.range(self.getname(index), start, stop, lower, upper)
 
 class NumericField(Field):
     """Field which indexes numbers in a prefix tree.

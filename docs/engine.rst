@@ -141,12 +141,6 @@ FormatField
 
     Return formatted value.
 
-PrefixField
-^^^^^^^^^^^^^
-.. autoclass:: engine.documents.PrefixField
-  :show-inheritance:
-  :members:
-
 NestedField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.NestedField

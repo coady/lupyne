@@ -299,8 +299,11 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
-        indexer.set('longitude', engine.PrefixField, store=True)
-        indexer.fields['location'] = engine.NestedField('state.county.city', sep='.')
+        with warnings.catch_warnings(record=True) as deprecations:
+            indexer.set('longitude', engine.PrefixField, store=True)
+            assert engine.NestedField('state:county:city').sep == ':'
+        assert len(deprecations) == 2
+        indexer.fields['location'] = engine.NestedField('state.county.city')
         for doc in fixture.zipcodes.docs():
             if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
                 lat, lng = ('{0:08.3f}'.format(doc.pop(l)) for l in ['latitude', 'longitude'])
