@@ -6,10 +6,6 @@ indexers
 ---------
 .. literalinclude:: ../examples/indexers.py
 
-numeric
----------
-.. literalinclude:: ../examples/numeric.py
-
 queries
 ---------
 .. literalinclude:: ../examples/queries.py

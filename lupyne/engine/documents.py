@@ -3,9 +3,8 @@ Wrappers for lucene Fields and Documents.
 """
 
 from future_builtins import map, zip
-import warnings
 import itertools
-import datetime
+import datetime, calendar
 import collections
 import lucene
 from .queries import Query
@@ -92,7 +91,7 @@ class PrefixField(Field):
         return Query.prefix(self.getname(depth), value)
     def range(self, start, stop, lower=True, upper=False):
         "Return range query of the closest possible prefixed field."
-        depths = self.indices(max(len(self.split(value)) for value in (start, stop)))
+        depths = self.indices(max(len(self.split(value)) for value in (start, stop) if value is not None))
         depth = depths[-1] if depths else self.depths.start
         return Query.range(self.getname(depth), start, stop, lower, upper)
 
@@ -116,54 +115,59 @@ class NestedField(PrefixField):
         "Return component field name for given depth."
         return self.names[depth]
 
-class DateTimeField(PrefixField):
-    """Field which indexes each datetime component in sortable ISO format: Y-m-d H:M:S.
-    Works with datetimes, dates, and any object whose string form is a prefix of ISO.
+class NumericField(Field):
+    """Field which indexes numbers in a prefix tree.
+    
+    :param name: name of field
+    :param step: precision step
     """
-    def __init__(self, *args, **kwargs):
-        warnings.warn('engine.DateTimeField will be replaced with engine.numeric.DateTimeField.', DeprecationWarning)
-        PrefixField.__init__(self, *args, **kwargs)
-    def split(self, text):
-        "Return immutable sequence of datetime components."
-        words = (words.split(char) for words, char in zip(text.split(), '-:'))
-        return tuple(itertools.chain(*words))
-    def join(self, words):
-        "Return datetime components in ISO format."
-        return ' '.join(filter(None, ['-'.join(words[:3]), ':'.join(words[3:])]))
-    def getname(self, depth):
-        "Return component field name for given depth."
-        return '{0}:{1}'.format(self.name, 'YmdHMS'[:depth])
-    def items(self, *dates):
-        return PrefixField.items(self, *map(str, dates))
-    def prefix(self, date):
-        "Return prefix query of the datetime."
-        return PrefixField.prefix(self, str(date))
-    def _range(self, start, stop):
-        depth = max(map(len, (start, stop))) - 1
-        lower, upper = start[:depth], stop[:depth]
-        if lower and lower < start:
-            lower[-1] += 1
-        if lower < upper:
-            if start < lower:
-                yield start, lower
-            for item in self._range(lower, upper):
-                yield item
-            if upper < stop:
-                yield upper, stop
-        else:
-            yield start, stop
+    def __init__(self, name, step=None, store=False, index=True):
+        Field.__init__(self, name, store)
+        self.step = step or lucene.NumericUtils.PRECISION_STEP_DEFAULT
+        self.index = index
+    def items(self, *values):
+        "Generate lucene NumericFields suitable for adding to a document."
+        for value in values:
+            field = lucene.NumericField(self.name, self.step, self.store, self.index)
+            if isinstance(value, float):
+                field.doubleValue = value
+            else:
+                field.longValue = long(value)
+            yield field
     def range(self, start, stop, lower=True, upper=False):
-        """Return optimal union of date range queries.
-        May produce invalid dates, but the query is still correct.
-        """
-        dates = (list(map(float, self.split(str(date)))) for date in (start, stop))
-        items = []
-        for dates in self._range(*dates):
-            items.append(tuple(self.join(tuple(map('{0:02g}'.format, date))) for date in dates))
-        queries = [PrefixField.range(self, str(start), items[0][1], lower=lower)]
-        queries += [PrefixField.range(self, *item) for item in items[1:-1]]
-        queries.append(PrefixField.range(self, items[-1][0], str(stop), upper=upper))
-        return Query.any(*queries)
+        "Return lucene NumericRangeQuery."
+        if isinstance(start, float) or isinstance(stop, float):
+            start, stop = (value if value is None else lucene.Double(value) for value in (start, stop))
+            return lucene.NumericRangeQuery.newDoubleRange(self.name, self.step, start, stop, lower, upper)
+        if start is not None:
+            start = None if start < lucene.Long.MIN_VALUE else lucene.Long(long(start))
+        if stop is not None:
+            stop = None if stop > lucene.Long.MAX_VALUE else lucene.Long(long(stop))
+        return lucene.NumericRangeQuery.newLongRange(self.name, self.step, start, stop, lower, upper)
+
+class DateTimeField(NumericField):
+    """Field which indexes datetimes as a NumericField of timestamps.
+    Supports datetimes, dates, and any prefix of time tuples.
+    """
+    def timestamp(self, date):
+        "Return utc timestamp from date or time tuple."
+        if isinstance(date, datetime.date):
+            return calendar.timegm(date.timetuple()) + getattr(date, 'microsecond', 0) * 1e-6
+        return float(calendar.timegm(tuple(date) + (None, 1, 1, 0, 0, 0)[len(date):]))
+    def items(self, *dates):
+        "Generate lucene NumericFields of timestamps."
+        return NumericField.items(self, *map(self.timestamp, dates))
+    def range(self, start, stop, lower=True, upper=False):
+        "Return NumericRangeQuery of timestamps."
+        start, stop = (date and self.timestamp(date) for date in (start, stop))
+        return NumericField.range(self, start, stop, lower, upper)
+    def prefix(self, date):
+        "Return range query which matches the date prefix."
+        if isinstance(date, datetime.date):
+            date = date.timetuple()[:6 if isinstance(date, datetime.datetime) else 3]
+        if len(date) == 2 and date[1] == 12: # month must be valid
+            return self.range(date, (date[0]+1, 1))
+        return self.range(date, tuple(date[:-1]) + (date[-1]+1,))
     def duration(self, date, days=0, **delta):
         """Return date range query within time span of date.
         

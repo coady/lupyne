@@ -24,7 +24,7 @@ Advanced search features:
 Changes in 0.7:
 ==================
  * Support for Lucene 2.4 dropped
- * CherryPy 3.2 compatibile
+ * CherryPy 3.2 compatible
  * Spatial within queries optimized and allow unlimited distance
  * Searches can be timed out
  * Sorted searches allow computing scores and tracking maxscore
@@ -42,7 +42,7 @@ Changes in 0.7:
    - filter search results, with caching
    - json responses configurable for pretty printing
    - vm initialization compatible with daemonizing
-   - support for mounting mutltiple root websearchers
+   - support for mounting multiple root websearchers
    - autorefresh of server data can be customized
    - documents return cached indexed fields
    - grouping document results
@@ -66,7 +66,7 @@ for dirpath, dirnames, filenames in os.walk('lupyne'):
 
 setup(
     name='lupyne',
-    version='0.7',
+    version='0.7+',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',

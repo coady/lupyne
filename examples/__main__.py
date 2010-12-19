@@ -1,1 +1,1 @@
-import indexers, numeric, queries, searching, sorting
+import indexers, queries, searching, sorting

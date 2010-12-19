@@ -367,56 +367,50 @@ class TestCase(BaseTest):
     
     def testSpatial(self):
         "Spatial tile test."
-        for PolygonField in (engine.PolygonField, engine.numeric.PolygonField):
-            PointField, = PolygonField.__bases__
-            indexer = engine.Indexer(self.tempdir, 'w')
-            for name, params in fixture.zipcodes.fields.items():
-                indexer.set(name, **params)
-            with warnings.catch_warnings(record=True) as deprecations:
-                field = indexer.fields['tile'] = PointField('tile', precision=15, step=2, store=True)
-            assert deprecations or isinstance(field, engine.numeric.PointField)
-            points = []
-            for doc in fixture.zipcodes.docs():
-                if doc['state'] == 'CA':
-                    lat, lng = doc.pop('latitude'), doc.pop('longitude')
-                    indexer.add(doc, tile=[(lng, lat)], latitude=str(lat), longitude=str(lng))
-                    if doc['city'] == 'Los Angeles':
-                        points.append((lng, lat))
-            assert len(list(PolygonField('', precision=15).items(points))) > len(points)
-            indexer.commit()
-            city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
-            hit, = indexer.search('zipcode:' + zipcode)
-            assert (hit['tile'] == tile or int(hit['tile']) == int(tile, 4)) and hit['city'] == city
-            hit, = indexer.search(field.prefix(tile))
-            assert hit['zipcode'] == zipcode and hit['city'] == city
-            x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
-            assert field.coords(tile[:4]) == (2, 9)
-            bottom, left, top, right = field.decode(tile)
-            assert left < x < right and bottom < y < top
-            hits = indexer.search(field.near(x, y))
-            cities = set(hit['city'] for hit in hits)
-            assert set([city]) == cities
-            hits = indexer.search(field.near(x, y, precision=10))
-            cities = set(hit['city'] for hit in hits)
-            assert city in cities and len(cities) > 10
-            query = field.within(x, y, 10**4)
-            assert issubclass(PointField, engine.PointField) or len(query) < 3
-            cities = set(hit['city'] for hit in indexer.search(query))
-            assert city in cities and 100 > len(cities) > 50
-            hits = indexer.search(field.within(x, y, 10**5))
-            cities = set(hit['city'] for hit in hits)
-            assert city in cities and len(cities) > 100
-            assert len(field.within(x, y, 10**8)) == 1
-            del indexer
+        indexer = engine.Indexer(self.tempdir, 'w')
+        for name, params in fixture.zipcodes.fields.items():
+            indexer.set(name, **params)
+        field = indexer.fields['tile'] = engine.PointField('tile', precision=15, step=2, store=True)
+        points = []
+        for doc in fixture.zipcodes.docs():
+            if doc['state'] == 'CA':
+                lat, lng = doc.pop('latitude'), doc.pop('longitude')
+                indexer.add(doc, tile=[(lng, lat)], latitude=str(lat), longitude=str(lng))
+                if doc['city'] == 'Los Angeles':
+                    points.append((lng, lat))
+        assert len(list(engine.PolygonField('', precision=15).items(points))) > len(points)
+        indexer.commit()
+        city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
+        hit, = indexer.search('zipcode:' + zipcode)
+        assert (hit['tile'] == tile or int(hit['tile']) == int(tile, 4)) and hit['city'] == city
+        hit, = indexer.search(field.prefix(tile))
+        assert hit['zipcode'] == zipcode and hit['city'] == city
+        x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
+        assert field.coords(tile[:4]) == (2, 9)
+        bottom, left, top, right = field.decode(tile)
+        assert left < x < right and bottom < y < top
+        hits = indexer.search(field.near(x, y))
+        cities = set(hit['city'] for hit in hits)
+        assert set([city]) == cities
+        hits = indexer.search(field.near(x, y, precision=10))
+        cities = set(hit['city'] for hit in hits)
+        assert city in cities and len(cities) > 10
+        query = field.within(x, y, 10**4)
+        assert len(query) < 3
+        cities = set(hit['city'] for hit in indexer.search(query))
+        assert city in cities and 100 > len(cities) > 50
+        hits = indexer.search(field.within(x, y, 10**5))
+        cities = set(hit['city'] for hit in hits)
+        assert city in cities and len(cities) > 100
+        assert len(field.within(x, y, 10**8)) == 1
+        del indexer
     
     def testFields(self):
         "Custom field tests."
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.FormatField, format='{0:02d}', store=True)
-        with warnings.catch_warnings(record=True) as deprecations:
-            indexer.set('date', engine.DateTimeField, store=True)
-        assert deprecations
         indexer.set('size', engine.FormatField, format='{0:04d}', store=True)
+        field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=doc['date'], size=len(doc['text']))
@@ -425,26 +419,16 @@ class TestCase(BaseTest):
         assert indexer.count(query) == 9
         query = engine.Query.prefix('amendment', '0')
         assert indexer.count(query) == 9
-        field = indexer.fields['date']
         query = field.prefix('1791-12-15')
         assert indexer.count(query) == 10
         query = field.range('', '1921-12', lower=False, upper=True)
-        assert str(query) == 'date:Y:{ TO 1921} date:Ym:[1921 TO 1921-12]'
+        assert str(query) == 'Y-m:{ TO 1921-12]', query
         assert indexer.count(query) == 19
-        query = field.range(datetime.date(1919, 1, 1), datetime.date(1921, 12, 31))
-        fields = [lucene.TermRangeQuery.cast_(clause.query).field for clause in query]
-        assert fields == ['date:Ymd', 'date:Ym', 'date:Y', 'date:Ym', 'date:Ymd']
+        query = field.range('1919-01-01', '1921-12-31')
+        assert str(query) == 'Y-m-d:[1919-01-01 TO 1921-12-31}'
         hits = indexer.search(query)
         assert [hit['amendment'] for hit in hits] == ['18', '19']
-        assert [hit['date'].split('-')[0] for hit in hits] == ['1919', '1920']
-        query = field.within(seconds=100)
-        assert indexer.count(query) == 0
-        query = field.duration([2009], days=-100*365)
-        assert 0 < len(query) <= 5
-        assert indexer.count(query) == 12
-        assert len(field.within(-100)) <= 3
-        assert len(field.within(-100.0)) > 3
-        assert len(field.within(-100, seconds=1, utc=True)) > 3
+        assert [hit['Y-m-d'].split('-')[0] for hit in hits] == ['1919', '1920']
         field = indexer.fields['size']
         sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
         ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
@@ -455,7 +439,7 @@ class TestCase(BaseTest):
         assert hits.ids == ids[:len(hits)]
         query = engine.Query.range('size', None, '1000')
         assert indexer.count(query) == len(sizes) - len(ids)
-        indexer.sorters['year'] = engine.SortField('date:Ymd', type=int, parser=lambda date: int(date.split('-')[0]))
+        indexer.sorters['year'] = engine.SortField('Y-m-d', type=int, parser=lambda date: int(date.split('-')[0]))
         assert indexer.comparator('year')[:10] == [1791] * 10
         hits = indexer.search(count=3, sort='year')
         assert [int(hit['amendment']) for hit in hits] == [1, 2, 3]
@@ -472,9 +456,11 @@ class TestCase(BaseTest):
     def testNumericFields(self):
         "Numeric variant fields."
         indexer = engine.Indexer(self.tempdir)
-        indexer.set('amendment', engine.numeric.NumericField, store=True)
-        indexer.set('date', engine.numeric.DateTimeField, store=True)
-        indexer.set('size', engine.numeric.NumericField, store=True, step=5)
+        with warnings.catch_warnings(record=True) as deprecations:
+            indexer.set('amendment', engine.numeric.NumericField, store=True)
+            indexer.set('date', engine.numeric.DateTimeField, store=True)
+            indexer.set('size', engine.numeric.NumericField, store=True, step=5)
+        assert deprecations
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))

@@ -8,12 +8,11 @@ See http://www.maptiler.org/google-maps-coordinates-tile-bounds-projection/.
 The quadkeys are then indexed using a prefix tree, creating a cartesian tier of tiles.
 """
 
-import warnings
-import itertools, operator
+import itertools
 import lucene
 from .globalmaptiles import GlobalMercator
 from ..queries import Query
-from ..documents import Field, PrefixField
+from ..documents import NumericField
 
 class Tiler(GlobalMercator):
     "Utilities for transforming lat/lngs, projected coordinates, and tile coordinates."
@@ -62,59 +61,47 @@ class Tiler(GlobalMercator):
             dy = min(0, y-bottom, top-y)
             if (dx**2 + dy**2) <= distance**2:
                 yield self.QuadTree(i, j, precision)
-    def zoom(self, tiles):
-        "Return reduced number of tiles, by zooming out where all sub-tiles are present."
-        result, keys = [], []
-        for key, values in itertools.groupby(sorted(tiles), operator.itemgetter(slice(-1))):
-            values = list(values)
-            if len(values) >= self.base:
-                keys.append(key)
-            else:
-                result += values
-        return result + (keys and self.zoom(keys))
 
-class SpatialField(Field, Tiler):
-    """Mixin interface for indexing lat/lngs as a prefix tree of tiles.
-    Subclasses should implement items and prefix methods.
+class PointField(NumericField, Tiler):
+    """Geospatial points, which create a tiered index of tiles.
+    Points must still be stored if exact distances are required upon retrieval.
     
     :param precision: zoom level, i.e., length of encoded value
     """
     def __init__(self, name, precision=30, **kwargs):
         Tiler.__init__(self)
-        super(SpatialField, self).__init__(name, **kwargs)
+        NumericField.__init__(self, name, **kwargs)
         self.precision = precision
+    def items(self, *points):
+        "Generate tiles from points (lng, lat)."
+        tiles = set(self.encode(lat, lng, self.precision) for lng, lat in points)
+        return NumericField.items(self, *(int(tile, self.base) for tile in tiles))
+    def prefix(self, tile):
+        "Return range query which is equivalent to the prefix of the tile."
+        shift = self.base ** (self.precision - len(tile))
+        value = int(tile, self.base) * shift
+        return self.range(value, value + shift)
     def near(self, lng, lat, precision=None):
         "Return prefix query for point at given precision."
         return self.prefix(self.encode(lat, lng, precision or self.precision))
     def within(self, lng, lat, distance, limit=Tiler.base):
-        """Return prefix queries for any tiles which could be within distance of given point.
+        """Return range queries for any tiles which could be within distance of given point.
         
         :param lng,lat: point
         :param distance: search radius in meters
         :param limit: maximum number of tiles to consider
         """
-        tiles = self.zoom(self.radiate(lat, lng, distance, self.precision, limit))
-        return Query.any(*map(self.prefix, tiles))
-    def tiles(self, points, span=False):
-        """Generate tile values from points (lng, lat).
-        
-        :param span: cover entire area of points, as if it were a polygon
-        """
-        if not span:
-            return sorted(set(self.encode(lat, lng, self.precision) for lng, lat in points))
-        xs, ys = zip(*(self.project(lat, lng) for lng, lat in points))
-        return self.walk(min(xs), min(ys), max(xs), max(ys), self.precision)
-
-class PointField(SpatialField, PrefixField):
-    """Geospatial points, which create a tiered index of tiles.
-    Points must still be stored if exact distances are required upon retrieval.
-    """
-    def __init__(self, *args, **kwargs):
-        warnings.warn('engine.{Point,Polygon}Field will be replaced with engine.numeric.{Point,Polygon}Field.', DeprecationWarning)
-        return SpatialField.__init__(self, *args, **kwargs)
-    def items(self, *points):
-        "Generate tiles from points (lng, lat)."
-        return super(SpatialField, self).items(*self.tiles(points))
+        tiles = sorted(self.radiate(lat, lng, distance, self.precision, limit))
+        precision, = set(map(len, tiles))
+        shift = self.base ** (self.precision - precision)
+        slices = []
+        for tile in tiles:
+            tile = int(tile, self.base) * shift
+            if slices and slices[-1][1] == tile:
+                slices[-1] = slices[-1][0], tile + shift
+            else:
+                slices.append((tile, tile + shift))
+        return Query.any(*itertools.starmap(self.range, slices))
 
 class PolygonField(PointField):
     """PointField which implicitly supports polygons (technically linear rings of points).
@@ -123,5 +110,8 @@ class PolygonField(PointField):
     """
     def items(self, *polygons):
         "Generate all covered tiles from polygons."
-        tiles = itertools.chain.from_iterable(self.tiles(points, span=True) for points in polygons)
-        return super(SpatialField, self).items(*tiles)
+        tiles = set()
+        for points in polygons:
+            xs, ys = zip(*(self.project(lat, lng) for lng, lat in points))
+            tiles.update(self.walk(min(xs), min(ys), max(xs), max(ys), self.precision))
+        return NumericField.items(self, *(int(tile, self.base) for tile in tiles))

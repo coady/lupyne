@@ -153,38 +153,15 @@ NestedField
   :show-inheritance:
   :members:
 
+NumericField
+^^^^^^^^^^^^^
+.. autoclass:: engine.documents.NumericField
+  :show-inheritance:
+  :members:
+
 DateTimeField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.DateTimeField
-  :show-inheritance:
-  :members:
-
-
-numeric
----------
-.. automodule:: engine.numeric
-
-NumericField
-^^^^^^^^^^^^^
-.. autoclass:: engine.numeric.NumericField
-  :show-inheritance:
-  :members:
-
-PointField
-^^^^^^^^^^^^^
-.. autoclass:: engine.numeric.PointField
-  :show-inheritance:
-  :members:
-
-PolygonField
-^^^^^^^^^^^^^
-.. autoclass:: engine.numeric.PolygonField
-  :show-inheritance:
-  :members:
-
-DateTimeField
-^^^^^^^^^^^^^
-.. autoclass:: engine.numeric.DateTimeField
   :show-inheritance:
   :members:
 
@@ -284,12 +261,6 @@ spatial
 Tiler
 ^^^^^^^^^^^^^
 .. autoclass:: engine.spatial.Tiler
-  :members:
-
-SpatialField
-^^^^^^^^^^^^^
-.. autoclass:: engine.spatial.SpatialField
-  :show-inheritance:
   :members:
 
 PointField

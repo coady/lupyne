@@ -7,13 +7,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>examples &mdash; Lupyne v0.7 documentation</title>
+    <title>examples &mdash; Lupyne v0.7+ documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.7',
+        VERSION:     '0.7+',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -22,7 +22,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Lupyne v0.7 documentation" href="index.html" />
+    <link rel="top" title="Lupyne v0.7+ documentation" href="index.html" />
     <link rel="prev" title="client" href="client.html" /> 
   </head>
   <body>
@@ -38,7 +38,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.7 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.7+ documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -107,74 +107,6 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="numeric">
-<h2>numeric<a class="headerlink" href="#numeric" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Numeric fields.</span>
-
-<span class="sd">Lupyne&#39;s PrefixField was created before Lucene&#39;s NumericField was added in version 2.9.</span>
-<span class="sd">Both support indexing a prefix tree of values, in order to optimize range and prefix queries, but use different approaches.</span>
-
-<span class="sd">NumericFields encode numbers to be sortable, so it is also able to cluster prefixes into the same field.</span>
-<span class="sd">Whereas PrefixField assumes the value is already a sortable string, so different fields must be used to cluster the prefixes.</span>
-<span class="sd">There are trade-offs to each approach:</span>
-<span class="sd"> * NumericFields support range queries natively, but must translate prefix queries.</span>
-<span class="sd"> * PrefixFields support prefix queries optimally, but must translate range queries.</span>
-<span class="sd"> * NumericFields only support numbers, and result in unreadable values in the index.</span>
-<span class="sd"> * PrefixFields support any searchable values, but pollute the field namespace.</span>
-
-<span class="sd">Spatial and datetime fields are two common examples that need prefix tree support.</span>
-<span class="sd">Currently SpatialFields and DateTimeFields are based on PrefixFields, but have an alternate NumericField implementation.</span>
-<span class="sd">Because both are easily encodable as numbers, the plan is to make the numeric implementation the default.</span>
-
-<span class="sd">So the long term support for PrefixField is unclear, although sometimes it is convenient to index into different fields.</span>
-<span class="sd">For example, breaking datetimes into their components makes searching by year optimal, and it&#39;s easier to introspect the index.</span>
-<span class="sd">There will be continued support for NestedFields, which allow arbitrary compound indexes similar to a relational database.</span>
-<span class="sd">See the state:city field in the searching example.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span>
-<span class="kn">import</span> <span class="nn">lucene</span>
-<span class="n">lucene</span><span class="o">.</span><span class="n">initVM</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">CLASSPATH</span><span class="p">)</span>
-<span class="kn">from</span> <span class="nn">lupyne</span> <span class="kn">import</span> <span class="n">engine</span>
-
-<span class="n">docs</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-15&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="mi">808976</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.4192</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">37.7752</span><span class="p">},</span>
-    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-04&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="mi">3849378</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">118.2434</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">34.0521</span><span class="p">},</span>
-    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Portland&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1851-02-08&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="mi">575930</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.6703</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">45.5238</span><span class="p">},</span>
-<span class="p">]</span>
-
-<span class="n">indexer</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">Indexer</span><span class="p">()</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;city&#39;</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;incorporated&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">numeric</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">)</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;population&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">numeric</span><span class="o">.</span><span class="n">NumericField</span><span class="p">)</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;point&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">numeric</span><span class="o">.</span><span class="n">PointField</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-
-<span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">docs</span><span class="p">:</span>
-    <span class="n">point</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;longitude&#39;</span><span class="p">),</span> <span class="n">doc</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;latitude&#39;</span><span class="p">)</span>
-    <span class="n">incorporated</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">doc</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;incorporated&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">))</span>
-    <span class="n">indexer</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">incorporated</span><span class="o">=</span><span class="n">date</span><span class="p">(</span><span class="o">*</span><span class="n">incorporated</span><span class="p">),</span> <span class="n">point</span><span class="o">=</span><span class="p">[</span><span class="n">point</span><span class="p">])</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
-
-<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;incorporated&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">prefix</span><span class="p">([</span><span class="mi">1850</span><span class="p">])</span>
-<span class="k">assert</span> <span class="n">query</span><span class="o">.</span><span class="n">max</span><span class="o">.</span><span class="n">doubleValue</span><span class="p">()</span> <span class="o">-</span> <span class="n">query</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">doubleValue</span><span class="p">()</span> <span class="o">==</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">365</span>
-<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">]</span>
-<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;incorporated&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="mi">1850</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="bp">None</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">query</span><span class="o">.</span><span class="n">max</span> <span class="ow">is</span> <span class="bp">None</span>
-<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
-
-<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;population&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
-<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;population:[0 TO 1000000}&#39;</span>
-<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
-
-<span class="n">cities</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
-<span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">distance</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="mf">1e3</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">,</span> <span class="mf">2e5</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">]):</span>
-    <span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;point&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">within</span><span class="p">(</span><span class="o">-</span><span class="mf">122.4</span><span class="p">,</span> <span class="mf">37.7</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">BooleanQuery</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">4</span>
-    <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">))</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">cities</span><span class="p">[:</span><span class="n">index</span><span class="p">])</span>
-</pre></div>
-</div>
-</div>
 <div class="section" id="queries">
 <h2>queries<a class="headerlink" href="#queries" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre><span class="sd">&quot;&quot;&quot;</span>
@@ -222,31 +154,33 @@
 
 <span class="sd">Prefix and Range queries are a potential pitfall in Lucene.</span>
 <span class="sd">As the queries expand to more terms, the performance drops off precipitously.</span>
-
 <span class="sd">A common example is where datetimes are indexed, but a large span of date ranges are being searched.</span>
 <span class="sd">The usual workaround is to only index the amount of granularity needed, e.g., just the dates.</span>
 <span class="sd">But this may not be sufficient, or the datetimes may be necessary for other searches.</span>
 
-<span class="sd">In any case the principle can be generalized to indexing every prefix of a term.</span>
-<span class="sd">The cost in indexing time and space is well worth the optimal search times.</span>
+<span class="sd">The general solution is to index the term values into a prefix tree.</span>
+<span class="sd">Then each query can expand to only values of the appropriate granularity.</span>
+<span class="sd">Lucene&#39;s NumericFields encode numbers to be sortable, so it is also able to cluster prefixes into the same field.</span>
+<span class="sd">Whereas Lupyne&#39;s NestedField assumes the value is already a sortable string, so different fields must be used to cluster the prefixes.</span>
+<span class="sd">There are trade-offs to each approach:</span>
+<span class="sd"> * NumericFields support range queries natively, but must translate prefix queries.</span>
+<span class="sd"> * NestedFields support prefix queries optimally, but must translate range queries.</span>
+<span class="sd"> * NumericFields only support numbers, and result in unreadable values in the index.</span>
+<span class="sd"> * NestedFields support any searchable values, but pollute the field namespace.</span>
 
-<span class="sd">Lupyne&#39;s PrefixField automates the indexing of such prefix trees into different fields.</span>
-<span class="sd">The default naming convention makes each field look like a python slice of the original field.</span>
-<span class="sd">The fields also provide prefix and range query generators that optimally utilize the underlying fields.</span>
-
-<span class="sd">NestedFields extend PrefixFields to support a common separator.</span>
-<span class="sd">DateTimeFields extend PrefixFields with datetime specific query generators.</span>
-<span class="sd">PointFields extend PrefixFields to support geospatial queries.</span>
+<span class="sd">Lupyne PointFields and DateTimeFields are now implemented as NumericFields since both are easily encoded as numbers.</span>
+<span class="sd">NestedFields could still be used however, as demonstrated on dates below.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span>
 <span class="kn">import</span> <span class="nn">lucene</span>
 <span class="n">lucene</span><span class="o">.</span><span class="n">initVM</span><span class="p">(</span><span class="n">lucene</span><span class="o">.</span><span class="n">CLASSPATH</span><span class="p">)</span>
 <span class="kn">from</span> <span class="nn">lupyne</span> <span class="kn">import</span> <span class="n">engine</span>
 
 <span class="n">docs</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;CA&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-15&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="s">&#39;0,808,976&#39;</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.4192</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">37.7752</span><span class="p">},</span>
-    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;CA&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-04&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="s">&#39;3,849,378&#39;</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">118.2434</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">34.0521</span><span class="p">},</span>
-    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Portland&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;OR&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1851-02-08&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="s">&#39;0,575,930&#39;</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.6703</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">45.5238</span><span class="p">},</span>
+    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;CA&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-15&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="mi">808976</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.4192</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">37.7752</span><span class="p">},</span>
+    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;CA&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1850-04-04&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="mi">3849378</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">118.2434</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">34.0521</span><span class="p">},</span>
+    <span class="p">{</span><span class="s">&#39;city&#39;</span><span class="p">:</span> <span class="s">&#39;Portland&#39;</span><span class="p">,</span> <span class="s">&#39;state&#39;</span><span class="p">:</span> <span class="s">&#39;OR&#39;</span><span class="p">,</span> <span class="s">&#39;incorporated&#39;</span><span class="p">:</span> <span class="s">&#39;1851-02-08&#39;</span><span class="p">,</span> <span class="s">&#39;population&#39;</span><span class="p">:</span> <span class="mi">575930</span><span class="p">,</span> <span class="s">&#39;longitude&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.6703</span><span class="p">,</span> <span class="s">&#39;latitude&#39;</span><span class="p">:</span> <span class="mf">45.5238</span><span class="p">},</span>
 <span class="p">]</span>
 
 <span class="n">indexer</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">Indexer</span><span class="p">()</span>
@@ -254,45 +188,52 @@
 <span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;state&#39;</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 <span class="c"># set method supports custom field types inheriting their default settings</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;incorporated&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">)</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;population&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">PrefixField</span><span class="p">)</span>
+<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;year-month-day&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">NestedField</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s">&#39;-&#39;</span><span class="p">)</span>
+<span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;population&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">NumericField</span><span class="p">)</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="s">&#39;point&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">PointField</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 <span class="c"># assigned fields can have a different key from their underlying field name</span>
-<span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">NestedField</span><span class="p">(</span><span class="s">&#39;state:city&#39;</span><span class="p">)</span>
+<span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;location&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">NestedField</span><span class="p">(</span><span class="s">&#39;state.city&#39;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s">&#39;.&#39;</span><span class="p">)</span>
 
 <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">docs</span><span class="p">:</span>
-    <span class="n">location</span> <span class="o">=</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;state&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span> <span class="o">+</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span>
+    <span class="n">doc</span><span class="p">[</span><span class="s">&#39;year-month-day&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;incorporated&#39;</span><span class="p">]</span>
     <span class="n">point</span> <span class="o">=</span> <span class="n">doc</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;longitude&#39;</span><span class="p">),</span> <span class="n">doc</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;latitude&#39;</span><span class="p">)</span>
-    <span class="n">indexer</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span> <span class="n">point</span><span class="o">=</span><span class="p">[</span><span class="n">point</span><span class="p">])</span>
+    <span class="n">location</span> <span class="o">=</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;state&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;.&#39;</span> <span class="o">+</span> <span class="n">doc</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span>
+    <span class="n">incorporated</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">doc</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;incorporated&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">))</span>
+    <span class="n">indexer</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">doc</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">location</span><span class="p">,</span> <span class="n">incorporated</span><span class="o">=</span><span class="n">date</span><span class="p">(</span><span class="o">*</span><span class="n">incorporated</span><span class="p">),</span> <span class="n">point</span><span class="o">=</span><span class="p">[</span><span class="n">point</span><span class="p">])</span>
 <span class="n">indexer</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
-<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;incorporated&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="s">&#39;1800&#39;</span><span class="p">,</span> <span class="s">&#39;1851-02-07&#39;</span><span class="p">)</span>
-<span class="c"># automatically handles date arithmetic to compute an optimal boolean (OR) query</span>
-<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;incorporated:Y:[1800 TO 1851} incorporated:Ym:[1851 TO 1851-02} incorporated:Ymd:[1851-02 TO 1851-02-07}&#39;</span>
+<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;incorporated&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">prefix</span><span class="p">([</span><span class="mi">1850</span><span class="p">])</span>
+<span class="k">assert</span> <span class="n">query</span><span class="o">.</span><span class="n">max</span><span class="o">.</span><span class="n">doubleValue</span><span class="p">()</span> <span class="o">-</span> <span class="n">query</span><span class="o">.</span><span class="n">min</span><span class="o">.</span><span class="n">doubleValue</span><span class="p">()</span> <span class="o">==</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">365</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">]</span>
-
-<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;population&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="s">&#39;0&#39;</span><span class="p">,</span> <span class="s">&#39;1,000,000&#39;</span><span class="p">)</span>
-<span class="c"># works like any range query</span>
-<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;population[:9]:[0 TO 1,000,000}&#39;</span>
-<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
-<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;population&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="s">&#39;0&#39;</span><span class="p">,</span> <span class="s">&#39;1&#39;</span><span class="p">)</span>
-<span class="c"># optimized to search the best field</span>
-<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;population[:1]:[0 TO 1}&#39;</span>
+<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;incorporated&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">date</span><span class="p">(</span><span class="mi">1850</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="bp">None</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">query</span><span class="o">.</span><span class="n">max</span> <span class="ow">is</span> <span class="bp">None</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
 
-<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;location&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">prefix</span><span class="p">(</span><span class="s">&#39;CA:San&#39;</span><span class="p">)</span>
-<span class="c"># works like any prefix query</span>
-<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;state:city:CA:San*&#39;</span>
-<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">]</span>
-<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;location&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">prefix</span><span class="p">(</span><span class="s">&#39;CA&#39;</span><span class="p">)</span>
-<span class="c"># optimized to search the best field</span>
-<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;state:CA*&#39;</span>
+<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;year-month-day&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">prefix</span><span class="p">(</span><span class="s">&#39;1850&#39;</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;year:1850*&#39;</span>
 <span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">]</span>
+<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;year-month-day&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="s">&#39;1850-04-10&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;year-month-day:[1850-04-10 TO *}&#39;</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
+
+<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;population&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;population:[0 TO 1000000}&#39;</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
 
 <span class="n">cities</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">,</span> <span class="s">&#39;Portland&#39;</span><span class="p">]</span>
 <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">distance</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="mf">1e3</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">,</span> <span class="mf">2e5</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">]):</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;point&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">within</span><span class="p">(</span><span class="o">-</span><span class="mf">122.4</span><span class="p">,</span> <span class="mf">37.7</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">lucene</span><span class="o">.</span><span class="n">BooleanQuery</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">4</span>
     <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">))</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">cities</span><span class="p">[:</span><span class="n">index</span><span class="p">])</span>
+
+<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;location&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">prefix</span><span class="p">(</span><span class="s">&#39;CA.San&#39;</span><span class="p">)</span>
+<span class="c"># works like any prefix query</span>
+<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;state.city:CA.San*&#39;</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">]</span>
+<span class="n">query</span> <span class="o">=</span> <span class="n">indexer</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s">&#39;location&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">prefix</span><span class="p">(</span><span class="s">&#39;CA&#39;</span><span class="p">)</span>
+<span class="c"># optimized to search the best field</span>
+<span class="k">assert</span> <span class="nb">str</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;state:CA*&#39;</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s">&#39;city&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">indexer</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">)]</span> <span class="o">==</span> <span class="p">[</span><span class="s">&#39;San Francisco&#39;</span><span class="p">,</span> <span class="s">&#39;Los Angeles&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>
@@ -390,7 +331,6 @@
   <ul>
 <li><a class="reference internal" href="#">examples</a><ul>
 <li><a class="reference internal" href="#indexers">indexers</a></li>
-<li><a class="reference internal" href="#numeric">numeric</a></li>
 <li><a class="reference internal" href="#queries">queries</a></li>
 <li><a class="reference internal" href="#searching">searching</a></li>
 <li><a class="reference internal" href="#sorting">sorting</a></li>
@@ -435,7 +375,7 @@
         <li class="right" >
           <a href="client.html" title="client"
              >previous</a> |</li>
-        <li><a href="index.html">Lupyne v0.7 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Lupyne v0.7+ documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
