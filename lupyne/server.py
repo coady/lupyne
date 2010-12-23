@@ -198,7 +198,7 @@ class WebSearcher(object):
                 maximum number of docs to return and offset to start at
             
             &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
-                only include selected stored fields; multi-valued fields returned in an array; indexed fields are cached
+                only include selected stored fields; multi-valued fields returned in an array; indexed fields with optional type are cached
             
             &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores[=max]
                 | field name, optional type, minus sign indicates descending
@@ -207,8 +207,9 @@ class WebSearcher(object):
             &facets=\ *chars*,...
                 include facet counts for given field names; facets filters are cached
             
-            &group=\ *chars*\ &group.count=1
-                group documents by field value, up to given maximum count
+            &group=\ *chars*\ [:*chars*]&group.count=1&group.limit=\ *int*
+                | group documents by field value with optional type, up to given maximum count
+                | limit number of groups which return docs
             
             &hl=\ *chars*,... &hl.count=1&hl.tag=strong&hl.enable=[fields|terms]
                 | stored fields to return highlighted
@@ -246,6 +247,7 @@ class WebSearcher(object):
             if timeout is not None:
                 timeout = float(timeout)
             gcount = int(options.get('group.count', 1))
+            glimit = int(options['group.limit']) if 'group.limit' in options else float('inf')
             hlcount = int(options.get('hl.count', 1))
             if mlt is not None:
                 mlt = int(mlt)
@@ -300,7 +302,7 @@ class WebSearcher(object):
             for id, score in hits.items():
                 item = groups[group[id]]
                 item['count'] += 1
-                if item['count'] <= gcount:
+                if item['count'] <= gcount and item['index'] < glimit:
                     ids.append(id)
                     scores.append(score)
             hits.ids, hits.scores = ids, scores

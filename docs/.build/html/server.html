@@ -221,7 +221,7 @@ Specify tools.json.indent for pretty printing.</p>
 <dt>&amp;count=<em>int</em>&amp;start=0</dt>
 <dd>maximum number of docs to return and offset to start at</dd>
 <dt>&amp;fields=<em>chars</em>,... &amp;fields.multi=<em>chars</em>,... &amp;fields.indexed=<em>chars</em>[:<em>chars</em>],...</dt>
-<dd>only include selected stored fields; multi-valued fields returned in an array; indexed fields are cached</dd>
+<dd>only include selected stored fields; multi-valued fields returned in an array; indexed fields with optional type are cached</dd>
 <dt>&amp;sort=[-]<em>chars</em>[:<em>chars</em>],... &amp;sort.scores[=max]</dt>
 <dd><div class="first last line-block">
 <div class="line">field name, optional type, minus sign indicates descending</div>
@@ -230,8 +230,12 @@ Specify tools.json.indent for pretty printing.</p>
 </dd>
 <dt>&amp;facets=<em>chars</em>,...</dt>
 <dd>include facet counts for given field names; facets filters are cached</dd>
-<dt>&amp;group=<em>chars</em>&amp;group.count=1</dt>
-<dd>group documents by field value, up to given maximum count</dd>
+<dt>&amp;group=<em>chars</em>[:<em>chars</em>]&amp;group.count=1&amp;group.limit=<em>int</em></dt>
+<dd><div class="first last line-block">
+<div class="line">group documents by field value with optional type, up to given maximum count</div>
+<div class="line">limit number of groups which return docs</div>
+</div>
+</dd>
 <dt>&amp;hl=<em>chars</em>,... &amp;hl.count=1&amp;hl.tag=strong&amp;hl.enable=[fields|terms]</dt>
 <dd><div class="first last line-block">
 <div class="line">stored fields to return highlighted</div>
