@@ -27,7 +27,7 @@ Compatible with lucene versions 2.9 through 3.0.
 """
 
 import lucene
-lucene.initVM(lucene.CLASSPATH)
+lucene.initVM()
 from lupyne import engine
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'

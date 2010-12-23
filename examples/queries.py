@@ -5,7 +5,7 @@ Operator overloading is used for combining boolean clauses.
 """
 
 import lucene
-lucene.initVM(lucene.CLASSPATH)
+lucene.initVM()
 from lupyne.engine import Query
 
 ### lucene ###

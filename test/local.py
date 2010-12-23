@@ -532,5 +532,5 @@ class TestCase(BaseTest):
         assert fragment.count('<B>') == fragment.count('</B>') == 3
 
 if __name__ == '__main__':
-    lucene.initVM(lucene.CLASSPATH)
+    lucene.initVM()
     unittest.main()

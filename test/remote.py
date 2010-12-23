@@ -309,5 +309,5 @@ class TestCase(BaseTest):
         assert result['groups'][0]['value'] == 2 and result['groups'][-1]['value'] == 0
 
 if __name__ == '__main__':
-    lucene.initVM(lucene.CLASSPATH)
+    lucene.initVM()
     unittest.main()

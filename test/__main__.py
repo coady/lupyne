@@ -17,5 +17,5 @@ class TestRunner(unittest.TextTestRunner):
         return unittest.TextTestRunner.run(self, test)
 
 if __name__ == '__main__':
-    lucene.initVM(lucene.CLASSPATH)
+    lucene.initVM()
     unittest.main(testRunner=TestRunner)

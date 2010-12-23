@@ -6,6 +6,7 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 
 from future_builtins import map, zip
 import os
+import re
 import itertools, operator
 import contextlib
 import abc, collections
@@ -250,17 +251,13 @@ class IndexReader(object):
                 yield (doc, termdocs.freq()) if counts else doc
     def positions(self, name, value, payloads=False):
         "Generate doc ids and positions which contain given term, optionally only with payloads."
+        array = lucene.JArray_byte('')
         with contextlib.closing(self.termPositions(lucene.Term(name, value))) as termpositions:
             while termpositions.next():
                 doc = termpositions.doc()
                 positions = (termpositions.nextPosition() for n in xrange(termpositions.freq()))
                 if payloads:
-                    items, array = [], lucene.JArray_byte('')
-                    for position in positions:
-                        if termpositions.payloadAvailable:
-                            data = termpositions.getPayload(array, 0)
-                            items.append((position, data.string_ if hasattr(data, 'string_') else ''.join(data)))
-                    yield doc, items
+                    yield doc, [(position, termpositions.getPayload(array, 0).string_) for position in positions if termpositions.payloadAvailable]
                 else:
                     yield doc, list(positions)
     def comparator(self, name, type='string', parser=None):
@@ -280,17 +277,11 @@ class IndexReader(object):
         :param positions: optionally include slice positions instead of counts
         :param payloads: optionally only include slice positions with payloads
         """
-        spans = query.getSpans(self.indexReader)
-        spans = itertools.takewhile(lucene.Spans.next, itertools.repeat(spans))
+        spans = itertools.takewhile(lucene.Spans.next, itertools.repeat(query.getSpans(self.indexReader)))
         for doc, spans in itertools.groupby(spans, key=lucene.Spans.doc):
             if payloads:
-                items = []
-                for span in spans:
-                    if span.payloadAvailable:
-                        payloads = map(lucene.JArray_byte.cast_, span.payload)
-                        payloads = [data.string_ if hasattr(data, 'string_') else ''.join(data) for data in payloads]
-                        items.append((span.start(), span.end(), payloads))
-                yield doc, items
+                yield doc, [(span.start(), span.end(), [lucene.JArray_byte.cast_(data).string_ for data in span.payload]) \
+                    for span in spans if span.payloadAvailable]
             elif positions:
                 yield doc, [(span.start(), span.end()) for span in spans]
             else:
@@ -575,8 +566,7 @@ class IndexWriter(lucene.IndexWriter):
     @property
     def segments(self):
         "segment filenames with document counts"
-        items = (seg.lower().split(':c') for seg in self.segString().split())
-        return dict((name, int(value)) for name, value in items)
+        return dict((name, int(value)) for name, value in re.findall('(\w+):.x?(\d+)', self.segString()))
     def set(self, name, cls=Field, **params):
         """Assign parameters to field name.
         

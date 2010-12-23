@@ -23,7 +23,7 @@ NestedFields could still be used however, as demonstrated on dates below.
 
 from datetime import date
 import lucene
-lucene.initVM(lucene.CLASSPATH)
+lucene.initVM()
 from lupyne import engine
 
 docs = [
