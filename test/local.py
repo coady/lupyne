@@ -45,6 +45,8 @@ class TestCase(BaseTest):
             assert token.term == 'hello'
             assert token.type == token.payload == '<ALPHANUM>'
             assert token.offset == (0, 5)
+            token.term = token.type = ''
+            token.offset, token.positionIncrement = (0, 0), 0
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
         indexer = engine.Indexer(analyzer=stemmer)
@@ -70,6 +72,7 @@ class TestCase(BaseTest):
         doc = indexer[0]
         assert len(doc) == 3
         assert 'name' in doc and 'missing' not in doc
+        assert sorted(doc) == ['name', 'tag', 'tag']
         assert sorted(doc.items()) == [('name', 'sample'), ('tag', 'python'), ('tag', 'search')]
         assert doc.dict('tag') == {'name': 'sample', 'tag': ['python', 'search']}
         assert doc.dict(name=None, missing=True) == {'name': 'sample', 'missing': True}
@@ -101,6 +104,16 @@ class TestCase(BaseTest):
         assert not indexer.search('hello') and indexer.search('hello', field='text')
         assert indexer.search('text:hello hi') and not indexer.search('text:hello hi', op='and')
         assert indexer.search('text:*hello', allowLeadingWildcard=True)
+        query = engine.Query.multiphrase('text', ('hello', 'hi'), None, 'world')
+        assert str(query) == 'text:"(hello hi) world"' and list(query.positions) == [0, 2]
+        query = engine.Query.wildcard('text', '*')
+        assert str(query) == 'text:*' and isinstance(query, lucene.WildcardQuery)
+        assert str(lucene.MatchAllDocsQuery() | query) == '*:* text:*'
+        assert str(lucene.MatchAllDocsQuery() - query) == '*:* -text:*'
+        query = +query
+        query &= engine.Query.fuzzy('text', 'hello')
+        query |= engine.Query.fuzzy('text', 'hello', 0.1)
+        assert str(query) == '+text:* +text:hello~0.5 text:hello~0.1'
         query = engine.Query.span('text', 'world')
         self.assertRaises(AssertionError, query.near, option=None)
         assert str(query.mask('name')) == 'mask(text:world) as name'
@@ -134,6 +147,13 @@ class TestCase(BaseTest):
         indexer.add(text=lucene.WhitespaceTokenizer(lucene.StringReader('?')))
         indexer.commit()
         assert list(indexer.terms('text')) == ['?']
+        reader = engine.indexers.IndexReader(indexer.indexReader)
+        assert reader[0].dict() == {} and reader.count('text', '?') == 1
+        assert len(reader.comparator('text')) == 4
+        del reader.indexReader
+        self.assertRaises(AttributeError, getattr, reader, 'maxDoc')
+        del indexer.indexSearcher
+        self.assertRaises(AttributeError, getattr, indexer, 'search')
     
     def testBasic(self):
         "Text fields and simple searches."
@@ -145,6 +165,7 @@ class TestCase(BaseTest):
             indexer.add(doc, boost=('article' in doc) + 1.0)
         indexer.commit()
         searcher = engine.IndexSearcher.load(self.tempdir)
+        engine.IndexSearcher.load(searcher.directory) # ensure directory isn't closed
         assert len(indexer) == len(searcher) and lucene.RAMDirectory.instance_(searcher.directory)
         assert indexer.filters == indexer.spellcheckers == {}
         assert indexer.facets([], 'amendment') and indexer.suggest('amendment', '')
@@ -234,6 +255,7 @@ class TestCase(BaseTest):
         for n in range(2):  # filters should be reusable
             hit, = indexer.search(query, filter=f)
             assert hit['amendment'] == '19'
+        assert indexer.count(query, filter=engine.Filter(lucene.OpenBitSet())) == 0
         hit, = indexer.search(query - engine.Query.all(text='vote'))
         assert hit['amendment'] == '18'
         hit, = indexer.search(engine.Query.all(text=['persons', 'papers']))
@@ -291,6 +313,7 @@ class TestCase(BaseTest):
         assert lucene.TermQuery.instance_(query) and str(query) == 'text:writs'
         query = indexer.parse('"hello world"', field='text', spellcheck=True)
         assert lucene.PhraseQuery.instance_(query) and str(query) == 'text:"held would"'
+        assert str(indexer.parse('vwxyz', field='text', spellcheck=True)) == 'text:vwxyz'
         del indexer
         assert engine.Indexer(self.tempdir)
     
@@ -356,6 +379,10 @@ class TestCase(BaseTest):
             assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)
             hits = indexer.search(query, count=count, timeout=-1)
             assert len(hits) == 0 and hits.count is hits.maxscore is None
+        f = engine.Filter([])
+        del f.docIdSet # ensure real internal search errors are still raised
+        f.__dict__.pop('bitSet', None)
+        self.assertRaises(lucene.JavaError, indexer.search, filter=f)
         directory = lucene.RAMDirectory()
         query = engine.Query.term('state', 'CA')
         size = indexer.copy(directory, query)
@@ -481,8 +508,7 @@ class TestCase(BaseTest):
         hits = indexer.search(query)
         assert [hit['amendment'] for hit in hits] == ['18', '19']
         assert [datetime.datetime.utcfromtimestamp(float(hit['date'])).year for hit in hits] == [1919, 1920]
-        query = field.within(seconds=100)
-        assert indexer.count(query) == 0
+        assert indexer.count(field.within(seconds=100)) == indexer.count(field.within(weeks=1)) == 0
         query = field.duration([2009], days=-100*365)
         assert indexer.count(query) == 12
         field = indexer.fields['size']

@@ -328,7 +328,7 @@ class WebSearcher(object):
                 terms[name][value] = list(itertools.islice(searcher.correct(name, value), spellcheck))
         return result
     @cherrypy.expose
-    def terms(self, name='', value=':', docs='', counts='', **options):
+    def terms(self, name='', value=':', *path, **options):
         """Return data about indexed terms.
         
         **GET** /terms?
@@ -393,13 +393,15 @@ class WebSearcher(object):
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 similarity = float(similarity or 0.5)
             return list(self.indexer.terms(name, value, minSimilarity=similarity))
-        if not docs:
+        if not path:
             return self.indexer.count(name, value)
-        if docs == 'docs':
-            if counts == 'positions':
+        if path[0] == 'docs':
+            if path[1:] == ():
+                return list(self.indexer.docs(name, value))
+            if path[1:] == ('counts',):
+                return list(self.indexer.docs(name, value, counts=True))
+            if path[1:] == ('positions',):
                 return list(self.indexer.positions(name, value))
-            if counts in ('', 'counts'):
-                return list(self.indexer.docs(name, value, counts=bool(counts)))
         raise cherrypy.NotFound()
 
 class WebIndexer(WebSearcher):
@@ -449,7 +451,7 @@ class WebIndexer(WebSearcher):
         """
         if cherrypy.request.method != 'DELETE':
             return WebSearcher.search(self, q, **options)
-        self.indexer.delete(self.parse(q, **options))
+        self.indexer.delete(self.parse(q, **options) or lucene.MatchAllDocsQuery())
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT'])

@@ -2,7 +2,7 @@ from future_builtins import map
 import unittest
 import warnings
 import os, sys
-import subprocess
+import signal, subprocess
 import operator
 import httplib
 import math
@@ -28,12 +28,10 @@ class BaseTest(local.BaseTest):
     ports = 8080, 8081
     def setUp(self):
         local.BaseTest.setUp(self)
-        pidfile = os.path.join(self.tempdir, 'pid')
-        self.servers = (
+        self.servers = [
             self.start(self.ports[0], self.tempdir, '--autoreload=1'),
-            self.start(self.ports[1], self.tempdir, self.tempdir, '-p', pidfile), # concurrent searchers
-        )
-        assert int(open(pidfile).read()) == self.servers[-1].pid
+            self.start(self.ports[1], self.tempdir, self.tempdir, '--autorefresh=1'), # concurrent searchers
+        ]
     def run(self, result):
         self.verbose = result.showAll
         local.BaseTest.run(self, result)
@@ -43,11 +41,11 @@ class BaseTest(local.BaseTest):
         local.BaseTest.tearDown(self)
     def start(self, port, *args):
         "Start server in separate process on given port."
-        config = json.dumps({'server.socket_port': port, 'log.screen': self.verbose})
+        config = json.dumps({'server.socket_port': port, 'server.socket_timeout': 2, 'server.shutdown_timeout': 1, 'log.screen': self.verbose})
         cherrypy.process.servers.wait_for_free_port('localhost', port)
         server = subprocess.Popen((sys.executable, '-m', 'lupyne.server', '-c', config) + args)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
-        assert server.poll() is None
+        assert not server.poll()
         return server
     def stop(self, server):
         "Terminate server."
@@ -91,6 +89,10 @@ class TestCase(BaseTest):
         assert resource.get('/terms/x/y/docs') == []
         assert resource.get('/terms/x/y/docs/counts') == []
         assert resource.get('/terms/x/y/docs/positions') == []
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/terms/x/y/missing')
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/terms/x/y/docs/missing')
         assert resource.put('/fields/text') == {'index': 'ANALYZED', 'store': 'NO', 'termvector': 'NO'}
         assert resource.put('/fields/name', store='yes', index='not_analyzed')
         assert sorted(resource.get('/fields')) == ['name', 'text']
@@ -154,6 +156,7 @@ class TestCase(BaseTest):
         result = resource.get('/search', facets='name', spellcheck=1)
         assert result['facets'] == {'name': {'sample': 1}} and result['spellcheck'] == {}
         resource = client.Resource('localhost', self.ports[-1])
+        assert list(resource.get('/').values()) == [0, 0]
         assert resource.get('/docs') == []
         assert resource.post('/refresh', filters=True, sorters=True) == 2
         assert resource.get('/docs') == [0, 1]
@@ -166,6 +169,7 @@ class TestCase(BaseTest):
         assert resource.get('/docs') == [0]
         assert not resource.post('/commit')
         assert resource.get('/docs') == []
+        assert not resource.delete('/search')
         with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
             resource.post('/refresh', spellcheckers=True)
         responses = resource.multicall(('POST', '/docs', {'docs': [{}]}), ('POST', '/commit'), ('GET', '/docs'))
@@ -173,6 +177,11 @@ class TestCase(BaseTest):
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
+        self.stop(self.servers.pop(0))
+        pidfile = os.path.join(self.tempdir, 'pid')
+        server = self.start(self.ports[0], '-dp', pidfile)
+        assert server.poll() == 0
+        os.kill(int(open(pidfile).read()), signal.SIGKILL)
     
     def testBasic(self):
         "Remote text indexing and searching."

@@ -1,6 +1,7 @@
 from future_builtins import map
 import unittest
 import heapq
+import time
 import socket, httplib
 from lupyne import client
 import local, remote
@@ -41,9 +42,18 @@ class TestCase(remote.BaseTest):
             docs += result['docs']
         assert len(docs) == len(resources) + 1
         assert len(set(doc['__id__'] for doc in docs)) == 2
-        self.stop(self.servers.pop())
+        self.stop(self.servers.pop(0))
         self.assertRaises((socket.error, httplib.BadStatusLine), resources.broadcast, 'GET', '/')
         assert resources.unicast('GET', '/')()
+        del resources[self.hosts[0]]
+        assert all(resources.broadcast('GET', '/'))
+        assert list(map(len, resources.values())) == [1, 1]
+        time.sleep(2)
+        assert resources.unicast('GET', '/')
+        counts = list(map(len, resources.values()))
+        assert set(counts) == set([0, 1])
+        assert resources.broadcast('GET', '/')
+        assert list(map(len, resources.values())) == counts[::-1]
         resources.clear()
         self.assertRaises(ValueError, resources.unicast, 'GET', '/')
     
@@ -70,8 +80,8 @@ class TestCase(remote.BaseTest):
             assert len(docs) == 2
             zones.update(doc['zone'] for doc in docs)
         assert zones == set('012')
-        self.stop(self.servers.pop())
-        self.assertRaises((socket.error, httplib.BadStatusLine), shards.broadcast, 2, 'GET', '/')
+        self.stop(self.servers.pop(0))
+        self.assertRaises((socket.error, httplib.BadStatusLine), shards.broadcast, 0, 'GET', '/')
         responses = shards.multicast([0, 1, 2], 'GET', '/')
         assert len(responses) == 2 and all(response() for response in responses)
 

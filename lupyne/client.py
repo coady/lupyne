@@ -19,6 +19,7 @@ import itertools
 import collections
 import io, gzip
 import httplib, urllib
+import socket, errno
 try:
     import simplejson as json
 except ImportError:
@@ -105,11 +106,18 @@ class Resources(dict):
         resource.request(method, path, body)
         return resource
     def getresponse(self, host, resource):
-        "Return `response`_ and release `resource`_ if request completed."
-        response = resource.getresponse()
-        if response.status != httplib.REQUEST_TIMEOUT:
-            self[host].append(resource)
-            return response
+        """Return `response`_ and release `resource`_ if request completed.
+        Return None if it appears request may be repeated."""
+        try:
+            response = resource.getresponse()
+        except socket.error as exc:
+            resource.close()
+            if exc.errno != errno.ECONNRESET:
+                raise
+        else:
+            if response.status != httplib.REQUEST_TIMEOUT and (response.status != httplib.BAD_REQUEST or response.body != 'Illegal end of headers.'):
+                self[host].append(resource)
+                return response
     def priority(self, host):
         "Return priority for host.  None may be used to eliminate from consideration."
         return -len(self[host])
