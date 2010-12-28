@@ -11,7 +11,7 @@ import socket, errno
 from contextlib import contextmanager
 import lucene
 import cherrypy
-from lupyne import client, server
+from lupyne import client, engine, server
 import fixture, local
 
 @contextmanager
@@ -27,15 +27,12 @@ def assertRaises(exception, code):
 class BaseTest(local.BaseTest):
     ports = 8080, 8081
     config = {'server.socket_timeout': 2, 'server.shutdown_timeout': 1}
-    def setUp(self):
-        local.BaseTest.setUp(self)
-        self.servers = [
-            self.start(self.ports[0], self.tempdir, '--autoreload=1'),
-            self.start(self.ports[1], self.tempdir, self.tempdir, '--autorefresh=1'), # concurrent searchers
-        ]
     def run(self, result):
         self.config['log.screen'] = result.showAll
         local.BaseTest.run(self, result)
+    def setUp(self):
+        local.BaseTest.setUp(self)
+        self.servers = []
     def tearDown(self):
         for server in self.servers:
             self.stop(server)
@@ -57,6 +54,10 @@ class TestCase(BaseTest):
     
     def testInterface(self):
         "Remote reading and writing."
+        self.servers += (
+            self.start(self.ports[0], self.tempdir, '--autoreload=1'),
+            self.start(self.ports[1], self.tempdir, self.tempdir, '--autorefresh=1'), # concurrent searchers
+        )
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
         resource.request('GET', '/')
@@ -152,6 +153,7 @@ class TestCase(BaseTest):
         assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
         result = resource.get('/search?q=hello+world&q.field=text^4&q.field=body')
         assert result['query'] == '(body:hello text:hello^4.0) (body:world text:world^4.0)'
+        assert resource.get('/search', q='hello', **{'q.field': 'body.title^2.0'})['query'] == 'body.title:hello^2.0'
         hit, = result['docs']
         assert hit['__id__'] == doc['__id__'] and hit['__score__'] > doc['__score__']
         result = resource.get('/search', facets='name', spellcheck=1)
@@ -186,6 +188,7 @@ class TestCase(BaseTest):
     
     def testBasic(self):
         "Remote text indexing and searching."
+        self.servers.append(self.start(self.ports[0], self.tempdir))
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/fields') == []
         for name, settings in fixture.constitution.fields.items():
@@ -318,6 +321,32 @@ class TestCase(BaseTest):
         assert set(map(operator.itemgetter('count'), result['groups'])) == set([1])
         assert all(int(doc.get('amendment', 0)) == group['value'] for group in result['groups'] for doc in group['docs'])
         assert result['groups'][0]['value'] == 2 and result['groups'][-1]['value'] == 0
+
+    def testAdvanced(self):
+        "Nested and numeric fields."
+        writer = engine.IndexWriter(self.tempdir)
+        self.servers.append(self.start(self.ports[0], '-r', self.tempdir))
+        writer.set('zipcode', engine.NumericField, store=True)
+        writer.fields['location'] = engine.NestedField('county.city')
+        for doc in fixture.zipcodes.docs():
+            if doc['state'] == 'CA':
+                writer.add(zipcode=doc['zipcode'], location='{0}.{1}'.format(doc['county'], doc['city']))
+        writer.commit()
+        resource = client.Resource('localhost', self.ports[0])
+        assert resource.post('/refresh') == len(writer)
+        terms = resource.get('/terms/zipcode:int')
+        assert len(terms) == len(writer) and terms[0] == 90001
+        terms = resource.get('/terms/zipcode:int?step=4')
+        assert len(terms) < len(writer) and terms[0] == 90000
+        result = resource.get('/search', count=0, facets='county')
+        facets = result['facets']['county']
+        assert result['count'] == sum(facets.values()) and 'Los Angeles' in facets
+        result = resource.get('/search', count=0, facets='county.city:Los Angeles.*')
+        facets = result['facets']['county.city']
+        assert result['count'] > sum(facets.values()) and all(location.startswith('Los Angeles.') for location in facets)
+        result = resource.get('/search', q='Los Angeles', group='county.city', **{'group.count': 0, 'q.field': 'county', 'q.type': 'prefix'})
+        assert all(group['value'].startswith('Los Angeles') for group in result['groups'])
+        assert sum(map(operator.itemgetter('count'), result['groups'])) == sum(facets.values()) == result['count']
 
 if __name__ == '__main__':
     lucene.initVM()

@@ -284,7 +284,7 @@ Specify tools.json.indent for pretty printing.</p>
 
 <dl class="method">
 <dt id="server.WebSearcher.terms">
-<tt class="descname">terms</tt><big>(</big><em>name=''</em>, <em>value=':'</em>, <em>docs=''</em>, <em>counts=''</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.terms" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">terms</tt><big>(</big><em>name=''</em>, <em>value=':'</em>, <em>*path</em>, <em>**options</em><big>)</big><a class="headerlink" href="#server.WebSearcher.terms" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return data about indexed terms.</p>
 <dl class="docutils">
 <dt><strong>GET</strong> /terms?</dt>
@@ -299,8 +299,8 @@ Specify tools.json.indent for pretty printing.</p>
 </tbody>
 </table>
 </dd>
-<dt><strong>GET</strong> /terms/<em>chars</em></dt>
-<dd><p class="first">Return term values for given field name.</p>
+<dt><strong>GET</strong> /terms/<em>chars</em>[:int|float]?step=0</dt>
+<dd><p class="first">Return term values for given field name, with optional type and step for numeric encoded values.</p>
 <table class="last docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

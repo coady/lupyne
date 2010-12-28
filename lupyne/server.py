@@ -105,7 +105,7 @@ class WebSearcher(object):
         options = dict((key.partition('.')[-1], options[key]) for key in options if key.startswith('q.'))
         field = options.pop('field', [])
         fields = [field] if isinstance(field, basestring) else field
-        fields = [re.match('(\w+)\^?([\d\.]*)', name).groups() for name in fields]
+        fields = [name.partition('^')[::2] for name in fields]
         if any(boost for name, boost in fields):
             field = dict((name, float(boost or 1.0)) for name, boost in fields)
         elif isinstance(field, basestring):
@@ -338,8 +338,8 @@ class WebSearcher(object):
             
             :return: [*string*,... ]
         
-        **GET** /terms/*chars*
-            Return term values for given field name.
+        **GET** /terms/*chars*\[:int|float\]?step=0
+            Return term values for given field name, with optional type and step for numeric encoded values.
             
             :return: [*string*,... ]
         
@@ -376,8 +376,15 @@ class WebSearcher(object):
         """
         if not name:
             return sorted(self.indexer.names(**options))
+        if ':' in name:
+            with HTTPError(httplib.BAD_REQUEST, ValueError, AttributeError):
+                name, type = name.split(':')
+                type = getattr(__builtins__, type)
+                step = int(options.get('step', 0))
+            return list(self.indexer.numbers(name, step=step, type=type))
         if ':' in value:
-            start, stop = value.split(':')
+            with HTTPError(httplib.BAD_REQUEST, ValueError):
+                start, stop = value.split(':')
             return list(self.indexer.terms(name, start, stop or None))
         if 'count' in options:
             with HTTPError(httplib.BAD_REQUEST, ValueError):
@@ -389,8 +396,8 @@ class WebSearcher(object):
         if '*' in value or '?' in value:
             return list(self.indexer.terms(name, value))
         if '~' in value:
-            value, similarity = value.split('~')
             with HTTPError(httplib.BAD_REQUEST, ValueError):
+                value, similarity = value.split('~')
                 similarity = float(similarity or 0.5)
             return list(self.indexer.terms(name, value, minSimilarity=similarity))
         if not path:

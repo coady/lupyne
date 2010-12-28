@@ -111,7 +111,7 @@ This inherently provides limited failover support, but applications must still h
 <h2>Resource<a class="headerlink" href="#resource" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="client.Resource">
-<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x1015683a0&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">client.</tt><tt class="descname">Resource</tt><big>(</big><em>host</em>, <em>port=None</em>, <em>strict=None</em>, <em>timeout=&lt;object object at 0x10042b470&gt;</em><big>)</big><a class="headerlink" href="#client.Resource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">httplib.HTTPConnection</span></tt></p>
 <p>Synchronous connection which handles json responses.</p>
 <dl class="method">
@@ -185,34 +185,35 @@ This inherently provides limited failover support, but applications must still h
 </tr>
 </tbody>
 </table>
-<dl class="class">
-<dt id="client.Resources.Manager">
-<em class="property">class </em><tt class="descname">Manager</tt><a class="headerlink" href="#client.Resources.Manager" title="Permalink to this definition">¶</a></dt>
-<dd><p>Queue of prioritized resources.</p>
-</dd></dl>
-
 <dl class="method">
 <dt id="client.Resources.broadcast">
-<tt class="descclassname">Resources.</tt><tt class="descname">broadcast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.broadcast" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">broadcast</tt><big>(</big><em>method</em>, <em>path</em>, <em>body=None</em>, <em>hosts=()</em><big>)</big><a class="headerlink" href="#client.Resources.broadcast" title="Permalink to this definition">¶</a></dt>
 <dd><p>Send requests and return responses from all hosts, optionally from given subset.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.choice">
-<tt class="descclassname">Resources.</tt><tt class="descname">choice</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Resources.choice" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">choice</tt><big>(</big><em>hosts</em><big>)</big><a class="headerlink" href="#client.Resources.choice" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return chosen host according to priority.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.getresponse">
-<tt class="descclassname">Resources.</tt><tt class="descname">getresponse</tt><big>(</big><em>host</em>, <em>resource</em><big>)</big><a class="headerlink" href="#client.Resources.getresponse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return <a class="reference internal" href="#response">response</a> and release <a class="reference internal" href="#resource">resource</a> if request completed.</p>
+<tt class="descname">getresponse</tt><big>(</big><em>host</em>, <em>resource</em><big>)</big><a class="headerlink" href="#client.Resources.getresponse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return <a class="reference internal" href="#response">response</a> and release <a class="reference internal" href="#resource">resource</a> if request completed.
+Return None if it appears request may be repeated.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="client.Resources.priority">
-<tt class="descclassname">Resources.</tt><tt class="descname">priority</tt><big>(</big><em>host</em><big>)</big><a class="headerlink" href="#client.Resources.priority" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">priority</tt><big>(</big><em>host</em><big>)</big><a class="headerlink" href="#client.Resources.priority" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return priority for host.  None may be used to eliminate from consideration.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="client.Resources.queue">
+<em class="property">class </em><tt class="descname">queue</tt><a class="headerlink" href="#client.Resources.queue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Queue of prioritized resources.</p>
 </dd></dl>
 
 <dl class="method">
