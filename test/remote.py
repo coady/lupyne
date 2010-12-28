@@ -26,6 +26,7 @@ def assertRaises(exception, code):
 
 class BaseTest(local.BaseTest):
     ports = 8080, 8081
+    config = {'server.socket_timeout': 2, 'server.shutdown_timeout': 1}
     def setUp(self):
         local.BaseTest.setUp(self)
         self.servers = [
@@ -33,7 +34,7 @@ class BaseTest(local.BaseTest):
             self.start(self.ports[1], self.tempdir, self.tempdir, '--autorefresh=1'), # concurrent searchers
         ]
     def run(self, result):
-        self.verbose = result.showAll
+        self.config['log.screen'] = result.showAll
         local.BaseTest.run(self, result)
     def tearDown(self):
         for server in self.servers:
@@ -41,9 +42,9 @@ class BaseTest(local.BaseTest):
         local.BaseTest.tearDown(self)
     def start(self, port, *args):
         "Start server in separate process on given port."
-        config = json.dumps({'server.socket_port': port, 'server.socket_timeout': 2, 'server.shutdown_timeout': 1, 'log.screen': self.verbose})
+        self.config['server.socket_port'] = port
         cherrypy.process.servers.wait_for_free_port('localhost', port)
-        server = subprocess.Popen((sys.executable, '-m', 'lupyne.server', '-c', config) + args)
+        server = subprocess.Popen((sys.executable, '-m', 'lupyne.server', '-c', json.dumps(self.config)) + args)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
         assert not server.poll()
         return server

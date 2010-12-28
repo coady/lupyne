@@ -48,7 +48,7 @@ class TestCase(remote.BaseTest):
         del resources[self.hosts[0]]
         assert all(resources.broadcast('GET', '/'))
         assert list(map(len, resources.values())) == [1, 1]
-        time.sleep(2)
+        time.sleep(self.config['server.socket_timeout'] + 1)
         assert resources.unicast('GET', '/')
         counts = list(map(len, resources.values()))
         assert set(counts) == set([0, 1])
