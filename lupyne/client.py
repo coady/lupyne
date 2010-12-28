@@ -93,10 +93,10 @@ class Resources(dict):
     :param hosts: host[:port] strings
     :param limit: maximum number of cached connections per host
     """
-    class Manager(collections.deque):
+    class queue(collections.deque):
         "Queue of prioritized resources."
     def __init__(self, hosts, limit=0):
-        self.update((host, self.Manager(maxlen=limit)) for host in hosts)
+        self.update((host, self.queue(maxlen=limit)) for host in hosts)
     def request(self, host, method, path, body=None):
         "Send request to given host and return exclusive `resource`_."
         try:
@@ -111,13 +111,13 @@ class Resources(dict):
         try:
             response = resource.getresponse()
         except socket.error as exc:
-            resource.close()
             if exc.errno != errno.ECONNRESET:
                 raise
         else:
             if response.status != httplib.REQUEST_TIMEOUT and (response.status != httplib.BAD_REQUEST or response.body != 'Illegal end of headers.'):
                 self[host].append(resource)
                 return response
+        resource.close()
     def priority(self, host):
         "Return priority for host.  None may be used to eliminate from consideration."
         return -len(self[host])

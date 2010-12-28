@@ -156,7 +156,7 @@ class TestCase(BaseTest):
         result = resource.get('/search', facets='name', spellcheck=1)
         assert result['facets'] == {'name': {'sample': 1}} and result['spellcheck'] == {}
         resource = client.Resource('localhost', self.ports[-1])
-        assert list(resource.get('/').values()) == [0, 0]
+        assert set(resource.get('/').values()) == set([0])
         assert resource.get('/docs') == []
         assert resource.post('/refresh', filters=True, sorters=True) == 2
         assert resource.get('/docs') == [0, 1]
