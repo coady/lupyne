@@ -1,3 +1,2 @@
 syntax: glob
 *.pyc
-docs/.build/doctrees
