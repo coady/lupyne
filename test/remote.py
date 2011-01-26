@@ -133,6 +133,10 @@ class TestCase(BaseTest):
             resource.get('/search', sort='-x,y')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', count=1, sort='x:str')
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.get('/search', count=1, group='x:str')
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.get('/search', q='')
         assert resource.get('/search', count=0) == {'count': 1, 'maxscore': 1.0, 'query': None, 'docs': []}
         assert resource.get('/search', fields='')['docs'] == [{'__id__': 0, '__score__': 1.0}]
         hit, = resource.get('/search', fields='', **{'fields.multi': 'name'})['docs']

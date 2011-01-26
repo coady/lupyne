@@ -118,7 +118,9 @@ class WebSearcher(object):
         for key in set(options) - set(['op', 'version']):
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 options[key] = json.loads(options[key])
-        return q and self.indexer.parse(q, field=field, **options)
+        if q is not None:
+            with HTTPError(httplib.BAD_REQUEST, lucene.JavaError):
+                return self.indexer.parse(q, field=field, **options)
     def select(self, fields=None, **options):
         "Return parsed field selectors: stored, multi-valued, and indexed."
         if fields is not None:
@@ -297,7 +299,8 @@ class WebSearcher(object):
         docs = []
         groups = collections.defaultdict(lambda: {'docs': [], 'count': 0, 'index': len(groups)})
         if group:
-            group = searcher.comparator(*group.split(':'))
+            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+                group = searcher.comparator(*group.split(':'))
             ids, scores = [], []
             for id, score in hits.items():
                 item = groups[group[id]]

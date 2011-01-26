@@ -110,6 +110,8 @@ class Resources(dict):
         Return None if it appears request may be repeated."""
         try:
             response = resource.getresponse()
+        except httplib.BadStatusLine:
+            pass
         except socket.error as exc:
             if exc.errno != errno.ECONNRESET:
                 raise
