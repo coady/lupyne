@@ -59,11 +59,6 @@ Changes in 0.7:
 import os
 from distutils.core import setup
 
-packages = []
-for dirpath, dirnames, filenames in os.walk('lupyne'):
-    dirnames[:] = [dirname for dirname in dirnames if not dirname.startswith('.')]
-    packages.append(dirpath.replace(os.sep, '.'))
-
 setup(
     name='lupyne',
     version='0.7+',
@@ -71,8 +66,8 @@ setup(
     long_description=__doc__,
     author='Aric Coady',
     author_email='aric.coady@gmail.com',
-    url='http://code.google.com/p/lupyne/',
-    packages=packages,
+    url='http://lupyne.googlecode.com/',
+    packages=[dirpath.replace(os.sep, '.') for dirpath, dirnames, filenames in os.walk('lupyne')],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: Apache Software License',
