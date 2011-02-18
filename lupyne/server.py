@@ -227,15 +227,15 @@ class WebSearcher(object):
                 | maximum number of spelling corrections to return for each query term, grouped by field
                 | original query is still run; use q.spellcheck=true to affect query parsing
             
-            &timeout=\ *float*
+            &timeout=\ *number*
                 timeout search after elapsed number of seconds
             
             :return:
                 | {
                 | "query": *string*,
                 | "count": *int*\|null,
-                | "maxscore": *float*\|null,
-                | "docs": [{"__id__": *int*, "__score__": *float*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
+                | "maxscore": *number*\|null,
+                | "docs": [{"__id__": *int*, "__score__": *number*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
                 | "facets": {*string*: {*string*: *int*,... },... },
                 | "groups": [{"count": *int*, "value": *value*, "docs": [{... },... ]},... ]
                 | "spellcheck": {*string*: {*string*: [*string*,... ],... },... },
@@ -346,7 +346,7 @@ class WebSearcher(object):
             
             :return: [*string*,... ]
         
-        **GET** /terms/*chars*/*chars*\[\*\|?\|:*chars*\|~\ *float*\]
+        **GET** /terms/*chars*/*chars*\[\*\|?\|:*chars*\|~\ *number*\]
             Return term values (wildcards, slices, or fuzzy terms) for given field name.
             
             :return: [*string*,... ]
@@ -430,6 +430,8 @@ class WebIndexer(WebSearcher):
         
         **POST** /commit
             Commit write operations and return document count.  See :meth:`WebSearcher.refresh` for caching options.
+            
+            :return: *int*
         """
         with self.lock:
             self.indexer.commit(**dict.fromkeys(caches, True))
