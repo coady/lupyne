@@ -33,15 +33,21 @@ def tool(hook):
     return decorator
 
 @tool('before_handler')
-def json_(indent=None):
-    """Transform responses into json format.
+def json_(indent=None, content_type='application/json'):
+    """Handle request bodies and responses in json format.
     Specify tools.json.indent for pretty printing.
     """
+    if cherrypy.request.headers.get('content-type', '').endswith('json'):
+        with HTTPError(httplib.BAD_REQUEST, ValueError):
+            cherrypy.request.data = json.load(cherrypy.request.body)
+    elif cherrypy.request.headers.get('content-type') == 'application/x-www-form-urlencoded':
+        cherrypy.response.headers['Warning'] = '199 lupyne "Content-Type application/x-www-form-urlencoded has been deprecated and replaced with application/json"'
+        cherrypy.request.data, cherrypy.request.params = cherrypy.request.params, {}
     handler = cherrypy.request.handler
     def json_handler(*args, **kwargs):
         body = handler(*args, **kwargs)
         if cherrypy.response.headers['content-type'].startswith('text/'):
-            cherrypy.response.headers['content-type'] = 'text/x-json'
+            cherrypy.response.headers['content-type'] = content_type
             body = json.dumps(body, indent=indent)
         return body
     cherrypy.request.handler = json_handler
@@ -62,27 +68,27 @@ def time_():
 
 def json_error(version, **body):
     "Transform errors into json format."
-    cherrypy.response.headers['content-type'] = 'text/x-json'
-    return json.dumps(body, indent=2)
+    tool = cherrypy.request.toolmaps['tools'].get('json', {})
+    cherrypy.response.headers['content-type'] = tool.get('content_type', 'application/json')
+    return json.dumps(body, indent=tool.get('indent'))
 
-def attach_thread(id):
+def attach_thread(id=None):
     "Attach current cherrypy worker thread to lucene VM."
     lucene.getVMEnv().attachCurrentThread()
 
 class Autoreloader(cherrypy.process.plugins.Autoreloader):
     "Autoreload monitor compatible with lucene VM."
     def run(self):
-        lucene.getVMEnv().attachCurrentThread()
+        attach_thread()
         cherrypy.process.plugins.Autoreloader.run(self)
 
 class AttachedMonitor(cherrypy.process.plugins.Monitor):
     "Periodically run a callback function in an attached thread."
     def __init__(self, bus, callback, frequency=cherrypy.process.plugins.Monitor.frequency):
-        cherrypy.process.plugins.Monitor.__init__(self, bus, self.run, frequency)
-        self._callback = callback
-    def run(self):
-        lucene.getVMEnv().attachCurrentThread()
-        self._callback()
+        def run():
+            attach_thread()
+            callback()
+        cherrypy.process.plugins.Monitor.__init__(self, bus, run, frequency)
 
 @contextmanager
 def HTTPError(status, *exceptions):
@@ -95,7 +101,7 @@ def HTTPError(status, *exceptions):
 class WebSearcher(object):
     "Dispatch root with a delegated Searcher."
     _cp_config = {'tools.json.on': True, 'tools.allow.on': True, 'tools.time.on': True, 'error_page.default': json_error,
-        'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'text/x-json']}
+        'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json']}
     def __init__(self, *directories, **kwargs):
         self.indexer = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
     def close(self):
@@ -133,16 +139,17 @@ class WebSearcher(object):
         return fields, multi, indexed
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
-    def refresh(self, **caches):
+    def refresh(self):
         """Refresh index.
         
         **POST** /refresh
             Reopen searcher, optionally reloading caches, and return document count.
             
-            &filters&sorters&spellcheckers
+            ["filters"|"sorters"|"spellcheckers",... ]
             
             :return: *int*
         """
+        caches = map(str, getattr(cherrypy.request, 'data', ()))
         self.indexer = self.indexer.reopen(**dict.fromkeys(caches, True))
         return len(self.indexer)
     @cherrypy.expose
@@ -421,11 +428,11 @@ class WebIndexer(WebSearcher):
         self.lock = threading.Lock()
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
-    def refresh(self, **caches):
+    def refresh(self):
         raise cherrypy.HTTPRedirect(cherrypy.request.script_name + '/commit', httplib.MOVED_PERMANENTLY)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
-    def commit(self, **caches):
+    def commit(self):
         """Commit index changes.
         
         **POST** /commit
@@ -433,23 +440,28 @@ class WebIndexer(WebSearcher):
             
             :return: *int*
         """
+        caches = map(str, getattr(cherrypy.request, 'data', ()))
         with self.lock:
             self.indexer.commit(**dict.fromkeys(caches, True))
         return len(self.indexer)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
-    def docs(self, id=None, docs='[]', fields=None, **options):
+    def docs(self, id=None, fields=None, **options):
         """Add or return documents.  See :meth:`WebSearcher.docs` for GET method.
         
         **POST** /docs
             Add documents to index.
             
-            docs=[{*string*: *string*\|\ *array*,... },... ]
+            [{*string*: *string*\|\ *array*,... },... ]
         """
         if cherrypy.request.method != 'POST':
             return WebSearcher.docs(self, id, fields, **options)
-        with HTTPError(httplib.BAD_REQUEST, ValueError):
-            docs = json.loads(docs)
+        docs = getattr(cherrypy.request, 'data', ())
+        with HTTPError(httplib.BAD_REQUEST, KeyError, ValueError): # deprecated
+            if isinstance(docs, dict):
+                docs = docs['docs']
+            if isinstance(docs, basestring):
+                docs = json.loads(docs)
         for doc in docs:
             self.indexer.add(doc)
         cherrypy.response.status = httplib.ACCEPTED
@@ -467,7 +479,7 @@ class WebIndexer(WebSearcher):
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT'])
-    def fields(self, name='', **params):
+    def fields(self, name=''):
         """Return or store a field's parameters.
         
         **GET** /fields
@@ -478,16 +490,15 @@ class WebIndexer(WebSearcher):
         **GET, PUT** /fields/*chars*
             Set and return parameters for given field name.
             
-            store=\ *chars*
-            
-            index=\ *chars*
-            
-            termvector=\ *chars*
+            {"store"|"index"|"termvector": *string*\|true|false,... }
             
             :return: {"store": *string*, "index": *string*, "termvector": *string*}
         """
         if cherrypy.request.method == 'PUT':
-            self.indexer.set(name, **params)
+            if name not in self.indexer.fields:
+                cherrypy.response.status = httplib.CREATED
+            settings = getattr(cherrypy.request, 'data', {})
+            self.indexer.set(name, **dict((str(name), value) for name, value in settings.items()))
         if not name:
             return sorted(self.indexer.fields)
         with HTTPError(httplib.NOT_FOUND, KeyError):

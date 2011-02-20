@@ -60,10 +60,9 @@ class TestCase(BaseTest):
         )
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
-        resource.request('GET', '/')
-        response = resource.getresponse()
+        response = resource.call('GET', '/')
         assert response.status == httplib.OK and response.reason == 'OK' and response.time > 0
-        assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('text/x-json')
+        assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('application/json')
         (directory, count), = response().items()
         assert count == 0 and 'FSDirectory@' in directory
         assert resource.call('HEAD', '/').status == httplib.OK
@@ -95,13 +94,16 @@ class TestCase(BaseTest):
             resource.get('/terms/x/y/missing')
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/terms/x/y/docs/missing')
-        assert resource.put('/fields/text') == {'index': 'ANALYZED', 'store': 'NO', 'termvector': 'NO'}
-        assert resource.put('/fields/name', store='yes', index='not_analyzed')
+        defaults = {'index': 'ANALYZED', 'store': 'NO', 'termvector': 'NO'}
+        response = resource.call('PUT', '/fields/text')
+        assert response.status == httplib.CREATED and response() == defaults
+        response = resource.call('PUT', '/fields/text', {})
+        assert response.status == httplib.OK and response() == defaults
+        assert resource.put('/fields/name', {'store': True, 'index': 'not_analyzed'})
         assert sorted(resource.get('/fields')) == ['name', 'text']
         assert resource.get('/fields/text')['index'] == 'ANALYZED'
-        assert not resource.post('/docs', docs=[{'name': 'sample', 'text': 'hello world'}])
-        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
-            resource.post('/docs', docs='')
+        assert not resource.post('/docs', [{'name': 'sample', 'text': 'hello world'}])
+        assert not resource.post('/docs')
         (directory, count), = resource.get('/').items()
         assert count == 1
         assert resource.get('/docs') == []
@@ -114,7 +116,10 @@ class TestCase(BaseTest):
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
         with warnings.catch_warnings(record=True) as deprecations:
             assert resource.get('/docs/0', multifields='name') == {'name': ['sample']}
-        assert deprecations
+            assert not resource.post('/docs', docs=[])
+            httplib.HTTPConnection.request(resource, 'POST', '/docs', 'docs=[]', {'content-length': '7', 'content-type': 'application/x-www-form-urlencoded'})
+            assert not resource.getresponse()()
+        assert len(deprecations) == 3
         assert resource.get('/docs/0', fields='', **{'fields.multi': 'missing'}) == {'missing': []}
         assert resource.get('/terms') == ['name', 'text']
         assert resource.get('/terms', option='unindexed') == []
@@ -165,7 +170,7 @@ class TestCase(BaseTest):
         resource = client.Resource('localhost', self.ports[-1])
         assert set(resource.get('/').values()) == set([0])
         assert resource.get('/docs') == []
-        assert resource.post('/refresh', filters=True, sorters=True) == 2
+        assert resource.post('/refresh', ['filters', 'sorters']) == 2
         assert resource.get('/docs') == [0, 1]
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/fields')
@@ -178,8 +183,8 @@ class TestCase(BaseTest):
         assert resource.get('/docs') == []
         assert not resource.delete('/search')
         with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
-            resource.post('/refresh', spellcheckers=True)
-        responses = resource.multicall(('POST', '/docs', {'docs': [{}]}), ('POST', '/commit'), ('GET', '/docs'))
+            resource.post('/refresh', ['spellcheckers'])
+        responses = resource.multicall(('POST', '/docs', [{}]), ('POST', '/commit'), ('GET', '/docs'))
         assert responses[0].status == httplib.ACCEPTED and responses[1]() == 1 and responses[2]() == [1]
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
@@ -196,14 +201,14 @@ class TestCase(BaseTest):
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/fields') == []
         for name, settings in fixture.constitution.fields.items():
-            assert resource.put('/fields/' + name, **settings)
+            assert resource.put('/fields/' + name, settings)
         fields = resource.get('/fields')
         assert sorted(fields) == ['amendment', 'article', 'date', 'text']
         for field in fields:
             assert sorted(resource.get('/fields/' + name)) == ['index', 'store', 'termvector']
-        resource.post('/docs/', docs=list(fixture.constitution.docs()))
+        resource.post('/docs', list(fixture.constitution.docs()))
         assert resource.get('/').values() == [35]
-        resource.post('/commit', spellcheckers=True, filters='')
+        resource.post('/commit', ['spellcheckers'])
         assert resource.get('/docs/0', **{'fields.indexed': 'amendment:int'}) == {'amendment': 0, 'article': 'Preamble'}
         assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
         articles = resource.get('/terms/article')

@@ -40,7 +40,7 @@ class Response(httplib.HTTPResponse):
     def __call__(self):
         "Return evaluated response body or raise exception."
         body = self.body
-        if body and 'text/x-json' in self.getheader('content-type'):
+        if body and self.getheader('content-type').endswith('json'):
             body = json.loads(body)
         code, agent, text = self.getheader('warning', '  ').split(' ', 2)
         if agent == 'lupyne':
@@ -56,12 +56,16 @@ class Resource(httplib.HTTPConnection):
         "Send request after handling body and headers."
         headers = {'accept-encoding': 'compress, gzip', 'content-length': '0'}
         if body is not None:
-            body = urllib.urlencode(dict((name, value if isinstance(value, basestring) else json.dumps(value)) \
-                for name, value in body.items()))
-            headers.update({'content-length': str(len(body)), 'content-type': 'application/x-www-form-urlencoded'})
+            body = json.dumps(body)
+            headers.update({'content-length': str(len(body)), 'content-type': 'application/json'})
         httplib.HTTPConnection.request(self, method, path, body, headers)
-    def call(self, method, path, body=None):
+    def call(self, method, path, body=None, params=(), **kwargs):
         "Send request and return completed `response`_."
+        if params:
+            path += '?' + urllib.urlencode(params, doseq=True)
+        if kwargs:
+            body = kwargs
+            warnings.warn('Keyword arguments deprecated; call with body param instead.', DeprecationWarning)
         self.request(method, path, body)
         return self.getresponse()
     def multicall(self, *requests):
@@ -75,17 +79,13 @@ class Resource(httplib.HTTPConnection):
             response.begin()
         return responses
     def get(self, path, **params):
-        if params:
-            path += '?' + urllib.urlencode(params, doseq=True)
-        return self.call('GET', path)()
-    def post(self, path, **body):
-        return self.call('POST', path, body)()
-    def put(self, path, **body):
-        return self.call('PUT', path, body)()
+        return self.call('GET', path, params=params)()
+    def post(self, path, body=None, **kwargs):
+        return self.call('POST', path, body, **kwargs)()
+    def put(self, path, body=None, **kwargs):
+        return self.call('PUT', path, body, **kwargs)()
     def delete(self, path, **params):
-        if params:
-            path += '?' + urllib.urlencode(params, doseq=True)
-        return self.call('DELETE', path)()
+        return self.call('DELETE', path, params=params)()
 
 class Resources(dict):
     """Thread-safe mapping of hosts to optionally persistent resources.
