@@ -52,9 +52,10 @@ class Response(httplib.HTTPResponse):
 class Resource(httplib.HTTPConnection):
     "Synchronous connection which handles json responses."
     response_class = Response
+    headers = {'accept-encoding': 'compress, gzip', 'content-length': '0'}
     def request(self, method, path, body=None):
         "Send request after handling body and headers."
-        headers = {'accept-encoding': 'compress, gzip', 'content-length': '0'}
+        headers = dict(self.headers)
         if body is not None:
             body = json.dumps(body)
             headers.update({'content-length': str(len(body)), 'content-type': 'application/json'})

@@ -66,6 +66,16 @@ def time_():
     "Return response time in headers."
     cherrypy.response.headers['x-response-time'] = time.time() - cherrypy.response.time
 
+@tool('on_start_resource')
+def validate(methods=('GET', 'HEAD')):
+    "Return and validate etags for GET requests based on the index version."
+    handler = cherrypy.request.handler
+    if cherrypy.request.method in methods and not isinstance(handler, cherrypy.HTTPError) and hasattr(handler.callable, '__self__'):
+        indexer = handler.callable.__self__.indexer
+        if hasattr(indexer, 'version'):
+            cherrypy.response.headers['etag'] = 'W/"{0}"'.format(indexer.version)
+            cherrypy.tools.etags.callable()
+
 def json_error(version, **body):
     "Transform errors into json format."
     tool = cherrypy.request.toolmaps['tools'].get('json', {})
@@ -100,8 +110,8 @@ def HTTPError(status, *exceptions):
 
 class WebSearcher(object):
     "Dispatch root with a delegated Searcher."
-    _cp_config = {'tools.json.on': True, 'tools.allow.on': True, 'tools.time.on': True, 'error_page.default': json_error,
-        'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json']}
+    _cp_config = dict.fromkeys(map('tools.{0}.on'.format, ['gzip', 'json', 'allow', 'time', 'validate']), True)
+    _cp_config.update({'error_page.default': json_error, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json']})
     def __init__(self, *directories, **kwargs):
         self.indexer = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
     def close(self):
@@ -149,7 +159,7 @@ class WebSearcher(object):
             
             :return: *int*
         """
-        caches = map(str, getattr(cherrypy.request, 'data', ()))
+        caches = getattr(cherrypy.request, 'data', ())
         self.indexer = self.indexer.reopen(**dict.fromkeys(caches, True))
         return len(self.indexer)
     @cherrypy.expose
@@ -440,7 +450,7 @@ class WebIndexer(WebSearcher):
             
             :return: *int*
         """
-        caches = map(str, getattr(cherrypy.request, 'data', ()))
+        caches = getattr(cherrypy.request, 'data', ())
         with self.lock:
             self.indexer.commit(**dict.fromkeys(caches, True))
         return len(self.indexer)
@@ -479,6 +489,7 @@ class WebIndexer(WebSearcher):
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT'])
+    @cherrypy.tools.validate(on=False)
     def fields(self, name=''):
         """Return or store a field's parameters.
         
@@ -497,8 +508,7 @@ class WebIndexer(WebSearcher):
         if cherrypy.request.method == 'PUT':
             if name not in self.indexer.fields:
                 cherrypy.response.status = httplib.CREATED
-            settings = getattr(cherrypy.request, 'data', {})
-            self.indexer.set(name, **dict((str(name), value) for name, value in settings.items()))
+            self.indexer.set(name, **getattr(cherrypy.request, 'data', {}))
         if not name:
             return sorted(self.indexer.fields)
         with HTTPError(httplib.NOT_FOUND, KeyError):

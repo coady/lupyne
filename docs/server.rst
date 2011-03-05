@@ -23,6 +23,7 @@ tools
 .. autofunction:: json_
 .. autofunction:: allow
 .. autofunction:: time_
+.. autofunction:: validate
 
 WebSearcher
 -----------

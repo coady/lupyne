@@ -63,6 +63,8 @@ class TestCase(BaseTest):
         response = resource.call('GET', '/')
         assert response.status == httplib.OK and response.reason == 'OK' and response.time > 0
         assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('application/json')
+        version = response.getheader('etag')
+        assert version.strip('W/"').isdigit()
         (directory, count), = response().items()
         assert count == 0 and 'FSDirectory@' in directory
         assert resource.call('HEAD', '/').status == httplib.OK
@@ -96,6 +98,7 @@ class TestCase(BaseTest):
             resource.get('/terms/x/y/docs/missing')
         defaults = {'index': 'ANALYZED', 'store': 'NO', 'termvector': 'NO'}
         response = resource.call('PUT', '/fields/text')
+        assert response.getheader('etag') is None
         assert response.status == httplib.CREATED and response() == defaults
         response = resource.call('PUT', '/fields/text', {})
         assert response.status == httplib.OK and response() == defaults
@@ -110,7 +113,12 @@ class TestCase(BaseTest):
         result = resource.get('/search?q=text:hello')
         assert math.isnan(result.pop('maxscore'))
         assert result == {'query': 'text:hello', 'count': 0, 'docs': []}
+        resource.headers['if-none-match'] = version
+        response = resource.call('GET', '/')
+        assert response.status == httplib.NOT_MODIFIED and response.getheader('etag') == version
         assert resource.post('/commit')
+        response = resource.call('GET', '/')
+        assert response and response.getheader('etag') > version
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
