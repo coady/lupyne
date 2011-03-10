@@ -505,12 +505,13 @@ class WebIndexer(WebSearcher):
             
             :return: {"store": *string*, "index": *string*, "termvector": *string*}
         """
+        if not name:
+            allow()
+            return sorted(self.indexer.fields)
         if cherrypy.request.method == 'PUT':
             if name not in self.indexer.fields:
                 cherrypy.response.status = httplib.CREATED
             self.indexer.set(name, **getattr(cherrypy.request, 'data', {}))
-        if not name:
-            return sorted(self.indexer.fields)
         with HTTPError(httplib.NOT_FOUND, KeyError):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])

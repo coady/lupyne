@@ -69,9 +69,9 @@ class TestCase(BaseTest):
         assert count == 0 and 'FSDirectory@' in directory
         assert resource.call('HEAD', '/').status == httplib.OK
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
-            resource.put('/')
+            resource.post('/')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
-            resource.post('/fields')
+            resource.put('/fields')
         assert resource.get('/docs') == []
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/docs/0')
