@@ -191,7 +191,7 @@ class IndexReader(object):
             writer.commit()
             writer.expungeDeletes()
             if optimize:
-                writer.optimize()
+                writer.optimize(optimize)
         return len(writer)
     def count(self, name, value):
         "Return number of documents with given term."
@@ -557,11 +557,9 @@ class IndexWriter(lucene.IndexWriter):
         if not isinstance(directory, lucene.Directory):
             directory = lucene.RAMDirectory() if directory is None else lucene.FSDirectory.open(lucene.File(directory))
             self.shared.add(directory)
-        mfl = lucene.IndexWriter.MaxFieldLength.LIMITED
-        if mode == 'a':
-            lucene.IndexWriter.__init__(self, directory, analyzer, mfl)
-        else:
-            lucene.IndexWriter.__init__(self, directory, analyzer, bool('rw'.index(mode)), mfl)
+        args = [] if mode == 'a' else [bool('rw'.index(mode))]
+        args.append(lucene.IndexWriter.MaxFieldLength.LIMITED)
+        lucene.IndexWriter.__init__(self, directory, analyzer, *args)
         self.fields = {}
     @property
     def segments(self):
@@ -597,19 +595,15 @@ class IndexWriter(lucene.IndexWriter):
         :param query: :meth:`Searcher.search` compatible query, or optimally a name and value
         :param options: additional :meth:`Analyzer.parse` options
         """
-        if len(query) == 1:
-            self.deleteDocuments(self.parse(*query, **options))
-        else:
-            self.deleteDocuments(lucene.Term(*query))
+        parse = self.parse if len(query) == 1 else lucene.Term
+        self.deleteDocuments(parse(*query, **options))
     def __iadd__(self, directory):
         "Add directory (or reader, searcher, writer) to index."
         if isinstance(directory, basestring):
             with contextlib.closing(lucene.FSDirectory.open(lucene.File(directory))) as directory:
                 self.addIndexesNoOptimize([directory])
         else:
-            if not isinstance(directory, lucene.Directory):
-                directory = directory.directory
-            self.addIndexesNoOptimize([directory])
+            self.addIndexesNoOptimize([getattr(directory, 'directory', directory)])
         return self
 
 class Indexer(IndexWriter):
@@ -629,10 +623,18 @@ class Indexer(IndexWriter):
         return iter(self.indexSearcher)
     def __getitem__(self, id):
         return self.indexSearcher[id]
-    def commit(self, **caches):
+    def commit(self, expunge=False, optimize=False, **caches):
         """Commit writes and refresh searcher.  Not thread-safe.
         
+        :param expunge: expunge deletes
+        :param optimize: optimize index, optionally supply number of segments
         :param caches: :meth:`Searcher.reopen` caches to refresh
         """
         IndexWriter.commit(self)
+        if expunge:
+            self.expungeDeletes()
+            IndexWriter.commit(self)
+        if optimize:
+            self.optimize(optimize)
+            IndexWriter.commit(self)
         self.indexSearcher = self.indexSearcher.reopen(**caches)

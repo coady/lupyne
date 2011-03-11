@@ -150,6 +150,13 @@ class TestCase(BaseTest):
         reader = engine.indexers.IndexReader(indexer.indexReader)
         assert reader[0].dict() == {} and reader.count('text', '?') == 1
         assert len(reader.comparator('text')) == 4
+        indexer.delete('text', '?')
+        indexer.commit(expunge=True)
+        assert not indexer.hasDeletions() and len(indexer.segments) > 2
+        indexer.commit(optimize=2)
+        assert not indexer.optimized and len(indexer.segments) == 2
+        indexer.commit(optimize=True)
+        assert indexer.optimized
         del reader.indexReader
         self.assertRaises(AttributeError, getattr, reader, 'maxDoc')
         del indexer.indexSearcher
