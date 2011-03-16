@@ -9,6 +9,7 @@ CherryPy and Lucene VM integration issues:
 """
 
 from future_builtins import filter, map
+import warnings
 import re
 import time
 import httplib
@@ -154,9 +155,13 @@ class WebSearcher(object):
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
     def refresh(self):
-        """Refresh index.
+        raise cherrypy.HTTPRedirect(cherrypy.request.script_name + '/update', httplib.MOVED_PERMANENTLY)
+    @cherrypy.expose
+    @cherrypy.tools.allow(methods=['POST'])
+    def update(self):
+        """Refresh index version.
         
-        **POST** /refresh
+        **POST** /update
             Reopen searcher, optionally reloading caches, and return document count.
             
             ["filters"|"sorters"|"spellcheckers",... ]
@@ -440,6 +445,7 @@ class WebSearcher(object):
 
 class WebIndexer(WebSearcher):
     "Dispatch root which extends searcher to include write methods."
+    commit = WebSearcher.refresh
     def __init__(self, *args, **kwargs):
         self.indexer = engine.Indexer(*args, **kwargs)
         self.lock = threading.Lock()
@@ -454,15 +460,11 @@ class WebIndexer(WebSearcher):
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['POST'])
-    def refresh(self):
-        raise cherrypy.HTTPRedirect(cherrypy.request.script_name + '/commit', httplib.MOVED_PERMANENTLY)
-    @cherrypy.expose
-    @cherrypy.tools.allow(methods=['POST'])
-    def commit(self):
-        """Commit index changes.
+    def update(self):
+        """Commit index changes and refresh index version.
         
-        **POST** /commit
-            Commit write operations and return document count.  See :meth:`WebSearcher.refresh` for caching options.
+        **POST** /update
+            Commit write operations and return document count.  See :meth:`WebSearcher.update` for caching options.
             
             ["expunge"|"optimize",... ]
             
@@ -536,7 +538,7 @@ class WebIndexer(WebSearcher):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
 
-def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autorefresh=0, callback=None):
+def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, callback=None, autorefresh=0):
     """Attach root, subscribe to plugins, and start server.
     
     :param root,path,config: see cherrypy.quickstart
@@ -555,7 +557,10 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
     if autoreload:
         Autoreloader(cherrypy.engine, autoreload).subscribe()
     if autorefresh:
-        AttachedMonitor(cherrypy.engine, getattr(root, 'commit', root.refresh), autorefresh).subscribe()
+        warnings.warn('Autorefresh has been renamed autoupdate.', DeprecationWarning)
+        autoupdate = autorefresh
+    if autoupdate:
+        AttachedMonitor(cherrypy.engine, root.update, autoupdate).subscribe()
     if callback:
         priority = (cherrypy.process.plugins.Daemonizer.start.priority + cherrypy.server.start.priority) // 2
         cherrypy.engine.subscribe('start', callback, priority)
@@ -567,7 +572,8 @@ parser.add_option('-c', '--config', help='optional configuration file or json ob
 parser.add_option('-p', '--pidfile', metavar='FILE', help='store the process id in the given file')
 parser.add_option('-d', '--daemonize', action='store_true', help='run the server as a daemon')
 parser.add_option('--autoreload', type=int, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
-parser.add_option('--autorefresh', type=int, metavar='SECONDS', help='automatically refresh index')
+parser.add_option('--autoupdate', type=int, metavar='SECONDS', help='automatically update index version')
+parser.add_option('--autorefresh', type=int, metavar='SECONDS', help='deprecated; use autoupdate')
 
 if __name__ == '__main__':
     options, args = parser.parse_args()

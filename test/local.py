@@ -7,6 +7,7 @@ import collections
 import warnings
 import datetime
 import math
+from contextlib import contextmanager
 import lucene
 from lupyne import engine
 import fixture
@@ -24,6 +25,14 @@ else:
             result = engine.TokenFilter.incrementToken(self)
             self.payload = self.type.encode('utf8')
             return result
+
+@contextmanager
+def assertWarns(*categories):
+    with warnings.catch_warnings(record=True) as messages:
+        yield
+    assert len(messages) == len(categories), messages
+    for message, category in zip(messages, categories):
+         assert issubclass(message.category, category), message
 
 class BaseTest(unittest.TestCase):
     def setUp(self):
@@ -329,10 +338,9 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
-        with warnings.catch_warnings(record=True) as deprecations:
+        with assertWarns(DeprecationWarning, DeprecationWarning):
             indexer.set('longitude', engine.PrefixField, store=True)
             assert engine.NestedField('state:county:city').sep == ':'
-        assert len(deprecations) == 2
         indexer.fields['location'] = engine.NestedField('state.county.city')
         for doc in fixture.zipcodes.docs():
             if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
@@ -493,11 +501,10 @@ class TestCase(BaseTest):
     def testNumericFields(self):
         "Numeric variant fields."
         indexer = engine.Indexer(self.tempdir)
-        with warnings.catch_warnings(record=True) as deprecations:
+        with assertWarns(DeprecationWarning):
             indexer.set('amendment', engine.numeric.NumericField, store=True)
             indexer.set('date', engine.numeric.DateTimeField, store=True)
             indexer.set('size', engine.numeric.NumericField, store=True, step=5)
-        assert deprecations
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))

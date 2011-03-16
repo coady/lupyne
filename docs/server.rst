@@ -15,8 +15,7 @@ Options:
   -d, --daemonize       run the server as a daemon
   --autoreload=SECONDS  automatically reload modules; replacement for
                         engine.autoreload
-  --autorefresh=SECONDS
-                        automatically refresh index
+  --autoupdate=SECONDS  automatically update index version
 
 tools
 -----------

@@ -56,7 +56,7 @@ class TestCase(BaseTest):
         "Remote reading and writing."
         self.servers += (
             self.start(self.ports[0], self.tempdir, '--autoreload=1'),
-            self.start(self.ports[1], self.tempdir, self.tempdir, '--autorefresh=1'), # concurrent searchers
+            self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=1'), # concurrent searchers
         )
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
@@ -116,18 +116,17 @@ class TestCase(BaseTest):
         resource.headers['if-none-match'] = version
         response = resource.call('GET', '/')
         assert response.status == httplib.NOT_MODIFIED and response.getheader('etag') == version
-        assert resource.post('/commit')
+        assert resource.post('/update')
         response = resource.call('GET', '/')
         assert response and response.getheader('etag') > version
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
-        with warnings.catch_warnings(record=True) as deprecations:
+        with local.assertWarns(UserWarning, DeprecationWarning, UserWarning):
             assert resource.get('/docs/0', multifields='name') == {'name': ['sample']}
             assert not resource.post('/docs', docs=[])
             httplib.HTTPConnection.request(resource, 'POST', '/docs', 'docs=[]', {'content-length': '7', 'content-type': 'application/x-www-form-urlencoded'})
             assert not resource.getresponse()()
-        assert len(deprecations) == 3
         assert resource.get('/docs/0', fields='', **{'fields.multi': 'missing'}) == {'missing': []}
         assert resource.get('/terms') == ['name', 'text']
         assert resource.get('/terms', option='unindexed') == []
@@ -178,22 +177,24 @@ class TestCase(BaseTest):
         resource = client.Resource('localhost', self.ports[-1])
         assert set(resource.get('/').values()) == set([0])
         assert resource.get('/docs') == []
-        assert resource.post('/refresh', ['filters', 'sorters']) == 2
+        assert resource.post('/update', ['filters', 'sorters']) == 2
         assert resource.get('/docs') == [0, 1]
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/fields')
-        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
-            resource.post('/commit')
+        with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
+            resource.post('/refresh', ['spellcheckers'])
+        with local.assertWarns(DeprecationWarning):
+            assert resource.call('POST', '/refresh', redirect=True)
         resource = client.Resource('localhost', self.ports[0])
         assert not resource.delete('/search', q='sample', **{'q.field': 'name', 'q.type': 'term'})
         assert resource.get('/docs') == [0]
-        assert not resource.post('/commit')
+        assert not resource.post('/update', ['expunge'])
         assert resource.get('/docs') == []
         assert not resource.delete('/search')
         with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
-            resource.post('/refresh', ['spellcheckers'])
-        responses = resource.multicall(('POST', '/docs', [{}]), ('POST', '/commit'), ('GET', '/docs'))
-        assert responses[0].status == httplib.ACCEPTED and responses[1]() == 1 and responses[2]() == [1]
+            resource.post('/commit', ['spellcheckers'])
+        responses = resource.multicall(('POST', '/docs', [{}]), ('POST', '/update'), ('GET', '/docs'))
+        assert responses[0].status == httplib.ACCEPTED and responses[1]() == 1 and responses[2]() == [0]
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
@@ -205,6 +206,8 @@ class TestCase(BaseTest):
     
     def testBasic(self):
         "Remote text indexing and searching."
+        with local.assertWarns(DeprecationWarning):
+            self.assertRaises(AttributeError, server.start, autorefresh=1)
         self.servers.append(self.start(self.ports[0], self.tempdir))
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/fields') == []
@@ -216,7 +219,7 @@ class TestCase(BaseTest):
             assert sorted(resource.get('/fields/' + name)) == ['index', 'store', 'termvector']
         resource.post('/docs', list(fixture.constitution.docs()))
         assert resource.get('/').values() == [35]
-        resource.post('/commit', ['spellcheckers'])
+        resource.post('/update', ['optimize', 'spellcheckers'])
         assert resource.get('/docs/0', **{'fields.indexed': 'amendment:int'}) == {'amendment': 0, 'article': 'Preamble'}
         assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
         articles = resource.get('/terms/article')
@@ -350,7 +353,7 @@ class TestCase(BaseTest):
                 writer.add(zipcode=doc['zipcode'], location='{0}.{1}'.format(doc['county'], doc['city']))
         writer.commit()
         resource = client.Resource('localhost', self.ports[0])
-        assert resource.post('/refresh') == len(writer)
+        assert resource.post('/update') == len(writer)
         terms = resource.get('/terms/zipcode:int')
         assert len(terms) == len(writer) and terms[0] == 90001
         terms = resource.get('/terms/zipcode:int?step=4')

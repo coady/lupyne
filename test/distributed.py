@@ -32,7 +32,7 @@ class TestCase(remote.BaseTest):
         assert all(response() is None for response in responses)
         response = resources.unicast('POST', '/docs', [doc])
         assert response() is None
-        responses = resources.broadcast('POST', '/commit')
+        responses = resources.broadcast('POST', '/update')
         assert all(response() >= 1 for response in responses)
         responses = resources.broadcast('GET', '/search?q=text:hello')
         docs = []
@@ -64,7 +64,7 @@ class TestCase(remote.BaseTest):
         shards.resources.broadcast('PUT', '/fields/zone', {'store': 'yes'})
         for zone in range(len(self.ports)):
             shards.broadcast(zone, 'POST', '/docs', [{'zone': str(zone)}])
-        shards.resources.broadcast('POST', '/commit')
+        shards.resources.broadcast('POST', '/update')
         result = shards.unicast(0, 'GET', '/search?q=zone:0')()
         assert result['count'] == len(result['docs']) == 1
         assert all(response() == result for response in shards.broadcast(0, 'GET', '/search?q=zone:0'))

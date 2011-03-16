@@ -18,7 +18,7 @@ import random
 import itertools
 import collections
 import io, gzip
-import httplib, urllib
+import httplib, urllib, urlparse
 import socket, errno
 try:
     import simplejson as json
@@ -60,7 +60,7 @@ class Resource(httplib.HTTPConnection):
             body = json.dumps(body)
             headers.update({'content-length': str(len(body)), 'content-type': 'application/json'})
         httplib.HTTPConnection.request(self, method, path, body, headers)
-    def call(self, method, path, body=None, params=(), **kwargs):
+    def call(self, method, path, body=None, params=(), redirect=False, **kwargs):
         "Send request and return completed `response`_."
         if params:
             path += '?' + urllib.urlencode(params, doseq=True)
@@ -68,7 +68,13 @@ class Resource(httplib.HTTPConnection):
             body = kwargs
             warnings.warn('Keyword arguments deprecated; call with body param instead.', DeprecationWarning)
         self.request(method, path, body)
-        return self.getresponse()
+        response = self.getresponse()
+        if redirect and httplib.MULTIPLE_CHOICES <= response.status < httplib.BAD_REQUEST:
+            url = urlparse.urlparse(response.getheader('location'))
+            assert url.netloc.startswith(self.host)
+            warnings.warn('{0}: {1}'.format(response.reason, url.path), DeprecationWarning)
+            return self.call(method, url.path, body, params, redirect-1)
+        return response
     def multicall(self, *requests):
         "Pipeline requests (method, path[, body]) and return completed responses."
         responses = []
