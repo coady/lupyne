@@ -534,6 +534,9 @@ class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
             self.indexReader = lucene.MultiReader(list(map(operator.attrgetter('indexReader'), searchers)), False)
             self.owned = closing([self.indexReader])
         Searcher.__init__(self, searchers, analyzer)
+    @property
+    def version(self):
+        return ' '.join(str(reader.version) for reader in self.sequentialSubReaders)
 
 class ParallelMultiSearcher(MultiSearcher, lucene.ParallelMultiSearcher):
     "Inherited lucene ParallelMultiSearcher."

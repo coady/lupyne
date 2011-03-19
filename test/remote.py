@@ -114,7 +114,7 @@ class TestCase(BaseTest):
         assert math.isnan(result.pop('maxscore'))
         assert result == {'query': 'text:hello', 'count': 0, 'docs': []}
         resource.headers['if-none-match'] = version
-        response = resource.call('GET', '/')
+        response = resource.call('GET', '/', redirect=True)
         assert response.status == httplib.NOT_MODIFIED and response.getheader('etag') == version
         assert resource.post('/update')
         response = resource.call('GET', '/')

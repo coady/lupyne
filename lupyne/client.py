@@ -69,7 +69,7 @@ class Resource(httplib.HTTPConnection):
             warnings.warn('Keyword arguments deprecated; call with body param instead.', DeprecationWarning)
         self.request(method, path, body)
         response = self.getresponse()
-        if redirect and httplib.MULTIPLE_CHOICES <= response.status < httplib.BAD_REQUEST:
+        if redirect and httplib.MULTIPLE_CHOICES <= response.status < httplib.NOT_MODIFIED:
             url = urlparse.urlparse(response.getheader('location'))
             assert url.netloc.startswith(self.host)
             warnings.warn('{0}: {1}'.format(response.reason, url.path), DeprecationWarning)

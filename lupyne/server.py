@@ -79,9 +79,8 @@ def time_():
 def validate(methods=('GET', 'HEAD')):
     "Return and validate etags for GET requests based on the index version."
     request = cherrypy.serving.request
-    searcher = request.app.root.searcher
-    if request.method in methods and not isinstance(request.handler, cherrypy.HTTPError) and hasattr(searcher, 'version'):
-        cherrypy.response.headers['etag'] = 'W/"{0}"'.format(searcher.version)
+    if request.method in methods and not isinstance(request.handler, cherrypy.HTTPError):
+        cherrypy.response.headers['etag'] = 'W/"{0}"'.format(request.app.root.searcher.version)
         cherrypy.tools.etags.callable()
 
 def json_error(version, **body):
@@ -547,7 +546,7 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
     """Attach root, subscribe to plugins, and start server.
     
     :param root,path,config: see cherrypy.quickstart
-    :param pidfile,daemonize,autoreload,autorefresh: see command-line options
+    :param pidfile,daemonize,autoreload,autoupdate: see command-line options
     :param callback: optional callback function scheduled after daemonizing
     """
     cherrypy.engine.subscribe('start_thread', attach_thread)
