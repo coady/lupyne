@@ -63,8 +63,8 @@ class TestCase(BaseTest):
         response = resource.call('GET', '/')
         assert response.status == httplib.OK and response.reason == 'OK' and response.time > 0
         assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('application/json')
-        version = response.getheader('etag')
-        assert version.strip('W/"').isdigit()
+        version, modified = response.getheader('etag'), response.getheader('last-modified')
+        assert version.strip('W/"').isdigit() and modified
         (directory, count), = response().items()
         assert count == 0 and 'FSDirectory@' in directory
         assert resource.call('HEAD', '/').status == httplib.OK
@@ -116,9 +116,12 @@ class TestCase(BaseTest):
         resource.headers['if-none-match'] = version
         response = resource.call('GET', '/', redirect=True)
         assert response.status == httplib.NOT_MODIFIED and response.getheader('etag') == version
+        del resource.headers['if-none-match']
+        resource.headers['if-modified-since'] = modified
+        assert resource.call('GET', '/', redirect=True).status == httplib.NOT_MODIFIED
         assert resource.post('/update')
         response = resource.call('GET', '/')
-        assert response and response.getheader('etag') > version
+        assert response and response.getheader('etag') > version and response.getheader('last-modified') != modified
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}

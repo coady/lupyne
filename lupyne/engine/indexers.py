@@ -167,6 +167,10 @@ class IndexReader(object):
     def directory(self):
         "reader's lucene Directory"
         return self.indexReader.directory()
+    @property
+    def timestamp(self):
+        "timestamp of reader's last commit"
+        return self.indexCommit.timestamp / 1000.0
     def copy(self, dest, query=None, exclude=None, optimize=False):
         """Copy the index to the destination directory.
         Optimized to use hard links if the destination is a file system path.
@@ -537,6 +541,9 @@ class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
     @property
     def version(self):
         return ' '.join(str(reader.version) for reader in self.sequentialSubReaders)
+    @property
+    def timestamp(self):
+        return max(IndexReader(reader).timestamp for reader in self.sequentialSubReaders)
 
 class ParallelMultiSearcher(MultiSearcher, lucene.ParallelMultiSearcher):
     "Inherited lucene ParallelMultiSearcher."

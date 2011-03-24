@@ -24,6 +24,10 @@ except ImportError:
     import json
 import lucene
 import cherrypy
+try:
+    from cherrypy.lib import httputil
+except ImportError:
+    from cherrypy.lib import http as httputil
 import engine
 
 def tool(hook):
@@ -76,12 +80,22 @@ def time_():
     response.headers['x-response-time'] = time.time() - response.time
 
 @tool('on_start_resource')
-def validate(methods=('GET', 'HEAD')):
-    "Return and validate etags for GET requests based on the index version."
+def validate(methods=('GET', 'HEAD'), etag=True, last_modified=True):
+    """Return and validate caching headers for GET requests.
+
+    :param methods: only set headers for specified methods
+    :param etag: return weak entity tag based on index version and validate if-match headers
+    :param last_modified: return last-modified based on index timestamp and validate if-modified headers
+    """
     request = cherrypy.serving.request
+    headers = cherrypy.response.headers
     if request.method in methods and not isinstance(request.handler, cherrypy.HTTPError):
-        cherrypy.response.headers['etag'] = 'W/"{0}"'.format(request.app.root.searcher.version)
-        cherrypy.tools.etags.callable()
+        if etag:
+            headers['etag'] = 'W/"{0}"'.format(request.app.root.searcher.version)
+            cherrypy.lib.cptools.validate_etags()
+        if last_modified:
+            headers['last-modified'] = httputil.HTTPDate(request.app.root.searcher.timestamp)
+            cherrypy.lib.cptools.validate_since()
 
 def json_error(version, **body):
     "Transform errors into json format."
