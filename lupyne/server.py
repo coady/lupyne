@@ -80,12 +80,14 @@ def time_():
     response.headers['x-response-time'] = time.time() - response.time
 
 @tool('on_start_resource')
-def validate(methods=('GET', 'HEAD'), etag=True, last_modified=True):
+def validate(methods=('GET', 'HEAD'), etag=True, last_modified=True, max_age=None, expires=None):
     """Return and validate caching headers for GET requests.
 
     :param methods: only set headers for specified methods
     :param etag: return weak entity tag based on index version and validate if-match headers
     :param last_modified: return last-modified based on index timestamp and validate if-modified headers
+    :param max_age: return cache-control max-age and age header based on last update
+    :param expires: return expires header based on last update
     """
     request = cherrypy.serving.request
     headers = cherrypy.response.headers
@@ -96,6 +98,11 @@ def validate(methods=('GET', 'HEAD'), etag=True, last_modified=True):
         if last_modified:
             headers['last-modified'] = httputil.HTTPDate(request.app.root.searcher.timestamp)
             cherrypy.lib.cptools.validate_since()
+        if max_age is not None:
+            headers['age'] = int(time.time() - request.app.root.updated)
+            headers['cache-control'] = 'max-age={0}'.format(max_age)
+        if expires is not None:
+            headers['expires'] = httputil.HTTPDate(expires + request.app.root.updated)
 
 def json_error(version, **body):
     "Transform errors into json format."
@@ -135,6 +142,7 @@ class WebSearcher(object):
     _cp_config.update({'error_page.default': json_error, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json']})
     def __init__(self, *directories, **kwargs):
         self.searcher = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
+        self.updated = time.time()
     def close(self):
         self.searcher.close()
     @staticmethod
@@ -189,6 +197,7 @@ class WebSearcher(object):
             :return: *int*
         """
         self.searcher = self.searcher.reopen(**dict.fromkeys(caches, True))
+        self.updated = time.time()
         return len(self.searcher)
     @cherrypy.expose
     def index(self):
@@ -467,6 +476,7 @@ class WebIndexer(WebSearcher):
     commit = WebSearcher.refresh
     def __init__(self, *args, **kwargs):
         self.indexer = engine.Indexer(*args, **kwargs)
+        self.updated = time.time()
         self.lock = threading.Lock()
     @property
     def searcher(self):
@@ -492,6 +502,7 @@ class WebIndexer(WebSearcher):
         """
         with self.lock:
             self.indexer.commit(**dict.fromkeys(options, True))
+        self.updated = time.time()
         return len(self.indexer)
     @cherrypy.expose
     @cherrypy.tools.json(process_body=lambda body: {'docs': body})

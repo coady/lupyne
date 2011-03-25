@@ -9,6 +9,7 @@ import math
 import json
 import socket, errno
 from contextlib import contextmanager
+from email.utils import parsedate
 import lucene
 import cherrypy
 from lupyne import client, engine, server
@@ -37,11 +38,12 @@ class BaseTest(local.BaseTest):
         for server in self.servers:
             self.stop(server)
         local.BaseTest.tearDown(self)
-    def start(self, port, *args):
+    def start(self, port, *args, **config):
         "Start server in separate process on given port."
-        self.config['server.socket_port'] = port
+        config.update(self.config)
+        config['server.socket_port'] = port
         cherrypy.process.servers.wait_for_free_port('localhost', port)
-        server = subprocess.Popen((sys.executable, '-m', 'lupyne.server', '-c', json.dumps(self.config)) + args)
+        server = subprocess.Popen((sys.executable, '-m', 'lupyne.server', '-c', json.dumps(config)) + args)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
         assert not server.poll()
         return server
@@ -55,7 +57,7 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Remote reading and writing."
         self.servers += (
-            self.start(self.ports[0], self.tempdir, '--autoreload=1'),
+            self.start(self.ports[0], self.tempdir, '--autoreload=1', **{'tools.validate.expires': 0, 'tools.validate.max_age': 0}),
             self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=1'), # concurrent searchers
         )
         resource = client.Resource('localhost', self.ports[0])
@@ -64,7 +66,10 @@ class TestCase(BaseTest):
         assert response.status == httplib.OK and response.reason == 'OK' and response.time > 0
         assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('application/json')
         version, modified = response.getheader('etag'), response.getheader('last-modified')
-        assert version.strip('W/"').isdigit() and modified
+        assert version.strip('W/"').isdigit()
+        assert int(response.getheader('age')) >= 0 and response.getheader('cache-control') == 'max-age=0'
+        dates = list(map(parsedate, [modified, response.getheader('expires'), response.getheader('date')]))
+        assert all(dates) and sorted(dates) == dates
         (directory, count), = response().items()
         assert count == 0 and 'FSDirectory@' in directory
         assert resource.call('HEAD', '/').status == httplib.OK
