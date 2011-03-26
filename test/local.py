@@ -190,6 +190,9 @@ class TestCase(BaseTest):
         indexer.add(doc)
         indexer.commit(filters=True, spellcheckers=True)
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
+        doc['amendment'] = engine.Analyzer(lucene.WhitespaceTokenizer).tokens(doc['amendment'])
+        scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27'))
+        assert 0.0 == scores[0] < scores[1] < scores[2] < 1.0
         searcher = engine.MultiSearcher([indexer.directory, self.tempdir])
         assert searcher.count() == len(searcher) == 2 * len(indexer)
         searcher = searcher.reopen()

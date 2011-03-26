@@ -503,6 +503,17 @@ class Searcher(object):
             words = set(self.terms(field, text, minSimilarity=minSimilarity)) - corrections
             for word in sorted(words, key=spellchecker.__getitem__, reverse=True):
                 yield word
+    def match(self, document, *queries):
+        "Generate scores for all queries against a given document mapping."
+        searcher = lucene.MemoryIndex()
+        for name, value in document.items():
+            if isinstance(value, basestring):
+                value = value, self.analyzer
+            elif isinstance(value, lucene.TokenStream):
+                value = value,
+            searcher.addField(name, *value)
+        for query in queries:
+            yield searcher.search(self.parse(query))
 
 class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
