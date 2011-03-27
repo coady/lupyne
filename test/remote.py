@@ -74,7 +74,9 @@ class TestCase(BaseTest):
         assert count == 0 and 'FSDirectory@' in directory
         assert resource.call('HEAD', '/').status == httplib.OK
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
-            resource.post('/')
+            resource.post('/terms')
+        with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
+            resource.get('/update')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.put('/fields')
         assert resource.get('/docs') == []
@@ -126,7 +128,7 @@ class TestCase(BaseTest):
         assert resource.call('GET', '/', redirect=True).status == httplib.NOT_MODIFIED
         assert resource.post('/update')
         response = resource.call('GET', '/')
-        assert response and response.getheader('etag') > version and response.getheader('last-modified') != modified
+        assert response and response.getheader('etag') > version and parsedate(response.getheader('last-modified')) >= parsedate(modified)
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
@@ -144,6 +146,7 @@ class TestCase(BaseTest):
             resource.get('/terms/text/world~-')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/terms/text/world~?count=')
+        assert resource.get('/terms/text/world?count=1')
         assert resource.get('/terms/text/world/docs') == [0]
         assert resource.get('/terms/text/world/docs/counts') == [[0, 1]]
         assert resource.get('/terms/text/world/docs/positions') == [[0, [1]]]
@@ -157,6 +160,8 @@ class TestCase(BaseTest):
             resource.get('/search', count=1, group='x:str')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', q='')
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.get('/search?q.test=True')
         assert resource.get('/search', count=0) == {'count': 1, 'maxscore': 1.0, 'query': None, 'docs': []}
         assert resource.get('/search', fields='')['docs'] == [{'__id__': 0, '__score__': 1.0}]
         hit, = resource.get('/search', fields='', **{'fields.multi': 'name'})['docs']
@@ -203,6 +208,7 @@ class TestCase(BaseTest):
             resource.post('/commit', ['spellcheckers'])
         responses = resource.multicall(('POST', '/docs', [{}]), ('POST', '/update'), ('GET', '/docs'))
         assert responses[0].status == httplib.ACCEPTED and responses[1]() == 1 and responses[2]() == [0]
+        assert resource.post('/', [self.tempdir]).values() == [2]
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
@@ -353,7 +359,7 @@ class TestCase(BaseTest):
     def testAdvanced(self):
         "Nested and numeric fields."
         writer = engine.IndexWriter(self.tempdir)
-        self.servers.append(self.start(self.ports[0], '-r', self.tempdir))
+        self.servers.append(self.start(self.ports[0], '-r', self.tempdir, **{'tools.validate.etag': False, 'tools.validate.last_modified': False}))
         writer.set('zipcode', engine.NumericField, store=True)
         writer.fields['location'] = engine.NestedField('county.city')
         for doc in fixture.zipcodes.docs():
@@ -361,7 +367,7 @@ class TestCase(BaseTest):
                 writer.add(zipcode=doc['zipcode'], location='{0}.{1}'.format(doc['county'], doc['city']))
         writer.commit()
         resource = client.Resource('localhost', self.ports[0])
-        assert resource.post('/update') == len(writer)
+        assert resource.post('/update') == resource.get('/').popitem()[1] == len(writer)
         terms = resource.get('/terms/zipcode:int')
         assert len(terms) == len(writer) and terms[0] == 90001
         terms = resource.get('/terms/zipcode:int?step=4')

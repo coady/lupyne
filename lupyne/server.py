@@ -179,7 +179,6 @@ class WebSearcher(object):
         indexed = [field.split(':') for field in options.get('fields.indexed', '').split(',') if field]
         return fields, multi, indexed
     @cherrypy.expose
-    @cherrypy.tools.json(process_body=dict.fromkeys)
     @cherrypy.tools.allow(methods=['POST'])
     def refresh(self, **caches):
         raise cherrypy.HTTPRedirect(cherrypy.request.script_name + '/update', httplib.MOVED_PERMANENTLY)
@@ -485,7 +484,20 @@ class WebIndexer(WebSearcher):
         self.indexer.close()
         WebSearcher.close(self)
     @cherrypy.expose
-    def index(self):
+    @cherrypy.tools.json(process_body=lambda body: {'directories': list(body)})
+    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
+    def index(self, directories=()):
+        """Add indexes.  See :meth:`WebSearcher.index` for GET method.
+        
+        **POST** /
+            Add indexes without optimization.
+            
+            [*string*,... ]
+        """
+        if cherrypy.request.method == 'POST':
+            for directory in directories:
+                self.indexer += directory
+            cherrypy.response.status = httplib.ACCEPTED
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
     @cherrypy.tools.json(process_body=dict.fromkeys)

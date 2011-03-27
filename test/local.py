@@ -47,15 +47,15 @@ class TestCase(BaseTest):
         self.assertRaises(TypeError, engine.IndexSearcher)
         analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
         stemmer = engine.Analyzer(analyzer, lucene.PorterStemFilter, typeAsPayload)
-        token = stemmer.tokens('hello').next()
-        assert token.positionIncrement == 1
-        if not isinstance(token, lucene.Token):
-            assert engine.TokenFilter(lucene.EmptyTokenStream()).payload is None
-            assert token.term == 'hello'
-            assert token.type == token.payload == '<ALPHANUM>'
-            assert token.offset == (0, 5)
-            token.term = token.type = ''
-            token.offset, token.positionIncrement = (0, 0), 0
+        for token in stemmer.tokens('hello'):
+            assert token.positionIncrement == 1
+            if not isinstance(token, lucene.Token):
+                assert engine.TokenFilter(lucene.EmptyTokenStream()).payload is None
+                assert token.term == 'hello'
+                assert token.type == token.payload == '<ALPHANUM>'
+                assert token.offset == (0, 5)
+                token.term = token.type = ''
+                token.offset, token.positionIncrement = (0, 0), 0
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
         indexer = engine.Indexer(analyzer=stemmer)
