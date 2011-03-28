@@ -19,6 +19,8 @@ Options:
 
 tools
 -----------
+CherryPy tools enabled by default:  tools.\{json,allow,time,validate\}.on
+
 .. autofunction:: json_
 .. autofunction:: allow
 .. autofunction:: time_
@@ -28,7 +30,7 @@ WebSearcher
 -----------
 .. autoclass:: server.WebSearcher
   :members:
-  :exclude-members: parse, select
+  :exclude-members: parse, select, new, init
 
 WebIndexer
 -----------

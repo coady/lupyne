@@ -66,7 +66,7 @@ def json_(indent=None, content_type='application/json', process_body=None):
 
 @tool('on_start_resource')
 def allow(methods=('GET', 'HEAD')):
-    "Only allow methods specified in tools.allow.methods."
+    "Only allow specified methods."
     request = cherrypy.serving.request
     if request.method not in methods and not isinstance(request.handler, cherrypy.HTTPError):
         cherrypy.response.headers['allow'] = ', '.join(methods)
@@ -143,6 +143,16 @@ class WebSearcher(object):
     def __init__(self, *directories, **kwargs):
         self.searcher = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
         self.updated = time.time()
+    @classmethod
+    def new(cls, *args, **kwargs):
+        "Return new uninitialized root which can be mounted on dispatch tree before VM initialization."
+        self = object.__new__(cls)
+        self.args, self.kwargs = args, kwargs
+        return self
+    def init(self, vmargs='-Xrs', **kwargs):
+        "Callback to initialize VM and root object after daemonizing."
+        lucene.initVM(vmargs=vmargs, **kwargs)
+        self.__init__(*self.__dict__.pop('args'), **self.__dict__.pop('kwargs'))
     def close(self):
         self.searcher.close()
     @staticmethod
@@ -621,9 +631,6 @@ if __name__ == '__main__':
     read_only = options.__dict__.pop('read_only')
     if options.config and not os.path.exists(options.config):
         options.config = {'global': json.loads(options.config)}
-    directories = list(map(os.path.abspath, args))
-    root = object.__new__(WebSearcher if (read_only or len(args) > 1) else WebIndexer)
-    def init():
-        lucene.initVM(vmargs='-Xrs')
-        root.__init__(*directories)
-    start(root, callback=init, **options.__dict__)
+    cls = WebSearcher if (read_only or len(args) > 1) else WebIndexer
+    root = cls.new(*map(os.path.abspath, args))
+    start(root, callback=root.init, **options.__dict__)
