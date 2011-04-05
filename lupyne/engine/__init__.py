@@ -7,12 +7,16 @@ abstracting away java lucene primitives.
 
 import types
 import warnings
+import lucene
 warnings.simplefilter('default', DeprecationWarning)
 
 from .queries import Query, Filter, SortField
 from .documents import Document, Field, FormatField, PrefixField, NestedField, NumericField, DateTimeField
 from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, ParallelMultiSearcher, IndexWriter, Indexer
 from .spatial import PointField, PolygonField
+
+if lucene.VERSION < '3':
+    warnings.warn('Support for lucene 2.9 will be removed in the next release.', DeprecationWarning)
 
 class numeric(types.ModuleType):
     def __getattr__(self, name):

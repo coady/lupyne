@@ -180,12 +180,19 @@ class IndexReader(object):
         :param exclude: optional lucene Query to exclude documents
         :param optimize: optionally optimize destination index
         """
+        filter = lucene.IndexFileNameFilter.getFilter()
+        filenames = (filename for filename in self.directory.listAll() if filter.accept(None, filename))
         if isinstance(dest, lucene.Directory):
-            lucene.Directory.copy(self.directory, dest, False)
+            src = self.directory
+            try:
+                lucene.Directory.copy(src, dest, False)
+            except lucene.InvalidArgsError:
+                for filename in filenames:
+                    src.copy(dest, filename, filename)
         else:
             src = lucene.FSDirectory.cast_(self.directory).file.path
             os.path.isdir(dest) or os.makedirs(dest)
-            for filename in set(self.directory.listAll()).difference(['write.lock']):
+            for filename in filenames:
                 os.link(os.path.join(src, filename), os.path.join(dest, filename))
         with contextlib.closing(IndexWriter(dest)) as writer:
             if query:
@@ -314,6 +321,17 @@ class IndexReader(object):
         for name, value in attrs.items():
             setattr(mlt, name, value)
         return mlt.like(lucene.StringReader(doc) if isinstance(doc, basestring) else doc)
+    def overlap(self, left, right):
+        "Return intersection count of cached filters."
+        count = 0
+        for reader in self.sequentialSubReaders:
+            docsets = left.getDocIdSet(reader), right.getDocIdSet(reader)
+            try:
+                count += lucene.OpenBitSet.intersectionCount(*docsets)
+            except lucene.InvalidArgsError: # verify docsets are either cached or empty
+                if not all(lucene.OpenBitSet.instance_(docset) or docset.iterator().nextDoc() == lucene.Integer.MAX_VALUE for docset in docsets):
+                    raise
+        return int(count)
 
 class Searcher(object):
     "Mixin interface common among searchers."
@@ -348,7 +366,7 @@ class Searcher(object):
         other.shared, other.owned = self.shared, closing([reader])
         other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
         if filters:
-            other.facets([], *other.filters)
+            other.facets(Query.any(), *other.filters)
         other.sorters = dict(self.sorters)
         if sorters:
             for field in self.sorters:
@@ -445,19 +463,25 @@ class Searcher(object):
             stats = topdocs.totalHits, topdocs.maxScore
         stats *= not isinstance(timeout, lucene.JavaError)
         return Hits(self, ids, scores, *stats)
-    def facets(self, ids, *keys):
+    def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
-        :param ids: document ids or lucene Filter
+        :param ids: query string, lucene Query, or lucene Filter
         :param keys: field names, term tuples, or any keys to previously cached filters
         """
         counts = collections.defaultdict(dict)
-        if not isinstance(ids, lucene.Filter):
-            ids = Filter(ids)
+        if isinstance(query, basestring):
+            query = self.parse(query)
+        if isinstance(query, lucene.Query):
+            query = lucene.QueryWrapperFilter(query)
+        if not isinstance(query, lucene.Filter):
+            query = Filter(query)
+        elif not isinstance(query, lucene.CachingWrapperFilter):
+            query = lucene.CachingWrapperFilter(query)
         for key in keys:
             filters = self.filters.get(key)
             if isinstance(filters, lucene.Filter):
-                counts[key] = Filter.overlap(ids, filters, self.indexReader)
+                counts[key] = self.overlap(query, filters)
             else:
                 name, value = (key, None) if isinstance(key, basestring) else key
                 filters = self.filters.setdefault(name, {})
@@ -468,7 +492,7 @@ class Searcher(object):
                 for value in values:
                     if value not in filters:
                         filters[value] = Query.term(name, value).filter()
-                    counts[name][value] = Filter.overlap(ids, filters[value], self.indexReader)
+                    counts[name][value] = self.overlap(query, filters[value])
         return dict(counts)
     def sorter(self, field, type='string', parser=None, reverse=False):
         "Return `SortField`_ with cached attributes if available."
@@ -555,6 +579,8 @@ class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
     @property
     def timestamp(self):
         return max(IndexReader(reader).timestamp for reader in self.sequentialSubReaders)
+    def overlap(self, *filters):
+        return sum(IndexReader(reader).overlap(*filters) for reader in self.sequentialSubReaders)
 
 class ParallelMultiSearcher(MultiSearcher, lucene.ParallelMultiSearcher):
     "Inherited lucene ParallelMultiSearcher."
@@ -585,7 +611,7 @@ class IndexWriter(lucene.IndexWriter):
     @property
     def segments(self):
         "segment filenames with document counts"
-        return dict((name, int(value)) for name, value in re.findall('(\w+):.x?(\d+)', self.segString()))
+        return dict((name, int(value)) for name, value in re.findall('(\w+).*:.x?(\d+)', self.segString()))
     def set(self, name, cls=Field, **params):
         """Assign parameters to field name.
         
@@ -633,6 +659,7 @@ class Indexer(IndexWriter):
     """
     def __init__(self, *args, **kwargs):
         IndexWriter.__init__(self, *args, **kwargs)
+        IndexWriter.commit(self)
         self.indexSearcher = IndexSearcher(self.directory, self.analyzer)
     def __getattr__(self, name):
         if name == 'indexSearcher':

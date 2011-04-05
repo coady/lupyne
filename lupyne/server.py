@@ -17,6 +17,7 @@ import threading
 import collections
 import itertools, operator
 import os, optparse
+from email.utils import formatdate
 from contextlib import contextmanager
 try:
     import simplejson as json
@@ -24,10 +25,6 @@ except ImportError:
     import json
 import lucene
 import cherrypy
-try:
-    from cherrypy.lib import httputil
-except ImportError:
-    from cherrypy.lib import http as httputil
 import engine
 
 def tool(hook):
@@ -96,13 +93,13 @@ def validate(methods=('GET', 'HEAD'), etag=True, last_modified=True, max_age=Non
             headers['etag'] = 'W/"{0}"'.format(request.app.root.searcher.version)
             cherrypy.lib.cptools.validate_etags()
         if last_modified:
-            headers['last-modified'] = httputil.HTTPDate(request.app.root.searcher.timestamp)
+            headers['last-modified'] = formatdate(request.app.root.searcher.timestamp, usegmt=True)
             cherrypy.lib.cptools.validate_since()
         if max_age is not None:
             headers['age'] = int(time.time() - request.app.root.updated)
             headers['cache-control'] = 'max-age={0}'.format(max_age)
         if expires is not None:
-            headers['expires'] = httputil.HTTPDate(expires + request.app.root.updated)
+            headers['expires'] = formatdate(expires + request.app.root.updated, usegmt=True)
 
 def json_error(version, **body):
     "Transform errors into json format."
@@ -389,7 +386,7 @@ class WebSearcher(object):
         q = q or lucene.MatchAllDocsQuery()
         if facets:
             facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets.split(','))
-            result['facets'] = searcher.facets(engine.Query.__dict__['filter'](q), *facets)
+            result['facets'] = searcher.facets(q, *facets)
         if spellcheck:
             terms = result['spellcheck'] = collections.defaultdict(dict)
             for name, value in engine.Query.__dict__['terms'](q):

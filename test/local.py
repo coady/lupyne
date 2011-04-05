@@ -34,6 +34,12 @@ def assertWarns(*categories):
     for message, category in zip(messages, categories):
          assert issubclass(message.category, category), message
 
+class Filter(lucene.PythonFilter):
+    "Broken filter to test errors are raised."
+    def getBitSet(self, indexReader):
+        assert False
+    getDocIdSet = getBitSet
+
 class BaseTest(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp(dir=os.path.dirname(__file__))
@@ -124,7 +130,6 @@ class TestCase(BaseTest):
         query |= engine.Query.fuzzy('text', 'hello', 0.1)
         assert str(query) == '+text:* +text:hello~0.5 text:hello~0.1'
         query = engine.Query.span('text', 'world')
-        self.assertRaises(AssertionError, query.near, option=None)
         assert str(query.mask('name')) == 'mask(text:world) as name'
         query = engine.Query.disjunct(0.1, query, name='sample')
         assert str(query) == '(text:world | name:sample)~0.1'
@@ -161,9 +166,9 @@ class TestCase(BaseTest):
         assert len(reader.comparator('text')) == 4
         indexer.delete('text', '?')
         indexer.commit(expunge=True)
-        assert not indexer.hasDeletions() and len(indexer.segments) > 2
+        assert not indexer.hasDeletions()
         indexer.commit(optimize=2)
-        assert not indexer.optimized and len(indexer.segments) == 2
+        len(indexer.segments) <= 2
         indexer.commit(optimize=True)
         assert indexer.optimized
         del reader.indexReader
@@ -184,7 +189,13 @@ class TestCase(BaseTest):
         engine.IndexSearcher.load(searcher.directory) # ensure directory isn't closed
         assert len(indexer) == len(searcher) and lucene.RAMDirectory.instance_(searcher.directory)
         assert indexer.filters == indexer.spellcheckers == {}
-        assert indexer.facets([], 'amendment') and indexer.suggest('amendment', '')
+        with assertWarns(DeprecationWarning):
+            assert indexer.facets([0], 'amendment')
+            assert not indexer.facets(lucene.OpenBitSet())
+            assert not indexer.search(filter=[])
+            f = engine.Filter([])
+            assert not engine.Filter.overlap(f, f)
+        assert indexer.suggest('amendment', '')
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
         indexer.delete('amendment', doc['amendment'])
         indexer.add(doc)
@@ -196,7 +207,7 @@ class TestCase(BaseTest):
         searcher = engine.MultiSearcher([indexer.directory, self.tempdir])
         assert searcher.count() == len(searcher) == 2 * len(indexer)
         searcher = searcher.reopen()
-        assert searcher.facets(searcher, 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
+        assert searcher.facets(lucene.MatchAllDocsQuery(), 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
         reader = searcher.indexReader
         del searcher
         self.assertRaises(lucene.JavaError, reader.isCurrent)
@@ -253,8 +264,10 @@ class TestCase(BaseTest):
         hits = indexer.search('text:right')
         for name in ('amendment', 'article'):
             indexer.filters[name] = engine.Query.prefix(name, '').filter()
-        assert indexer.facets(hits.ids, 'amendment', 'article') == {'amendment': 12, 'article': 1}
-        hits = indexer.search('text:people', filter=hits.ids)
+        query = engine.Query.term('text', 'right')
+        assert indexer.facets(str(query), 'amendment', 'article') == {'amendment': 12, 'article': 1}
+        self.assertRaises(lucene.InvalidArgsError, indexer.overlap, query.filter(), query.filter(cache=False))
+        hits = indexer.search('text:people', filter=query.filter())
         assert len(hits) == 4
         hit, = indexer.search('date:192*')
         assert hit['amendment'] == '19'
@@ -270,11 +283,6 @@ class TestCase(BaseTest):
         assert set(hit.get('amendment') for hit in hits) > set(amendments)
         hit, = indexer.search(query & engine.Query.term('text', 'vote'))
         assert hit['amendment'] == '19'
-        f = engine.Filter(indexer.docs('text', 'vote'))
-        for n in range(2):  # filters should be reusable
-            hit, = indexer.search(query, filter=f)
-            assert hit['amendment'] == '19'
-        assert indexer.count(query, filter=engine.Filter(lucene.OpenBitSet())) == 0
         hit, = indexer.search(query - engine.Query.all(text='vote'))
         assert hit['amendment'] == '18'
         hit, = indexer.search(engine.Query.all(text=['persons', 'papers']))
@@ -384,23 +392,19 @@ class TestCase(BaseTest):
         assert count == indexer.count(field.range(lng[:3], lng[:3]+'~'))
         assert count > indexer.count(engine.Query.term('state', 'CA'), filter=engine.Query.term(longitude, lng).filter())
         query = engine.Query.prefix('zipcode', '90')
-        (field, facets), = indexer.facets(indexer.search(query).ids, 'state.county').items()
-        assert [facets] == indexer.facets(query.filter(), 'state.county').values()
+        (field, facets), = indexer.facets(query, 'state.county').items()
         assert field == 'state.county'
         la, orange = sorted(filter(facets.get, facets))
         assert la == 'CA.Los Angeles' and facets[la] > 100
         assert orange == 'CA.Orange' and facets[orange] > 10
-        (field, facets), = indexer.facets(query.filter(), ('state.county', 'CA.*')).items()
+        (field, facets), = indexer.facets(query, ('state.county', 'CA.*')).items()
         assert all(value.startswith('CA.') for value in facets) and set(facets) < set(indexer.filters['state.county'])
         for count in (None, len(indexer)):
             hits = indexer.search(query, count=count, timeout=0.01)
             assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)
             hits = indexer.search(query, count=count, timeout=-1)
             assert len(hits) == 0 and hits.count is hits.maxscore is None
-        f = engine.Filter([])
-        del f.docIdSet # ensure real internal search errors are still raised
-        f.__dict__.pop('bitSet', None)
-        self.assertRaises(lucene.JavaError, indexer.search, filter=f)
+        self.assertRaises(lucene.JavaError, indexer.search, filter=Filter())
         directory = lucene.RAMDirectory()
         query = engine.Query.term('state', 'CA')
         size = indexer.copy(directory, query)

@@ -3,6 +3,7 @@ Query wrappers and search utilities.
 """
 
 from future_builtins import filter, map
+import warnings
 import itertools
 import bisect
 import heapq
@@ -152,10 +153,7 @@ class SpanQuery(Query):
         :param inOrder: default True
         :param collectPayloads: default True
         """
-        args = list(map(kwargs.pop, ('slop', 'inOrder'), (0, True)))
-        if 'collectPayloads' in kwargs:
-            args.append(kwargs.pop('collectPayloads'))
-        assert not kwargs, 'unexpected keyword arguments: {0}'.format(list(kwargs))
+        args = map(kwargs.get, ('slop', 'inOrder', 'collectPayloads'), (0, True, True))
         return SpanQuery(lucene.SpanNearQuery, spans, *args)
     def mask(self, name):
         "Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."
@@ -184,6 +182,7 @@ class HitCollector(lucene.PythonCollector if hasattr(lucene, 'PythonCollector') 
 class Filter(lucene.PythonFilter):
     "Inherited lucene Filter with a cached BitSet of ids."
     def __init__(self, ids):
+        warnings.warn('Filters have been deprecated and are incompatible with segment based searching.', DeprecationWarning)
         lucene.PythonFilter.__init__(self)
         self.docIdSet = lucene.OpenBitSet()
         if isinstance(ids, lucene.OpenBitSet):
@@ -308,11 +307,8 @@ class SpellParser(lucene.PythonQueryParser):
         for text in self.searcher.correct(field, term.text()):
             return lucene.Term(field, text)
         return term
-    def getFieldQuery(self, field, text, *args):
-        "Correct term and phrase queries."
-        query = lucene.PythonQueryParser.getFieldQuery(self, field, text, *args)
-        if args:
-            return query
+    def query(self, query):
+        "Return term or phrase query with corrected terms substituted."
         if lucene.TermQuery.instance_(query):
             term = lucene.TermQuery.cast_(query).term
             return lucene.TermQuery(self.correct(term))
@@ -321,3 +317,10 @@ class SpellParser(lucene.PythonQueryParser):
         for position, term in zip(query.positions, query.terms):
             phrase.add(self.correct(term), position)
         return phrase
+    def getFieldQuery(self, field, text, *args):
+        query = lucene.PythonQueryParser.getFieldQuery(self, field, text, *args)
+        return query if args else self.query(query)
+    def getFieldQuery_quoted(self, *args):
+        return self.query(self.getFieldQuery_quoted_super(*args))
+    def getFieldQuery_slop(self, *args):
+        return self.query(self.getFieldQuery_slop_super(*args))

@@ -128,7 +128,7 @@ class TestCase(BaseTest):
         assert resource.call('GET', '/', redirect=True).status == httplib.NOT_MODIFIED
         assert resource.post('/update')
         response = resource.call('GET', '/')
-        assert response and response.getheader('etag') > version and parsedate(response.getheader('last-modified')) >= parsedate(modified)
+        assert response and response.getheader('etag') != version and parsedate(response.getheader('last-modified'))[:6] >= parsedate(modified)[:6]
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
@@ -188,8 +188,7 @@ class TestCase(BaseTest):
         result = resource.get('/search', facets='name', spellcheck=1)
         assert result['facets'] == {'name': {'sample': 1}} and result['spellcheck'] == {}
         resource = client.Resource('localhost', self.ports[-1])
-        assert set(resource.get('/').values()) == set([0])
-        assert resource.get('/docs') == []
+        assert set(resource.get('/').values()) < set([0, 1])
         assert resource.post('/update', ['filters', 'sorters']) == 2
         assert resource.get('/docs') == [0, 1]
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
@@ -359,6 +358,7 @@ class TestCase(BaseTest):
     def testAdvanced(self):
         "Nested and numeric fields."
         writer = engine.IndexWriter(self.tempdir)
+        writer.commit()
         self.servers.append(self.start(self.ports[0], '-r', self.tempdir, **{'tools.validate.etag': False, 'tools.validate.last_modified': False}))
         writer.set('zipcode', engine.NumericField, store=True)
         writer.fields['location'] = engine.NestedField('county.city')
