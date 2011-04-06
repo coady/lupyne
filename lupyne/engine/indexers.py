@@ -620,22 +620,25 @@ class IndexWriter(lucene.IndexWriter):
         :param params: store,index,termvector options compatible with `Field`_
         """
         self.fields[name] = cls(name, **params)
-    def add(self, document=(), boost=1.0, **terms):
-        """Add document to index.
-        Document is comprised of name: value pairs, where the values may be one or multiple strings.
-        
-        :param document: optional document terms as a dict or items
-        :param terms: additional terms to document
-        """
-        terms.update(document)
+    def document(self, document=(), **terms):
+        "Return lucene Document from mapping of field names to one or multiple values."
         doc = lucene.Document()
-        doc.boost = boost
-        for name, values in terms.items():
+        for name, values in dict(document, **terms).items():
             if isinstance(values, Atomic):
                 values = values,
             for field in self.fields[name].items(*values):
                 doc.add(field)
+        return doc
+    def add(self, document=(), boost=1.0, **terms):
+        "Add :meth:`document` to index with optional boost."
+        doc = self.document(document, **terms)
+        doc.boost = boost
         self.addDocument(doc)
+    def update(self, name, value='', document=(), boost=1.0, **terms):
+        "Atomically delete documents which match given term and add the new :meth:`document` with optional boost."
+        doc = self.document(document, **terms)
+        doc.boost = boost
+        self.updateDocument(lucene.Term(name, *([value] if value else doc.getValues(name))), doc)
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
         

@@ -151,6 +151,15 @@ class TestCase(BaseTest):
         indexer.optimize()
         assert len(indexer) == sum(indexer.segments.values())
         assert 0 not in indexer
+        indexer.add(tag='test', name='old')
+        indexer.update('tag', boost=2.0, tag='test')
+        indexer.commit()
+        assert [indexer[id].dict() for id in indexer] == [{'tag': 'test'}]
+        indexer.update('tag', 'test', {'name': 'new'})
+        indexer.commit()
+        assert [indexer[id].dict() for id in indexer] == [{'name': 'new'}]
+        indexer.deleteAll()
+        indexer.commit()
         temp = engine.Indexer(self.tempdir)
         temp.add()
         temp.commit()
@@ -418,7 +427,7 @@ class TestCase(BaseTest):
         directory.close()
     
     def testSpatial(self):
-        "Spatial tile test."
+        "Spatial tiles."
         indexer = engine.Indexer(self.tempdir, 'w')
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
@@ -458,7 +467,7 @@ class TestCase(BaseTest):
         del indexer
     
     def testFields(self):
-        "Custom field tests."
+        "Custom fields."
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.FormatField, format='{0:02d}', store=True)
         indexer.set('size', engine.FormatField, format='{0:04d}', store=True)
@@ -505,8 +514,8 @@ class TestCase(BaseTest):
         assert indexer.comparator('year')[-1] == 0
         assert cache == len(lucene.FieldCache.DEFAULT.cacheEntries)
     
-    def testNumericFields(self):
-        "Numeric variant fields."
+    def testNumeric(self):
+        "Numeric fields."
         indexer = engine.Indexer(self.tempdir)
         with assertWarns(DeprecationWarning):
             indexer.set('amendment', engine.numeric.NumericField, store=True)
