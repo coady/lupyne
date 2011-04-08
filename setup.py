@@ -21,39 +21,28 @@ Advanced search features:
  * Geospatial support.
  * Spellchecking.
 
-Changes in 0.7:
+Changes in 0.8:
 ==================
- * Support for Lucene 2.4 dropped
- * CherryPy 3.2 compatible
- * Spatial within queries optimized and allow unlimited distance
- * Searches can be timed out
- * Sorted searches allow computing scores and tracking maxscore
- * Disjunction queries
- * Numeric range queries with custom precision step
- * Enumeration of numeric terms
- * Efficient copying of a subset of indexes
- * Loading searchers into a RAMDirectory
- * SortFields support custom parsers and field cache reuse
+ * PyLucene 3.1 supported
+ * PyLucene 2.9 deprecated
+ * Single document index for efficiently matching multiple queries
+ * Optionally expunge deletes and optimize index on atomic commit
+ * Numeric field implementations for datetimes and geospatial points
+ * Atomic document updates
  * Server:
    
-   - response time returned in headers
-   - multiple sort keys with unlimited search results
-   - return maxscore with support for time outs and sorting
-   - filter search results, with caching
-   - json responses configurable for pretty printing
-   - vm initialization compatible with daemonizing
-   - support for mounting multiple root websearchers
-   - autorefresh of server data can be customized
-   - documents return cached indexed fields
-   - grouping document results
-   - optional query parsing to support unanalyzed fields
-   - refreshing websearchers has better cache support
+   - Easier server start with daemonizing
+   - Add indexes created offline
+   - Consolidated update resource replaces refreshing and committing
+   - Last-Modified and Etag cache validation headers based on last commit
+   - Optional Expires and Age cache expiration headers based on last update timestamp
+   - Content-Type is application/json for requests and responses
+   - Retrieve numeric encoded term values
+   - Limit number of grouped documents
+   - Read and write documents with a unique term
  * Client:
    
-   - reuses connection in the event of a timeout
-   - pipelining requests
-   - raises deprecation warnings from server
-   - stores response time from server
+   - Optionally follow redirects
 """
 
 import os
@@ -61,7 +50,7 @@ from distutils.core import setup
 
 setup(
     name='lupyne',
-    version='0.7+',
+    version='0.8',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',
