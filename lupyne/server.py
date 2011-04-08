@@ -219,7 +219,7 @@ class WebSearcher(object):
             return dict((unicode(reader.directory()), reader.numDocs()) for reader in searcher.sequentialSubReaders)
         return {unicode(searcher.directory): len(searcher)}
     @cherrypy.expose
-    def docs(self, id=None, fields=None, **options):
+    def docs(self, *path, **options):
         """Return ids or documents.
         
         **GET** /docs
@@ -227,19 +227,21 @@ class WebSearcher(object):
             
             :return: [*int*,... ]
         
-        **GET** /docs/*int*?
-            Return document mappings, optionally selecting stored, multi-valued, and cached indexed fields.
+        **GET** /docs/[*int*\|\ *chars*/*chars*]?
+            Return document mapping from id or unique name and value.
+            Optionally select stored, multi-valued, and cached indexed fields.
             
             &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
             
             :return: {*string*: *string*\|\ *array*,... }
         """
         searcher = self.searcher
-        if id is None:
+        if not path:
             return list(searcher)
-        fields, multi, indexed = self.select(fields, **options)
-        with HTTPError(httplib.NOT_FOUND, ValueError, lucene.JavaError):
-            id = int(id)
+        fields, multi, indexed = self.select(**options)
+        with HTTPError(httplib.NOT_FOUND, ValueError):
+            id, = map(int, path) if len(path) == 1 else searcher.docs(*path)
+        with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
             doc = searcher[id] if fields is None else searcher.get(id, *itertools.chain(fields, multi))
         result = doc.dict(*multi, **(fields or {}))
         result.update((item[0], searcher.comparator(*item)[id]) for item in indexed)
@@ -524,25 +526,43 @@ class WebIndexer(WebSearcher):
         self.updated = time.time()
         return len(self.indexer)
     @cherrypy.expose
-    @cherrypy.tools.json(process_body=lambda body: {'docs': body})
-    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
-    def docs(self, id=None, fields=None, docs=(), **options):
+    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST', 'PUT', 'DELETE'])
+    def docs(self, *path, **options):
         """Add or return documents.  See :meth:`WebSearcher.docs` for GET method.
         
         **POST** /docs
             Add documents to index.
             
             [{*string*: *string*\|\ *array*,... },... ]
+        
+        **PUT, DELETE** /docs/*chars*/*chars*
+            Set or delete document.  Unique term should be indexed and is added to the new document.
+            
+            {*string*: *string*\|\ *array*,... }
         """
-        if cherrypy.request.method != 'POST':
-            return WebSearcher.docs(self, id, fields, **options)
-        with HTTPError(httplib.BAD_REQUEST, KeyError, ValueError): # deprecated
-            if isinstance(docs, dict):
-                docs = docs['docs']
-            if isinstance(docs, basestring):
-                docs = json.loads(docs)
-        for doc in docs:
-            self.indexer.add(doc)
+        with HTTPError(httplib.NOT_FOUND, IndexError):
+            allow([('GET', 'HEAD', 'POST'), ('GET', 'HEAD'), ('GET', 'HEAD', 'PUT', 'DELETE')][len(path)])
+        request = cherrypy.serving.request
+        if request.method in ('GET', 'HEAD'):
+            return WebSearcher.docs(self, *path, **options)
+        if request.method == 'DELETE':
+            self.indexer.delete(*path)
+        elif request.method == 'PUT':
+            name, value = path
+            doc = getattr(request, 'json', {})
+            with HTTPError(httplib.CONFLICT, KeyError, AssertionError):
+                assert self.indexer.fields[name].index != lucene.Field.Index.NO, 'unique field must be indexed'
+                assert doc.setdefault(name, value) == value, 'multiple values for unique field'
+            self.indexer.update(name, value, doc)
+        else:
+            docs = getattr(request, 'json', ())
+            with HTTPError(httplib.BAD_REQUEST, KeyError, ValueError): # deprecated
+                if isinstance(docs, dict):
+                    docs = docs['docs']
+                if 'docs' in options:
+                    docs = json.loads(options['docs'])
+            for doc in docs:
+                self.indexer.add(doc)
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
@@ -554,7 +574,10 @@ class WebIndexer(WebSearcher):
         """
         if cherrypy.request.method != 'DELETE':
             return WebSearcher.search(self, q, **options)
-        self.indexer.delete(self.parse(self.searcher, q, **options) or lucene.MatchAllDocsQuery())
+        if q is None:
+            self.indexer.deleteAll()
+        else:
+            self.indexer.delete(self.parse(self.searcher, q, **options))
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.json(process_body=dict)

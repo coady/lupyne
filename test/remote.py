@@ -7,6 +7,7 @@ import operator
 import httplib
 import math
 import json
+import time, calendar
 import socket, errno
 from contextlib import contextmanager
 from email.utils import parsedate
@@ -58,7 +59,7 @@ class TestCase(BaseTest):
         "Remote reading and writing."
         self.servers += (
             self.start(self.ports[0], self.tempdir, '--autoreload=1', **{'tools.validate.expires': 0, 'tools.validate.max_age': 0}),
-            self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=1'), # concurrent searchers
+            self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2'), # concurrent searchers
         )
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
@@ -79,9 +80,17 @@ class TestCase(BaseTest):
             resource.get('/update')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.put('/fields')
+        with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
+            resource.post('/docs/x/y')
+        with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
+            resource.put('/docs/0')
+        with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
+            resource.delete('/docs')
         assert resource.get('/docs') == []
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/docs/0')
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/docs/x/y')
         try:
             assert resource.get('/docs/~')
         except httplib.HTTPException as exc:
@@ -125,12 +134,16 @@ class TestCase(BaseTest):
         assert response.status == httplib.NOT_MODIFIED and response.getheader('etag') == version
         del resource.headers['if-none-match']
         resource.headers['if-modified-since'] = modified
-        assert resource.call('GET', '/', redirect=True).status == httplib.NOT_MODIFIED
+        assert resource.call('GET', '/').status == httplib.NOT_MODIFIED
+        time.sleep(max(0, calendar.timegm(parsedate(modified)) + 1 - time.time()))
         assert resource.post('/update')
         response = resource.call('GET', '/')
-        assert response and response.getheader('etag') != version and parsedate(response.getheader('last-modified'))[:6] >= parsedate(modified)[:6]
+        assert response and response.getheader('etag') != version and parsedate(response.getheader('last-modified')) > parsedate(modified)
+        resource.headers['if-match'] = version
+        assert resource.call('GET', '/docs/0').status == httplib.PRECONDITION_FAILED
+        del resource.headers['if-match']
         assert resource.get('/docs') == [0]
-        assert resource.get('/docs/0') == {'name': 'sample'}
+        assert resource.get('/docs/0') == resource.get('/docs/name/sample') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
         with local.assertWarns(UserWarning, DeprecationWarning, UserWarning):
             assert resource.get('/docs/0', multifields='name') == {'name': ['sample']}
@@ -192,6 +205,8 @@ class TestCase(BaseTest):
         assert resource.post('/update', ['filters', 'sorters']) == 2
         assert resource.get('/docs') == [0, 1]
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/docs/name/sample')
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/fields')
         with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
             resource.post('/refresh', ['spellcheckers'])
@@ -202,11 +217,28 @@ class TestCase(BaseTest):
         assert resource.get('/docs') == [0]
         assert not resource.post('/update', ['expunge'])
         assert resource.get('/docs') == []
+        assert not resource.put('/docs/name/sample')
+        assert resource.post('/update')
+        assert resource.get('/docs/name/sample')
+        assert not resource.put('/docs/name/sample')
+        assert resource.post('/update')
+        assert resource.get('/docs/name/sample')
+        with assertRaises(httplib.HTTPException, httplib.CONFLICT):
+            resource.put('/docs/missing/sample')
+        with assertRaises(httplib.HTTPException, httplib.CONFLICT):
+            resource.put('/docs/missing/sample', {'name': 'mismatched'})
+        assert resource.put('/fields/name', {'index': False})
+        with assertRaises(httplib.HTTPException, httplib.CONFLICT):
+            resource.put('/docs/missing/sample')
+        assert not resource.delete('/docs/missing/sample')
+        resource.post('/update')
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/docs/missing/sample')
         assert not resource.delete('/search')
         with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
             resource.post('/commit', ['spellcheckers'])
         responses = resource.multicall(('POST', '/docs', [{}]), ('POST', '/update'), ('GET', '/docs'))
-        assert responses[0].status == httplib.ACCEPTED and responses[1]() == 1 and responses[2]() == [0]
+        assert responses[0].status == httplib.ACCEPTED and responses[1]() == len(responses[2]()) == 1
         assert resource.post('/', [self.tempdir]).values() == [2]
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
@@ -354,7 +386,7 @@ class TestCase(BaseTest):
         assert set(map(operator.itemgetter('count'), result['groups'])) == set([1])
         assert all(int(doc.get('amendment', 0)) == group['value'] for group in result['groups'] for doc in group['docs'])
         assert result['groups'][0]['value'] == 2 and result['groups'][-1]['value'] == 0
-
+    
     def testAdvanced(self):
         "Nested and numeric fields."
         writer = engine.IndexWriter(self.tempdir)
