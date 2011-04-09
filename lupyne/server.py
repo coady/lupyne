@@ -9,7 +9,6 @@ CherryPy and Lucene VM integration issues:
 """
 
 from future_builtins import filter, map
-import warnings
 import re
 import time
 import httplib
@@ -50,8 +49,6 @@ def json_(indent=None, content_type='application/json', process_body=None):
         if process_body is not None:
             with HTTPError(httplib.BAD_REQUEST, TypeError):
                 request.params.update(process_body(request.json))
-    elif request.headers.get('content-type') == 'application/x-www-form-urlencoded':
-        headers['Warning'] = '199 lupyne "Content-Type application/x-www-form-urlencoded has been deprecated and replaced with application/json"'
     handler = request.handler
     def json_handler(*args, **kwargs):
         body = handler(*args, **kwargs)
@@ -179,18 +176,11 @@ class WebSearcher(object):
         "Return parsed field selectors: stored, multi-valued, and indexed."
         if fields is not None:
             fields = dict.fromkeys(filter(None, fields.split(',')))
-        if 'multifields' in options:
-            options['fields.multi'] = options.pop('multifields')
-            cherrypy.response.headers['Warning'] = '199 lupyne "multifields has been deprecated and renamed fields.multi"'
         multi = list(filter(None, options.get('fields.multi', '').split(',')))
         indexed = [field.split(':') for field in options.get('fields.indexed', '').split(',') if field]
         return fields, multi, indexed
     @cherrypy.expose
-    @cherrypy.tools.allow(methods=['POST'])
-    def refresh(self, **caches):
-        raise cherrypy.HTTPRedirect(cherrypy.request.script_name + '/update', httplib.MOVED_PERMANENTLY)
-    @cherrypy.expose
-    @cherrypy.tools.json(process_body=dict.fromkeys)
+    @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
     @cherrypy.tools.allow(methods=['POST'])
     def update(self, **caches):
         """Refresh index version.
@@ -202,7 +192,7 @@ class WebSearcher(object):
             
             :return: *int*
         """
-        self.searcher = self.searcher.reopen(**dict.fromkeys(caches, True))
+        self.searcher = self.searcher.reopen(**caches)
         self.updated = time.time()
         return len(self.searcher)
     @cherrypy.expose
@@ -481,7 +471,6 @@ class WebSearcher(object):
 
 class WebIndexer(WebSearcher):
     "Dispatch root which extends searcher to include write methods."
-    commit = WebSearcher.refresh
     def __init__(self, *args, **kwargs):
         self.indexer = engine.Indexer(*args, **kwargs)
         self.updated = time.time()
@@ -509,7 +498,7 @@ class WebIndexer(WebSearcher):
             cherrypy.response.status = httplib.ACCEPTED
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
-    @cherrypy.tools.json(process_body=dict.fromkeys)
+    @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
     @cherrypy.tools.allow(methods=['POST'])
     def update(self, **options):
         """Commit index changes and refresh index version.
@@ -522,7 +511,7 @@ class WebIndexer(WebSearcher):
             :return: *int*
         """
         with self.lock:
-            self.indexer.commit(**dict.fromkeys(options, True))
+            self.indexer.commit(**options)
         self.updated = time.time()
         return len(self.indexer)
     @cherrypy.expose
@@ -555,13 +544,7 @@ class WebIndexer(WebSearcher):
                 assert doc.setdefault(name, value) == value, 'multiple values for unique field'
             self.indexer.update(name, value, doc)
         else:
-            docs = getattr(request, 'json', ())
-            with HTTPError(httplib.BAD_REQUEST, KeyError, ValueError): # deprecated
-                if isinstance(docs, dict):
-                    docs = docs['docs']
-                if 'docs' in options:
-                    docs = json.loads(options['docs'])
-            for doc in docs:
+            for doc in getattr(request, 'json', ()):
                 self.indexer.add(doc)
         cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
@@ -609,7 +592,7 @@ class WebIndexer(WebSearcher):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
 
-def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, callback=None, autorefresh=0):
+def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, callback=None):
     """Attach root, subscribe to plugins, and start server.
     
     :param root,path,config: see cherrypy.quickstart
@@ -627,9 +610,6 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
         cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
     if autoreload:
         Autoreloader(cherrypy.engine, autoreload).subscribe()
-    if autorefresh:
-        warnings.warn('Autorefresh has been renamed autoupdate.', DeprecationWarning)
-        autoupdate = autorefresh
     if autoupdate:
         AttachedMonitor(cherrypy.engine, root.update, autoupdate).subscribe()
     if callback:
@@ -644,7 +624,6 @@ parser.add_option('-p', '--pidfile', metavar='FILE', help='store the process id 
 parser.add_option('-d', '--daemonize', action='store_true', help='run the server as a daemon')
 parser.add_option('--autoreload', type=int, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
 parser.add_option('--autoupdate', type=int, metavar='SECONDS', help='automatically update index version')
-parser.add_option('--autorefresh', type=int, metavar='SECONDS', help='deprecated; use autoupdate')
 
 if __name__ == '__main__':
     options, args = parser.parse_args()

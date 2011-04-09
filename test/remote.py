@@ -1,6 +1,5 @@
 from future_builtins import map
 import unittest
-import warnings
 import os, sys
 import signal, subprocess
 import operator
@@ -25,6 +24,16 @@ def assertRaises(exception, code):
         assert exc[0] == code, exc
     else:
         raise AssertionError(exception.__name__ + ' not raised')
+
+class Resource(client.Resource):
+    "Modify status and inject headers to test warning framework."
+    def getresponse(self):
+        response = client.Resource.getresponse(self)
+        response.msg.addheader('warning', '199 lupyne "test warning"')
+        if response.status == httplib.NOT_FOUND:
+            response.status = httplib.MOVED_PERMANENTLY
+            response.msg.addheader('location', 'http://{0}:{1}'.format(self.host, self.port))
+        return response
 
 class BaseTest(local.BaseTest):
     ports = 8080, 8081
@@ -145,11 +154,6 @@ class TestCase(BaseTest):
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == resource.get('/docs/name/sample') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
-        with local.assertWarns(UserWarning, DeprecationWarning, UserWarning):
-            assert resource.get('/docs/0', multifields='name') == {'name': ['sample']}
-            assert not resource.post('/docs', docs=[])
-            httplib.HTTPConnection.request(resource, 'POST', '/docs', 'docs=[]', {'content-length': '7', 'content-type': 'application/x-www-form-urlencoded'})
-            assert not resource.getresponse()()
         assert resource.get('/docs/0', fields='', **{'fields.multi': 'missing'}) == {'missing': []}
         assert resource.get('/terms') == ['name', 'text']
         assert resource.get('/terms', option='unindexed') == []
@@ -208,10 +212,6 @@ class TestCase(BaseTest):
             resource.get('/docs/name/sample')
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/fields')
-        with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
-            resource.post('/refresh', ['spellcheckers'])
-        with local.assertWarns(DeprecationWarning):
-            assert resource.call('POST', '/refresh', redirect=True)
         resource = client.Resource('localhost', self.ports[0])
         assert not resource.delete('/search', q='sample', **{'q.field': 'name', 'q.type': 'term'})
         assert resource.get('/docs') == [0]
@@ -235,11 +235,11 @@ class TestCase(BaseTest):
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/docs/missing/sample')
         assert not resource.delete('/search')
-        with assertRaises(httplib.HTTPException, httplib.MOVED_PERMANENTLY):
-            resource.post('/commit', ['spellcheckers'])
         responses = resource.multicall(('POST', '/docs', [{}]), ('POST', '/update'), ('GET', '/docs'))
         assert responses[0].status == httplib.ACCEPTED and responses[1]() == len(responses[2]()) == 1
         assert resource.post('/', [self.tempdir]).values() == [2]
+        with local.assertWarns(DeprecationWarning, UserWarning):
+            assert Resource(resource.host, resource.port).call('GET', '/missing', redirect=True)()
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
@@ -251,8 +251,6 @@ class TestCase(BaseTest):
     
     def testBasic(self):
         "Remote text indexing and searching."
-        with local.assertWarns(DeprecationWarning):
-            self.assertRaises(AttributeError, server.start, autorefresh=1)
         self.servers.append(self.start(self.ports[0], self.tempdir))
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/fields') == []

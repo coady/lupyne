@@ -221,11 +221,6 @@ SpanQuery
 
     <SpanOrQuery: spanOr(spans)>
 
-Filter
-^^^^^^^^^^^^^
-.. autoclass:: engine.queries.Filter
-  :members:
-
 SortField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.SortField

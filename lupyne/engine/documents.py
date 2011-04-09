@@ -3,7 +3,6 @@ Wrappers for lucene Fields and Documents.
 """
 
 from future_builtins import map, zip
-import warnings
 import datetime, calendar
 import collections
 import lucene
@@ -50,52 +49,6 @@ class FormatField(Field):
         "Generate fields with formatted values."
         return Field.items(self, *map(self.format, values))
 
-class PrefixField(Field):
-    """Field which indexes every prefix of a value into a separate component field.
-    The customizable component field names are expressed as slices.
-    Original value may be stored for convenience.
-    
-    :param start,stop,step: optional slice parameters of the prefix depths (not indices)
-    """
-    def __init__(self, name, start=1, stop=None, step=1, index=True, **kwargs):
-        warnings.warn('PrefixFields have been deprecated; customize NestedField instead.', DeprecationWarning)
-        Field.__init__(self, name, index=index, **kwargs)
-        self.depths = slice(start, stop, step)
-    def split(self, text):
-        "Return immutable sequence of words from name or value."
-        return text
-    def join(self, words):
-        "Return text from separate words."
-        return words
-    def getname(self, depth):
-        "Return prefix field name for given depth."
-        return '{0}[:{1:d}]'.format(self.name, depth)
-    def indices(self, depth):
-        "Return range of valid depth indices."
-        return xrange(*self.depths.indices(depth + self.depths.step))
-    def items(self, *values):
-        """Generate indexed component fields.
-        Optimized to handle duplicate values.
-        """
-        if self.store != lucene.Field.Store.NO:
-            for value in values:
-                yield lucene.Field(self.name, value, self.store, lucene.Field.Index.NO)
-        values = list(map(self.split, values))
-        for depth in self.indices(max(map(len, values))):
-            name = self.getname(depth)
-            for value in sorted(set(value[:depth] for value in values if len(value) > (depth-self.depths.step))):
-                yield lucene.Field(name, self.join(value), lucene.Field.Store.NO, self.index, self.termvector)
-    def prefix(self, value):
-        "Return prefix query of the closest possible prefixed field."
-        depths = self.indices(len(self.split(value)))
-        depth = depths[-1] if depths else self.depths.start
-        return Query.prefix(self.getname(depth), value)
-    def range(self, start, stop, lower=True, upper=False):
-        "Return range query of the closest possible prefixed field."
-        depths = self.indices(max(len(self.split(value)) for value in (start, stop) if value is not None))
-        depth = depths[-1] if depths else self.depths.start
-        return Query.range(self.getname(depth), start, stop, lower, upper)
-
 class NestedField(Field):
     """Field which indexes every component into its own field.
     Original value may be stored for convenience.
@@ -103,9 +56,6 @@ class NestedField(Field):
     :param sep: field separator used on name and values
     """
     def __init__(self, name, sep='.', index=True, **kwargs):
-        if sep not in name and ':' in name:
-            warnings.warn("Default separator has changed from ':' to '.'", DeprecationWarning)
-            sep = ':'
         Field.__init__(self, name, index=index, **kwargs)
         self.sep = sep
         self.names = self.split(name)
@@ -196,8 +146,7 @@ class DateTimeField(NumericField):
         :param days,delta: timedelta parameters
         """
         if not isinstance(date, datetime.date):
-            date = tuple(date) + (None, 1, 1)[len(date):]
-            date = (datetime.datetime if len(date) > 3 else datetime.date)(*date)
+            date = datetime.datetime(*(tuple(date) + (None, 1, 1)[len(date):]))
         delta = datetime.timedelta(days, **delta)
         return self.range(*sorted([date, date + delta]), upper=True)
     def within(self, days=0, weeks=0, utc=True, **delta):

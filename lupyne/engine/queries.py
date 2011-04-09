@@ -3,7 +3,6 @@ Query wrappers and search utilities.
 """
 
 from future_builtins import filter, map
-import warnings
 import itertools
 import bisect
 import heapq
@@ -178,34 +177,6 @@ class HitCollector(lucene.PythonCollector if hasattr(lucene, 'PythonCollector') 
             key, reverse = self.scores.__getitem__, True
         ids.sort(key=key, reverse=reverse)
         return ids, list(map(self.scores.__getitem__, ids))
-
-class Filter(lucene.PythonFilter):
-    "Inherited lucene Filter with a cached BitSet of ids."
-    def __init__(self, ids):
-        warnings.warn('Filters have been deprecated and are incompatible with segment based searching.', DeprecationWarning)
-        lucene.PythonFilter.__init__(self)
-        self.docIdSet = lucene.OpenBitSet()
-        if isinstance(ids, lucene.OpenBitSet):
-            self.docIdSet.union(ids)
-        else:
-            setter = self.docIdSet.set
-            for id in map(long, ids):
-                setter(id)
-        if lucene.VERSION < '3':
-            self.bitSet = lucene.BitSet()
-            setter = self.bitSet.set
-            for id in filter(self.docIdSet.get, xrange(self.docIdSet.size())):
-                setter(id)
-    @staticmethod
-    def overlap(self, other, reader=None):
-        "Return intersection count of the filters."
-        return int(lucene.OpenBitSet.intersectionCount(self.getDocIdSet(reader), other.getDocIdSet(reader)))
-    def bits(self, reader=None):
-        "Return cached BitSet, reader is ignored.  Deprecated."
-        return self.bitSet
-    def getDocIdSet(self, reader=None):
-        "Return cached OpenBitSet, reader is ignored."
-        return self.docIdSet
 
 class SortField(lucene.SortField):
     """Inherited lucene SortField used for caching FieldCache parsers.

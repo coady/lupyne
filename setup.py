@@ -50,7 +50,7 @@ from distutils.core import setup
 
 setup(
     name='lupyne',
-    version='0.8',
+    version='0.8+',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',

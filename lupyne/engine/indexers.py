@@ -11,7 +11,7 @@ import itertools, operator
 import contextlib
 import abc, collections
 import lucene
-from .queries import Query, HitCollector, Filter, SortField, Highlighter, SpellChecker, SpellParser
+from .queries import Query, HitCollector, SortField, Highlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
 
 class Atomic(object):
@@ -419,7 +419,7 @@ class Searcher(object):
         """Run query and return `Hits`_.
         
         :param query: query string or lucene Query
-        :param filter: doc ids or lucene Filter
+        :param filter: lucene Filter
         :param count: maximum number of hits to retrieve
         :param sort: if count is given, lucene Sort parameters, else a callable key
         :param reverse: reverse flag used with sort
@@ -429,8 +429,6 @@ class Searcher(object):
         :param parser: :meth:`Analyzer.parse` options
         """
         query = lucene.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
-        if not isinstance(filter, (lucene.Filter, type(None))):
-            filter = Filter(filter)
         weight = query.weight(self)
         # use custom HitCollector if all results are necessary, otherwise use lucene's TopDocsCollectors
         if count is None:
@@ -474,9 +472,7 @@ class Searcher(object):
             query = self.parse(query)
         if isinstance(query, lucene.Query):
             query = lucene.QueryWrapperFilter(query)
-        if not isinstance(query, lucene.Filter):
-            query = Filter(query)
-        elif not isinstance(query, lucene.CachingWrapperFilter):
+        if not isinstance(query, lucene.CachingWrapperFilter):
             query = lucene.CachingWrapperFilter(query)
         for key in keys:
             filters = self.filters.get(key)

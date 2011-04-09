@@ -198,12 +198,7 @@ class TestCase(BaseTest):
         engine.IndexSearcher.load(searcher.directory) # ensure directory isn't closed
         assert len(indexer) == len(searcher) and lucene.RAMDirectory.instance_(searcher.directory)
         assert indexer.filters == indexer.spellcheckers == {}
-        with assertWarns(DeprecationWarning):
-            assert indexer.facets([0], 'amendment')
-            assert not indexer.facets(lucene.OpenBitSet())
-            assert not indexer.search(filter=[])
-            f = engine.Filter([])
-            assert not engine.Filter.overlap(f, f)
+        assert indexer.facets(lucene.MatchAllDocsQuery(), 'amendment')
         assert indexer.suggest('amendment', '')
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
         indexer.delete('amendment', doc['amendment'])
@@ -358,9 +353,6 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
-        with assertWarns(DeprecationWarning, DeprecationWarning):
-            indexer.set('longitude', engine.PrefixField, store=True)
-            assert engine.NestedField('state:county:city').sep == ':'
         indexer.fields['location'] = engine.NestedField('state.county.city')
         for doc in fixture.zipcodes.docs():
             if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
@@ -370,13 +362,6 @@ class TestCase(BaseTest):
         indexer.commit()
         assert set(['state', 'zipcode']) < set(indexer.names('indexed'))
         assert set(['latitude', 'longitude', 'county', 'city']) == set(indexer.names('unindexed'))
-        longitude = max(name for name in indexer.names() if name.startswith('longitude'))
-        lngs = list(indexer.terms(longitude))
-        east, west = lngs[0], lngs[-1]
-        hit, = indexer.search(engine.Query.term(longitude, west))
-        assert hit['state'] == 'AK' and hit['county'] == 'Aleutians West'
-        hit, = indexer.search(engine.Query.term(longitude, east))
-        assert hit['state'] == 'PR' and hit['county'] == 'Culebra'
         states = list(indexer.terms('state'))
         assert states[0] == 'AK' and states[-1] == 'WY'
         counties = [term.split('.')[-1] for term in indexer.terms('state.county', 'CA', 'CA~')]
@@ -389,19 +374,9 @@ class TestCase(BaseTest):
         assert sorted(set(hit['city'] for hit in hits)) == cities
         assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
         hit, = indexer.search('zipcode:90210')
-        assert hit['state'] == 'CA' and hit['county'] == 'Los Angeles' and hit['city'] == 'Beverly Hills'
-        assert hit['longitude'] == '-118.406'
-        lng = hit['longitude'][:4]
-        field = indexer.fields['longitude']
-        hits = indexer.search(field.prefix(lng))
-        assert hit.id in hits.ids
-        assert len(hits) == indexer.count(engine.Query.prefix(longitude, lng))
-        count = indexer.count(field.prefix(lng[:3]))
-        assert count > len(hits)
-        assert count == indexer.count(field.range(lng[:3], lng[:3]+'~'))
-        assert count > indexer.count(engine.Query.term('state', 'CA'), filter=engine.Query.term(longitude, lng).filter())
+        assert hit['state'] == 'CA' and hit['county'] == 'Los Angeles' and hit['city'] == 'Beverly Hills' and hit['longitude'] == '-118.406'
         query = engine.Query.prefix('zipcode', '90')
-        (field, facets), = indexer.facets(query, 'state.county').items()
+        (field, facets), = indexer.facets(query.filter(), 'state.county').items()
         assert field == 'state.county'
         la, orange = sorted(filter(facets.get, facets))
         assert la == 'CA.Los Angeles' and facets[la] > 100
@@ -517,10 +492,9 @@ class TestCase(BaseTest):
     def testNumeric(self):
         "Numeric fields."
         indexer = engine.Indexer(self.tempdir)
-        with assertWarns(DeprecationWarning):
-            indexer.set('amendment', engine.numeric.NumericField, store=True)
-            indexer.set('date', engine.numeric.DateTimeField, store=True)
-            indexer.set('size', engine.numeric.NumericField, store=True, step=5)
+        indexer.set('amendment', engine.NumericField, store=True)
+        indexer.set('date', engine.DateTimeField, store=True)
+        indexer.set('size', engine.NumericField, store=True, step=5)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))

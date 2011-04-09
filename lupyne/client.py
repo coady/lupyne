@@ -60,13 +60,10 @@ class Resource(httplib.HTTPConnection):
             body = json.dumps(body)
             headers.update({'content-length': str(len(body)), 'content-type': 'application/json'})
         httplib.HTTPConnection.request(self, method, path, body, headers)
-    def call(self, method, path, body=None, params=(), redirect=False, **kwargs):
+    def call(self, method, path, body=None, params=(), redirect=False):
         "Send request and return completed `response`_."
         if params:
             path += '?' + urllib.urlencode(params, doseq=True)
-        if kwargs:
-            body = kwargs
-            warnings.warn('Keyword arguments deprecated; call with body param instead.', DeprecationWarning)
         self.request(method, path, body)
         response = self.getresponse()
         if redirect and httplib.MULTIPLE_CHOICES <= response.status < httplib.NOT_MODIFIED:
