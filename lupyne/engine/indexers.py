@@ -31,24 +31,18 @@ class closing(set):
 
 class TokenFilter(lucene.PythonTokenFilter):
     """Create an iterable lucene TokenFilter from a TokenStream.
-    In lucene version 2, call on any iterable of tokens.
-    In lucene version 3, subclass and override :meth:`incrementToken`;
-    attributes are cached as properties to create a Token interface.
+    Subclass and override :meth:`incrementToken`.
+    Attributes are cached as properties to create a Token interface.
     """
     def __init__(self, input):
-        if issubclass(lucene.TokenFilter, collections.Iterable):
-            lucene.PythonTokenFilter.__init__(self, lucene.EmptyTokenStream())
-            self.next = iter(input).next
-        else:
-            lucene.PythonTokenFilter.__init__(self, input)
-            self.input = input
+        lucene.PythonTokenFilter.__init__(self, input)
+        self.input = input
     def __iter__(self):
         return self
-    if not hasattr(lucene.TokenFilter, 'next'):
-        def next(self):
-            if self.incrementToken():
-                return self
-            raise StopIteration
+    def next(self):
+        if self.incrementToken():
+            return self
+        raise StopIteration
     def incrementToken(self):
         "Advance to next token and return whether the stream is not empty."
         return self.input.incrementToken()
@@ -107,23 +101,22 @@ class Analyzer(lucene.PythonAnalyzer):
         tokens = self.tokenizer.tokenStream(field, reader) if isinstance(self.tokenizer, lucene.Analyzer) else self.tokenizer(reader)
         for filter in self.filters:
             tokens = filter(tokens)
-        return tokens if isinstance(tokens, lucene.TokenStream) else TokenFilter(tokens)
+        return tokens
     def tokens(self, text, field=None):
         "Return lucene TokenStream from text."
         return self.tokenStream(field, lucene.StringReader(text))
-    def parse(self, query, field='', op='', version=lucene.VERSION[:3], parser=None, **attrs):
+    def parse(self, query, field='', op='', version='', parser=None, **attrs):
         """Return parsed lucene Query.
         
         :param query: query string
         :param field: default query field name, sequence of names, or boost mapping
         :param op: default query operator ('or', 'and')
-        :param version: lucene Version string, leave blank for deprecated constructor
+        :param version: lucene Version string
         :param parser: custom PythonQueryParser class
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        version = getattr(lucene.Version, 'LUCENE_' + version.replace('.', ''))
-        args = [] if lucene.VERSION.startswith('2.9') and parser is not None else [version]
+        args = [lucene.Version.valueOf('LUCENE_' + version.replace('.', '')) if version else lucene.Version.values()[-1]]
         if isinstance(field, collections.Mapping):
             boosts = lucene.HashMap()
             for key in field:
@@ -137,7 +130,7 @@ class Analyzer(lucene.PythonAnalyzer):
         for name, value in attrs.items():
             setattr(parser, name, value)
         if isinstance(parser, lucene.MultiFieldQueryParser):
-            return lucene.MultiFieldQueryParser.parse(parser, query) # bug in method binding
+            return lucene.MultiFieldQueryParser.parse(parser, query)
         try:
             return parser.parse(query)
         finally:
@@ -228,13 +221,11 @@ class IndexReader(object):
         elif '*' in value or '?' in value:
             termenum = lucene.WildcardTermEnum(self.indexReader, term)
         else:
-            termenum = self.indexReader.terms(term)
+            termenum = lucene.TermRangeTermEnum(self.indexReader, name, value, stop, True, False, None)
         with contextlib.closing(termenum):
             term = termenum.term()
-            while term and term.field() == name:
+            while term:
                 text = term.text()
-                if stop is not None and text >= stop:
-                    break
                 yield (text, termenum.docFreq()) if counts else text
                 term = termenum.next() and termenum.term()
     def numbers(self, name, step=0, type=int, counts=False):
@@ -338,7 +329,7 @@ class Searcher(object):
     def __init__(self, arg, analyzer=None):
         super(Searcher, self).__init__(arg)
         if analyzer is None:
-            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
+            analyzer = lucene.StandardAnalyzer(lucene.Version.values()[-1])
             self.shared.add(analyzer)
         self.analyzer = analyzer
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
@@ -443,12 +434,11 @@ class Searcher(object):
                 if not isinstance(sort, lucene.Sort):
                     sort = lucene.Sort(sort)
                 collector = lucene.TopFieldCollector.create(sort, count, False, scores, maxscore, inorder)
-        TimeLimitingCollector = lucene.TimeLimitingCollector if isinstance(collector, lucene.Collector) else lucene.TimeLimitedCollector
-        results = collector if timeout is None else TimeLimitingCollector(collector, long(timeout * 1000))
+        results = collector if timeout is None else lucene.TimeLimitingCollector(collector, long(timeout * 1000))
         try:
             super(Searcher, self).search(weight, filter, results)
         except lucene.JavaError as timeout:
-            if not TimeLimitingCollector.TimeExceededException.instance_(timeout.getJavaException()):
+            if not lucene.TimeLimitingCollector.TimeExceededException.instance_(timeout.getJavaException()):
                 raise
         if isinstance(collector, HitCollector):
             ids, scores = collector.sorted(key=sort, reverse=reverse)
@@ -595,7 +585,7 @@ class IndexWriter(lucene.IndexWriter):
     def __init__(self, directory=None, mode='a', analyzer=None):
         self.shared = closing()
         if analyzer is None:
-            analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
+            analyzer = lucene.StandardAnalyzer(lucene.Version.values()[-1])
             self.shared.add(analyzer)
         if not isinstance(directory, lucene.Directory):
             directory = lucene.RAMDirectory() if directory is None else lucene.FSDirectory.open(lucene.File(directory))

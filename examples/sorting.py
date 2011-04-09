@@ -23,7 +23,6 @@ The IndexReader.comparator method is convenient for creating a sort key table fr
 The upshot is custom sorting and sorting large results are both easier and faster.
 
 Custom sorting isn't necessary in the below example of course, just there for demonstration.
-Compatible with lucene versions 2.9 through 3.0.
 """
 
 import lucene

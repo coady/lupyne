@@ -13,6 +13,3 @@ from .queries import Query, SortField
 from .documents import Document, Field, FormatField, NestedField, NumericField, DateTimeField
 from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, ParallelMultiSearcher, IndexWriter, Indexer
 from .spatial import PointField, PolygonField
-
-if lucene.VERSION < '3':
-    warnings.warn('Support for lucene 2.9 will be removed in the next release.', DeprecationWarning)

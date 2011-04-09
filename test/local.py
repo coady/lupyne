@@ -12,19 +12,12 @@ import lucene
 from lupyne import engine
 import fixture
 
-if issubclass(lucene.TokenFilter, collections.Iterable):
-    def typeAsPayload(tokens):
-        "Generator variant of lucene TypeAsPayloadTokenFilter."
-        for token in tokens:
-            token.payload = lucene.Payload(lucene.JArray_byte(token.type().encode('utf8')))
-            yield token
-else:
-    class typeAsPayload(engine.TokenFilter):
-        "Custom implementation of lucene TypeAsPayloadTokenFilter."
-        def incrementToken(self):
-            result = engine.TokenFilter.incrementToken(self)
-            self.payload = self.type.encode('utf8')
-            return result
+class typeAsPayload(engine.TokenFilter):
+    "Custom implementation of lucene TypeAsPayloadTokenFilter."
+    def incrementToken(self):
+        result = engine.TokenFilter.incrementToken(self)
+        self.payload = self.type.encode('utf8')
+        return result
 
 @contextmanager
 def assertWarns(*categories):
@@ -51,17 +44,16 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Indexer and document interfaces."
         self.assertRaises(TypeError, engine.IndexSearcher)
-        analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
+        analyzer = lucene.StandardAnalyzer(lucene.Version.values()[-1])
         stemmer = engine.Analyzer(analyzer, lucene.PorterStemFilter, typeAsPayload)
         for token in stemmer.tokens('hello'):
             assert token.positionIncrement == 1
-            if not isinstance(token, lucene.Token):
-                assert engine.TokenFilter(lucene.EmptyTokenStream()).payload is None
-                assert token.term == 'hello'
-                assert token.type == token.payload == '<ALPHANUM>'
-                assert token.offset == (0, 5)
-                token.term = token.type = ''
-                token.offset, token.positionIncrement = (0, 0), 0
+            assert engine.TokenFilter(lucene.EmptyTokenStream()).payload is None
+            assert token.term == 'hello'
+            assert token.type == token.payload == '<ALPHANUM>'
+            assert token.offset == (0, 5)
+            token.term = token.type = ''
+            token.offset, token.positionIncrement = (0, 0), 0
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
         indexer = engine.Indexer(analyzer=stemmer)

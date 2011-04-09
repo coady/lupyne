@@ -15,17 +15,20 @@ class Field(object):
     :param store,index,termvector: field parameters, expressed as bools or strs, with lucene defaults
     :param attrs: additional attributes to set on the field
     """
-    def __init__(self, name, store=False, index='analyzed', termvector=False, **attrs):
+    def __init__(self, name, store=False, index='analyzed', termvector=False, analyzed=False, omitNorms=False, withOffsets=False, withPositions=False, **attrs):
         self.name = name
         self.attrs = attrs
         if isinstance(store, bool):
             store = 'yes' if store else 'no'
+        self.store = getattr(lucene.Field.Store, store.upper())
         if isinstance(index, bool):
-            index = 'not_analyzed' if index else 'no'
+            self.index = lucene.Field.Index.toIndex(index, analyzed, omitNorms)
+        else:
+            self.index = getattr(lucene.Field.Index, index.upper())
         if isinstance(termvector, bool):
-            termvector = 'yes' if termvector else 'no'
-        for name, value in zip(['Store', 'Index', 'TermVector'], [store, index, termvector]):
-            setattr(self, name.lower(), getattr(getattr(lucene.Field, name), value.upper()))
+            self.termvector = lucene.Field.TermVector.toTermVector(termvector, withOffsets, withPositions)
+        else:
+            self.termvector = getattr(lucene.Field.TermVector, termvector.upper())
     def items(self, *values):
         "Generate lucene Fields suitable for adding to a document."
         for value in values:
@@ -70,7 +73,7 @@ class NestedField(Field):
         return self.join(self.names[:index])
     def items(self, *values):
         "Generate indexed component fields."
-        if self.store != lucene.Field.Store.NO:
+        if self.store.stored:
             for value in values:
                 yield lucene.Field(self.name, value, self.store, lucene.Field.Index.NO)
         for value in values:
@@ -168,19 +171,16 @@ class Document(object):
     """
     def __init__(self, doc):
         self.doc = doc
-    def fields(self):
-        "Generate lucene Fields."
-        return map(lucene.Field.cast_, self.doc.getFields())
     def __len__(self):
         return self.doc.getFields().size()
     def __contains__(self, name):
         return self.doc[name] is not None
     def __iter__(self):
-        for field in self.fields():
+        for field in self.doc.getFields():
             yield field.name()
     def items(self):
         "Generate name, value pairs for all fields."
-        for field in self.fields():
+        for field in self.doc.getFields():
             yield field.name(), field.stringValue()
     def __getitem__(self, name):
         value = self.doc[name]

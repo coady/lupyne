@@ -22,9 +22,9 @@ class Query(object):
         return lucene.CachingWrapperFilter(filter) if cache else filter
     def terms(self):
         "Generate set of query term items."
-        terms = lucene.HashSet()
+        terms = lucene.HashSet().of_(lucene.Term)
         self.extractTerms(terms)
-        for term in map(lucene.Term.cast_, terms):
+        for term in terms:
             yield term.field(), term.text()
     @classmethod
     def term(cls, name, value):
@@ -158,7 +158,7 @@ class SpanQuery(Query):
         "Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."
         return SpanQuery(lucene.FieldMaskingSpanQuery, self, name)
 
-class HitCollector(lucene.PythonCollector if hasattr(lucene, 'PythonCollector') else lucene.PythonHitCollector):
+class HitCollector(lucene.PythonCollector):
     "Collect all ids and scores efficiently."
     def __init__(self):
         super(HitCollector, self).__init__()

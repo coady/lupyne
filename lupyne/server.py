@@ -412,12 +412,12 @@ class WebSearcher(object):
             :return: [*string*,... ]
         
         **GET** /terms/*chars*/*chars*
-            Return document count with given term.
+            Return document count for given term.
             
             :return: *int*
         
         **GET** /terms/*chars*/*chars*/docs
-            Return document ids with given term.
+            Return document ids for given term.
             
             :return: [*int*,... ]
         
@@ -540,7 +540,7 @@ class WebIndexer(WebSearcher):
             name, value = path
             doc = getattr(request, 'json', {})
             with HTTPError(httplib.CONFLICT, KeyError, AssertionError):
-                assert self.indexer.fields[name].index != lucene.Field.Index.NO, 'unique field must be indexed'
+                assert self.indexer.fields[name].index.indexed, 'unique field must be indexed'
                 assert doc.setdefault(name, value) == value, 'multiple values for unique field'
             self.indexer.update(name, value, doc)
         else:

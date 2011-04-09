@@ -1,6 +1,5 @@
 """
-Basic indexing and searching example adapted from http://lucene.apache.org/java/2_9_1/api/core/index.html
-Compatible with lucene versions 2.9 through 3.0.
+Basic indexing and searching example adapted from http://lucene.apache.org/java/3_1_0/api/core/index.html
 """
 
 import lucene
@@ -40,7 +39,7 @@ directory.close()
 
 # Store the index in memory:
 indexer = engine.Indexer()              # Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults
-indexer.set('fieldname', store=True)    # settings for all documents of indexer; tokenized is the default
+indexer.set('fieldname', store=True)    # settings for all documents of indexer; analyzed is the default
 indexer.add(fieldname=text)             # add document
 indexer.commit()                        # commit changes and refresh searcher
 
