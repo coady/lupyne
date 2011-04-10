@@ -237,6 +237,8 @@ class TestCase(BaseTest):
         assert len(hits) == 5 and hits.count == 8
         assert not any(map(math.isnan, hits.scores))
         assert hits.maxscore == max(hits.scores)
+        hits = indexer.search('text:people', count=5, sort=lucene.Sort.INDEXORDER)
+        assert sorted(hits.ids) == hits.ids
         sort = engine.SortField('amendment', type=int)
         hits = indexer.search('text:people', count=5, sort=sort)
         assert [hit.get('amendment') for hit in hits] == [None, None, '1', '2', '4']

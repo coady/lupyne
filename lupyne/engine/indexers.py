@@ -403,9 +403,14 @@ class Searcher(object):
         :param query: :meth:`search` compatible query, or optimally a name and value
         :param options: additional :meth:`search` options
         """
-        if len(query) <= 1:
-            return self.search(*query, count=1, sort=lucene.Sort.INDEXORDER, **options).count
-        return self.docFreq(lucene.Term(*query))
+        if len(query) > 1:
+            return self.docFreq(lucene.Term(*query))
+        query = self.parse(*query, **options) if query else lucene.MatchAllDocsQuery()
+        if not hasattr(lucene, 'TotalHitCountCollector'):
+            return super(Searcher, self).search(query, options.get('filter'), 1, lucene.Sort.INDEXORDER).totalHits
+        collector = lucene.TotalHitCountCollector()
+        super(Searcher, self).search(query, options.get('filter'), collector)
+        return collector.totalHits
     def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
         
