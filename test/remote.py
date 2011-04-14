@@ -95,6 +95,12 @@ class TestCase(BaseTest):
             resource.put('/docs/0')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.delete('/docs')
+        httplib.HTTPConnection.request(resource, 'POST', '/docs', headers={'content-length': '0', 'content-type': 'application/json'})
+        assert resource.getresponse().status == httplib.BAD_REQUEST
+        httplib.HTTPConnection.request(resource, 'POST', '/docs', headers={'content-length': '0', 'content-type': 'application/x-www-form-urlencoded'})
+        assert resource.getresponse().status == httplib.UNSUPPORTED_MEDIA_TYPE
+        httplib.HTTPConnection.request(resource, 'GET', '/', headers={'accept': 'text/html'})
+        assert resource.getresponse().status == httplib.NOT_ACCEPTABLE
         assert resource.get('/docs') == []
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/docs/0')

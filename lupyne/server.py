@@ -37,17 +37,21 @@ def json_(indent=None, content_type='application/json', process_body=None):
     """Handle request bodies and responses in json format.
 
     :param indent: indentation level for pretty printing
-    :param content_type: response content-type header
+    :param content_type: request media type and response content-type header
     :param process_body: optional function to process body into request.params
     """
     request = cherrypy.serving.request
-    headers = cherrypy.response.headers
-    if request.headers.get('content-type', '').endswith('json'):
-        with HTTPError(httplib.BAD_REQUEST, ValueError):
+    media_type = request.headers.get('content-type')
+    if media_type == content_type:
+        with HTTPError(httplib.BAD_REQUEST, ValueError, AttributeError):
             request.json = json.load(request.body)
         if process_body is not None:
             with HTTPError(httplib.BAD_REQUEST, TypeError):
                 request.params.update(process_body(request.json))
+    elif media_type is not None:
+        message = "Received Content-Type header {0}; only {1} is supported.".format(media_type, content_type)
+        raise cherrypy.HTTPError(httplib.UNSUPPORTED_MEDIA_TYPE, message)
+    headers = cherrypy.response.headers
     handler = request.handler
     def json_handler(*args, **kwargs):
         body = handler(*args, **kwargs)
@@ -131,8 +135,8 @@ def HTTPError(status, *exceptions):
 
 class WebSearcher(object):
     "Dispatch root with a delegated Searcher."
-    _cp_config = dict.fromkeys(map('tools.{0}.on'.format, ['gzip', 'json', 'allow', 'time', 'validate']), True)
-    _cp_config.update({'error_page.default': json_error, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json']})
+    _cp_config = dict.fromkeys(map('tools.{0}.on'.format, ['gzip', 'accept', 'json', 'allow', 'time', 'validate']), True)
+    _cp_config.update({'error_page.default': json_error, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json'], 'tools.accept.media': 'application/json'})
     def __init__(self, *directories, **kwargs):
         self.searcher = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
         self.updated = time.time()
