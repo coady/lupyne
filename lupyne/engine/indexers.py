@@ -666,7 +666,7 @@ class Indexer(IndexWriter):
     def __getitem__(self, id):
         return self.indexSearcher[id]
     def commit(self, expunge=False, optimize=False, **caches):
-        """Commit writes and refresh searcher.  Not thread-safe.
+        """Commit writes and refresh searcher.
         
         :param expunge: expunge deletes
         :param optimize: optimize index, optionally supply number of segments

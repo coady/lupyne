@@ -12,7 +12,6 @@ from future_builtins import filter, map
 import re
 import time
 import httplib
-import threading
 import collections
 import itertools, operator
 import os, optparse
@@ -474,7 +473,6 @@ class WebIndexer(WebSearcher):
     def __init__(self, *args, **kwargs):
         self.indexer = engine.Indexer(*args, **kwargs)
         self.updated = time.time()
-        self.lock = threading.Lock()
     @property
     def searcher(self):
         return self.indexer.indexSearcher
@@ -510,8 +508,7 @@ class WebIndexer(WebSearcher):
             
             :return: *int*
         """
-        with self.lock:
-            self.indexer.commit(**options)
+        self.indexer.commit(**options)
         self.updated = time.time()
         return len(self.indexer)
     @cherrypy.expose
