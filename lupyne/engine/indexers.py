@@ -583,21 +583,29 @@ class IndexWriter(lucene.IndexWriter):
     :param directory: directory path or lucene Directory, default RAMDirectory
     :param mode: file mode (rwa), except updating (+) is implied
     :param analyzer: lucene Analyzer, default StandardAnalyzer
+    :param version: lucene Version argument passed to IndexWriterConfig or StandardAnalyzer, default is latest
     """
     __len__ = lucene.IndexWriter.numDocs
     __del__ = Searcher.__dict__['__del__']
     parse = Searcher.__dict__['parse']
-    def __init__(self, directory=None, mode='a', analyzer=None):
+    def __init__(self, directory=None, mode='a', analyzer=None, version=None):
         self.shared = closing()
+        if version is None:
+            version = lucene.Version.values()[-1]
         if analyzer is None:
-            analyzer = lucene.StandardAnalyzer(lucene.Version.values()[-1])
+            analyzer = lucene.StandardAnalyzer(version)
             self.shared.add(analyzer)
         if not isinstance(directory, lucene.Directory):
             directory = lucene.RAMDirectory() if directory is None else lucene.FSDirectory.open(lucene.File(directory))
             self.shared.add(directory)
-        args = [] if mode == 'a' else [bool('rw'.index(mode))]
-        args.append(lucene.IndexWriter.MaxFieldLength.LIMITED)
-        lucene.IndexWriter.__init__(self, directory, analyzer, *args)
+        if hasattr(lucene, 'IndexWriterConfig'):
+            config = lucene.IndexWriterConfig(version, analyzer)
+            config.openMode = lucene.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
+            lucene.IndexWriter.__init__(self, directory, config)
+        else:
+            args = [] if mode == 'a' else [bool('rw'.index(mode))]
+            args.append(lucene.IndexWriter.MaxFieldLength.UNLIMITED)
+            lucene.IndexWriter.__init__(self, directory, analyzer, *args)
         self.fields = {}
     @property
     def segments(self):

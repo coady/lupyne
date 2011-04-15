@@ -56,7 +56,7 @@ class TestCase(BaseTest):
             token.offset, token.positionIncrement = (0, 0), 0
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
-        indexer = engine.Indexer(analyzer=stemmer)
+        indexer = engine.Indexer(analyzer=stemmer, version=lucene.Version.LUCENE_30)
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
         indexer.set('name', store=True, index=False, boost=2.0)
