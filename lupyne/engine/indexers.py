@@ -28,6 +28,19 @@ class closing(set):
     def __del__(self):
         for obj in self:
             obj.close()
+    def analyzer(self, analyzer, version=None):
+        if analyzer is None:
+            analyzer = lucene.StandardAnalyzer(version or lucene.Version.values()[-1])
+            self.add(analyzer)
+        return analyzer
+    def directory(self, directory):
+        if directory is None:
+            directory = lucene.RAMDirectory()
+            self.add(directory)
+        elif isinstance(directory, basestring):
+            directory = lucene.FSDirectory.open(lucene.File(directory))
+            self.add(directory)
+        return directory
 
 class TokenFilter(lucene.PythonTokenFilter):
     """Create an iterable lucene TokenFilter from a TokenStream.
@@ -328,21 +341,11 @@ class Searcher(object):
     "Mixin interface common among searchers."
     def __init__(self, arg, analyzer=None):
         super(Searcher, self).__init__(arg)
-        if analyzer is None:
-            analyzer = lucene.StandardAnalyzer(lucene.Version.values()[-1])
-            self.shared.add(analyzer)
-        self.analyzer = analyzer
+        self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
     def __del__(self):
         if hash(self):
             self.close()
-    def open(self, *directories):
-        self.shared = closing()
-        for directory in directories:
-            if isinstance(directory, basestring):
-                directory = lucene.FSDirectory.open(lucene.File(directory))
-                self.shared.add(directory)
-            yield directory
     def reopen(self, filters=False, sorters=False, spellcheckers=False):
         """Return current `Searcher`_, only creating a new one if necessary.
         
@@ -537,14 +540,13 @@ class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
     def __init__(self, directory, analyzer=None):
-        Searcher.__init__(self, *self.open(directory), analyzer=analyzer)
+        self.shared = closing()
+        Searcher.__init__(self, self.shared.directory(directory), analyzer=analyzer)
     @classmethod
     def load(cls, directory, analyzer=None):
         "Open `Searcher`_ with a lucene RAMDirectory, loading index into memory."
-        if isinstance(directory, basestring):
-            directory = lucene.FSDirectory.open(lucene.File(directory))
-            ref = closing([directory])
-        self = cls(lucene.RAMDirectory(directory), analyzer)
+        ref = closing()
+        self = cls(lucene.RAMDirectory(ref.directory(directory)), analyzer)
         self.shared.add(self.directory)
         return self
 
@@ -556,11 +558,12 @@ class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
     def __init__(self, searchers, analyzer=None):
+        self.shared = closing()
         if lucene.MultiReader.instance_(searchers):
             self.indexReader = searchers
             searchers = list(map(lucene.IndexSearcher, searchers.sequentialSubReaders))
         else:
-            searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(searcher) for searcher in self.open(*searchers)]
+            searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(self.shared.directory(searcher)) for searcher in searchers]
             self.indexReader = lucene.MultiReader(list(map(operator.attrgetter('indexReader'), searchers)), False)
             self.owned = closing([self.indexReader])
         Searcher.__init__(self, searchers, analyzer)
@@ -592,12 +595,8 @@ class IndexWriter(lucene.IndexWriter):
         self.shared = closing()
         if version is None:
             version = lucene.Version.values()[-1]
-        if analyzer is None:
-            analyzer = lucene.StandardAnalyzer(version)
-            self.shared.add(analyzer)
-        if not isinstance(directory, lucene.Directory):
-            directory = lucene.RAMDirectory() if directory is None else lucene.FSDirectory.open(lucene.File(directory))
-            self.shared.add(directory)
+        analyzer = self.shared.analyzer(analyzer, version)
+        directory = self.shared.directory(directory)
         if hasattr(lucene, 'IndexWriterConfig'):
             config = lucene.IndexWriterConfig(version, analyzer)
             config.openMode = lucene.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
