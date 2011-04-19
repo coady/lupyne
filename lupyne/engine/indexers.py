@@ -353,11 +353,10 @@ class Searcher(object):
         :param sorters: refresh cached :attr:`sorters` with associated parsers
         :param spellcheckers: refresh cached :attr:`spellcheckers`
         """
-        reader = self.indexReader.reopen()
-        if reader == self.indexReader:
+        if self.current:
             return self
-        other = type(self)(reader, self.analyzer)
-        other.shared, other.owned = self.shared, closing([reader])
+        other = type(self)(self.indexReader.reopen(), self.analyzer)
+        other.shared, other.owned = self.shared, closing([other.indexReader])
         other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
         if filters:
             other.facets(Query.any(), *other.filters)
@@ -657,11 +656,21 @@ class IndexWriter(lucene.IndexWriter):
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.
     Creates an `IndexWriter`_ with a delegated `IndexSearcher`_.
+    
+    :param nrt: optionally use a near real-time searcher
     """
-    def __init__(self, *args, **kwargs):
-        IndexWriter.__init__(self, *args, **kwargs)
+    def __init__(self, directory=None, mode='a', analyzer=None, version=None, nrt=False):
+        IndexWriter.__init__(self, directory, mode, analyzer, version)
         IndexWriter.commit(self)
-        self.indexSearcher = IndexSearcher(self.directory, self.analyzer)
+        if nrt:
+            try:
+                reader = lucene.IndexReader.open(self, False)
+            except lucene.InvalidArgsError:
+                reader = self.reader
+            self.indexSearcher = IndexSearcher(reader, self.analyzer)
+            self.indexSearcher.owned = closing([reader])
+        else:
+            self.indexSearcher = IndexSearcher(self.directory, self.analyzer)
     def __getattr__(self, name):
         if name == 'indexSearcher':
             raise AttributeError(name)
@@ -672,12 +681,14 @@ class Indexer(IndexWriter):
         return iter(self.indexSearcher)
     def __getitem__(self, id):
         return self.indexSearcher[id]
+    def refresh(self, **caches):
+        "Store refreshed searcher with :meth:`Searcher.reopen` caches."
+        self.indexSearcher = self.indexSearcher.reopen(**caches)
     def commit(self, expunge=False, optimize=False, **caches):
-        """Commit writes and refresh searcher.
+        """Commit writes and :meth:`refresh` searcher.
         
         :param expunge: expunge deletes
         :param optimize: optimize index, optionally supply number of segments
-        :param caches: :meth:`Searcher.reopen` caches to refresh
         """
         IndexWriter.commit(self)
         if expunge:
@@ -686,4 +697,4 @@ class Indexer(IndexWriter):
         if optimize:
             self.optimize(optimize)
             IndexWriter.commit(self)
-        self.indexSearcher = self.indexSearcher.reopen(**caches)
+        self.refresh(**caches)

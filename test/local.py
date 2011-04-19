@@ -198,8 +198,9 @@ class TestCase(BaseTest):
         indexer.commit(filters=True, spellcheckers=True)
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
         doc['amendment'] = engine.Analyzer(lucene.WhitespaceTokenizer).tokens(doc['amendment'])
-        scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27'))
-        assert 0.0 == scores[0] < scores[1] < scores[2] < 1.0
+        doc['date'] = engine.Analyzer(lucene.WhitespaceTokenizer).tokens(doc['date']), 2.0
+        scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
+        assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
         searcher = engine.MultiSearcher([indexer.directory, self.tempdir])
         assert searcher.count() == len(searcher) == 2 * len(indexer)
         searcher = searcher.reopen()
@@ -554,6 +555,19 @@ class TestCase(BaseTest):
         indexer.commit()
         fragment, = indexer.highlight(query, 0, field='text')
         assert fragment.count('<B>') == fragment.count('</B>') == 3
+    
+    def testNearRealTime(self):
+        "Near real-time index updates."
+        indexer = engine.Indexer(version=lucene.Version.LUCENE_30, nrt=True)
+        indexer.add()
+        assert indexer.count() == 0 and not indexer.current
+        indexer.refresh(filters=True)
+        assert indexer.count() == 1 and indexer.current
+        searcher = engine.IndexSearcher(indexer.directory)
+        assert searcher.count() == 0 and searcher.current
+        indexer.add()
+        indexer.commit()
+        assert indexer.count() == engine.IndexSearcher(indexer.directory).count() == 2
 
 if __name__ == '__main__':
     lucene.initVM()
