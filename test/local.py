@@ -71,7 +71,8 @@ class TestCase(BaseTest):
         assert not indexer.optimized
         indexer.commit()
         assert searcher is not indexer.indexSearcher
-        searcher = engine.ParallelMultiSearcher([indexer.indexSearcher, indexer.directory])
+        with assertWarns(DeprecationWarning, DeprecationWarning):
+            searcher = engine.ParallelMultiSearcher([indexer.indexSearcher, indexer.directory])
         assert searcher.count() == 2 * len(indexer)
         assert list(indexer) == [0]
         assert indexer.current and indexer.optimized

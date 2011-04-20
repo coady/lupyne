@@ -5,6 +5,7 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 """
 
 from future_builtins import map, zip
+import warnings
 import os
 import re
 import itertools, operator
@@ -41,6 +42,16 @@ class closing(set):
             directory = lucene.FSDirectory.open(lucene.File(directory))
             self.add(directory)
         return directory
+    def reader(self, reader):
+        reader = self.directory(reader)
+        if isinstance(reader, lucene.Searcher):
+            warnings.warn('Support for opening searchers is deprecated; call with a reader instead.', DeprecationWarning)
+            reader = reader.indexReader
+        if isinstance(reader, lucene.IndexReader):
+            reader.incRef()
+        else:
+            reader = lucene.IndexReader.open(reader)
+        return reader
 
 class TokenFilter(lucene.PythonTokenFilter):
     """Create an iterable lucene TokenFilter from a TokenStream.
@@ -540,7 +551,7 @@ class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
     """
     def __init__(self, directory, analyzer=None):
         self.shared = closing()
-        Searcher.__init__(self, self.shared.directory(directory), analyzer=analyzer)
+        Searcher.__init__(self, self.shared.directory(directory), analyzer)
     @classmethod
     def load(cls, directory, analyzer=None):
         "Open `Searcher`_ with a lucene RAMDirectory, loading index into memory."
@@ -549,23 +560,18 @@ class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
         self.shared.add(self.directory)
         return self
 
-class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
-    """Inherited lucene MultiSearcher.
-    All sub searchers will be closed when the MultiSearcher is closed.
+class MultiSearcher(IndexSearcher):
+    """IndexSearcher with underlying lucene MultiReader.
     
-    :param searchers: directory paths, Directories, IndexReaders, Searchers, or a MultiReader
+    :param reader: directory paths, Directories, IndexReaders, or a single MultiReader
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
-    def __init__(self, searchers, analyzer=None):
+    def __init__(self, reader, analyzer=None):
         self.shared = closing()
-        if lucene.MultiReader.instance_(searchers):
-            self.indexReader = searchers
-            searchers = list(map(lucene.IndexSearcher, searchers.sequentialSubReaders))
-        else:
-            searchers = [searcher if isinstance(searcher, lucene.Searcher) else lucene.IndexSearcher(self.shared.directory(searcher)) for searcher in searchers]
-            self.indexReader = lucene.MultiReader(list(map(operator.attrgetter('indexReader'), searchers)), False)
-            self.owned = closing([self.indexReader])
-        Searcher.__init__(self, searchers, analyzer)
+        if not lucene.MultiReader.instance_(reader):
+            reader = lucene.MultiReader(list(map(self.shared.reader, reader)), True)
+            self.owned = closing([reader])
+        Searcher.__init__(self, reader, analyzer)
     @property
     def version(self):
         return ' '.join(str(reader.version) for reader in self.sequentialSubReaders)
@@ -575,8 +581,10 @@ class MultiSearcher(Searcher, lucene.MultiSearcher, IndexReader):
     def overlap(self, *filters):
         return sum(IndexReader(reader).overlap(*filters) for reader in self.sequentialSubReaders)
 
-class ParallelMultiSearcher(MultiSearcher, lucene.ParallelMultiSearcher):
-    "Inherited lucene ParallelMultiSearcher."
+class ParallelMultiSearcher(MultiSearcher):
+    def __init__(self, *args, **kwargs):
+        warnings.warn('ParallelMultiSearchers have been deprecated; use MultiSearcher.', DeprecationWarning)
+        MultiSearcher.__init__(self, *args, **kwargs)
 
 class IndexWriter(lucene.IndexWriter):
     """Inherited lucene IndexWriter.

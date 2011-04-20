@@ -65,11 +65,6 @@ MultiSearcher
 .. autoclass:: engine.indexers.MultiSearcher
   :show-inheritance:
 
-ParallelMultiSearcher
-^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.ParallelMultiSearcher
-  :show-inheritance:
-
 IndexWriter
 ^^^^^^^^^^^^^
 .. autoclass:: engine.indexers.IndexWriter

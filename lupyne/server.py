@@ -207,10 +207,9 @@ class WebSearcher(object):
             
             :return: {*string*: *int*,... }
         """
-        searcher = self.searcher
-        if isinstance(searcher, lucene.MultiSearcher):
-            return dict((unicode(reader.directory()), reader.numDocs()) for reader in searcher.sequentialSubReaders)
-        return {unicode(searcher.directory): len(searcher)}
+        reader = self.searcher.indexReader
+        readers = reader.sequentialSubReaders if lucene.MultiReader.instance_(reader) else [reader]
+        return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
     def docs(self, *path, **options):
         """Return ids or documents.
