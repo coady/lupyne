@@ -30,9 +30,10 @@ IndexReader
 
   .. automethod:: __getitem__
 
-Searcher
+IndexSearcher
 ^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.Searcher
+.. autoclass:: engine.indexers.IndexSearcher
+  :show-inheritance:
   :members:
 
   .. automethod:: __getitem__
@@ -54,11 +55,6 @@ Searcher
   .. attribute:: spellcheckers
 
     Mapping of cached spellcheckers by field.
-
-IndexSearcher
-^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.IndexSearcher
-  :show-inheritance:
 
 MultiSearcher
 ^^^^^^^^^^^^^
@@ -110,6 +106,7 @@ Document
 Hit
 ^^^^^^^^^^^^^
 .. autoclass:: engine.documents.Hit
+  :show-inheritance:
   :members:
 
 Hits
@@ -179,6 +176,7 @@ Query
 BooleanQuery
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.BooleanQuery
+  :show-inheritance:
   :members:
 
   .. automethod:: __len__
@@ -202,6 +200,7 @@ BooleanQuery
 SpanQuery
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.SpanQuery
+  :show-inheritance:
   :members:
 
   .. automethod:: __getitem__
@@ -219,11 +218,13 @@ SpanQuery
 SortField
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.SortField
+  :show-inheritance:
   :members:
 
 Highlighter
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.Highlighter
+  :show-inheritance:
   :members:
 
 SpellChecker
@@ -236,6 +237,10 @@ SpellParser
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.SpellParser
   :members:
+
+  .. attribute:: searcher
+
+    `IndexSearcher`_
 
 
 spatial

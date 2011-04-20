@@ -201,7 +201,7 @@ class SortField(lucene.SortField):
         return method(reader, self.field, *([self.parser] * bool(self.parser)))
 
 class Highlighter(lucene.Highlighter):
-    """Inherited lucene Filter with stored analysis options.
+    """Inherited lucene Highlighter with stored analysis options.
     
     :param query: lucene Query
     :param analyzer: analyzer for texts
@@ -270,7 +270,7 @@ class SpellChecker(dict):
 
 class SpellParser(lucene.PythonQueryParser):
     """Inherited lucene QueryParser which corrects spelling.
-    Assign a `searcher`_ attribute or override :meth:`correct` implementation.
+    Assign a searcher attribute or override :meth:`correct` implementation.
     """
     def correct(self, term):
         "Return term with text replaced as necessary."

@@ -40,11 +40,13 @@ Resource
 Resources
 ---------
 .. autoclass:: client.Resources
+  :show-inheritance:
   :members:
 
 Shards
 ---------
 .. autoclass:: client.Shards
+  :show-inheritance:
   :members:
 
   .. attribute:: resources

@@ -348,17 +348,29 @@ class IndexReader(object):
                     raise
         return int(count)
 
-class Searcher(object):
-    "Mixin interface common among searchers."
-    def __init__(self, arg, analyzer=None):
-        super(Searcher, self).__init__(arg)
+class IndexSearcher(lucene.IndexSearcher, IndexReader):
+    """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
+    
+    :param directory: directory path, lucene Directory, or lucene IndexReader
+    :param analyzer: lucene Analyzer, default StandardAnalyzer
+    """
+    def __init__(self, directory, analyzer=None):
+        self.shared = closing()
+        lucene.IndexSearcher.__init__(self, self.shared.directory(directory))
         self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
+    @classmethod
+    def load(cls, directory, analyzer=None):
+        "Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."
+        ref = closing()
+        self = cls(lucene.RAMDirectory(ref.directory(directory)), analyzer)
+        self.shared.add(self.directory)
+        return self
     def __del__(self):
         if hash(self):
             self.close()
     def reopen(self, filters=False, sorters=False, spellcheckers=False):
-        """Return current `Searcher`_, only creating a new one if necessary.
+        """Return current `IndexSearcher`_, only creating a new one if necessary.
         
         :param filters: refresh cached facet :attr:`filters`
         :param sorters: refresh cached :attr:`sorters` with associated parsers
@@ -420,9 +432,9 @@ class Searcher(object):
             return self.docFreq(lucene.Term(*query))
         query = self.parse(*query, **options) if query else lucene.MatchAllDocsQuery()
         if not hasattr(lucene, 'TotalHitCountCollector'):
-            return super(Searcher, self).search(query, options.get('filter'), 1, lucene.Sort.INDEXORDER).totalHits
+            return lucene.IndexSearcher.search(self, query, options.get('filter'), 1, lucene.Sort.INDEXORDER).totalHits
         collector = lucene.TotalHitCountCollector()
-        super(Searcher, self).search(query, options.get('filter'), collector)
+        lucene.IndexSearcher.search(self, query, options.get('filter'), collector)
         return collector.totalHits
     def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
@@ -454,7 +466,7 @@ class Searcher(object):
                 collector = lucene.TopFieldCollector.create(sort, count, False, scores, maxscore, inorder)
         results = collector if timeout is None else lucene.TimeLimitingCollector(collector, long(timeout * 1000))
         try:
-            super(Searcher, self).search(weight, filter, results)
+            lucene.IndexSearcher.search(self, weight, filter, results)
         except lucene.JavaError as timeout:
             if not lucene.TimeLimitingCollector.TimeExceededException.instance_(timeout.getJavaException()):
                 raise
@@ -543,23 +555,6 @@ class Searcher(object):
         for query in queries:
             yield searcher.search(self.parse(query))
 
-class IndexSearcher(Searcher, lucene.IndexSearcher, IndexReader):
-    """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
-    
-    :param directory: directory path, lucene Directory, or lucene IndexReader
-    :param analyzer: lucene Analyzer, default StandardAnalyzer
-    """
-    def __init__(self, directory, analyzer=None):
-        self.shared = closing()
-        Searcher.__init__(self, self.shared.directory(directory), analyzer)
-    @classmethod
-    def load(cls, directory, analyzer=None):
-        "Open `Searcher`_ with a lucene RAMDirectory, loading index into memory."
-        ref = closing()
-        self = cls(lucene.RAMDirectory(ref.directory(directory)), analyzer)
-        self.shared.add(self.directory)
-        return self
-
 class MultiSearcher(IndexSearcher):
     """IndexSearcher with underlying lucene MultiReader.
     
@@ -567,11 +562,13 @@ class MultiSearcher(IndexSearcher):
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
     def __init__(self, reader, analyzer=None):
-        self.shared = closing()
+        shared = closing()
         if not lucene.MultiReader.instance_(reader):
-            reader = lucene.MultiReader(list(map(self.shared.reader, reader)), True)
+            reader = lucene.MultiReader(list(map(shared.reader, reader)), True)
             self.owned = closing([reader])
-        Searcher.__init__(self, reader, analyzer)
+        IndexSearcher.__init__(self, reader, analyzer)
+        self.shared.update(shared)
+        shared.clear()
     @property
     def version(self):
         return ' '.join(str(reader.version) for reader in self.sequentialSubReaders)
@@ -596,8 +593,8 @@ class IndexWriter(lucene.IndexWriter):
     :param version: lucene Version argument passed to IndexWriterConfig or StandardAnalyzer, default is latest
     """
     __len__ = lucene.IndexWriter.numDocs
-    __del__ = Searcher.__dict__['__del__']
-    parse = Searcher.__dict__['parse']
+    __del__ = IndexSearcher.__dict__['__del__']
+    parse = IndexSearcher.__dict__['parse']
     def __init__(self, directory=None, mode='a', analyzer=None, version=None):
         self.shared = closing()
         if version is None:
@@ -647,7 +644,7 @@ class IndexWriter(lucene.IndexWriter):
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
         
-        :param query: :meth:`Searcher.search` compatible query, or optimally a name and value
+        :param query: :meth:`IndexSearcher.search` compatible query, or optimally a name and value
         :param options: additional :meth:`Analyzer.parse` options
         """
         parse = self.parse if len(query) == 1 else lucene.Term
@@ -690,7 +687,7 @@ class Indexer(IndexWriter):
     def __getitem__(self, id):
         return self.indexSearcher[id]
     def refresh(self, **caches):
-        "Store refreshed searcher with :meth:`Searcher.reopen` caches."
+        "Store refreshed searcher with :meth:`IndexSearcher.reopen` caches."
         self.indexSearcher = self.indexSearcher.reopen(**caches)
     def commit(self, expunge=False, optimize=False, **caches):
         """Commit writes and :meth:`refresh` searcher.

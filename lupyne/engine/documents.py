@@ -222,7 +222,7 @@ class Hits(object):
     """Search results: lazily evaluated and memory efficient.
     Provides a read-only sequence interface to hit objects.
     
-    :param searcher: `Searcher`_ which can retrieve documents
+    :param searcher: `IndexSearcher`_ which can retrieve documents
     :param ids: ordered doc ids
     :param scores: ordered doc scores
     :param count: total number of hits
