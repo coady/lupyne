@@ -17,3 +17,7 @@ searching
 sorting
 ---------
 .. literalinclude:: ../examples/sorting.py
+
+server
+---------
+.. literalinclude:: ../examples/server.py

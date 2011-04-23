@@ -1,7 +1,5 @@
 server
 ======
-.. automodule:: server
-
 Usage: python server.py [index_directory ...]
 
 Options:
@@ -17,9 +15,11 @@ Options:
                         engine.autoreload
   --autoupdate=SECONDS  automatically update index version
 
+.. automodule:: server
+
 tools
 -----------
-CherryPy tools enabled by default:  tools.\{json,allow,time,validate\}.on
+`CherryPy tools <http://www.cherrypy.org/wiki/CustomTools>`_ enabled by default:  tools.\{json,allow,time,validate\}.on
 
 .. autofunction:: json_
 .. autofunction:: allow

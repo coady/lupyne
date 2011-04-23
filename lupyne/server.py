@@ -1,6 +1,38 @@
 """
 Restful json `CherryPy <http://cherrypy.org/>`_ server.
 
+The server script mounts a `WebSearcher`_ (read_only) or `WebIndexer`_ root.
+Standard `CherryPy configuration <http://www.cherrypy.org/wiki/ConfigAPI>`_ applies,
+and the provided `custom tools <#tools>`_ are also configurable.
+All request and response bodies are `application/json values <http://tools.ietf.org/html/rfc4627.html#section-2.1>`_.
+
+WebSearcher exposes resources for an IndexSearcher.
+In addition to search requests, it provides access to term and document information in the index.
+Note Lucene doc ids are ephermeral;  they should only be used across requests for the same index version.
+
+ * :meth:`/ <WebSearcher.index>`
+ * :meth:`/search <WebSearcher.search>`
+ * :meth:`/docs <WebSearcher.docs>`
+ * :meth:`/terms <WebSearcher.terms>`
+ * :meth:`/update <WebSearcher.update>`
+
+WebIndexer extends WebSearcher, exposing additional resources and methods for an Indexer.
+Single documents may be added, deleted, or replaced by a unique indexed field.
+Multiples documents may also be added or deleted by query at once.
+By default changes are not visible until the update resource is called to commit a new index version.
+If a near real-time Indexer is used (an experimental feature in Lucene), then changes are instantly searchable.
+In such cases a commit still hasn't occurred;  the index based :meth:`validation headers <validate>` shouldn't be used for caching.
+
+ * :meth:`/ <WebIndexer.index>`
+ * :meth:`/search <WebIndexer.search>`
+ * :meth:`/docs <WebIndexer.docs>`
+ * :meth:`/fields <WebIndexer.fields>`
+ * :meth:`/update <WebIndexer.update>`
+
+Custom servers should create and mount WebSearchers and WebIndexers as needed.
+:meth:`Caches <WebSearcher.update>` and :meth:`field settings <WebIndexer.fields>` can then be applied directly before `starting <#start>`_ the server.
+WebSearchers and WebIndexers can of course also be subclassed for custom interfaces.
+
 CherryPy and Lucene VM integration issues:
  * Monitors (such as autoreload) are not compatible with the VM unless threads are attached.
  * WorkerThreads must be also attached to the VM.
@@ -81,10 +113,10 @@ def validate(methods=('GET', 'HEAD'), etag=True, last_modified=True, max_age=Non
     """Return and validate caching headers for GET requests.
 
     :param methods: only set headers for specified methods
-    :param etag: return weak entity tag based on index version and validate if-match headers
-    :param last_modified: return last-modified based on index timestamp and validate if-modified headers
-    :param max_age: return cache-control max-age and age header based on last update
-    :param expires: return expires header based on last update
+    :param etag: return weak entity tag header based on index version and validate if-match headers
+    :param last_modified: return last-modified header based on index timestamp and validate if-modified headers
+    :param max_age: return cache-control max-age and age headers based on last update timestamp
+    :param expires: return expires header offset from last update timestamp
     """
     request = cherrypy.serving.request
     headers = cherrypy.response.headers
@@ -472,7 +504,7 @@ class WebSearcher(object):
         raise cherrypy.NotFound()
 
 class WebIndexer(WebSearcher):
-    "Dispatch root which extends searcher to include write methods."
+    "Dispatch root with a delegated Indexer, exposing write methods."
     def __init__(self, *args, **kwargs):
         self.indexer = engine.Indexer(*args, **kwargs)
         self.updated = time.time()
