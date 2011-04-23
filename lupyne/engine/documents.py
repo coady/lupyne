@@ -13,22 +13,24 @@ class Field(object):
     
     :param name: name of field
     :param store,index,termvector: field parameters, expressed as bools or strs, with lucene defaults
+    :param analyzed,omitNorms: additional index boolean settings
+    :param withPositions,withOffsets: additional termvector boolean settings
     :param attrs: additional attributes to set on the field
     """
-    def __init__(self, name, store=False, index='analyzed', termvector=False, analyzed=False, omitNorms=False, withOffsets=False, withPositions=False, **attrs):
-        self.name = name
-        self.attrs = attrs
+    def __init__(self, name, store=False, index='analyzed', termvector=False, analyzed=False, omitNorms=False, withPositions=False, withOffsets=False, **attrs):
+        self.name, self.attrs = name, attrs
         if isinstance(store, bool):
             store = 'yes' if store else 'no'
-        self.store = getattr(lucene.Field.Store, store.upper())
+        self.store = lucene.Field.Store.valueOf(store.upper())
         if isinstance(index, bool):
             self.index = lucene.Field.Index.toIndex(index, analyzed, omitNorms)
         else:
-            self.index = getattr(lucene.Field.Index, index.upper())
+            self.index = lucene.Field.Index.valueOf(index.upper())
         if isinstance(termvector, bool):
             self.termvector = lucene.Field.TermVector.toTermVector(termvector, withOffsets, withPositions)
         else:
-            self.termvector = getattr(lucene.Field.TermVector, termvector.upper())
+            self.termvector = lucene.Field.TermVector.valueOf(termvector.upper())
+        next(Field.items(self, ' ')) # validate settings
     def items(self, *values):
         "Generate lucene Fields suitable for adding to a document."
         for value in values:

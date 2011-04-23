@@ -541,6 +541,7 @@ class WebIndexer(WebSearcher):
             doc = getattr(request, 'json', {})
             with HTTPError(httplib.CONFLICT, KeyError, AssertionError):
                 assert self.indexer.fields[name].index.indexed, 'unique field must be indexed'
+            with HTTPError(httplib.BAD_REQUEST, AssertionError):
                 assert doc.setdefault(name, value) == value, 'multiple values for unique field'
             self.indexer.update(name, value, doc)
         else:
@@ -587,7 +588,8 @@ class WebIndexer(WebSearcher):
         if cherrypy.request.method == 'PUT':
             if name not in self.indexer.fields:
                 cherrypy.response.status = httplib.CREATED
-            self.indexer.set(name, **settings)
+            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+                self.indexer.set(name, **settings)
         with HTTPError(httplib.NOT_FOUND, KeyError):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])

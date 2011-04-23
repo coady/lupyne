@@ -439,6 +439,13 @@ class TestCase(BaseTest):
     
     def testFields(self):
         "Custom fields."
+        self.assertRaises(lucene.JavaError, engine.Field, '', store='invalid')
+        self.assertRaises(AttributeError, engine.Field, '', omit='value')
+        self.assertRaises(lucene.JavaError, engine.Field, '', index=False)
+        field = engine.Field('', index=True, analyzed=True, omitNorms=True, termvector=True, withPositions=True, withOffsets=True)
+        field, = field.items(' ')
+        attrs = 'indexed', 'tokenized', 'termVectorStored', 'storePositionWithTermVector', 'storeOffsetWithTermVector', 'omitNorms'
+        assert all(getattr(field, attr) for attr in attrs)
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.FormatField, format='{0:02d}', store=True)
         indexer.set('size', engine.FormatField, format='{0:04d}', store=True)

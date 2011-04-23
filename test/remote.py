@@ -229,13 +229,15 @@ class TestCase(BaseTest):
         assert not resource.put('/docs/name/sample')
         assert resource.post('/update')
         assert resource.get('/docs/name/sample')
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            assert resource.put('/fields/name', {'omit': True})
+        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
+            resource.put('/docs/name/sample', {'name': 'mismatched'})
         with assertRaises(httplib.HTTPException, httplib.CONFLICT):
             resource.put('/docs/missing/sample')
+        assert resource.put('/fields/name', {'store': True, 'index': False, 'omitNorms': True})
         with assertRaises(httplib.HTTPException, httplib.CONFLICT):
-            resource.put('/docs/missing/sample', {'name': 'mismatched'})
-        assert resource.put('/fields/name', {'index': False})
-        with assertRaises(httplib.HTTPException, httplib.CONFLICT):
-            resource.put('/docs/missing/sample')
+            resource.put('/docs/name/sample')
         assert not resource.delete('/docs/missing/sample')
         resource.post('/update')
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
