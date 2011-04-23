@@ -667,9 +667,10 @@ class Indexer(IndexWriter):
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, nrt=False):
         IndexWriter.__init__(self, directory, mode, analyzer, version)
         IndexWriter.commit(self)
+        self.nrt = nrt
         if nrt:
             try:
-                reader = lucene.IndexReader.open(self, False)
+                reader = lucene.IndexReader.open(self, True)
             except lucene.InvalidArgsError:
                 reader = self.reader
             self.indexSearcher = IndexSearcher(reader, self.analyzer)

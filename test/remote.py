@@ -8,14 +8,14 @@ import math
 import json
 import time, calendar
 import socket, errno
-from contextlib import contextmanager
+import contextlib
 from email.utils import parsedate
 import lucene
 import cherrypy
 from lupyne import client, engine, server
 import fixture, local
 
-@contextmanager
+@contextlib.contextmanager
 def assertRaises(exception, code):
     "Assert an exception is raised with specific code."
     try:
@@ -419,6 +419,35 @@ class TestCase(BaseTest):
         result = resource.get('/search', q='Los Angeles', group='county.city', **{'group.count': 0, 'q.field': 'county', 'q.type': 'prefix'})
         assert all(group['value'].startswith('Los Angeles') for group in result['groups'])
         assert sum(map(operator.itemgetter('count'), result['groups'])) == sum(facets.values()) == result['count']
+
+    def testNearRealTime(self):
+        "Near Real Time updating and searching."
+        with contextlib.closing(engine.IndexWriter(self.tempdir)) as writer:
+            writer.add()
+        port = self.ports[0]
+        cherrypy.engine.subscribe('start_thread', server.attach_thread)
+        cherrypy.config.update(self.config)
+        cherrypy.config.update({'engine.autoreload.on': False, 'server.socket_port': port, 'tools.validate.expires': 0})
+        root = server.WebIndexer(nrt=True)
+        cherrypy.tree.mount(root, config={'global': {}})
+        cherrypy.engine.start()
+        resource = client.Resource('localhost', port)
+        response = resource.call('GET', '/docs')
+        version, modified, expires = map(response.getheader, ('etag', 'last-modified', 'expires'))
+        assert response() == []
+        assert resource.call('POST', '/docs', [{}]).status == httplib.OK
+        assert resource.get('/docs') == [0]
+        assert resource.call('DELETE', '/search').status == httplib.OK
+        assert resource.get('/docs') == []
+        time.sleep(max(0, calendar.timegm(parsedate(expires)) + 1 - time.time()))
+        assert resource.call('POST', '/', [self.tempdir]).status == httplib.OK
+        response = resource.call('GET', '/docs')
+        assert response() == [0]
+        assert modified == response.getheader('last-modified') and expires != response.getheader('expires')
+        resource.post('/update')
+        response = resource.call('GET', '/docs')
+        assert version != response.getheader('etag')
+        cherrypy.engine.exit()
 
 if __name__ == '__main__':
     lucene.initVM()

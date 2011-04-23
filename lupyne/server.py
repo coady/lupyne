@@ -482,6 +482,12 @@ class WebIndexer(WebSearcher):
     def close(self):
         self.indexer.close()
         WebSearcher.close(self)
+    def refresh(self):
+        if self.indexer.nrt:
+            self.indexer.refresh()
+            self.updated = time.time()
+        else:
+            cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.json(process_body=lambda body: {'directories': list(body)})
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
@@ -496,7 +502,7 @@ class WebIndexer(WebSearcher):
         if cherrypy.request.method == 'POST':
             for directory in directories:
                 self.indexer += directory
-            cherrypy.response.status = httplib.ACCEPTED
+            self.refresh()
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
     @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
@@ -547,7 +553,7 @@ class WebIndexer(WebSearcher):
         else:
             for doc in getattr(request, 'json', ()):
                 self.indexer.add(doc)
-        cherrypy.response.status = httplib.ACCEPTED
+        self.refresh()
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
     def search(self, q=None, **options):
@@ -562,7 +568,7 @@ class WebIndexer(WebSearcher):
             self.indexer.deleteAll()
         else:
             self.indexer.delete(self.parse(self.searcher, q, **options))
-        cherrypy.response.status = httplib.ACCEPTED
+        self.refresh()
     @cherrypy.expose
     @cherrypy.tools.json(process_body=dict)
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT'])
