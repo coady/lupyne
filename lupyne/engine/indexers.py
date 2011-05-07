@@ -12,7 +12,7 @@ import itertools, operator
 import contextlib
 import abc, collections
 import lucene
-from .queries import Query, HitCollector, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
+from .queries import Query, Collector, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
 
 class Atomic(object):
@@ -438,9 +438,9 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         """
         query = lucene.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
         weight = query.weight(self)
-        # use custom HitCollector if all results are necessary, otherwise use lucene's TopDocsCollectors
+        # use custom Collector if all results are necessary, otherwise use lucene's TopDocsCollectors
         if count is None:
-            collector = HitCollector()
+            collector = Collector()
         else:
             count, inorder = min(count, self.maxDoc()), not weight.scoresDocsOutOfOrder()
             if sort is None:
@@ -457,7 +457,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         except lucene.JavaError as timeout:
             if not lucene.TimeLimitingCollector.TimeExceededException.instance_(timeout.getJavaException()):
                 raise
-        if isinstance(collector, HitCollector):
+        if isinstance(collector, Collector):
             ids, scores = collector.sorted(key=sort, reverse=reverse)
             collector.finalize()
             stats = len(ids), max(scores or [float('nan')])

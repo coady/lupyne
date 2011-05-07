@@ -158,11 +158,10 @@ class SpanQuery(Query):
         "Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."
         return SpanQuery(lucene.FieldMaskingSpanQuery, self, name)
 
-class HitCollector(lucene.PythonCollector):
+class Collector(lucene.PythonCollector):
     "Collect all ids and scores efficiently."
     def __init__(self):
-        super(HitCollector, self).__init__()
-        self.base = 0
+        lucene.PythonCollector.__init__(self)
         self.scores = {}
     def collect(self, id, score):
         self.scores[id + self.base] = score
