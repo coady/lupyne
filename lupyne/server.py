@@ -640,11 +640,11 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
     cherrypy.engine.subscribe('start_thread', attach_thread)
     if hasattr(root, 'close'):
         cherrypy.engine.subscribe('stop', root.close)
-    cherrypy.config['engine.autoreload.on'] = False
+    cherrypy.engine.autoreload.on = False
     if pidfile:
         cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(pidfile)).subscribe()
     if daemonize:
-        cherrypy.config['log.screen'] = False
+        cherrypy.log.screen = False
         cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
     if autoreload:
         Autoreloader(cherrypy.engine, autoreload).subscribe()
