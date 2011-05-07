@@ -544,25 +544,36 @@ class TestCase(BaseTest):
     def testHighlighting(self):
         "Highlighting text fragments."
         indexer = engine.Indexer()
-        indexer.set('text', store=True)
-        amendments = dict((doc['amendment'], doc['text']) for doc in fixture.constitution.docs() if 'amendment' in doc)
-        for amendment in amendments.values():
-            fragments = indexer.highlight('persons', amendment)
-            assert len(fragments) == ('persons' in amendment)
-            for fragment in fragments:
-                assert '<B>persons</B>' in fragment
-        text = amendments['4']
-        query = '"persons, houses, papers"'
-        fragments = indexer.highlight(query, text, count=3, span=False, formatter=lucene.SimpleHTMLFormatter('*', '*'))
-        assert len(fragments) == 2 and fragments[0].count('*') == 2*3 and '*persons*' in fragments[1]
-        fragment, = indexer.highlight(query, text, count=3, span=False, textFragmenter=lucene.SimpleFragmenter(200))
-        assert len(fragment) > len(text) and fragment.count('<B>persons</B>') == 2
-        fragment, = indexer.highlight(query, text, count=3, formatter='em')
-        assert len(fragment) < len(text) and fragment.count('<em>') == 3
-        indexer.add(text=text)
+        indexer.set('text', store=True, termvector=True, withPositions=True, withOffsets=True)
+        for doc in fixture.constitution.docs():
+            if 'amendment' in doc:
+                indexer.add(text=doc['text'])
         indexer.commit()
-        fragment, = indexer.highlight(query, 0, field='text')
-        assert fragment.count('<B>') == fragment.count('</B>') == 3
+        highlighter = indexer.highlighter('persons', 'text')
+        for id in indexer:
+            fragments = highlighter.fragments(id)
+            assert len(fragments) == ('persons' in indexer[id]['text'])
+            assert all('<b>persons</b>' in fragment.lower() for fragment in fragments)
+        id = 3
+        text = indexer[id]['text']
+        query = '"persons, houses, papers"'
+        highlighter = indexer.highlighter(query, '', terms=True, fields=True, formatter=lucene.SimpleHTMLFormatter('*', '*'))
+        fragments = highlighter.fragments(text, count=3)
+        assert len(fragments) == 2 and fragments[0].count('*') == 2*3 and '*persons*' in fragments[1]
+        highlighter = indexer.highlighter(query, '', terms=True)
+        highlighter.textFragmenter = lucene.SimpleFragmenter(200)
+        fragment, = highlighter.fragments(text, count=3)
+        assert len(fragment) > len(text) and fragment.count('<B>persons</B>') == 2
+        fragment, = indexer.highlighter(query, 'text', tag='em').fragments(id, count=3)
+        assert len(fragment) < len(text) and fragment.index('<em>persons') < fragment.index('papers</em>')
+        fragment, = indexer.highlighter(query, 'text').fragments(id)
+        if hasattr(lucene, 'FastVectorHighlighter'):
+            assert fragment.count('<b>') == fragment.count('</b>') == 1
+            highlighter = indexer.highlighter(query, 'text', fragListBuilder=lucene.SingleFragListBuilder())
+            text, = highlighter.fragments(id)
+            assert fragment in text and len(text) > len(fragment)
+        else:
+            assert fragment.count('<B>') == fragment.count('</B>') == 3
     
     def testNearRealTime(self):
         "Near real-time index updates."

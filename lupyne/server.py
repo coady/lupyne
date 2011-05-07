@@ -372,17 +372,14 @@ class WebSearcher(object):
         scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
         hits = searcher.search(q, filter=qfilter, count=count, sort=sort, reverse=reverse, timeout=timeout, **scores)[start:]
         result = {'query': q and unicode(q), 'count': hits.count, 'maxscore': hits.maxscore}
-        tag = options.get('hl.tag', 'strong')
-        field = 'fields' not in options.get('hl.enable', '') or None
-        span = 'terms' not in options.get('hl.enable', '')
+        tag, enable = options.get('hl.tag', 'strong'), options.get('hl.enable', '')
         if hl:
-            hl = dict((name, searcher.highlighter(q, span=span, field=(field and name), formatter=tag)) for name in hl.split(','))
+            hl = dict((name, searcher.highlighter(q, name, terms='terms' in enable, fields='fields' in enable, tag=tag)) for name in hl.split(','))
         fields, multi, indexed = self.select(fields, **options)
         if fields is None:
             fields = {}
         else:
-            hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multi, hl)))
-            fields = fields or {'__id__': None}
+            hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multi)))
         indexed = dict((item[0], searcher.comparator(*item)) for item in indexed)
         docs = []
         groups = collections.defaultdict(lambda: {'docs': [], 'count': 0, 'index': len(groups)})
@@ -400,8 +397,9 @@ class WebSearcher(object):
         for hit in hits:
             doc = hit.dict(*multi, **fields)
             doc.update((name, indexed[name][hit.id]) for name in indexed)
+            fragments = (hl[name].fragments(hit.id, hlcount) for name in hl)
             if hl:
-                doc['__highlights__'] = dict((name, hl[name].fragments(hit[name], hlcount)) for name in hl if name in hit)
+                doc['__highlights__'] = dict((name, value) for name, value in zip(hl, fragments) if value is not None)
             (groups[group[hit.id]]['docs'] if group else docs).append(doc)
         for name in groups:
             groups[name]['value'] = name

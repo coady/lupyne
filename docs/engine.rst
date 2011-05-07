@@ -227,6 +227,11 @@ Highlighter
   :show-inheritance:
   :members:
 
+FastVectorHighlighter
+^^^^^^^^^^^^^^^^^^^^^
+.. autoclass:: engine.queries.FastVectorHighlighter
+  :members:
+
 SpellChecker
 ^^^^^^^^^^^^^
 .. autoclass:: engine.queries.SpellChecker

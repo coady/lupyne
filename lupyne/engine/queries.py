@@ -198,33 +198,65 @@ class SortField(lucene.SortField):
     def comparator(self, reader):
         "Return indexed values from default FieldCache using the given reader."
         method = getattr(lucene.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
-        return method(reader, self.field, *([self.parser] * bool(self.parser)))
+        return method(reader, self.field, *[self.parser] * bool(self.parser))
 
 class Highlighter(lucene.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
     
+    :param searcher: `IndexSearcher`_ used for analysis, scoring, and optionally text retrieval
     :param query: lucene Query
-    :param analyzer: analyzer for texts
-    :param span: only highlight terms which would contribute to a hit
-    :param formatter: optional lucene Formatter or html tag name
+    :param field: field name of text
+    :param terms: highlight any matching term in query regardless of position
+    :param fields: highlight matching terms from any field
+    :param tag: optional html tag name
+    :param formatter: optional lucene Formatter
     :param encoder: optional lucene Encoder
-    :param field: optional field name used to match query terms
-    :param reader: optional lucene IndexReader to compute term weights
     """
-    def __init__(self, query, analyzer, span=True, formatter=None, encoder=None, field=None, reader=None):
-        if isinstance(formatter, basestring):
-            formatter = lucene.SimpleHTMLFormatter('<{0}>'.format(formatter), '</{0}>'.format(formatter))
-        scorer = (lucene.QueryScorer if span else lucene.QueryTermScorer)(*filter(None, [query, reader, field]))
+    def __init__(self, searcher, query, field, terms=False, fields=False, tag='', formatter=None, encoder=None):
+        if tag:
+            formatter = lucene.SimpleHTMLFormatter('<{0}>'.format(tag), '</{0}>'.format(tag))
+        scorer = (lucene.QueryTermScorer if terms else lucene.QueryScorer)(query, *(searcher.indexReader, field) * (not fields))
         lucene.Highlighter.__init__(self, *filter(None, [formatter, encoder, scorer]))
-        self.analyzer = analyzer
-    def fragments(self, text, count=1, field=None):
+        self.searcher, self.field = searcher, field
+        self.selector = lucene.MapFieldSelector([field])
+    def fragments(self, doc, count=1):
         """Return highlighted text fragments.
         
-        :param text: text string to be searched
+        :param doc: text string or doc id to be highlighted
         :param count: maximum number of fragments
-        :param field: optional field to use for text analysis
         """
-        return list(self.getBestFragments(self.analyzer, field, text, count))
+        if not isinstance(doc, basestring):
+            doc = self.searcher.doc(doc, self.selector)[self.field]
+        return doc and list(self.getBestFragments(self.searcher.analyzer, self.field, doc, count))
+
+class FastVectorHighlighter(getattr(lucene, 'FastVectorHighlighter', object)):
+    """Inherited lucene FastVectorHighlighter with stored query.
+    Fields must be stored and have term vectors with offsets and positions.
+    
+    :param searcher: `IndexSearcher`_ with stored term vectors
+    :param query: lucene Query
+    :param field: field name of text
+    :param terms: highlight any matching term in query regardless of position
+    :param fields: highlight matching terms from any field
+    :param tag: optional html tag name
+    :param fragListBuilder: optional lucene FragListBuilder
+    :param fragmentsBuilder: optional lucene FragmentsBuilder
+    """
+    def __init__(self, searcher, query, field, terms=False, fields=False, tag='', fragListBuilder=None, fragmentsBuilder=None):
+        if tag:
+            fragmentsBuilder = lucene.SimpleFragmentsBuilder(['<{0}>'.format(tag)], ['</{0}>'.format(tag)])
+        args = fragListBuilder or lucene.SimpleFragListBuilder(), fragmentsBuilder or lucene.SimpleFragmentsBuilder()
+        lucene.FastVectorHighlighter.__init__(self, not terms, not fields, *args)
+        self.searcher, self.field = searcher, field
+        self.query = self.getFieldQuery(query)
+    def fragments(self, id, count=1, size=100):
+        """Return highlighted text fragments.
+        
+        :param id: document id
+        :param count: maximum number of fragments
+        :param size: maximum number of characters in fragment
+        """
+        return list(self.getBestFragments(self.query, self.searcher.indexReader, id, self.field, size, count))
 
 class SpellChecker(dict):
     """Correct spellings and suggest words for queries.

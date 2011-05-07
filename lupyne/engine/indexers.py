@@ -12,7 +12,7 @@ import itertools, operator
 import contextlib
 import abc, collections
 import lucene
-from .queries import Query, HitCollector, SortField, Highlighter, SpellChecker, SpellParser
+from .queries import Query, HitCollector, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
 
 class Atomic(object):
@@ -404,24 +404,11 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         if spellcheck:
             kwargs['parser'], kwargs['searcher'] = SpellParser, self
         return Analyzer.__dict__['parse'](self.analyzer, query, **kwargs)
-    def highlighter(self, query, span=True, formatter=None, encoder=None, field=None):
-        "Return `Highlighter`_ specific to the searcher's analyzer and index."
-        query = self.parse(query, field=field or '')
-        return Highlighter(query, self.analyzer, span, formatter, encoder, field, (field and self.indexReader))
-    def highlight(self, query, doc, count=1, span=True, formatter=None, encoder=None, field=None, **attrs):
-        """Return highlighted text fragments which match the query, using internal :meth:`highlighter`.
-        
-        :param query: query string or lucene Query
-        :param doc: text string or doc id to be highlighted
-        :param count: maximum number of fragments
-        :param attrs: additional attributes to set on the highlighter
-        """
-        highlighter = self.highlighter(query, span, formatter, encoder, field)
-        for name, value in attrs.items():
-            setattr(highlighter, name, value)
-        if not isinstance(doc, basestring):
-            doc = self[doc][field]
-        return highlighter.fragments(doc, count)
+    def highlighter(self, query, field, **kwargs):
+        "Return `Highlighter`_ or if applicable `FastVectorHighlighter`_ specific to searcher and query."
+        query = self.parse(query, field=field)
+        vector = hasattr(lucene, 'FastVectorHighlighter') and field in self.names('termvector_with_position_offset')
+        return (FastVectorHighlighter if vector else Highlighter)(self, query, field, **kwargs)
     def count(self, *query, **options):
         """Return number of hits for given query or term.
         
@@ -640,7 +627,7 @@ class IndexWriter(lucene.IndexWriter):
         "Atomically delete documents which match given term and add the new :meth:`document` with optional boost."
         doc = self.document(document, **terms)
         doc.boost = boost
-        self.updateDocument(lucene.Term(name, *([value] if value else doc.getValues(name))), doc)
+        self.updateDocument(lucene.Term(name, *[value] if value else doc.getValues(name)), doc)
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
         
