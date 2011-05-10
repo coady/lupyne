@@ -67,7 +67,7 @@ def tool(hook):
 @tool('before_handler')
 def json_(indent=None, content_type='application/json', process_body=None):
     """Handle request bodies and responses in json format.
-
+    
     :param indent: indentation level for pretty printing
     :param content_type: request media type and response content-type header
     :param process_body: optional function to process body into request.params
@@ -111,7 +111,7 @@ def time_():
 @tool('on_start_resource')
 def validate(methods=('GET', 'HEAD'), etag=True, last_modified=True, max_age=None, expires=None):
     """Return and validate caching headers for GET requests.
-
+    
     :param methods: only set headers for specified methods
     :param etag: return weak entity tag header based on index version and validate if-match headers
     :param last_modified: return last-modified header based on index timestamp and validate if-modified headers
@@ -132,6 +132,14 @@ def validate(methods=('GET', 'HEAD'), etag=True, last_modified=True, max_age=Non
             headers['cache-control'] = 'max-age={0}'.format(max_age)
         if expires is not None:
             headers['expires'] = formatdate(expires + request.app.root.updated, usegmt=True)
+
+@tool('before_handler')
+def params(**types):
+    "Convert specified request params."
+    params = cherrypy.request.params
+    with HTTPError(httplib.BAD_REQUEST, ValueError):
+        for key in set(types).intersection(params):
+            params[key] = types[key](params[key])
 
 def json_error(version, **body):
     "Transform errors into json format."
@@ -271,6 +279,7 @@ class WebSearcher(object):
         result.update((item[0], searcher.comparator(*item)[id]) for item in indexed)
         return result
     @cherrypy.expose
+    @cherrypy.tools.params(count=int, start=int, mlt=int, spellcheck=int, timeout=float, **{'group.count': int, 'group.limit': int, 'hl.count': int})
     def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
         
@@ -330,18 +339,6 @@ class WebSearcher(object):
                 | }
         """
         searcher = self.searcher
-        with HTTPError(httplib.BAD_REQUEST, ValueError):
-            start = int(start)
-            if count is not None:
-                count = int(count) + start
-            spellcheck = int(spellcheck)
-            if timeout is not None:
-                timeout = float(timeout)
-            gcount = int(options.get('group.count', 1))
-            glimit = int(options['group.limit']) if 'group.limit' in options else float('inf')
-            hlcount = int(options.get('hl.count', 1))
-            if mlt is not None:
-                mlt = int(mlt)
         reverse = False
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort.split(','))
@@ -366,6 +363,8 @@ class WebSearcher(object):
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))
             q = searcher.morelikethis(mlt, *mltfields, **attrs)
+        if count is not None:
+            count += start
         if count == 0:
             start = count = 1
         scores = options.get('sort.scores')
@@ -373,6 +372,7 @@ class WebSearcher(object):
         hits = searcher.search(q, filter=qfilter, count=count, sort=sort, reverse=reverse, timeout=timeout, **scores)[start:]
         result = {'query': q and unicode(q), 'count': hits.count, 'maxscore': hits.maxscore}
         tag, enable = options.get('hl.tag', 'strong'), options.get('hl.enable', '')
+        hlcount = options.get('hl.count', 1)
         if hl:
             hl = dict((name, searcher.highlighter(q, name, terms='terms' in enable, fields='fields' in enable, tag=tag)) for name in hl.split(','))
         fields, multi, indexed = self.select(fields, **options)
@@ -383,6 +383,8 @@ class WebSearcher(object):
         indexed = dict((item[0], searcher.comparator(*item)) for item in indexed)
         docs = []
         groups = collections.defaultdict(lambda: {'docs': [], 'count': 0, 'index': len(groups)})
+        gcount = options.get('group.count', 1)
+        glimit = options.get('group.limit', float('inf'))
         if group:
             with HTTPError(httplib.BAD_REQUEST, AttributeError):
                 group = searcher.comparator(*group.split(':'))
@@ -417,6 +419,7 @@ class WebSearcher(object):
                 terms[name][value] = list(itertools.islice(searcher.correct(name, value), spellcheck))
         return result
     @cherrypy.expose
+    @cherrypy.tools.params(count=int, step=int)
     def terms(self, name='', value=':', *path, **options):
         """Return data about indexed terms.
         
@@ -470,19 +473,16 @@ class WebSearcher(object):
             with HTTPError(httplib.BAD_REQUEST, ValueError, AttributeError):
                 name, type = name.split(':')
                 type = getattr(__builtins__, type)
-                step = int(options.get('step', 0))
-            return list(searcher.numbers(name, step=step, type=type))
+            return list(searcher.numbers(name, step=options.get('step', 0), type=type))
         if ':' in value:
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 start, stop = value.split(':')
             return list(searcher.terms(name, start, stop or None))
         if 'count' in options:
-            with HTTPError(httplib.BAD_REQUEST, ValueError):
-                count = int(options['count'])
             if value.endswith('*'):
-                return searcher.suggest(name, value.rstrip('*'), count)
+                return searcher.suggest(name, value.rstrip('*'), options['count'])
             if value.endswith('~'):
-                return list(itertools.islice(searcher.correct(name, value.rstrip('~')), count))
+                return list(itertools.islice(searcher.correct(name, value.rstrip('~')), options['count']))
         if '*' in value or '?' in value:
             return list(searcher.terms(name, value))
         if '~' in value:
@@ -535,8 +535,6 @@ class WebIndexer(WebSearcher):
             self.refresh()
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
-    @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
-    @cherrypy.tools.allow(methods=['POST'])
     def update(self, **options):
         """Commit index changes and refresh index version.
         
@@ -550,6 +548,7 @@ class WebIndexer(WebSearcher):
         self.indexer.commit(**options)
         self.updated = time.time()
         return len(self.indexer)
+    update._cp_config = dict(WebSearcher.update._cp_config)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST', 'PUT', 'DELETE'])
     def docs(self, *path, **options):
@@ -599,6 +598,7 @@ class WebIndexer(WebSearcher):
         else:
             self.indexer.delete(self.parse(self.searcher, q, **options))
         self.refresh()
+    search._cp_config.update(WebSearcher.search._cp_config)
     @cherrypy.expose
     @cherrypy.tools.json(process_body=dict)
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT'])
@@ -640,11 +640,11 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
     cherrypy.engine.subscribe('start_thread', attach_thread)
     if hasattr(root, 'close'):
         cherrypy.engine.subscribe('stop', root.close)
-    cherrypy.engine.autoreload.on = False
+    cherrypy.config['engine.autoreload.on'] = False
     if pidfile:
         cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(pidfile)).subscribe()
     if daemonize:
-        cherrypy.log.screen = False
+        cherrypy.config['log.screen'] = False
         cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
     if autoreload:
         Autoreloader(cherrypy.engine, autoreload).subscribe()
