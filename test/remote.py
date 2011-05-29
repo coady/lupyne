@@ -416,6 +416,8 @@ class TestCase(BaseTest):
         result = resource.get('/search', count=0, facets='county.city:Los Angeles.*')
         facets = result['facets']['county.city']
         assert result['count'] > sum(facets.values()) and all(location.startswith('Los Angeles.') for location in facets)
+        result = resource.get('/search', count=0, facets='county', **{'facets.count': 3})
+        assert sorted(result['facets']['county']) == ['Los Angeles', 'Orange', 'San Diego']
         result = resource.get('/search', q='Los Angeles', group='county.city', **{'group.count': 0, 'q.field': 'county', 'q.type': 'prefix'})
         assert all(group['value'].startswith('Los Angeles') for group in result['groups'])
         assert sum(map(operator.itemgetter('count'), result['groups'])) == sum(facets.values()) == result['count']

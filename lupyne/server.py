@@ -8,7 +8,7 @@ All request and response bodies are `application/json values <http://tools.ietf.
 
 WebSearcher exposes resources for an IndexSearcher.
 In addition to search requests, it provides access to term and document information in the index.
-Note Lucene doc ids are ephermeral;  they should only be used across requests for the same index version.
+Note Lucene doc ids are ephemeral;  they should only be used across requests for the same index version.
 
  * :meth:`/ <WebSearcher.index>`
  * :meth:`/search <WebSearcher.search>`
@@ -44,6 +44,7 @@ from future_builtins import filter, map
 import re
 import time
 import httplib
+import heapq
 import collections
 import itertools, operator
 import os, optparse
@@ -279,7 +280,8 @@ class WebSearcher(object):
         result.update((item[0], searcher.comparator(*item)[id]) for item in indexed)
         return result
     @cherrypy.expose
-    @cherrypy.tools.params(count=int, start=int, mlt=int, spellcheck=int, timeout=float, **{'group.count': int, 'group.limit': int, 'hl.count': int})
+    @cherrypy.tools.params(count=int, start=int, mlt=int, spellcheck=int, timeout=float,
+        **{'facets.count': int, 'group.count': int, 'group.limit': int, 'hl.count': int})
     def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
         
@@ -303,8 +305,9 @@ class WebSearcher(object):
                 | field name, optional type, minus sign indicates descending
                 | optionally score docs, additionally compute maximum score
             
-            &facets=\ *chars*,...
-                include facet counts for given field names; facets filters are cached
+            &facets=\ *chars*,... &facets.count=\ *int*\
+                | include facet counts for given field names; facets filters are cached
+                | optional maximum number of most populated facet values per field
             
             &group=\ *chars*\ [:*chars*]&group.count=1&group.limit=\ *int*
                 | group documents by field value with optional type, up to given maximum count
@@ -412,7 +415,10 @@ class WebSearcher(object):
         q = q or lucene.MatchAllDocsQuery()
         if facets:
             facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets.split(','))
-            result['facets'] = searcher.facets(q, *facets)
+            facets = result['facets'] = searcher.facets(q, *facets)
+            if 'facets.count' in options:
+                for name, counts in facets.items():
+                    facets[name] = dict((term, counts[term]) for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__))
         if spellcheck:
             terms = result['spellcheck'] = collections.defaultdict(dict)
             for name, value in engine.Query.__dict__['terms'](q):
