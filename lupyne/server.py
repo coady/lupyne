@@ -281,7 +281,7 @@ class WebSearcher(object):
         return result
     @cherrypy.expose
     @cherrypy.tools.params(count=int, start=int, mlt=int, spellcheck=int, timeout=float,
-        **{'facets.count': int, 'group.count': int, 'group.limit': int, 'hl.count': int})
+        **{'facets.count': int, 'facets.min': int, 'group.count': int, 'group.limit': int, 'hl.count': int})
     def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
         
@@ -305,9 +305,9 @@ class WebSearcher(object):
                 | field name, optional type, minus sign indicates descending
                 | optionally score docs, additionally compute maximum score
             
-            &facets=\ *chars*,... &facets.count=\ *int*\
+            &facets=\ *chars*,... &facets.count=\ *int*\&facets.min=0
                 | include facet counts for given field names; facets filters are cached
-                | optional maximum number of most populated facet values per field
+                | optional maximum number of most populated facet values per field, and minimum count to return
             
             &group=\ *chars*\ [:*chars*]&group.count=1&group.limit=\ *int*
                 | group documents by field value with optional type, up to given maximum count
@@ -416,6 +416,9 @@ class WebSearcher(object):
         if facets:
             facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets.split(','))
             facets = result['facets'] = searcher.facets(q, *facets)
+            if 'facets.min' in options:
+                for name, counts in facets.items():
+                    facets[name] = dict((term, count) for term, count in counts.items() if count >= options['facets.min'])
             if 'facets.count' in options:
                 for name, counts in facets.items():
                     facets[name] = dict((term, counts[term]) for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__))
