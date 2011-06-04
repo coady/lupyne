@@ -142,6 +142,41 @@ def params(**types):
         for key in set(types).intersection(params):
             params[key] = types[key](params[key])
 
+def multi(value):
+    return value and value.split(',')
+
+class params:
+    "Parameter parsing."
+    @staticmethod
+    def q(searcher, q, **options):
+        options = dict((key.partition('.')[-1], options[key]) for key in options if key.startswith('q.'))
+        field = options.pop('field', [])
+        fields = [field] if isinstance(field, basestring) else field
+        fields = [name.partition('^')[::2] for name in fields]
+        if any(boost for name, boost in fields):
+            field = dict((name, float(boost or 1.0)) for name, boost in fields)
+        elif isinstance(field, basestring):
+            (field, boost), = fields
+        else:
+            field = [name for name, boost in fields] or ''
+        if 'type' in options:
+            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+                return getattr(engine.Query, options['type'])(field, q)
+        for key in set(options) - set(['op', 'version']):
+            with HTTPError(httplib.BAD_REQUEST, ValueError):
+                options[key] = json.loads(options[key])
+        if q is not None:
+            with HTTPError(httplib.BAD_REQUEST, lucene.JavaError):
+                return searcher.parse(q, field=field, **options)
+    @staticmethod
+    def fields(searcher, fields=None, **options):
+        if fields is not None:
+            fields = dict.fromkeys(fields)
+        multi = options.get('fields.multi', ())
+        indexed = (field.split(':') for field in options.get('fields.indexed', ()))
+        indexed = dict((item[0], searcher.comparator(*item)) for item in indexed)
+        return fields, multi, indexed
+
 def json_error(version, **body):
     "Transform errors into json format."
     tool = cherrypy.request.toolmaps['tools'].get('json', {})
@@ -193,36 +228,6 @@ class WebSearcher(object):
         self.__init__(*self.__dict__.pop('args'), **self.__dict__.pop('kwargs'))
     def close(self):
         self.searcher.close()
-    @staticmethod
-    def parse(searcher, q, **options):
-        "Return parsed query using q.* parser options."
-        options = dict((key.partition('.')[-1], options[key]) for key in options if key.startswith('q.'))
-        field = options.pop('field', [])
-        fields = [field] if isinstance(field, basestring) else field
-        fields = [name.partition('^')[::2] for name in fields]
-        if any(boost for name, boost in fields):
-            field = dict((name, float(boost or 1.0)) for name, boost in fields)
-        elif isinstance(field, basestring):
-            (field, boost), = fields
-        else:
-            field = [name for name, boost in fields] or ''
-        if 'type' in options:
-            with HTTPError(httplib.BAD_REQUEST, AttributeError):
-                return getattr(engine.Query, options['type'])(field, q)
-        for key in set(options) - set(['op', 'version']):
-            with HTTPError(httplib.BAD_REQUEST, ValueError):
-                options[key] = json.loads(options[key])
-        if q is not None:
-            with HTTPError(httplib.BAD_REQUEST, lucene.JavaError):
-                return searcher.parse(q, field=field, **options)
-    @staticmethod
-    def select(fields=None, **options):
-        "Return parsed field selectors: stored, multi-valued, and indexed."
-        if fields is not None:
-            fields = dict.fromkeys(filter(None, fields.split(',')))
-        multi = list(filter(None, options.get('fields.multi', '').split(',')))
-        indexed = [field.split(':') for field in options.get('fields.indexed', '').split(',') if field]
-        return fields, multi, indexed
     @cherrypy.expose
     @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
     @cherrypy.tools.allow(methods=['POST'])
@@ -252,6 +257,7 @@ class WebSearcher(object):
         readers = reader.sequentialSubReaders if lucene.MultiReader.instance_(reader) else [reader]
         return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
+    @cherrypy.tools.params(fields=multi, **{'fields.multi': multi, 'fields.indexed': multi})
     def docs(self, *path, **options):
         """Return ids or documents.
         
@@ -271,22 +277,22 @@ class WebSearcher(object):
         searcher = self.searcher
         if not path:
             return list(searcher)
-        fields, multi, indexed = self.select(**options)
         with HTTPError(httplib.NOT_FOUND, ValueError):
             id, = map(int, path) if len(path) == 1 else searcher.docs(*path)
+        fields, multi, indexed = params.fields(searcher, **options)
         with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
             doc = searcher[id] if fields is None else searcher.get(id, *itertools.chain(fields, multi))
         result = doc.dict(*multi, **(fields or {}))
-        result.update((item[0], searcher.comparator(*item)[id]) for item in indexed)
+        result.update((name, indexed[name][id]) for name in indexed)
         return result
     @cherrypy.expose
-    @cherrypy.tools.params(count=int, start=int, mlt=int, spellcheck=int, timeout=float,
-        **{'facets.count': int, 'facets.min': int, 'group.count': int, 'group.limit': int, 'hl.count': int})
+    @cherrypy.tools.params(count=int, start=int, fields=multi, sort=multi, facets=multi, hl=multi, mlt=int, spellcheck=int, timeout=float,
+        **{'fields.multi': multi, 'fields.indexed': multi, 'facets.count': int, 'facets.min': int, 'group.count': int, 'group.limit': int, 'hl.count': int, 'mlt.fields': multi})
     def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
         
         **GET** /search?
-            Return list of document objects and total doc count.
+            Return array of document objects and total doc count.
             
             &q=\ *chars*\ &q.type=[term|prefix|wildcard]&q.\ *chars*\ =...,
                 query, optional type to skip parsing, and optional parser settings: q.field, q.op,...
@@ -337,14 +343,14 @@ class WebSearcher(object):
                 | "maxscore": *number*\|null,
                 | "docs": [{"__id__": *int*, "__score__": *number*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
                 | "facets": {*string*: {*string*: *int*,... },... },
-                | "groups": [{"count": *int*, "value": *value*, "docs": [{... },... ]},... ]
+                | "groups": [{"count": *int*, "value": *value*, "docs": [*object*,... ]},... ]
                 | "spellcheck": {*string*: {*string*: [*string*,... ],... },... },
                 | }
         """
         searcher = self.searcher
         reverse = False
         if sort is not None:
-            sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort.split(','))
+            sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort)
             sort = [(name, (type or 'string'), (reverse == '-')) for reverse, name, type in sort]
             if count is None:
                 with HTTPError(httplib.BAD_REQUEST, ValueError, AttributeError):
@@ -354,15 +360,15 @@ class WebSearcher(object):
             else:
                 with HTTPError(httplib.BAD_REQUEST, AttributeError):
                     sort = [searcher.sorter(name, type, reverse=reverse) for name, type, reverse in sort]
-        q = self.parse(searcher, q, **options)
+        q = params.q(searcher, q, **options)
         qfilter = options.pop('filter', None)
         if qfilter is not None and qfilter not in searcher.filters:
-            searcher.filters[qfilter] = engine.Query.__dict__['filter'](self.parse(searcher, qfilter, **options))
+            searcher.filters[qfilter] = engine.Query.__dict__['filter'](params.q(searcher, qfilter, **options))
         qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
             if q is not None:
                 mlt = searcher.search(q, count=mlt+1, sort=sort, reverse=reverse).ids[mlt]
-            mltfields = filter(None, options.pop('mlt.fields', '').split(','))
+            mltfields = options.pop('mlt.fields', ())
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))
             q = searcher.morelikethis(mlt, *mltfields, **attrs)
@@ -377,13 +383,12 @@ class WebSearcher(object):
         tag, enable = options.get('hl.tag', 'strong'), options.get('hl.enable', '')
         hlcount = options.get('hl.count', 1)
         if hl:
-            hl = dict((name, searcher.highlighter(q, name, terms='terms' in enable, fields='fields' in enable, tag=tag)) for name in hl.split(','))
-        fields, multi, indexed = self.select(fields, **options)
+            hl = dict((name, searcher.highlighter(q, name, terms='terms' in enable, fields='fields' in enable, tag=tag)) for name in hl)
+        fields, multi, indexed = params.fields(searcher, fields, **options)
         if fields is None:
             fields = {}
         else:
             hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multi)))
-        indexed = dict((item[0], searcher.comparator(*item)) for item in indexed)
         docs = []
         groups = collections.defaultdict(lambda: {'docs': [], 'count': 0, 'index': len(groups)})
         gcount = options.get('group.count', 1)
@@ -414,7 +419,7 @@ class WebSearcher(object):
             result['docs'] = docs
         q = q or lucene.MatchAllDocsQuery()
         if facets:
-            facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets.split(','))
+            facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets)
             facets = result['facets'] = searcher.facets(q, *facets)
             if 'facets.min' in options:
                 for name, counts in facets.items():
@@ -592,6 +597,7 @@ class WebIndexer(WebSearcher):
             for doc in getattr(request, 'json', ()):
                 self.indexer.add(doc)
         self.refresh()
+    docs._cp_config.update(WebSearcher.docs._cp_config)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
     def search(self, q=None, **options):
@@ -605,7 +611,7 @@ class WebIndexer(WebSearcher):
         if q is None:
             self.indexer.deleteAll()
         else:
-            self.indexer.delete(self.parse(self.searcher, q, **options))
+            self.indexer.delete(params.q(self.searcher, q, **options))
         self.refresh()
     search._cp_config.update(WebSearcher.search._cp_config)
     @cherrypy.expose
