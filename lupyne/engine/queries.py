@@ -139,8 +139,11 @@ class BooleanQuery(Query):
 class SpanQuery(Query):
     "Inherited lucene SpanQuery with additional span constructors."
     def __getitem__(self, slc):
-        assert slc.start is slc.step is None, 'only prefix slice supported'
-        return SpanQuery(lucene.SpanFirstQuery, self, slc.stop)
+        start, stop, step = slc.indices(lucene.Integer.MAX_VALUE)
+        assert step == 1, 'slice step is not supported'
+        if start == 0:
+            return SpanQuery(lucene.SpanFirstQuery, self, stop)
+        return SpanQuery(lucene.SpanPositionRangeQuery, self, start, stop)
     def __sub__(self, other):
         return SpanQuery(lucene.SpanNotQuery, self, other)
     def __or__(*spans):
@@ -157,6 +160,13 @@ class SpanQuery(Query):
     def mask(self, name):
         "Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."
         return SpanQuery(lucene.FieldMaskingSpanQuery, self, name)
+    def payload(self, *values):
+        "Return lucene SpanPayloadCheckQuery from payload values."
+        matches = lucene.ArrayList()
+        for value in values:
+            matches.add(lucene.JArray_byte(value))
+        base = lucene.SpanNearPayloadCheckQuery if lucene.SpanNearQuery.instance_(self) else lucene.SpanPayloadCheckQuery
+        return SpanQuery(base, self, matches)
 
 class Collector(lucene.PythonCollector):
     "Collect all ids and scores efficiently."

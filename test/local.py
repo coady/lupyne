@@ -124,6 +124,8 @@ class TestCase(BaseTest):
         assert str(query) == '+text:* +text:hello~0.5 text:hello~0.1'
         query = engine.Query.span('text', 'world')
         assert str(query.mask('name')) == 'mask(text:world) as name'
+        if hasattr(lucene, 'SpanPositionCheckQuery'):
+            assert str(query.payload()) == 'spanPayCheck(text:world, payloadRef: )'
         query = engine.Query.disjunct(0.1, query, name='sample')
         assert str(query) == '(text:world | name:sample)~0.1'
         query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
@@ -132,6 +134,10 @@ class TestCase(BaseTest):
         (doc, items), = indexer.spans(query, payloads=True)
         (start, stop, payloads), = items
         assert doc == 0 and start == 0 and stop == 2 and payloads == ['<ALPHANUM>', '<ALPHANUM>']
+        if hasattr(lucene, 'SpanPositionCheckQuery'):
+            (doc, count), = indexer.spans(query.payload('<ALPHANUM>', '<ALPHANUM>'))
+            assert doc == 0 and count == 1
+            assert not indexer.search(query.payload('<>'))
         query = engine.Query.near('text', 'hello', 'world', collectPayloads=False)
         (doc, items), = indexer.spans(query, payloads=True)
         assert doc == 0 and items == []
@@ -305,6 +311,8 @@ class TestCase(BaseTest):
         near = span.near(engine.Query.span('text', 'papers') | engine.Query.span('text', 'things'), slop=1)
         assert indexer.count(span - near) == count - 1
         assert 0 < indexer.count(span[:100]) < count
+        if hasattr(lucene, 'SpanPositionRangeQuery'):
+            assert 0 < indexer.count(span[50:100]) == indexer.count(span[:100] - span[:50]) < indexer.count(span[:100])
         spans = dict(indexer.spans(span))
         assert len(spans) == count and spans == dict(indexer.docs('text', 'persons', counts=True))
         near = engine.Query.near('text', 'persons', 'papers', slop=2)
