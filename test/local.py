@@ -143,13 +143,11 @@ class TestCase(BaseTest):
         assert doc == 0 and items == []
         indexer.delete('name:sample')
         indexer.delete('tag', 'python')
-        assert 0 in indexer
-        assert len(indexer) == sum(indexer.segments.values())
+        assert 0 in indexer and len(indexer) == 1
         indexer.commit()
-        assert len(indexer) < sum(indexer.segments.values())
-        indexer.optimize()
-        assert len(indexer) == sum(indexer.segments.values())
-        assert 0 not in indexer
+        assert 0 not in indexer and len(indexer) == 0
+        with assertWarns(DeprecationWarning):
+            assert isinstance(indexer.segments, dict)
         indexer.add(tag='test', name='old')
         indexer.update('tag', boost=2.0, tag='test')
         indexer.commit()
@@ -176,7 +174,6 @@ class TestCase(BaseTest):
         indexer.commit(expunge=True)
         assert not indexer.hasDeletions()
         indexer.commit(optimize=2)
-        len(indexer.segments) <= 2
         indexer.commit(optimize=True)
         assert indexer.optimized
         del reader.indexReader
