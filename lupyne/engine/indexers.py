@@ -188,6 +188,10 @@ class IndexReader(object):
     def timestamp(self):
         "timestamp of reader's last commit"
         return self.indexCommit.timestamp / 1000.0
+    @property
+    def segments(self):
+        "segment filenames with document counts"
+        return dict((lucene.SegmentReader.cast_(reader).segmentName, reader.numDocs()) for reader in self.sequentialSubReaders)
     def copy(self, dest, query=None, exclude=None, optimize=False):
         """Copy the index to the destination directory.
         Optimized to use hard links if the destination is a file system path.
@@ -558,7 +562,7 @@ class MultiSearcher(IndexSearcher):
         shared.clear()
     @property
     def version(self):
-        return ' '.join(str(reader.version) for reader in self.sequentialSubReaders)
+        return sum(map(operator.attrgetter('version'), self.sequentialSubReaders))
     @property
     def timestamp(self):
         return max(IndexReader(reader).timestamp for reader in self.sequentialSubReaders)
@@ -675,6 +679,9 @@ class Indexer(IndexWriter):
         return iter(self.indexSearcher)
     def __getitem__(self, id):
         return self.indexSearcher[id]
+    @property
+    def segments(self):
+        return self.indexSearcher.segments
     def refresh(self, **caches):
         "Store refreshed searcher with :meth:`IndexSearcher.reopen` caches."
         self.indexSearcher = self.indexSearcher.reopen(**caches)

@@ -143,11 +143,11 @@ class TestCase(BaseTest):
         assert doc == 0 and items == []
         indexer.delete('name:sample')
         indexer.delete('tag', 'python')
-        assert 0 in indexer and len(indexer) == 1
+        assert 0 in indexer and len(indexer) == 1 and indexer.segments == {'_0': 1}
         indexer.commit()
-        assert 0 not in indexer and len(indexer) == 0
+        assert 0 not in indexer and len(indexer) == 0 and sum(indexer.segments.values()) == 0
         with assertWarns(DeprecationWarning):
-            assert isinstance(indexer.segments, dict)
+            assert isinstance(super(engine.Indexer, indexer).segments, dict)
         indexer.add(tag='test', name='old')
         indexer.update('tag', boost=2.0, tag='test')
         indexer.commit()
