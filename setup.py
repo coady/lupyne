@@ -20,29 +20,23 @@ Advanced search features:
  * Optimized prefix and range queries.
  * Geospatial support.
  * Spellchecking.
+ * Near real-time indexing.
 
-Changes in 0.8:
+Changes in 0.9:
 ==================
- * PyLucene 3.1 supported
- * PyLucene 2.9 deprecated
- * Single document index for efficiently matching multiple queries
- * Optionally expunge deletes and optimize index on atomic commit
- * Numeric field implementations for datetimes and geospatial points
- * Atomic document updates
+ * PyLucene 3.2 supported
+ * PyLucene 2.9 dropped
+ * Near real-time indexer
+ * Optimized total hit count
+ * Support for IndexWriterConfig and unlimited field length
+ * Field settings validated upon initialization
+ * Highlighting uses FastVectorHighlighter when available
+ * New span queries: payload and position check
  * Server:
    
-   - Easier server start with daemonizing
-   - Add indexes created offline
-   - Consolidated update resource replaces refreshing and committing
-   - Last-Modified and Etag cache validation headers based on last commit
-   - Optional Expires and Age cache expiration headers based on last update timestamp
-   - Content-Type is application/json for requests and responses
-   - Retrieve numeric encoded term values
-   - Limit number of grouped documents
-   - Read and write documents with a unique term
- * Client:
-   
-   - Optionally follow redirects
+   - Content-Type is strictly validated for requests and responses
+   - Automatic updates when in near real-time mode
+   - Optional limiting of facet counts
 """
 
 import os
@@ -50,7 +44,7 @@ from distutils.core import setup
 
 setup(
     name='lupyne',
-    version='0.8+',
+    version='0.9',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',

@@ -603,7 +603,6 @@ class IndexWriter(lucene.IndexWriter):
         self.fields = {}
     @property
     def segments(self):
-        "segment filenames with document counts"
         warnings.warn('IndexWriter.segString is for Lucene internal purposes only', DeprecationWarning)
         return dict((name, int(value)) for name, value in re.findall('(\w+).*?:.x?(\d+)', self.segString()))
     def set(self, name, cls=Field, **params):

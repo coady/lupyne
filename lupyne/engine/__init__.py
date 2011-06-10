@@ -13,3 +13,5 @@ from .queries import Query, SortField
 from .documents import Document, Field, FormatField, NestedField, NumericField, DateTimeField
 from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, ParallelMultiSearcher, IndexWriter, Indexer
 from .spatial import PointField, PolygonField
+
+assert lucene.VERSION >= '3.0'
