@@ -5,7 +5,6 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 """
 
 from future_builtins import map, zip
-import warnings
 import os
 import re
 import itertools, operator
@@ -44,9 +43,6 @@ class closing(set):
         return directory
     def reader(self, reader):
         reader = self.directory(reader)
-        if isinstance(reader, lucene.Searcher):
-            warnings.warn('Support for opening searchers is deprecated; call with a reader instead.', DeprecationWarning)
-            reader = reader.indexReader
         if isinstance(reader, lucene.IndexReader):
             reader.incRef()
         else:
@@ -569,11 +565,6 @@ class MultiSearcher(IndexSearcher):
     def overlap(self, *filters):
         return sum(IndexReader(reader).overlap(*filters) for reader in self.sequentialSubReaders)
 
-class ParallelMultiSearcher(MultiSearcher):
-    def __init__(self, *args, **kwargs):
-        warnings.warn('ParallelMultiSearchers have been deprecated; use MultiSearcher.', DeprecationWarning)
-        MultiSearcher.__init__(self, *args, **kwargs)
-
 class IndexWriter(lucene.IndexWriter):
     """Inherited lucene IndexWriter.
     Supports setting fields parameters explicitly, so documents can be represented as dictionaries.
@@ -601,10 +592,6 @@ class IndexWriter(lucene.IndexWriter):
             args.append(lucene.IndexWriter.MaxFieldLength.UNLIMITED)
             lucene.IndexWriter.__init__(self, directory, analyzer, *args)
         self.fields = {}
-    @property
-    def segments(self):
-        warnings.warn('IndexWriter.segString is for Lucene internal purposes only', DeprecationWarning)
-        return dict((name, int(value)) for name, value in re.findall('(\w+).*?:.x?(\d+)', self.segString()))
     def set(self, name, cls=Field, **params):
         """Assign parameters to field name.
         
@@ -642,11 +629,9 @@ class IndexWriter(lucene.IndexWriter):
         self.deleteDocuments(parse(*query, **options))
     def __iadd__(self, directory):
         "Add directory (or reader, searcher, writer) to index."
-        if isinstance(directory, basestring):
-            with contextlib.closing(lucene.FSDirectory.open(lucene.File(directory))) as directory:
-                self.addIndexesNoOptimize([directory])
-        else:
-            self.addIndexesNoOptimize([getattr(directory, 'directory', directory)])
+        ref = closing()
+        directory = ref.directory(directory)
+        self.addIndexesNoOptimize([directory if isinstance(directory, lucene.Directory) else directory.directory])
         return self
 
 class Indexer(IndexWriter):
@@ -678,9 +663,6 @@ class Indexer(IndexWriter):
         return iter(self.indexSearcher)
     def __getitem__(self, id):
         return self.indexSearcher[id]
-    @property
-    def segments(self):
-        return self.indexSearcher.segments
     def refresh(self, **caches):
         "Store refreshed searcher with :meth:`IndexSearcher.reopen` caches."
         self.indexSearcher = self.indexSearcher.reopen(**caches)

@@ -71,9 +71,6 @@ class TestCase(BaseTest):
         assert not indexer.optimized
         indexer.commit()
         assert searcher is not indexer.indexSearcher
-        with assertWarns(DeprecationWarning, DeprecationWarning):
-            searcher = engine.ParallelMultiSearcher([indexer.indexSearcher, indexer.directory])
-        assert searcher.count() == 2 * len(indexer)
         assert list(indexer) == [0]
         assert indexer.current and indexer.optimized
         assert 0 in indexer and 1 not in indexer
@@ -146,8 +143,6 @@ class TestCase(BaseTest):
         assert 0 in indexer and len(indexer) == 1 and indexer.segments == {'_0': 1}
         indexer.commit()
         assert 0 not in indexer and len(indexer) == 0 and sum(indexer.segments.values()) == 0
-        with assertWarns(DeprecationWarning):
-            assert isinstance(super(engine.Indexer, indexer).segments, dict)
         indexer.add(tag='test', name='old')
         indexer.update('tag', boost=2.0, tag='test')
         indexer.commit()
@@ -205,7 +200,7 @@ class TestCase(BaseTest):
         doc['date'] = engine.Analyzer(lucene.WhitespaceTokenizer).tokens(doc['date']), 2.0
         scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
         assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
-        searcher = engine.MultiSearcher([indexer.directory, self.tempdir])
+        searcher = engine.MultiSearcher([indexer.indexReader, self.tempdir])
         assert searcher.count() == len(searcher) == 2 * len(indexer)
         searcher = searcher.reopen()
         assert searcher.facets(lucene.MatchAllDocsQuery(), 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
