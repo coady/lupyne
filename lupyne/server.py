@@ -222,10 +222,6 @@ class WebSearcher(object):
         self = object.__new__(cls)
         self.args, self.kwargs = args, kwargs
         return self
-    def init(self, vmargs='-Xrs', **kwargs):
-        "Callback to initialize VM and root object after daemonizing."
-        lucene.initVM(vmargs=vmargs, **kwargs)
-        self.__init__(*self.__dict__.pop('args'), **self.__dict__.pop('kwargs'))
     def close(self):
         self.searcher.close()
     @cherrypy.expose
@@ -645,6 +641,25 @@ class WebIndexer(WebSearcher):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
 
+def init(vmargs='-Xrs', **kwargs):
+    "Callback to initialize VM and app roots after daemonizing."
+    lucene.initVM(vmargs=vmargs, **kwargs)
+    for app in cherrypy.tree.apps.values():
+        if isinstance(app.root, WebSearcher):
+            app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))
+
+def mount(root, path='', config=None, autoupdate=0):
+    """Attach root and subscribe to plugins.
+    
+    :param root,path,config: see cherrypy.tree.mount
+    :param autoupdate: see command-line options
+    """
+    if hasattr(root, 'close'):
+        cherrypy.engine.subscribe('stop', root.close)
+    if autoupdate:
+        AttachedMonitor(cherrypy.engine, root.update, autoupdate).subscribe()
+    return cherrypy.tree.mount(root, path, config)
+
 def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, callback=None):
     """Attach root, subscribe to plugins, and start server.
     
@@ -653,8 +668,6 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
     :param callback: optional callback function scheduled after daemonizing
     """
     cherrypy.engine.subscribe('start_thread', attach_thread)
-    if hasattr(root, 'close'):
-        cherrypy.engine.subscribe('stop', root.close)
     cherrypy.config['engine.autoreload.on'] = False
     if pidfile:
         cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(pidfile)).subscribe()
@@ -663,12 +676,12 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
         cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
     if autoreload:
         Autoreloader(cherrypy.engine, autoreload).subscribe()
-    if autoupdate:
-        AttachedMonitor(cherrypy.engine, root.update, autoupdate).subscribe()
     if callback:
         priority = (cherrypy.process.plugins.Daemonizer.start.priority + cherrypy.server.start.priority) // 2
         cherrypy.engine.subscribe('start', callback, priority)
-    cherrypy.quickstart(root, path, config)
+    if root is not None:
+        mount(root, path, config, autoupdate)
+    cherrypy.quickstart(cherrypy.tree.apps.get(path), path, config)
 
 parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
 parser.add_option('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
@@ -685,4 +698,4 @@ if __name__ == '__main__':
         options.config = {'global': json.loads(options.config)}
     cls = WebSearcher if (read_only or len(args) > 1) else WebIndexer
     root = cls.new(*map(os.path.abspath, args))
-    start(root, callback=root.init, **options.__dict__)
+    start(root, callback=init, **options.__dict__)

@@ -30,7 +30,7 @@ WebSearcher
 -----------
 .. autoclass:: server.WebSearcher
   :members:
-  :exclude-members: parse, select, new, init
+  :exclude-members: new
 
 WebIndexer
 -----------
@@ -40,4 +40,5 @@ WebIndexer
 
 start
 -----------
+.. autofunction:: mount
 .. autofunction:: start
