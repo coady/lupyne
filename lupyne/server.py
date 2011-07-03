@@ -385,34 +385,23 @@ class WebSearcher(object):
             fields = {}
         else:
             hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multi)))
-        docs = []
-        groups = collections.defaultdict(lambda: {'docs': [], 'count': 0, 'index': len(groups)})
-        gcount = options.get('group.count', 1)
-        glimit = options.get('group.limit', float('inf'))
-        if group:
-            with HTTPError(httplib.BAD_REQUEST, AttributeError):
-                group = searcher.comparator(*group.split(':'))
-            ids, scores = [], []
-            for id, score in hits.items():
-                item = groups[group[id]]
-                item['count'] += 1
-                if item['count'] <= gcount and item['index'] < glimit:
-                    ids.append(id)
-                    scores.append(score)
-            hits.ids, hits.scores = ids, scores
-        for hit in hits:
-            doc = hit.dict(*multi, **fields)
-            doc.update((name, indexed[name][hit.id]) for name in indexed)
-            fragments = (hl[name].fragments(hit.id, hlcount) for name in hl)
-            if hl:
-                doc['__highlights__'] = dict((name, value) for name, value in zip(hl, fragments) if value is not None)
-            (groups[group[hit.id]]['docs'] if group else docs).append(doc)
-        for name in groups:
-            groups[name]['value'] = name
-        if group:
-            result['groups'] = sorted(groups.values(), key=lambda item: item.pop('index'))
-        else:
-            result['docs'] = docs
+        with HTTPError(httplib.BAD_REQUEST, AttributeError):
+            groups = hits.groupby(*group.split(':')) if group else [hits]
+        result['groups'], limit = [], options.get('group.limit', len(groups))
+        for hits in groups[:limit]:
+            docs = []
+            for hit in hits[:options.get('group.count', 1) if group else None]:
+                doc = hit.dict(*multi, **fields)
+                doc.update((name, indexed[name][hit.id]) for name in indexed)
+                fragments = (hl[name].fragments(hit.id, hlcount) for name in hl)
+                if hl:
+                    doc['__highlights__'] = dict((name, value) for name, value in zip(hl, fragments) if value is not None)
+                docs.append(doc)
+            result['groups'].append({'docs': docs, 'count': len(hits), 'value': getattr(hits, 'value', None)})
+        for hits in groups[limit:]:
+            result['groups'].append({'docs': [], 'count': len(hits), 'value': hits.value})
+        if not group:
+            result['docs'] = result.pop('groups')[0]['docs']
         q = q or lucene.MatchAllDocsQuery()
         if facets:
             facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets)

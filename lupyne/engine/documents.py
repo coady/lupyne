@@ -246,3 +246,16 @@ class Hits(object):
     def items(self):
         "Generate zipped ids and scores."
         return zip(self.ids, self.scores)
+    def groupby(self, name, type='string', parser=None):
+        "Return ordered list of `Hits`_ grouped by cached comparator value."
+        groups, values = {}, self.searcher.comparator(name, type, parser)
+        for id, score in self.items():
+            value = values[id]
+            try:
+                group = groups[value]
+            except KeyError:
+                group = groups[value] = object.__class__(self)(self.searcher, [], [], fields=self.fields)
+                group.index, group.value = len(groups), value
+            group.ids.append(id)
+            group.scores.append(score)
+        return sorted(groups.values(), key=lambda group: group.__dict__.pop('index'))
