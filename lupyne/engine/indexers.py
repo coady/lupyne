@@ -112,7 +112,7 @@ class Analyzer(lucene.PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
     
     :param tokenizer: lucene Tokenizer or Analyzer
-    :param filters: lucene TokenFilters or python generators.
+    :param filters: lucene TokenFilters
     """
     def __init__(self, tokenizer, *filters):
         lucene.PythonAnalyzer.__init__(self)
@@ -437,7 +437,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         :param parser: :meth:`Analyzer.parse` options
         """
         query = lucene.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
-        weight = query.weight(self)
+        weight = self.createNormalizedWeight(query) if hasattr(self, 'createNormalizedWeight') else query.weight(self)
         # use custom Collector if all results are necessary, otherwise use lucene's TopDocsCollectors
         if count is None:
             collector = Collector()
@@ -600,24 +600,22 @@ class IndexWriter(lucene.IndexWriter):
         :param params: store,index,termvector options compatible with `Field`_
         """
         self.fields[name] = cls(name, **params)
-    def document(self, document=(), **terms):
+    def document(self, document=(), boost=1.0, **terms):
         "Return lucene Document from mapping of field names to one or multiple values."
         doc = lucene.Document()
+        doc.boost = boost
         for name, values in dict(document, **terms).items():
             if isinstance(values, Atomic):
                 values = values,
             for field in self.fields[name].items(*values):
                 doc.add(field)
         return doc
-    def add(self, document=(), boost=1.0, **terms):
+    def add(self, document=(), **terms):
         "Add :meth:`document` to index with optional boost."
-        doc = self.document(document, **terms)
-        doc.boost = boost
-        self.addDocument(doc)
-    def update(self, name, value='', document=(), boost=1.0, **terms):
+        self.addDocument(self.document(document, **terms))
+    def update(self, name, value='', document=(), **terms):
         "Atomically delete documents which match given term and add the new :meth:`document` with optional boost."
         doc = self.document(document, **terms)
-        doc.boost = boost
         self.updateDocument(lucene.Term(name, *[value] if value else doc.getValues(name)), doc)
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
