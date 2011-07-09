@@ -8,6 +8,12 @@ import bisect
 import heapq
 import lucene
 
+class ArrayList(lucene.ArrayList):
+    def __init__(self, values=()):
+        lucene.ArrayList.__init__(self)
+        for value in values:
+            self.add(value)
+
 class Query(object):
     """Inherited lucene Query, with dynamic base class acquisition.
     Uses class methods and operator overloading for convenient query construction.
@@ -50,17 +56,17 @@ class Query(object):
     @classmethod
     def disjunct(cls, multiplier, *queries, **terms):
         "Return lucene DisjunctionMaxQuery from queries and terms."
-        self = cls(lucene.DisjunctionMaxQuery, multiplier)
-        for query in queries:
-            self.add(query)
+        self = cls(lucene.DisjunctionMaxQuery, ArrayList(queries), multiplier)
         for name, values in terms.items():
             for value in ([values] if isinstance(values, basestring) else values):
                 self.add(cls.term(name, value))
         return self
     @classmethod
-    def span(cls, name, value):
-        "Return :class:`SpanTermQuery <SpanQuery>`."
-        return SpanQuery(lucene.SpanTermQuery, lucene.Term(name, value))
+    def span(cls, *term):
+        "Return `SpanQuery`_ from term name and value or a MultiTermQuery."
+        if len(term) <= 1:
+            return SpanQuery(lucene.SpanMultiTermQueryWrapper, *term)
+        return SpanQuery(lucene.SpanTermQuery, lucene.Term(*term))
     @classmethod
     def near(cls, name, *values, **kwargs):
         """Return :meth:`SpanNearQuery <SpanQuery.near>` from terms.
@@ -162,11 +168,8 @@ class SpanQuery(Query):
         return SpanQuery(lucene.FieldMaskingSpanQuery, self, name)
     def payload(self, *values):
         "Return lucene SpanPayloadCheckQuery from payload values."
-        matches = lucene.ArrayList()
-        for value in values:
-            matches.add(lucene.JArray_byte(value))
         base = lucene.SpanNearPayloadCheckQuery if lucene.SpanNearQuery.instance_(self) else lucene.SpanPayloadCheckQuery
-        return SpanQuery(base, self, matches)
+        return SpanQuery(base, self, ArrayList(map(lucene.JArray_byte, values)))
 
 class Collector(lucene.PythonCollector):
     "Collect all ids and scores efficiently."
@@ -319,7 +322,7 @@ class SpellParser(lucene.PythonQueryParser):
         for text in self.searcher.correct(field, term.text()):
             return lucene.Term(field, text)
         return term
-    def query(self, query):
+    def rewrite(self, query):
         "Return term or phrase query with corrected terms substituted."
         if lucene.TermQuery.instance_(query):
             term = lucene.TermQuery.cast_(query).term
@@ -331,8 +334,8 @@ class SpellParser(lucene.PythonQueryParser):
         return phrase
     def getFieldQuery(self, field, text, *args):
         query = lucene.PythonQueryParser.getFieldQuery(self, field, text, *args)
-        return query if args else self.query(query)
+        return query if args else self.rewrite(query)
     def getFieldQuery_quoted(self, *args):
-        return self.query(self.getFieldQuery_quoted_super(*args))
+        return self.rewrite(self.getFieldQuery_quoted_super(*args))
     def getFieldQuery_slop(self, *args):
-        return self.query(self.getFieldQuery_slop_super(*args))
+        return self.rewrite(self.getFieldQuery_slop_super(*args))

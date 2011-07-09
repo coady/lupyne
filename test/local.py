@@ -7,7 +7,7 @@ import collections
 import warnings
 import datetime
 import math
-from contextlib import contextmanager
+import contextlib
 import lucene
 from lupyne import engine
 import fixture
@@ -19,7 +19,7 @@ class typeAsPayload(engine.TokenFilter):
         self.payload = self.type.encode('utf8')
         return result
 
-@contextmanager
+@contextlib.contextmanager
 def assertWarns(*categories):
     with warnings.catch_warnings(record=True) as messages:
         yield
@@ -298,6 +298,8 @@ class TestCase(BaseTest):
         assert len(query) == len(list(query)) == 2
         span = engine.Query.span('text', 'persons')
         count = indexer.count(span)
+        if hasattr(lucene, 'SpanMultiTermQueryWrapper'):
+            assert indexer.count(engine.Query.span(engine.Query.prefix('text', 'person'))) > count
         near = engine.Query.near('text', 'persons', 'papers', slop=1, inOrder=False)
         assert indexer.count(span - near) == count
         near = span.near(engine.Query.span('text', 'papers') | engine.Query.span('text', 'things'), slop=1)
