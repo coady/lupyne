@@ -210,7 +210,19 @@ class SortField(lucene.SortField):
     def comparator(self, reader):
         "Return indexed values from default FieldCache using the given reader."
         method = getattr(lucene.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
-        return method(reader, self.field, *[self.parser] * bool(self.parser))
+        args = [self.parser] * bool(self.parser)
+        readers = reader.sequentialSubReaders
+        if lucene.MultiReader.instance_(reader):
+            readers = itertools.chain.from_iterable(reader.sequentialSubReaders for reader in readers)
+        arrays = [method(reader, self.field, *args) for reader in readers]
+        if len(arrays) <= 1:
+            return arrays[0]
+        cls, = set(map(type, arrays))
+        index, result = 0, cls(sum(map(len, arrays)))
+        for array in arrays:
+            lucene.System.arraycopy(array, 0, result, index, len(array))
+            index += len(array)
+        return result
 
 class Highlighter(lucene.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.

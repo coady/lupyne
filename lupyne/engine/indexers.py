@@ -383,7 +383,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
         if filters:
             other.facets(Query.any(), *other.filters)
-        other.sorters = dict(self.sorters)
+        other.sorters = dict((name, SortField(sorter.field, sorter.typename, sorter.parser)) for name, sorter in self.sorters.items())
         if sorters:
             for field in self.sorters:
                 other.comparator(field)
@@ -503,7 +503,10 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         return sorter if sorter.reverse == reverse else SortField(sorter.field, sorter.typename, sorter.parser, reverse)
     def comparator(self, field, type='string', parser=None):
         "Return :meth:`IndexReader.comparator` using a cached `SortField`_ if available."
-        return self.sorter(field, type, parser).comparator(self.indexReader)
+        sorter = self.sorter(field, type, parser)
+        if not hasattr(sorter, 'cache'):
+            sorter.cache = sorter.comparator(self.indexReader)
+        return sorter.cache
     def spellchecker(self, field):
         "Return and cache spellchecker for given field."
         try:

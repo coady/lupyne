@@ -202,7 +202,10 @@ class TestCase(BaseTest):
         assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
         searcher = engine.MultiSearcher([indexer.indexReader, self.tempdir])
         assert searcher.count() == len(searcher) == 2 * len(indexer)
-        searcher = searcher.reopen()
+        searcher.sorters['amendment'] = engine.SortField('amenmdment', int)
+        comparator = searcher.comparator('amendment')
+        assert comparator is searcher.comparator('amendment') and set(map(type, comparator)) == set([int])
+        assert searcher is searcher.reopen()
         assert searcher.facets(lucene.MatchAllDocsQuery(), 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
         reader = searcher.indexReader
         del searcher
@@ -482,9 +485,9 @@ class TestCase(BaseTest):
         assert indexer.count(query) == len(sizes) - len(ids)
         indexer.sorters['year'] = engine.SortField('Y-m-d', type=int, parser=lambda date: int(date.split('-')[0]))
         assert indexer.comparator('year')[:10] == [1791] * 10
+        cache = len(lucene.FieldCache.DEFAULT.cacheEntries)
         hits = indexer.search(count=3, sort='year')
         assert [int(hit['amendment']) for hit in hits] == [1, 2, 3]
-        cache = len(lucene.FieldCache.DEFAULT.cacheEntries)
         hits = indexer.search(count=3, sort='year', reverse=True)
         assert [int(hit['amendment']) for hit in hits] == [27, 26, 25]
         assert cache == len(lucene.FieldCache.DEFAULT.cacheEntries)
