@@ -10,7 +10,7 @@ import math
 import contextlib
 import lucene
 from lupyne import engine
-import fixture
+from . import fixture
 
 class typeAsPayload(engine.TokenFilter):
     "Custom implementation of lucene TypeAsPayloadTokenFilter."

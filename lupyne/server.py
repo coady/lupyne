@@ -41,6 +41,7 @@ CherryPy and Lucene VM integration issues:
 """
 
 from future_builtins import filter, map
+import warnings
 import re
 import time
 import httplib
@@ -49,14 +50,18 @@ import collections
 import itertools, operator
 import os, optparse
 from email.utils import formatdate
-from contextlib import contextmanager
+import contextlib
 try:
     import simplejson as json
 except ImportError:
     import json
 import lucene
 import cherrypy
-import engine
+try:
+    from . import engine
+except ValueError as exc:
+    import engine
+    warnings.warn('{0}.  Run server as a module: -m lupyne.server.'.format(exc), DeprecationWarning)
 
 def tool(hook):
     "Return decorator to register tool at given hook point."
@@ -201,7 +206,7 @@ class AttachedMonitor(cherrypy.process.plugins.Monitor):
             callback()
         cherrypy.process.plugins.Monitor.__init__(self, bus, run, frequency)
 
-@contextmanager
+@contextlib.contextmanager
 def HTTPError(status, *exceptions):
     "Interpret exceptions as an HTTPError with given status code."
     try:
@@ -672,7 +677,7 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
         mount(root, path, config, autoupdate)
     cherrypy.quickstart(cherrypy.tree.apps.get(path), path, config)
 
-parser = optparse.OptionParser(usage='python %prog [index_directory ...]')
+parser = optparse.OptionParser(usage='python -m lupyne.server [index_directory ...]')
 parser.add_option('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
 parser.add_option('-c', '--config', help='optional configuration file or json object of global params')
 parser.add_option('-p', '--pidfile', metavar='FILE', help='store the process id in the given file')

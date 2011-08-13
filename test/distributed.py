@@ -4,7 +4,7 @@ import heapq
 import time
 import socket, httplib
 from lupyne import client
-import local, remote
+from . import local, remote
 
 class TestCase(remote.BaseTest):
     ports = 8080, 8081, 8082

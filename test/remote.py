@@ -13,7 +13,7 @@ from email.utils import parsedate
 import lucene
 import cherrypy
 from lupyne import client, engine, server
-import fixture, local
+from . import fixture, local
 
 @contextlib.contextmanager
 def assertRaises(exception, code):

@@ -1,6 +1,6 @@
 server
 ======
-Usage: python server.py [index_directory ...]
+Usage: python -m lupyne.server [index_directory ...]
 
 Options:
   -h, --help            show this help message and exit
