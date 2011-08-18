@@ -1,10 +1,10 @@
 client
 ======
-.. automodule:: client
+.. automodule:: lupyne.client
 
 Response
 ---------
-.. autoclass:: client.Response
+.. autoclass:: Response
   :show-inheritance:
   :members:
 
@@ -30,7 +30,7 @@ Response
 
 Resource
 ---------
-.. autoclass:: client.Resource
+.. autoclass:: Resource
   :show-inheritance:
   :members:
   :undoc-members:
@@ -39,13 +39,13 @@ Resource
 
 Resources
 ---------
-.. autoclass:: client.Resources
+.. autoclass:: Resources
   :show-inheritance:
   :members:
 
 Shards
 ---------
-.. autoclass:: client.Shards
+.. autoclass:: Shards
   :show-inheritance:
   :members:
 

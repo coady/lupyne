@@ -1,25 +1,25 @@
 engine
 ======
-.. automodule:: engine
+.. automodule:: lupyne.engine
 
 
 indexers
 ---------
-.. automodule:: engine.indexers
+.. automodule:: lupyne.engine.indexers
 
 TokenFilter
 ^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.TokenFilter
+.. autoclass:: TokenFilter
   :members:
 
 Analyzer
 ^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.Analyzer
+.. autoclass:: Analyzer
   :members:
 
 IndexReader
 ^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.IndexReader
+.. autoclass:: IndexReader
   :members:
 
   .. automethod:: __len__
@@ -32,7 +32,7 @@ IndexReader
 
 IndexSearcher
 ^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.IndexSearcher
+.. autoclass:: IndexSearcher
   :show-inheritance:
   :members:
 
@@ -58,12 +58,12 @@ IndexSearcher
 
 MultiSearcher
 ^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.MultiSearcher
+.. autoclass:: MultiSearcher
   :show-inheritance:
 
 IndexWriter
 ^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.IndexWriter
+.. autoclass:: IndexWriter
   :show-inheritance:
   :members:
 
@@ -81,18 +81,18 @@ IndexWriter
 
 Indexer
 ^^^^^^^^^^^^^
-.. autoclass:: engine.indexers.Indexer
+.. autoclass:: Indexer
   :show-inheritance:
   :members:
 
 
 documents
 ---------
-.. automodule:: engine.documents
+.. automodule:: lupyne.engine.documents
 
 Document
 ^^^^^^^^^^^^^
-.. autoclass:: engine.documents.Document
+.. autoclass:: Document
   :members:
 
   .. automethod:: __len__
@@ -105,13 +105,13 @@ Document
 
 Hit
 ^^^^^^^^^^^^^
-.. autoclass:: engine.documents.Hit
+.. autoclass:: Hit
   :show-inheritance:
   :members:
 
 Hits
 ^^^^^^^^^^^^^
-.. autoclass:: engine.documents.Hits
+.. autoclass:: Hits
   :members:
 
   .. automethod:: __len__
@@ -120,12 +120,12 @@ Hits
 
 Field
 ^^^^^^^^^^^^^
-.. autoclass:: engine.documents.Field
+.. autoclass:: Field
   :members:
 
 FormatField
 ^^^^^^^^^^^^^
-.. autoclass:: engine.documents.FormatField
+.. autoclass:: FormatField
   :show-inheritance:
   :members:
 
@@ -135,30 +135,30 @@ FormatField
 
 NestedField
 ^^^^^^^^^^^^^
-.. autoclass:: engine.documents.NestedField
+.. autoclass:: NestedField
   :show-inheritance:
   :members:
 
 NumericField
 ^^^^^^^^^^^^^
-.. autoclass:: engine.documents.NumericField
+.. autoclass:: NumericField
   :show-inheritance:
   :members:
 
 DateTimeField
 ^^^^^^^^^^^^^
-.. autoclass:: engine.documents.DateTimeField
+.. autoclass:: DateTimeField
   :show-inheritance:
   :members:
 
 
 queries
 ---------
-.. automodule:: engine.queries
+.. automodule:: lupyne.engine.queries
 
 Query
 ^^^^^^^^^^^^^
-.. autoclass:: engine.queries.Query
+.. autoclass:: Query
   :members:
 
   .. automethod:: __and__
@@ -175,7 +175,7 @@ Query
 
 BooleanQuery
 ^^^^^^^^^^^^^
-.. autoclass:: engine.queries.BooleanQuery
+.. autoclass:: BooleanQuery
   :show-inheritance:
   :members:
 
@@ -199,7 +199,7 @@ BooleanQuery
 
 SpanQuery
 ^^^^^^^^^^^^^
-.. autoclass:: engine.queries.SpanQuery
+.. autoclass:: SpanQuery
   :show-inheritance:
   :members:
 
@@ -217,30 +217,30 @@ SpanQuery
 
 SortField
 ^^^^^^^^^^^^^
-.. autoclass:: engine.queries.SortField
+.. autoclass:: SortField
   :show-inheritance:
   :members:
 
 Highlighter
 ^^^^^^^^^^^^^
-.. autoclass:: engine.queries.Highlighter
+.. autoclass:: Highlighter
   :show-inheritance:
   :members:
 
 FastVectorHighlighter
 ^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: engine.queries.FastVectorHighlighter
+.. autoclass:: FastVectorHighlighter
   :members:
 
 SpellChecker
 ^^^^^^^^^^^^^
-.. autoclass:: engine.queries.SpellChecker
+.. autoclass:: SpellChecker
   :show-inheritance:
   :members:
 
 SpellParser
 ^^^^^^^^^^^^^
-.. autoclass:: engine.queries.SpellParser
+.. autoclass:: SpellParser
   :members:
 
   .. attribute:: searcher
@@ -250,21 +250,21 @@ SpellParser
 
 spatial
 ---------
-.. automodule:: engine.spatial
+.. automodule:: lupyne.engine.spatial
 
 Tiler
 ^^^^^^^^^^^^^
-.. autoclass:: engine.spatial.Tiler
+.. autoclass:: Tiler
   :members:
 
 PointField
 ^^^^^^^^^^^^^
-.. autoclass:: engine.spatial.PointField
+.. autoclass:: PointField
   :show-inheritance:
   :members:
 
 PolygonField
 ^^^^^^^^^^^^^
-.. autoclass:: engine.spatial.PolygonField
+.. autoclass:: PolygonField
   :show-inheritance:
   :members:

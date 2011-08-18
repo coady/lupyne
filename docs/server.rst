@@ -15,7 +15,7 @@ Options:
                         engine.autoreload
   --autoupdate=SECONDS  automatically update index version
 
-.. automodule:: server
+.. automodule:: lupyne.server
 
 tools
 -----------
@@ -28,13 +28,13 @@ tools
 
 WebSearcher
 -----------
-.. autoclass:: server.WebSearcher
+.. autoclass:: WebSearcher
   :members:
   :exclude-members: new
 
 WebIndexer
 -----------
-.. autoclass:: server.WebIndexer
+.. autoclass:: WebIndexer
   :show-inheritance:
   :members:
 

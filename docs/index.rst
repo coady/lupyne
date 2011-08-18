@@ -5,7 +5,7 @@
 Welcome to Lupyne's documentation!
 ==========================================
 
-`Lupyne <http://code.google.com/p/lupyne/>`_ provides:
+`Lupyne <http://lupyne.googlecode.com/>`_ provides:
  * high-level Pythonic search `engine <engine.html>`_ interface to `PyLucene <http://lucene.apache.org/pylucene/>`_
  * `RESTful <http://en.wikipedia.org/wiki/Representational_State_Transfer>`_ `JSON <http://json.org/>`_ `CherryPy <http://cherrypy.org/>`_ `server <server.html>`_
  * simple Python `client <client.html>`_ for interacting with the server
