@@ -29,9 +29,8 @@ def assertWarns(*categories):
 
 class Filter(lucene.PythonFilter):
     "Broken filter to test errors are raised."
-    def getBitSet(self, indexReader):
+    def getDocIdSet(self, indexReader):
         assert False
-    getDocIdSet = getBitSet
 
 class BaseTest(unittest.TestCase):
     def setUp(self):
@@ -407,14 +406,16 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir, 'w')
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
+        for name in ('longitude', 'latitude'):
+            indexer.set(name, engine.NumericField, store=True)
         field = indexer.fields['tile'] = engine.PointField('tile', precision=15, step=2, store=True)
         points = []
         for doc in fixture.zipcodes.docs():
             if doc['state'] == 'CA':
-                lat, lng = doc.pop('latitude'), doc.pop('longitude')
-                indexer.add(doc, tile=[(lng, lat)], latitude=str(lat), longitude=str(lng))
+                point = doc['longitude'], doc['latitude']
+                indexer.add(doc, tile=[point])
                 if doc['city'] == 'Los Angeles':
-                    points.append((lng, lat))
+                    points.append(point)
         assert len(list(engine.PolygonField('', precision=15).items(points))) > len(points)
         indexer.commit()
         city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
@@ -434,7 +435,10 @@ class TestCase(BaseTest):
         assert city in cities and len(cities) > 10
         query = field.within(x, y, 10**4)
         assert len(query) < 3
-        cities = set(hit['city'] for hit in indexer.search(query))
+        distances = indexer.distances(x, y, 'longitude', 'latitude')
+        hits = indexer.search(query, sort=distances.__getitem__)
+        assert hits[0]['zipcode'] == zipcode and distances[hits[0].id] < 10
+        cities = set(hit['city'] for hit in hits)
         assert city in cities and 100 > len(cities) > 50
         hits = indexer.search(field.within(x, y, 10**5))
         cities = set(hit['city'] for hit in hits)

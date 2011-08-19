@@ -13,6 +13,7 @@ import abc, collections
 import lucene
 from .queries import Query, Collector, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
+from .spatial import DistanceComparator
 
 class Atomic(object):
     "Abstract base class to distinguish singleton values from other iterables."
@@ -507,6 +508,10 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         if not hasattr(sorter, 'cache'):
             sorter.cache = sorter.comparator(self.indexReader)
         return sorter.cache
+    def distances(self, lng, lat, lngfield, latfield):
+        "Return distance comparator computed from cached lat/lng fields."
+        arrays = (self.comparator(field, 'double') for field in (lngfield, latfield))
+        return DistanceComparator(lng, lat, *arrays)
     def spellchecker(self, field):
         "Return and cache spellchecker for given field."
         try:

@@ -115,3 +115,13 @@ class PolygonField(PointField):
             xs, ys = zip(*(self.project(lat, lng) for lng, lat in points))
             tiles.update(self.walk(min(xs), min(ys), max(xs), max(ys), self.precision))
         return NumericField.items(self, *(int(tile, self.base) for tile in tiles))
+
+class DistanceComparator(Tiler):
+    "Distance comparator computed from cached lat/lngs."
+    def __init__(self, lng, lat, lngs, lats):
+        Tiler.__init__(self)
+        self.x, self.y = self.project(lat, lng)
+        self.lngs, self.lats = lngs, lats
+    def __getitem__(self, id):
+        x, y = self.project(self.lats[id], self.lngs[id])
+        return ((x - self.x)**2 + (y - self.y)**2) ** 0.5

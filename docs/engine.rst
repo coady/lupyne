@@ -268,3 +268,11 @@ PolygonField
 .. autoclass:: PolygonField
   :show-inheritance:
   :members:
+
+DistanceComparator
+^^^^^^^^^^^^^^^^^^
+.. autoclass:: DistanceComparator
+  :show-inheritance:
+  :members:
+
+  .. automethod:: __getitem__
