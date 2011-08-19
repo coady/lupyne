@@ -7,6 +7,7 @@ import collections
 import warnings
 import datetime
 import math
+import bisect
 import contextlib
 import lucene
 from lupyne import engine
@@ -440,9 +441,13 @@ class TestCase(BaseTest):
         assert hits[0]['zipcode'] == zipcode and distances[hits[0].id] < 10
         cities = set(hit['city'] for hit in hits)
         assert city in cities and 100 > len(cities) > 50
-        hits = indexer.search(field.within(x, y, 10**5))
+        hits = indexer.search(field.within(x, y, 10**5, limit=100))
         cities = set(hit['city'] for hit in hits)
         assert city in cities and len(cities) > 100
+        ranges = 10**2, 10**5
+        groups = hits.groupby(lambda id: bisect.bisect_left(ranges, distances[id]))
+        counts = dict((hits.value, len(hits)) for hits in groups)
+        assert 1 == counts[0] < counts[2] < counts[1]
         assert len(field.within(x, y, 10**8)) == 1
         del indexer
     

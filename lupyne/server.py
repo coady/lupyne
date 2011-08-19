@@ -391,7 +391,7 @@ class WebSearcher(object):
         else:
             hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multi)))
         with HTTPError(httplib.BAD_REQUEST, AttributeError):
-            groups = hits.groupby(*group.split(':')) if group else [hits]
+            groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__) if group else [hits]
         result['groups'], limit = [], options.get('group.limit', len(groups))
         for hits in groups[:limit]:
             docs = []
