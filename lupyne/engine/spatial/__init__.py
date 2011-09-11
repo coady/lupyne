@@ -102,6 +102,13 @@ class PointField(NumericField, Tiler):
             else:
                 slices.append((tile, tile + shift))
         return Query.any(*itertools.starmap(self.range, slices))
+    def filter(self, lng, lat, distance, lngfield, latfield, limit=Tiler.base):
+        """Return lucene LatLongDistanceFilter based on :meth:`within` query.
+        Alternative distance comparator which requires the spatial contrib module.
+        Distances estimates may be more accurate, and performance may vary.
+        """
+        filter = self.within(lng, lat, distance, limit).filter()
+        return DistanceFilter(filter, lng, lat, distance, lngfield, latfield)
 
 class PolygonField(PointField):
     """PointField which implicitly supports polygons (technically linear rings of points).
@@ -125,3 +132,17 @@ class DistanceComparator(Tiler):
     def __getitem__(self, id):
         x, y = self.project(self.lats[id], self.lngs[id])
         return ((x - self.x)**2 + (y - self.y)**2) ** 0.5
+
+class DistanceFilter(getattr(lucene, 'LatLongDistanceFilter', object)):
+    "Inherited lucene LatLongDistanceFilter which supports the comparator interface."
+    meters = 1609.344
+    def __init__(self, filter, lng, lat, distance, lngfield, latfield):
+        lucene.LatLongDistanceFilter.__init__(self, filter, lat, lng, distance / self.meters, latfield, lngfield)
+    def __getitem__(self, id):
+        distance = self.getDistance(id)
+        if distance is None:
+            raise KeyError(id)
+        return distance.doubleValue() * self.meters
+    def sorter(self, reverse=False):
+        "Return lucene SortField based on the filter's cached distances."
+        return lucene.SortField('distance', lucene.DistanceFieldComparatorSource(self), reverse)

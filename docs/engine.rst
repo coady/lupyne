@@ -276,3 +276,10 @@ DistanceComparator
   :members:
 
   .. automethod:: __getitem__
+
+DistanceFilter
+^^^^^^^^^^^^^^^^^^
+.. autoclass:: DistanceFilter
+  :members:
+
+  .. automethod:: __getitem__
