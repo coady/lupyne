@@ -554,6 +554,8 @@ class TestCase(BaseTest):
             assert len(sizes) == count and all(isinstance(size, int) for size in sizes)
             numbers = dict(indexer.numbers('size', step, type=float, counts=True))
             assert sum(numbers.values()) == len(indexer) and all(isinstance(number, float) for number in numbers)
+        hit, = indexer.search(indexer.fields['amendment'].term(1))
+        assert hit['amendment'] == '1'
     
     def testHighlighting(self):
         "Highlighting text fragments."

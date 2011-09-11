@@ -120,6 +120,9 @@ class NumericField(Field):
         if stop is not None:
             stop = None if stop > lucene.Long.MAX_VALUE else lucene.Long(long(stop))
         return lucene.NumericRangeQuery.newLongRange(self.name, self.step, start, stop, lower, upper)
+    def term(self, value):
+        "Return range query to match single term."
+        return self.range(value, value, upper=True)
 
 class DateTimeField(NumericField):
     """Field which indexes datetimes as a NumericField of timestamps.
