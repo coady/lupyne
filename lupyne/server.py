@@ -41,7 +41,6 @@ CherryPy and Lucene VM integration issues:
 """
 
 from future_builtins import filter, map
-import warnings
 import re
 import time
 import httplib
@@ -59,9 +58,8 @@ import lucene
 import cherrypy
 try:
     from . import engine
-except ValueError as exc:
+except ValueError:
     import engine
-    warnings.warn('{0}.  Run server as a module: -m lupyne.server.'.format(exc), DeprecationWarning)
 
 def tool(hook):
     "Return decorator to register tool at given hook point."

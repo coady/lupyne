@@ -254,8 +254,9 @@ class TestCase(BaseTest):
         self.stop(self.servers.pop(0))
         pidfile = os.path.join(self.tempdir, 'pid')
         server = self.start(self.ports[0], '-dp', pidfile)
-        assert server.poll() == 0
         os.kill(int(open(pidfile).read()), signal.SIGKILL)
+        filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lupyne/server.py')
+        assert subprocess.call((sys.executable, filepath, '-x'), stderr=subprocess.PIPE)
     
     def testBasic(self):
         "Remote text indexing and searching."
