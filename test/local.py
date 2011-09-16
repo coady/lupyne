@@ -267,7 +267,7 @@ class TestCase(BaseTest):
             indexer.filters[name] = engine.Query.prefix(name, '').filter()
         query = engine.Query.term('text', 'right')
         assert indexer.facets(str(query), 'amendment', 'article') == {'amendment': 12, 'article': 1}
-        self.assertRaises(lucene.InvalidArgsError, indexer.overlap, query.filter(), query.filter(cache=False))
+        self.assertRaises(TypeError, indexer.overlap, query.filter(), query.filter(cache=False))
         hits = indexer.search('text:people', filter=query.filter())
         assert len(hits) == 4
         hit, = indexer.search('date:192*')

@@ -339,14 +339,12 @@ class IndexReader(object):
         return mlt.like(lucene.StringReader(doc) if isinstance(doc, basestring) else doc)
     def overlap(self, left, right):
         "Return intersection count of cached filters."
-        count = 0
+        count, bitset = 0, getattr(lucene, 'FixedBitSet', lucene.OpenBitSet)
         for reader in self.sequentialSubReaders:
             docsets = left.getDocIdSet(reader), right.getDocIdSet(reader)
-            try:
-                count += lucene.OpenBitSet.intersectionCount(*docsets)
-            except lucene.InvalidArgsError: # verify docsets are either cached or empty
-                if not all(lucene.OpenBitSet.instance_(docset) or docset.iterator().nextDoc() == lucene.Integer.MAX_VALUE for docset in docsets):
-                    raise
+            if lucene.DocIdSet.EMPTY_DOCIDSET not in docsets:
+                bits = [bitset.cast_(docset).bits for docset in docsets]
+                count += lucene.BitUtil.pop_intersect(bits[0], bits[1], 0, min(map(len, bits)))
         return int(count)
 
 class IndexSearcher(lucene.IndexSearcher, IndexReader):
@@ -472,7 +470,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
-        :param ids: query string, lucene Query, or lucene Filter
+        :param query: query string, lucene Query, or lucene Filter
         :param keys: field names, term tuples, or any keys to previously cached filters
         """
         counts = collections.defaultdict(dict)
