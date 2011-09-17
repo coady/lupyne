@@ -346,8 +346,22 @@ class TestCase(BaseTest):
         query = indexer.parse('"hello world"', field='text', spellcheck=True)
         assert lucene.PhraseQuery.instance_(query) and str(query) == 'text:"held would"'
         assert str(indexer.parse('vwxyz', field='text', spellcheck=True)) == 'text:vwxyz'
+        with indexer.snapshot() as commit:
+            self.assertRaises(lucene.JavaError, indexer.snapshot().__enter__)
+        files = set(os.listdir(self.tempdir))
+        path = os.path.join(self.tempdir, 'temp')
+        with indexer.snapshot('backup') as commit:
+            indexer.commit(optimize=True)
+            assert indexer.indexCommit.generation > commit.generation
+            engine.indexers.copy(commit, path)
+            assert set(os.listdir(path)) == set(commit.fileNames) < files < set(os.listdir(self.tempdir))
+            filepath = os.path.join(path, commit.segmentsFileName)
+            os.remove(filepath)
+            open(filepath, 'w').close()
+            self.assertRaises(OSError, engine.indexers.copy, commit, path)
         del indexer
         assert engine.Indexer(self.tempdir)
+        assert not os.path.exists(os.path.join(self.tempdir, commit.segmentsFileName))
     
     def testAdvanced(self):
         "Large data set with hierarchical fields."

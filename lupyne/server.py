@@ -261,7 +261,7 @@ class WebSearcher(object):
         """Return ids or documents.
         
         **GET** /docs
-            Return list of doc ids.
+            Return array of doc ids.
             
             :return: [*int*,... ]
         
@@ -271,7 +271,7 @@ class WebSearcher(object):
             
             &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
             
-            :return: {*string*: *string*\|\ *array*,... }
+            :return: {*string*: *string*\|\ *number*\|\ *array*,... }
         """
         searcher = self.searcher
         if not path:
@@ -340,7 +340,7 @@ class WebSearcher(object):
                 | "query": *string*,
                 | "count": *int*\|null,
                 | "maxscore": *number*\|null,
-                | "docs": [{"__id__": *int*, "__score__": *number*, "__highlights__": {*string*: *array*,... }, *string*: *string*\|\ *array*,... },... ],
+                | "docs": [{"__id__": *int*, "__score__": *number*, "__highlights__": {*string*: *array*,... }, *string*: *object*,... },... ],
                 | "facets": {*string*: {*string*: *int*,... },... },
                 | "groups": [{"count": *int*, "value": *value*, "docs": [*object*,... ]},... ]
                 | "spellcheck": {*string*: {*string*: [*string*,... ],... },... },
@@ -537,7 +537,9 @@ class WebIndexer(WebSearcher):
             self.refresh()
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
-    def update(self, **options):
+    @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
+    @cherrypy.tools.allow(methods=['POST', 'PUT', 'DELETE'])
+    def update(self, *path, **options):
         """Commit index changes and refresh index version.
         
         **POST** /update
@@ -546,11 +548,24 @@ class WebIndexer(WebSearcher):
             ["expunge"|"optimize",... ]
             
             :return: *int*
+        
+        **PUT, DELETE** /update/snapshot
+            Snapshot current index commit and return array of referenced filenames, or release previous snapshot.
+            
+            :return: [*string*,... ]
         """
-        self.indexer.commit(**options)
-        self.updated = time.time()
-        return len(self.indexer)
-    update._cp_config = dict(WebSearcher.update._cp_config)
+        allow(('PUT', 'DELETE') if path else ('POST',))
+        request = cherrypy.serving.request
+        if request.method == 'POST':
+            self.indexer.commit(**options)
+            self.updated = time.time()
+            return len(self.indexer)
+        path = path[:hasattr(lucene, 'IndexWriterConfig')]
+        with HTTPError(httplib.CONFLICT, lucene.JavaError):
+            if request.method == 'PUT':
+                cherrypy.response.status = httplib.CREATED
+                return list(self.indexer.policy.snapshot(*path).fileNames)
+            self.indexer.policy.release(*path)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST', 'PUT', 'DELETE'])
     def docs(self, *path, **options):
@@ -559,12 +574,12 @@ class WebIndexer(WebSearcher):
         **POST** /docs
             Add documents to index.
             
-            [{*string*: *string*\|\ *array*,... },... ]
+            [{*string*: *string*\|\ *number*\|\ *array*,... },... ]
         
         **PUT, DELETE** /docs/*chars*/*chars*
             Set or delete document.  Unique term should be indexed and is added to the new document.
             
-            {*string*: *string*\|\ *array*,... }
+            {*string*: *string*\|\ *number*\|\ *array*,... }
         """
         with HTTPError(httplib.NOT_FOUND, IndexError):
             allow([('GET', 'HEAD', 'POST'), ('GET', 'HEAD'), ('GET', 'HEAD', 'PUT', 'DELETE')][len(path)])

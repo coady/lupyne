@@ -88,6 +88,8 @@ class TestCase(BaseTest):
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.get('/update')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
+            resource.post('/update/snapshot')
+        with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.put('/fields')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.post('/docs/x/y')
@@ -248,6 +250,14 @@ class TestCase(BaseTest):
         assert resource.post('/', [self.tempdir]).values() == [2]
         with local.assertWarns(DeprecationWarning, UserWarning):
             assert Resource(resource.host, resource.port).call('GET', '/missing', redirect=True)()
+        response = resource.call('PUT', '/update/snapshot')
+        assert response.status == httplib.CREATED
+        assert all(name.startswith('_') or name.startswith('segments_') for name in response())
+        with assertRaises(httplib.HTTPException, httplib.CONFLICT):
+            resource.put('/update/snapshot')
+        assert not resource.delete('/update/snapshot')
+        with assertRaises(httplib.HTTPException, httplib.CONFLICT):
+            resource.delete('/update/snapshot')
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')

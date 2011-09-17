@@ -47,8 +47,27 @@ class closing(set):
         if isinstance(reader, lucene.IndexReader):
             reader.incRef()
         else:
-            reader = lucene.IndexReader.open(reader)
+            reader = lucene.IndexReader.open(reader, True)
         return reader
+
+def copy(commit, dest):
+    """Copy the index commit to the destination directory.
+    Optimized to use hard links if the destination is a file system path.
+    """
+    src = commit.directory
+    if isinstance(dest, lucene.Directory):
+        for filename in commit.fileNames:
+            src.copy(dest, filename, filename)
+    else:
+        src = lucene.FSDirectory.cast_(src).file.path
+        os.path.isdir(dest) or os.makedirs(dest)
+        for filename in commit.fileNames:
+            paths = os.path.join(src, filename), os.path.join(dest, filename)
+            try:
+                os.link(*paths)
+            except OSError:
+                if not os.path.samefile(*paths):
+                    raise
 
 class TokenFilter(lucene.PythonTokenFilter):
     """Create an iterable lucene TokenFilter from a TokenStream.
@@ -198,20 +217,13 @@ class IndexReader(object):
         :param exclude: optional lucene Query to exclude documents
         :param optimize: optionally optimize destination index
         """
-        filter = lucene.IndexFileNameFilter.getFilter()
-        filenames = (filename for filename in self.directory.listAll() if filter.accept(None, filename))
         if isinstance(dest, lucene.Directory):
-            src = self.directory
             try:
-                lucene.Directory.copy(src, dest, False)
+                lucene.Directory.copy(self.directory, dest, False)
             except lucene.InvalidArgsError:
-                for filename in filenames:
-                    src.copy(dest, filename, filename)
+                copy(self.indexCommit, dest)
         else:
-            src = lucene.FSDirectory.cast_(self.directory).file.path
-            os.path.isdir(dest) or os.makedirs(dest)
-            for filename in filenames:
-                os.link(os.path.join(src, filename), os.path.join(dest, filename))
+            copy(self.indexCommit, dest)
         with contextlib.closing(IndexWriter(dest)) as writer:
             if query:
                 writer.delete(Query(lucene.MatchAllDocsQuery) - query)
@@ -589,13 +601,15 @@ class IndexWriter(lucene.IndexWriter):
             version = lucene.Version.values()[-1]
         analyzer = self.shared.analyzer(analyzer, version)
         directory = self.shared.directory(directory)
+        self.policy = lucene.SnapshotDeletionPolicy(lucene.KeepOnlyLastCommitDeletionPolicy())
         if hasattr(lucene, 'IndexWriterConfig'):
             config = lucene.IndexWriterConfig(version, analyzer)
             config.openMode = lucene.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
+            config.indexDeletionPolicy = self.policy
             lucene.IndexWriter.__init__(self, directory, config)
         else:
             args = [] if mode == 'a' else [bool('rw'.index(mode))]
-            args.append(lucene.IndexWriter.MaxFieldLength.UNLIMITED)
+            args += self.policy, lucene.IndexWriter.MaxFieldLength.UNLIMITED
             lucene.IndexWriter.__init__(self, directory, analyzer, *args)
         self.fields = {}
     def set(self, name, cls=Field, **params):
@@ -637,6 +651,15 @@ class IndexWriter(lucene.IndexWriter):
         directory = ref.directory(directory)
         self.addIndexesNoOptimize([directory if isinstance(directory, lucene.Directory) else directory.directory])
         return self
+    @contextlib.contextmanager
+    def snapshot(self, id=''):
+        "Return context manager of an index commit snapshot."
+        args = [id][:hasattr(lucene, 'IndexWriterConfig')]
+        commit = self.policy.snapshot(*args)
+        try:
+            yield commit
+        finally:
+            self.policy.release(*args)
 
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.
