@@ -462,6 +462,7 @@ class TestCase(BaseTest):
         response = resource.call('GET', '/docs')
         assert response and version != response.getheader('etag')
         cherrypy.engine.exit()
+        assert root.update() == 1
 
 if __name__ == '__main__':
     lucene.initVM()

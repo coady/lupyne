@@ -554,15 +554,14 @@ class WebIndexer(WebSearcher):
             
             :return: [*string*,... ]
         """
-        allow(('PUT', 'DELETE') if path else ('POST',))
-        request = cherrypy.serving.request
-        if request.method == 'POST':
+        allow(('PUT', 'DELETE') if path else ('GET', 'POST')) # allow direct method call
+        if not path:
             self.indexer.commit(**options)
             self.updated = time.time()
             return len(self.indexer)
         path = path[:hasattr(lucene, 'IndexWriterConfig')]
         with HTTPError(httplib.CONFLICT, lucene.JavaError):
-            if request.method == 'PUT':
+            if cherrypy.request.method == 'PUT':
                 cherrypy.response.status = httplib.CREATED
                 return list(self.indexer.policy.snapshot(*path).fileNames)
             self.indexer.policy.release(*path)
