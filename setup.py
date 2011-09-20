@@ -42,7 +42,7 @@ from distutils.core import setup
 
 setup(
     name='lupyne',
-    version='1.0',
+    version='1.0+',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',
