@@ -22,21 +22,19 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 0.9:
+Changes in 1.0:
 ==================
- * PyLucene 3.2 supported
- * PyLucene 2.9 dropped
- * Near real-time indexer
- * Optimized total hit count
- * Support for IndexWriterConfig and unlimited field length
- * Field settings validated upon initialization
- * Highlighting uses FastVectorHighlighter when available
- * New span queries: payload and position check
+ * PyLucene 3.4 supported
+ * PyLucene 3.0 deprecated
+ * Hits natively support grouping by an arbitrary function
+ * Span queries from multiterm queries
+ * Segment based FieldCaches, optimized for incremental updates
+ * Additional distance comparison utilities, optionally using the spatial contrib module
+ * NumericField query to match a single term
  * Server:
    
-   - Content-Type is strictly validated for requests and responses
-   - Automatic updates when in near real-time mode
-   - Optional limiting of facet counts
+   - Mounting and initialization of multiple root indexes
+   - Index snapshots, suitable for backups and replication
 """
 
 import os
@@ -44,7 +42,7 @@ from distutils.core import setup
 
 setup(
     name='lupyne',
-    version='0.9+',
+    version='1.0',
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',
