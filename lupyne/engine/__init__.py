@@ -14,6 +14,4 @@ from .documents import Document, Field, FormatField, NestedField, NumericField, 
 from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, IndexWriter, Indexer
 from .spatial import PointField, PolygonField
 
-assert lucene.VERSION >= '3.0'
-if lucene.VERSION < '3.1':
-    warnings.warn('Support for lucene 3.0 will be removed in the next release.', DeprecationWarning)
+assert lucene.VERSION >= '3.1'

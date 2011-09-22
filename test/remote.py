@@ -253,6 +253,7 @@ class TestCase(BaseTest):
         response = resource.call('PUT', '/update/snapshot')
         assert response.status == httplib.CREATED
         assert all(name.startswith('_') or name.startswith('segments_') for name in response())
+        assert resource.put('/update/backup') == response()
         with assertRaises(httplib.HTTPException, httplib.CONFLICT):
             resource.put('/update/snapshot')
         assert not resource.delete('/update/snapshot')

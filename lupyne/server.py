@@ -539,7 +539,7 @@ class WebIndexer(WebSearcher):
     @cherrypy.expose
     @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
     @cherrypy.tools.allow(methods=['POST', 'PUT', 'DELETE'])
-    def update(self, *path, **options):
+    def update(self, id='', **options):
         """Commit index changes and refresh index version.
         
         **POST** /update
@@ -549,22 +549,22 @@ class WebIndexer(WebSearcher):
             
             :return: *int*
         
-        **PUT, DELETE** /update/snapshot
-            Snapshot current index commit and return array of referenced filenames, or release previous snapshot.
+        **PUT, DELETE** /update/*chars*
+            Create unique snapshot of current index commit and return array of referenced filenames.
+            Release previous snapshot by id.
             
             :return: [*string*,... ]
         """
-        allow(('PUT', 'DELETE') if path else ('GET', 'POST')) # allow direct method call
-        if not path:
+        allow(('PUT', 'DELETE') if id else ('GET', 'POST')) # allow direct method call
+        if not id:
             self.indexer.commit(**options)
             self.updated = time.time()
             return len(self.indexer)
-        path = path[:hasattr(lucene, 'IndexWriterConfig')]
         with HTTPError(httplib.CONFLICT, lucene.JavaError):
             if cherrypy.request.method == 'PUT':
                 cherrypy.response.status = httplib.CREATED
-                return list(self.indexer.policy.snapshot(*path).fileNames)
-            self.indexer.policy.release(*path)
+                return list(self.indexer.policy.snapshot(id).fileNames)
+            self.indexer.policy.release(id)
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST', 'PUT', 'DELETE'])
     def docs(self, *path, **options):

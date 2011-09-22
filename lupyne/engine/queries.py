@@ -147,8 +147,6 @@ class SpanQuery(Query):
     def __getitem__(self, slc):
         start, stop, step = slc.indices(lucene.Integer.MAX_VALUE)
         assert step == 1, 'slice step is not supported'
-        if start == 0:
-            return SpanQuery(lucene.SpanFirstQuery, self, stop)
         return SpanQuery(lucene.SpanPositionRangeQuery, self, start, stop)
     def __sub__(self, other):
         return SpanQuery(lucene.SpanNotQuery, self, other)
@@ -253,7 +251,7 @@ class Highlighter(lucene.Highlighter):
             doc = self.searcher.doc(doc, self.selector)[self.field]
         return doc and list(self.getBestFragments(self.searcher.analyzer, self.field, doc, count))
 
-class FastVectorHighlighter(getattr(lucene, 'FastVectorHighlighter', object)):
+class FastVectorHighlighter(lucene.FastVectorHighlighter):
     """Inherited lucene FastVectorHighlighter with stored query.
     Fields must be stored and have term vectors with offsets and positions.
     
@@ -344,9 +342,6 @@ class SpellParser(lucene.PythonQueryParser):
         for position, term in zip(query.positions, query.terms):
             phrase.add(self.correct(term), position)
         return phrase
-    def getFieldQuery(self, field, text, *args):
-        query = lucene.PythonQueryParser.getFieldQuery(self, field, text, *args)
-        return query if args else self.rewrite(query)
     def getFieldQuery_quoted(self, *args):
         return self.rewrite(self.getFieldQuery_quoted_super(*args))
     def getFieldQuery_slop(self, *args):

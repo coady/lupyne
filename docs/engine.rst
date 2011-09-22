@@ -230,6 +230,7 @@ Highlighter
 FastVectorHighlighter
 ^^^^^^^^^^^^^^^^^^^^^
 .. autoclass:: FastVectorHighlighter
+  :show-inheritance:
   :members:
 
 SpellChecker

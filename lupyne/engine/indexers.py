@@ -59,7 +59,7 @@ def copy(commit, dest):
         for filename in commit.fileNames:
             src.copy(dest, filename, filename)
     else:
-        src = lucene.FSDirectory.cast_(src).file.path
+        src = lucene.FSDirectory.cast_(src).directory.path
         os.path.isdir(dest) or os.makedirs(dest)
         for filename in commit.fileNames:
             paths = os.path.join(src, filename), os.path.join(dest, filename)
@@ -217,13 +217,7 @@ class IndexReader(object):
         :param exclude: optional lucene Query to exclude documents
         :param optimize: optionally optimize destination index
         """
-        if isinstance(dest, lucene.Directory):
-            try:
-                lucene.Directory.copy(self.directory, dest, False)
-            except lucene.InvalidArgsError:
-                copy(self.indexCommit, dest)
-        else:
-            copy(self.indexCommit, dest)
+        copy(self.indexCommit, dest)
         with contextlib.closing(IndexWriter(dest)) as writer:
             if query:
                 writer.delete(Query(lucene.MatchAllDocsQuery) - query)
@@ -418,7 +412,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     def highlighter(self, query, field, **kwargs):
         "Return `Highlighter`_ or if applicable `FastVectorHighlighter`_ specific to searcher and query."
         query = self.parse(query, field=field)
-        vector = hasattr(lucene, 'FastVectorHighlighter') and field in self.names('termvector_with_position_offset')
+        vector = field in self.names('termvector_with_position_offset')
         return (FastVectorHighlighter if vector else Highlighter)(self, query, field, **kwargs)
     def count(self, *query, **options):
         """Return number of hits for given query or term.
@@ -429,8 +423,6 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         if len(query) > 1:
             return self.docFreq(lucene.Term(*query))
         query = self.parse(*query, **options) if query else lucene.MatchAllDocsQuery()
-        if not hasattr(lucene, 'TotalHitCountCollector'):
-            return lucene.IndexSearcher.search(self, query, options.get('filter'), 1, lucene.Sort.INDEXORDER).totalHits
         collector = lucene.TotalHitCountCollector()
         lucene.IndexSearcher.search(self, query, options.get('filter'), collector)
         return collector.totalHits
@@ -599,18 +591,10 @@ class IndexWriter(lucene.IndexWriter):
         self.shared = closing()
         if version is None:
             version = lucene.Version.values()[-1]
-        analyzer = self.shared.analyzer(analyzer, version)
-        directory = self.shared.directory(directory)
-        self.policy = lucene.SnapshotDeletionPolicy(lucene.KeepOnlyLastCommitDeletionPolicy())
-        if hasattr(lucene, 'IndexWriterConfig'):
-            config = lucene.IndexWriterConfig(version, analyzer)
-            config.openMode = lucene.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
-            config.indexDeletionPolicy = self.policy
-            lucene.IndexWriter.__init__(self, directory, config)
-        else:
-            args = [] if mode == 'a' else [bool('rw'.index(mode))]
-            args += self.policy, lucene.IndexWriter.MaxFieldLength.UNLIMITED
-            lucene.IndexWriter.__init__(self, directory, analyzer, *args)
+        config = lucene.IndexWriterConfig(version, self.shared.analyzer(analyzer, version))
+        config.openMode = lucene.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
+        config.indexDeletionPolicy = self.policy = lucene.SnapshotDeletionPolicy(lucene.KeepOnlyLastCommitDeletionPolicy())
+        lucene.IndexWriter.__init__(self, self.shared.directory(directory), config)
         self.fields = {}
     def set(self, name, cls=Field, **params):
         """Assign parameters to field name.
@@ -649,17 +633,19 @@ class IndexWriter(lucene.IndexWriter):
         "Add directory (or reader, searcher, writer) to index."
         ref = closing()
         directory = ref.directory(directory)
-        self.addIndexesNoOptimize([directory if isinstance(directory, lucene.Directory) else directory.directory])
+        self.addIndexes([directory if isinstance(directory, lucene.Directory) else directory.directory])
         return self
     @contextlib.contextmanager
     def snapshot(self, id=''):
-        "Return context manager of an index commit snapshot."
-        args = [id][:hasattr(lucene, 'IndexWriterConfig')]
-        commit = self.policy.snapshot(*args)
+        """Return context manager of an index commit snapshot."
+        
+        :param id: optional unique snapshot id
+        """
+        commit = self.policy.snapshot(id)
         try:
             yield commit
         finally:
-            self.policy.release(*args)
+            self.policy.release(id)
 
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.
@@ -672,10 +658,7 @@ class Indexer(IndexWriter):
         IndexWriter.commit(self)
         self.nrt = nrt
         if nrt:
-            try:
-                reader = lucene.IndexReader.open(self, True)
-            except lucene.InvalidArgsError:
-                reader = self.reader
+            reader = lucene.IndexReader.open(self, True)
             self.indexSearcher = IndexSearcher(reader, self.analyzer)
             self.indexSearcher.owned = closing([reader])
         else:
