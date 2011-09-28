@@ -6,6 +6,10 @@ import socket, httplib
 from lupyne import client
 from . import local, remote
 
+def getresponse(error):
+    "Test error handling in resources."
+    raise error(0)
+
 class TestCase(remote.BaseTest):
     ports = 8080, 8081, 8082
     hosts = list(map('localhost:{0:d}'.format, ports))
@@ -43,7 +47,7 @@ class TestCase(remote.BaseTest):
         assert len(docs) == len(resources) + 1
         assert len(set(doc['__id__'] for doc in docs)) == 2
         self.stop(self.servers.pop(0))
-        self.assertRaises((socket.error, httplib.BadStatusLine), resources.broadcast, 'GET', '/')
+        self.assertRaises(socket.error, resources.broadcast, 'GET', '/')
         assert resources.unicast('GET', '/')()
         del resources[self.hosts[0]]
         assert all(resources.broadcast('GET', '/'))
@@ -54,6 +58,13 @@ class TestCase(remote.BaseTest):
         assert set(counts) == set([0, 1])
         assert resources.broadcast('GET', '/')
         assert list(map(len, resources.values())) == counts[::-1]
+        host = self.hosts[1]
+        resource = resources.request(host, 'GET', '/')
+        resource.getresponse = lambda: getresponse(socket.error)
+        self.assertRaises(socket.error, resources.getresponse, host, resource)
+        resource = resources.request(host, 'GET', '/')
+        resource.getresponse = lambda: getresponse(httplib.BadStatusLine)
+        assert resources.getresponse(host, resource) is None
         resources.clear()
         self.assertRaises(ValueError, resources.unicast, 'GET', '/')
     
@@ -81,9 +92,11 @@ class TestCase(remote.BaseTest):
             zones.update(doc['zone'] for doc in docs)
         assert zones == set('012')
         self.stop(self.servers.pop(0))
-        self.assertRaises((socket.error, httplib.BadStatusLine), shards.broadcast, 0, 'GET', '/')
+        self.assertRaises(socket.error, shards.broadcast, 0, 'GET', '/')
         responses = shards.multicast([0, 1, 2], 'GET', '/')
         assert len(responses) == 2 and all(response() for response in responses)
+        shards.resources.priority = lambda hosts: None
+        self.assertRaises(ValueError, shards.choice, [[0]])
 
 if __name__ == '__main__':
     unittest.main()

@@ -19,7 +19,7 @@ Internally an optimized custom hit Collector is used when all docs are requested
 
 The search method does allow lucene Sort parameters to be passed through, since that's still optimal.
 So the only gotcha is that with no doc count the sort parameter must instead be a python callable key.
-The IndexReader.comparator method is convenient for creating a sort key table from indexed fields.
+The IndexSearcher.comparator method is convenient for creating a sort key table from indexed fields.
 The upshot is custom sorting and sorting large results are both easier and faster.
 
 Custom sorting isn't necessary in the below example of course, just there for demonstration.
@@ -59,7 +59,7 @@ class ComparatorSource(lucene.PythonFieldComparatorSource):
         def copy(self, slot, doc):
             self.values[slot] = self.comparator[doc]
         def value(self, slot):
-            return lucene.String()
+            pass
 
 sorter = lucene.Sort(lucene.SortField('color', ComparatorSource()))
 # still must supply excessive doc count to use the sorter

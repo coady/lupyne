@@ -27,6 +27,7 @@ except ImportError:
 
 class Response(httplib.HTTPResponse):
     "A completed response which handles json and caches its body."
+    content_type = 'application/json'
     def begin(self):
         httplib.HTTPResponse.begin(self)
         self.body = self.read()
@@ -40,7 +41,7 @@ class Response(httplib.HTTPResponse):
     def __call__(self):
         "Return evaluated response body or raise exception."
         body = self.body
-        if body and self.getheader('content-type').endswith('json'):
+        if body and self.getheader('content-type').startswith(self.content_type):
             body = json.loads(body)
         code, agent, text = self.getheader('warning', '  ').split(' ', 2)
         if agent == 'lupyne':
@@ -58,7 +59,7 @@ class Resource(httplib.HTTPConnection):
         headers = dict(self.headers)
         if body is not None:
             body = json.dumps(body)
-            headers.update({'content-length': str(len(body)), 'content-type': 'application/json'})
+            headers.update({'content-length': str(len(body)), 'content-type': self.response_class.content_type})
         httplib.HTTPConnection.request(self, method, path, body, headers)
     def call(self, method, path, body=None, params=(), redirect=False):
         "Send request and return completed `response`_."

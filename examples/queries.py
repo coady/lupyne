@@ -20,9 +20,11 @@ q3.add(q2, lucene.BooleanClause.Occur.MUST)
 assert str(q3) == '+text:lucene +text:"search engine"'
 
 q1 = lucene.SpanTermQuery(lucene.Term('text', 'hello'))
-q2 = lucene.SpanFirstQuery(q1, 10)
-q3 = lucene.SpanNotQuery(q1, q2)
-assert str(q3) == 'spanNot(text:hello, spanFirst(text:hello, 10))'
+q2 = lucene.SpanTermQuery(lucene.Term('text', 'world'))
+q3 = lucene.SpanPositionRangeQuery(q1, 0, 10)
+q4 = lucene.SpanNearQuery([q1, q2], 0, True)
+q5 = lucene.SpanNotQuery(q3, q4)
+assert str(q5) == 'spanNot(spanPosRange(text:hello, 0, 10), spanNear([text:hello, text:world], 0, true))'
 
 ### lupyne ###
 
@@ -30,6 +32,6 @@ q = Query.term('text', 'lucene') & Query.phrase('text', 'search', 'engine')
 assert isinstance(q, lucene.BooleanQuery)
 assert str(q) == '+text:lucene +text:"search engine"'
 
-q = Query.span('text', 'hello')
-q -= q[:10]
-assert str(q) == 'spanNot(text:hello, spanFirst(text:hello, 10))'
+q = Query.span('text', 'hello')[:10] - Query.near('text', 'hello', 'world')
+assert isinstance(q, lucene.SpanQuery)
+assert str(q) == 'spanNot(spanPosRange(text:hello, 0, 10), spanNear([text:hello, text:world], 0, true))'

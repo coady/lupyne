@@ -459,6 +459,7 @@ class TestCase(BaseTest):
         counts = dict((hits.value, len(hits)) for hits in groups)
         assert 1 == counts[0] < counts[2] < counts[1]
         assert len(field.within(x, y, 10**8)) == 1
+        self.assertRaises(NameError, list, field.radiate(y, x, 1, 0))
         if hasattr(lucene, 'LatLongDistanceFilter'):
             f = field.filter(x, y, 10**4, 'longitude', 'latitude')
             ids = indexer.search(query, sort=distances.__getitem__).ids

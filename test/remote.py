@@ -264,10 +264,14 @@ class TestCase(BaseTest):
             resource.get('/')
         self.stop(self.servers.pop(0))
         pidfile = os.path.join(self.tempdir, 'pid')
-        server = self.start(self.ports[0], '-dp', pidfile)
-        os.kill(int(open(pidfile).read()), signal.SIGKILL)
+        self.start(self.ports[0], '-dp', pidfile)
+        time.sleep(1)
+        os.kill(int(open(pidfile).read()), signal.SIGTERM)
         filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lupyne/server.py')
-        assert subprocess.call((sys.executable, filepath, '-x'), stderr=subprocess.PIPE)
+        assert subprocess.call((sys.executable, filepath, '-c', filepath), stderr=subprocess.PIPE)
+        assert server.mount(None, '/path', config={'': {}})
+        server.init(vmargs=None)
+        self.assertRaises(AttributeError, server.start, config=True)
     
     def testBasic(self):
         "Remote text indexing and searching."
