@@ -22,27 +22,18 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.0:
+Changes in 1.0+:
 ==================
- * PyLucene 3.4 supported
- * PyLucene 3.0 deprecated
- * Hits natively support grouping by an arbitrary function
- * Span queries from multiterm queries
- * Segment based FieldCaches, optimized for incremental updates
- * Additional distance comparison utilities, optionally using the spatial contrib module
- * NumericField query to match a single term
- * Server:
-   
-   - Mounting and initialization of multiple root indexes
-   - Index snapshots, suitable for backups and replication
+ * PyLucene 3.0 dropped
 """
 
 import os
 from distutils.core import setup
+import lupyne
 
 setup(
     name='lupyne',
-    version='1.0+',
+    version=lupyne.__version__,
     description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
     long_description=__doc__,
     author='Aric Coady',
@@ -51,6 +42,16 @@ setup(
     packages=[dirpath.replace(os.sep, '.') for dirpath, dirnames, filenames in os.walk('lupyne')],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
+        'Framework :: CherryPy',
+        'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Topic :: Internet :: WWW/HTTP :: HTTP Servers',
+        'Topic :: Internet :: WWW/HTTP :: Indexing/Search',
+        'Topic :: Software Development :: Libraries :: Python Modules',
     ],
 )

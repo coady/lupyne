@@ -1,4 +1,3 @@
-include README*
 recursive-include examples *.py
 recursive-include test *.py *.txt
 recursive-include docs Makefile *.py *.rst *.html *.inv *.js *.css *.png
