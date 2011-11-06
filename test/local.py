@@ -263,7 +263,8 @@ class TestCase(BaseTest):
         hits = indexer.search('text:right')
         for name in ('amendment', 'article'):
             indexer.filters[name] = engine.Query.prefix(name, '').filter()
-        query = engine.Query.term('text', 'right')
+        query = engine.Query.term('text', 'right', boost=2.0)
+        assert query.boost == 2.0
         assert indexer.facets(str(query), 'amendment', 'article') == {'amendment': 12, 'article': 1}
         self.assertRaises(TypeError, indexer.overlap, query.filter(), query.filter(cache=False))
         hits = indexer.search('text:people', filter=query.filter())
@@ -274,8 +275,6 @@ class TestCase(BaseTest):
         amendments = ['18', '19']
         assert sorted(hit['amendment'] for hit in hits) == amendments
         query = engine.Query.range('date', '1919', '1921')
-        query.boost = 2.0
-        assert query.boost == 2.0
         hits = indexer.search(query)
         assert sorted(hit['amendment'] for hit in hits) == amendments
         hits = indexer.search(query | engine.Query.term('text', 'vote'))

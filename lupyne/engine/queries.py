@@ -33,9 +33,11 @@ class Query(object):
         for term in terms:
             yield term.field(), term.text()
     @classmethod
-    def term(cls, name, value):
+    def term(cls, name, value, boost=1.0):
         "Return lucene TermQuery."
-        return cls(lucene.TermQuery, lucene.Term(name, value))
+        self = cls(lucene.TermQuery, lucene.Term(name, value))
+        self.boost = boost
+        return self
     @classmethod
     def boolean(cls, occur, *queries, **terms):
         self = BooleanQuery(lucene.BooleanQuery)
