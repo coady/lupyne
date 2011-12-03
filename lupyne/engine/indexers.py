@@ -227,7 +227,7 @@ class IndexReader(object):
             writer.expungeDeletes()
             if optimize:
                 writer.optimize(optimize)
-        return len(writer)
+            return len(writer)
     def count(self, name, value):
         "Return number of documents with given term."
         return self.docFreq(lucene.Term(name, value))
@@ -454,7 +454,8 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
                 if not isinstance(sort, lucene.Sort):
                     sort = lucene.Sort(sort)
                 collector = lucene.TopFieldCollector.create(sort, count, False, scores, maxscore, inorder)
-        results = collector if timeout is None else lucene.TimeLimitingCollector(collector, long(timeout * 1000))
+        args = [lucene.TimeLimitingCollector.getGlobalCounter()] if hasattr(lucene, 'Counter') else []
+        results = collector if timeout is None else lucene.TimeLimitingCollector(collector, *(args + [long(timeout * 1000)]))
         try:
             lucene.IndexSearcher.search(self, weight, filter, results)
         except lucene.JavaError as timeout:
@@ -637,7 +638,7 @@ class IndexWriter(lucene.IndexWriter):
         return self
     @contextlib.contextmanager
     def snapshot(self, id=''):
-        """Return context manager of an index commit snapshot."
+        """Return context manager of an index commit snapshot.
         
         :param id: optional unique snapshot id
         """
