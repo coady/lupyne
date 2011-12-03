@@ -75,10 +75,7 @@ class TestCase(BaseTest):
         assert indexer.current and indexer.optimized
         assert 0 in indexer and 1 not in indexer
         doc = indexer[0]
-        assert len(doc) == 3
-        assert 'name' in doc and 'missing' not in doc
-        assert sorted(doc) == ['name', 'tag', 'tag']
-        assert sorted(doc.items()) == [('name', 'sample'), ('tag', 'python'), ('tag', 'search')]
+        assert doc == {'tag': ['python', 'search'], 'name': ['sample']}
         assert doc.dict('tag') == {'name': 'sample', 'tag': ['python', 'search']}
         assert doc.dict(name=None, missing=True) == {'name': 'sample', 'missing': True}
         doc['name'] == 'sample' and doc['tag'] in ('python', 'search')
@@ -157,9 +154,9 @@ class TestCase(BaseTest):
         indexer += temp.directory
         indexer += self.tempdir
         assert len(indexer) == 3
-        indexer.add(text=lucene.WhitespaceTokenizer(lucene.StringReader('?')))
+        indexer.add(text=lucene.WhitespaceTokenizer(lucene.StringReader('?')), name=lucene.JArray_byte('{}'))
         indexer.commit()
-        assert list(indexer.terms('text')) == ['?']
+        assert indexer[next(indexer.docs('text', '?'))] == {'name': ['{}']}
         reader = engine.indexers.IndexReader(indexer.indexReader)
         assert reader[0].dict() == {} and reader.count('text', '?') == 1
         assert len(reader.comparator('text')) == 4

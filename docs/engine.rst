@@ -93,15 +93,8 @@ documents
 Document
 ^^^^^^^^^^^^^
 .. autoclass:: Document
+  :show-inheritance:
   :members:
-
-  .. automethod:: __len__
-
-  .. automethod:: __contains__
-
-  .. automethod:: __iter__
-
-  .. automethod:: __getitem__
 
 Hit
 ^^^^^^^^^^^^^

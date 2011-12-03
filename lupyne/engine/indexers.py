@@ -21,8 +21,8 @@ class Atomic(object):
     @classmethod
     def __subclasshook__(cls, other):
         return not issubclass(other, collections.Iterable) or NotImplemented
-Atomic.register(basestring)
-Atomic.register(lucene.TokenStream)
+for cls in (basestring, lucene.TokenStream, lucene.JArray_byte):
+    Atomic.register(cls)
 
 class closing(set):
     "Manage lifespan of registered objects, similar to contextlib.closing."

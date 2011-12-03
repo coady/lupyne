@@ -34,9 +34,11 @@ class Field(object):
     def items(self, *values):
         "Generate lucene Fields suitable for adding to a document."
         for value in values:
-            try:
+            if isinstance(value, basestring):
                 field = lucene.Field(self.name, value, self.store, self.index, self.termvector)
-            except lucene.InvalidArgsError:
+            elif isinstance(value, lucene.JArray_byte):
+                field = lucene.Field(self.name, value)
+            else:
                 field = lucene.Field(self.name, value, self.termvector)
             for name, value in self.attrs.items():
                 setattr(field, name, value)
@@ -170,46 +172,26 @@ class DateTimeField(NumericField):
             date = date.date()
         return self.duration(date, days, weeks=weeks, **delta)
 
-class Document(object):
-    """Delegated lucene Document.
-    Provides mapping interface of field names to values, but duplicate field names are allowed.
-    """
+class Document(dict):
+    "Multimapping of field names to values, but default getters return the first value."
     def __init__(self, doc):
-        self.doc = doc
-    def __len__(self):
-        return self.doc.getFields().size()
-    def __contains__(self, name):
-        return self.doc[name] is not None
-    def __iter__(self):
-        for field in self.doc.getFields():
-            yield field.name()
-    def items(self):
-        "Generate name, value pairs for all fields."
-        for field in self.doc.getFields():
-            yield field.name(), field.stringValue()
+        for field in doc.getFields():
+            self.setdefault(field.name(), []).append(field.binaryValue.string_ if field.binary else field.stringValue())
     def __getitem__(self, name):
-        value = self.doc[name]
-        if value is None:
-            raise KeyError(name)
-        return value
+        return dict.__getitem__(self, name)[0]
     def get(self, name, default=None):
-        "Return field value if present, else default."
-        value = self.doc[name]
-        return default if value is None else value
+        return dict.get(self, name, [default])[0]
     def getlist(self, name):
         "Return list of all values for given field."
-        return list(self.doc.getValues(name))
+        return dict.get(self, name, [])
     def dict(self, *names, **defaults):
         """Return dict representation of document.
         
         :param names: names of multi-valued fields to return as a list
         :param defaults: include only given fields, using default values as necessary
         """
-        for name, value in defaults.items():
-            defaults[name] = self.get(name, value)
-        if not defaults:
-            defaults = dict(self.items())
-        defaults.update(zip(names, map(self.getlist, names)))
+        defaults.update((name, self[name]) for name in (defaults or self) if name in self)
+        defaults.update((name, self.getlist(name)) for name in names)
         return defaults
 
 class Hit(Document):
