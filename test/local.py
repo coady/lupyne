@@ -76,12 +76,13 @@ class TestCase(BaseTest):
         assert 0 in indexer and 1 not in indexer
         doc = indexer[0]
         assert doc == {'tag': ['python', 'search'], 'name': ['sample']}
+        assert doc['name'] == 'sample' and doc['tag'] == 'python'
         assert doc.dict('tag') == {'name': 'sample', 'tag': ['python', 'search']}
         assert doc.dict(name=None, missing=True) == {'name': 'sample', 'missing': True}
-        doc['name'] == 'sample' and doc['tag'] in ('python', 'search')
         self.assertRaises(KeyError, doc.__getitem__, 'key')
         assert doc.getlist('name') == ['sample'] and doc.getlist('key') == []
         assert indexer.get(0, 'name').dict() == {'name': 'sample'}
+        assert not list(indexer.termvector(0, 'tag'))
         assert indexer.count('text', 'hello') == indexer.count('text:hello') == 1
         assert sorted(indexer.names()) == ['name', 'tag', 'text']
         assert sorted(indexer.names('indexed')) == ['tag', 'text']

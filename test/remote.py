@@ -288,6 +288,10 @@ class TestCase(BaseTest):
         assert resource.get('/').values() == [35]
         resource.post('/update', ['optimize', 'spellcheckers'])
         assert resource.get('/docs/0', **{'fields.indexed': 'amendment:int'}) == {'amendment': 0, 'article': 'Preamble'}
+        doc = resource.get('/docs/0', **{'fields.vector': 'text,missing'})
+        assert doc['missing'] == [] and doc['text'].index('states') < doc['text'].index('united')
+        doc = resource.get('/docs/0', **{'fields.vector.counts': 'text'})
+        assert sorted(term for term, count in doc['text'].items() if count > 1) == ['establish', 'states', 'united']
         assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
         articles = resource.get('/terms/article')
         articles.remove('Preamble')

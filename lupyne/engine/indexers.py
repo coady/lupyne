@@ -321,7 +321,7 @@ class IndexReader(object):
                 yield doc, sum(1 for span in spans)
     def termvector(self, id, field, counts=False):
         "Generate terms for given doc id and field, optionally with frequency counts."
-        tfv = self.getTermFreqVector(id, field)
+        tfv = self.getTermFreqVector(id, field) or lucene.QueryTermVector([])
         return zip(tfv.terms, tfv.termFrequencies) if counts else iter(tfv.terms)
     def positionvector(self, id, field, offsets=False):
         "Generate terms and positions for given doc id and field, optionally with character offsets."

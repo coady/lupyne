@@ -256,7 +256,7 @@ class WebSearcher(object):
         readers = reader.sequentialSubReaders if lucene.MultiReader.instance_(reader) else [reader]
         return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
-    @cherrypy.tools.params(fields=multi, **{'fields.multi': multi, 'fields.indexed': multi})
+    @cherrypy.tools.params(**dict.fromkeys(['fields', 'fields.multi', 'fields.indexed', 'fields.vector', 'fields.vector.counts'], multi))
     def docs(self, *path, **options):
         """Return ids or documents.
         
@@ -267,11 +267,14 @@ class WebSearcher(object):
         
         **GET** /docs/[*int*\|\ *chars*/*chars*]?
             Return document mapping from id or unique name and value.
-            Optionally select stored, multi-valued, and cached indexed fields.
             
             &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
+                optionally select stored, multi-valued, and cached indexed fields
             
-            :return: {*string*: *string*\|\ *number*\|\ *array*,... }
+            &fields.vector=\ *chars*,... &fields.vector.counts=\ *chars*,...
+                optionally select term vectors with term counts
+            
+            :return: {*string*: null|\ *string*\|\ *number*\|\ *array*\|\ *object*,... }
         """
         searcher = self.searcher
         if not path:
@@ -283,6 +286,8 @@ class WebSearcher(object):
             doc = searcher[id] if fields is None else searcher.get(id, *itertools.chain(fields, multi))
         result = doc.dict(*multi, **(fields or {}))
         result.update((name, indexed[name][id]) for name in indexed)
+        result.update((field, list(searcher.termvector(id, field))) for field in options.get('fields.vector', ()))
+        result.update((field, dict(searcher.termvector(id, field, counts=True))) for field in options.get('fields.vector.counts', ()))
         return result
     @cherrypy.expose
     @cherrypy.tools.params(count=int, start=int, fields=multi, sort=multi, facets=multi, hl=multi, mlt=int, spellcheck=int, timeout=float,
