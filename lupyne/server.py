@@ -21,7 +21,7 @@ Single documents may be added, deleted, or replaced by a unique indexed field.
 Multiples documents may also be added or deleted by query at once.
 By default changes are not visible until the update resource is called to commit a new index version.
 If a near real-time Indexer is used (an experimental feature in Lucene), then changes are instantly searchable.
-In such cases a commit still hasn't occurred;  the index based :meth:`validation headers <validate>` shouldn't be used for caching.
+In such cases a commit still hasn't occurred;  the index based :meth:`last-modified header <validate>` shouldn't be used for caching.
 
  * :meth:`/ <WebIndexer.index>`
  * :meth:`/search <WebIndexer.search>`
@@ -699,14 +699,18 @@ parser.add_option('-r', '--read-only', action='store_true', help='expose only re
 parser.add_option('-c', '--config', help='optional configuration file or json object of global params')
 parser.add_option('-p', '--pidfile', metavar='FILE', help='store the process id in the given file')
 parser.add_option('-d', '--daemonize', action='store_true', help='run the server as a daemon')
-parser.add_option('--autoreload', type=int, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
-parser.add_option('--autoupdate', type=int, metavar='SECONDS', help='automatically update index version')
+parser.add_option('--autoreload', type=float, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
+parser.add_option('--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes')
+parser.add_option('--real-time', action='store_true', help='search in real-time without committing')
 
 if __name__ == '__main__':
     options, args = parser.parse_args()
-    read_only = options.__dict__.pop('read_only')
+    read_only = options.__dict__.pop('read_only') or len(args) > 1
+    kwargs = {'nrt': True} if options.__dict__.pop('real_time') else {}
+    if read_only and (kwargs or not args):
+        parser.error('incompatible read/write options')
     if options.config and not os.path.exists(options.config):
         options.config = {'global': json.loads(options.config)}
-    cls = WebSearcher if (read_only or len(args) > 1) else WebIndexer
-    root = cls.new(*map(os.path.abspath, args))
+    cls = WebSearcher if read_only else WebIndexer
+    root = cls.new(*map(os.path.abspath, args), **kwargs)
     start(root, callback=init, **options.__dict__)

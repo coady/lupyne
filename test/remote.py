@@ -68,7 +68,7 @@ class TestCase(BaseTest):
         "Remote reading and writing."
         self.servers += (
             self.start(self.ports[0], self.tempdir, '--autoreload=1', **{'tools.validate.expires': 0, 'tools.validate.max_age': 0}),
-            self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2'), # concurrent searchers
+            self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2.0'), # concurrent searchers
         )
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
@@ -444,17 +444,15 @@ class TestCase(BaseTest):
         assert all(group['value'].startswith('Los Angeles') for group in result['groups'])
         assert sum(map(operator.itemgetter('count'), result['groups'])) == sum(facets.values()) == result['count']
     
-    def testNearRealTime(self):
-        "Near Real Time updating and searching."
-        with contextlib.closing(engine.IndexWriter(self.tempdir)) as writer:
-            writer.add()
+    def testRealTime(self):
+        "Real Time updating and searching."
+        for args in [('-r',), ('--real-time', 'index0', 'index1'), ('-r', '--real-time', 'index')]:
+            assert subprocess.call((sys.executable, '-m', 'lupyne.server') + args, stderr=subprocess.PIPE)
+        with contextlib.closing(server.WebIndexer(self.tempdir)) as root:
+            root.indexer.add()
+            assert root.update() == 1
         port = self.ports[0]
-        cherrypy.engine.subscribe('start_thread', server.attach_thread)
-        cherrypy.config.update(self.config)
-        cherrypy.config.update({'engine.autoreload.on': False, 'server.socket_port': port, 'tools.validate.expires': 0, 'tools.validate.last_modified': False})
-        root = server.WebIndexer(nrt=True)
-        cherrypy.tree.mount(root, config={'global': {}})
-        cherrypy.engine.start()
+        self.servers.append(self.start(self.ports[0], '--real-time', **{'tools.validate.expires': 0, 'tools.validate.last_modified': False}))
         resource = client.Resource('localhost', port)
         response = resource.call('GET', '/docs')
         version, modified, expires = map(response.getheader, ('etag', 'last-modified', 'expires'))
@@ -470,8 +468,6 @@ class TestCase(BaseTest):
         resource.post('/update')
         response = resource.call('GET', '/docs')
         assert response and version != response.getheader('etag')
-        cherrypy.engine.exit()
-        assert root.update() == 1
 
 if __name__ == '__main__':
     lucene.initVM()
