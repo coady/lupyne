@@ -98,9 +98,14 @@ def json_(indent=None, content_type='application/json', process_body=None):
     request.handler = json_handler
 
 @tool('on_start_resource')
-def allow(methods=('GET', 'HEAD')):
+def allow(methods=('GET',), paths=()):
     "Only allow specified methods."
     request = cherrypy.serving.request
+    if paths and hasattr(request.handler, 'args'):
+        with HTTPError(httplib.NOT_FOUND, IndexError):
+            methods = paths[len(request.handler.args)]
+    if 'GET' in methods and 'HEAD' not in methods:
+        methods += 'HEAD',
     if request.method not in methods and not isinstance(request.handler, cherrypy.HTTPError):
         cherrypy.response.headers['allow'] = ', '.join(methods)
         message = "The path {0!r} does not allow {1}.".format(request.path_info, request.method)
@@ -257,7 +262,7 @@ class WebSearcher(object):
         return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
     @cherrypy.tools.params(**dict.fromkeys(['fields', 'fields.multi', 'fields.indexed', 'fields.vector', 'fields.vector.counts'], multi))
-    def docs(self, *path, **options):
+    def docs(self, name=None, value='', **options):
         """Return ids or documents.
         
         **GET** /docs
@@ -277,10 +282,10 @@ class WebSearcher(object):
             :return: {*string*: null|\ *string*\|\ *number*\|\ *array*\|\ *object*,... }
         """
         searcher = self.searcher
-        if not path:
+        if not name:
             return list(searcher)
         with HTTPError(httplib.NOT_FOUND, ValueError):
-            id, = map(int, path) if len(path) == 1 else searcher.docs(*path)
+            id, = searcher.docs(name, value) if value else [int(name)]
         fields, multi, indexed = params.fields(searcher, **options)
         with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
             doc = searcher[id] if fields is None else searcher.get(id, *itertools.chain(fields, multi))
@@ -527,7 +532,7 @@ class WebIndexer(WebSearcher):
             cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
     @cherrypy.tools.json(process_body=lambda body: {'directories': list(body)})
-    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST'])
+    @cherrypy.tools.allow(methods=['GET', 'POST'])
     def index(self, directories=()):
         """Add indexes.  See :meth:`WebSearcher.index` for GET method.
         
@@ -543,7 +548,7 @@ class WebIndexer(WebSearcher):
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
     @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
-    @cherrypy.tools.allow(methods=['POST', 'PUT', 'DELETE'])
+    @cherrypy.tools.allow(paths=[('POST',), ('PUT', 'DELETE')])
     def update(self, id='', **options):
         """Commit index changes and refresh index version.
         
@@ -560,7 +565,6 @@ class WebIndexer(WebSearcher):
             
             :return: [*string*,... ]
         """
-        allow(('PUT', 'DELETE') if id else ('GET', 'POST')) # allow direct method call
         if not id:
             self.indexer.commit(**options)
             self.updated = time.time()
@@ -571,8 +575,8 @@ class WebIndexer(WebSearcher):
                 return list(self.indexer.policy.snapshot(id).fileNames)
             self.indexer.policy.release(id)
     @cherrypy.expose
-    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'POST', 'PUT', 'DELETE'])
-    def docs(self, *path, **options):
+    @cherrypy.tools.allow(paths=[('GET', 'POST'), ('GET',), ('GET', 'PUT', 'DELETE')])
+    def docs(self, name=None, value='', **options):
         """Add or return documents.  See :meth:`WebSearcher.docs` for GET method.
         
         **POST** /docs
@@ -585,15 +589,12 @@ class WebIndexer(WebSearcher):
             
             {*string*: *string*\|\ *number*\|\ *array*,... }
         """
-        with HTTPError(httplib.NOT_FOUND, IndexError):
-            allow([('GET', 'HEAD', 'POST'), ('GET', 'HEAD'), ('GET', 'HEAD', 'PUT', 'DELETE')][len(path)])
         request = cherrypy.serving.request
         if request.method in ('GET', 'HEAD'):
-            return WebSearcher.docs(self, *path, **options)
+            return WebSearcher.docs(self, name, value, **options)
         if request.method == 'DELETE':
-            self.indexer.delete(*path)
+            self.indexer.delete(name, value)
         elif request.method == 'PUT':
-            name, value = path
             doc = getattr(request, 'json', {})
             with HTTPError(httplib.CONFLICT, KeyError, AssertionError):
                 assert self.indexer.fields[name].index.indexed, 'unique field must be indexed'
@@ -606,7 +607,7 @@ class WebIndexer(WebSearcher):
         self.refresh()
     docs._cp_config.update(WebSearcher.docs._cp_config)
     @cherrypy.expose
-    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'DELETE'])
+    @cherrypy.tools.allow(methods=['GET', 'DELETE'])
     def search(self, q=None, **options):
         """Run or delete a query.  See :meth:`WebSearcher.search` for GET method.
         
@@ -623,7 +624,7 @@ class WebIndexer(WebSearcher):
     search._cp_config.update(WebSearcher.search._cp_config)
     @cherrypy.expose
     @cherrypy.tools.json(process_body=dict)
-    @cherrypy.tools.allow(methods=['GET', 'HEAD', 'PUT'])
+    @cherrypy.tools.allow(paths=[('GET',), ('GET', 'PUT')])
     @cherrypy.tools.validate(on=False)
     def fields(self, name='', **settings):
         """Return or store a field's parameters.
@@ -641,7 +642,6 @@ class WebIndexer(WebSearcher):
             :return: {"store": *string*, "index": *string*, "termvector": *string*}
         """
         if not name:
-            allow()
             return sorted(self.indexer.fields)
         if cherrypy.request.method == 'PUT':
             if name not in self.indexer.fields:

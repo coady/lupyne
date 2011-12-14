@@ -13,7 +13,9 @@ Options:
   -d, --daemonize       run the server as a daemon
   --autoreload=SECONDS  automatically reload modules; replacement for
                         engine.autoreload
-  --autoupdate=SECONDS  automatically update index version
+  --autoupdate=SECONDS  automatically update index version and commit any
+                        changes
+  --real-time           search in real-time without committing
 
 .. automodule:: lupyne.server
 
