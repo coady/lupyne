@@ -34,6 +34,7 @@ Resource
   :show-inheritance:
   :members:
   :undoc-members:
+  :exclude-members: response_class
 
   .. automethod:: getresponse
 
@@ -42,6 +43,7 @@ Resources
 .. autoclass:: Resources
   :show-inheritance:
   :members:
+  :exclude-members: queue
 
 Shards
 ---------
