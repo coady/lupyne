@@ -250,10 +250,22 @@ class TestCase(BaseTest):
         assert resource.post('/', [self.tempdir]).values() == [2]
         with local.assertWarns(DeprecationWarning, UserWarning):
             assert Resource(resource.host, resource.port).call('GET', '/missing', redirect=True)()
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/update/snapshot')
         response = resource.call('PUT', '/update/snapshot')
         assert response.status == httplib.CREATED
-        assert all(name.startswith('_') or name.startswith('segments_') for name in response())
-        assert resource.put('/update/backup') == response()
+        names = response()
+        assert all(name.startswith('_') or name.startswith('segments_') for name in names)
+        assert resource.get('/update/snapshot') == names
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/update/snapshot/segments')
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/update/snapshot/segments.gen')
+        for name in names:
+            response = resource.call('GET', '/update/snapshot/' + name)
+            assert response and response.getheader('content-type') == 'application/x-download'
+            assert len(response.body) == os.path.getsize(os.path.join(self.tempdir, name))
+        assert resource.put('/update/backup') == names
         with assertRaises(httplib.HTTPException, httplib.CONFLICT):
             resource.put('/update/snapshot')
         assert not resource.delete('/update/snapshot')

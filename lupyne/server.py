@@ -548,8 +548,8 @@ class WebIndexer(WebSearcher):
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
     @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
-    @cherrypy.tools.allow(paths=[('POST',), ('PUT', 'DELETE')])
-    def update(self, id='', **options):
+    @cherrypy.tools.allow(paths=[('POST',), ('GET', 'PUT', 'DELETE'), ('GET',)])
+    def update(self, id='', name='', **options):
         """Commit index changes and refresh index version.
         
         **POST** /update
@@ -559,21 +559,35 @@ class WebIndexer(WebSearcher):
             
             :return: *int*
         
-        **PUT, DELETE** /update/*chars*
-            Create unique snapshot of current index commit and return array of referenced filenames.
-            Release previous snapshot by id.
+        **GET, PUT, DELETE** /update/*chars*
+            Verify, create, or release unique snapshot by id of current index commit and return array of referenced filenames.
             
             :return: [*string*,... ]
+        
+        **GET** /update/*chars*/*chars*
+            Download index file corresponding to snapshot id and filename.
         """
         if not id:
             self.indexer.commit(**options)
             self.updated = time.time()
             return len(self.indexer)
-        with HTTPError(httplib.CONFLICT, lucene.JavaError):
-            if cherrypy.request.method == 'PUT':
-                cherrypy.response.status = httplib.CREATED
-                return list(self.indexer.policy.snapshot(id).fileNames)
-            self.indexer.policy.release(id)
+        method = cherrypy.request.method
+        if method == 'DELETE':
+            with HTTPError(httplib.CONFLICT, lucene.JavaError):
+                return self.indexer.policy.release(id)
+        if method == 'PUT':
+            cherrypy.response.status = httplib.CREATED
+            with HTTPError(httplib.CONFLICT, lucene.JavaError):
+                commit = self.indexer.policy.snapshot(id)
+        else:
+            with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
+                commit = self.indexer.policy.getSnapshot(id)
+        if not name:
+            return list(commit.fileNames)
+        with HTTPError(httplib.NOT_FOUND, TypeError, AssertionError):
+            directory = lucene.FSDirectory.cast_(self.indexer.directory).directory.path
+            assert name in commit.fileNames, 'file not referenced in commit'
+        return cherrypy.lib.static.serve_download(os.path.join(directory, name))
     @cherrypy.expose
     @cherrypy.tools.allow(paths=[('GET', 'POST'), ('GET',), ('GET', 'PUT', 'DELETE')])
     def docs(self, name=None, value='', **options):
