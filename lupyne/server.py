@@ -43,7 +43,7 @@ CherryPy and Lucene VM integration issues:
 from future_builtins import filter, map
 import re
 import time
-import httplib
+import httplib, urlparse
 import heapq
 import collections
 import itertools, operator
@@ -57,9 +57,9 @@ except ImportError:
 import lucene
 import cherrypy
 try:
-    from . import engine
+    from . import engine, client
 except ValueError:
-    import engine
+    import engine, client
 
 def tool(hook):
     "Return decorator to register tool at given hook point."
@@ -232,6 +232,39 @@ class WebSearcher(object):
         return self
     def close(self):
         self.searcher.close()
+    def sync(self, host, path='/'):
+        "Sync with remote index."
+        path = urlparse.urljoin(path, '/update/{0!r}/'.format(self.updated))
+        directory = lucene.FSDirectory.cast_(self.searcher.directory).directory.path
+        resource = client.Resource(host)
+        names = set(resource.put(path)).difference(self.searcher.indexCommit.fileNames)
+        try:
+            for name in names:
+                resource.download(urlparse.urljoin(path, name), os.path.join(directory, name))
+        finally:
+            resource.delete(path)
+        if names:
+            engine.IndexWriter(self.searcher.directory).close()
+    @cherrypy.expose
+    @cherrypy.tools.json(process_body=dict)
+    @cherrypy.tools.allow(methods=['GET', 'POST'])
+    def index(self, host='', path=''):
+        """Return index information and synchronize with remote index.
+        
+        **GET, POST** /[index]
+            Return a mapping of the directory to the document count.
+            Add new segments from remote host.
+            
+            {"host": *string*\ [, "path": *string*]}
+            
+            :return: {*string*: *int*,... }
+        """
+        if cherrypy.request.method == 'POST':
+            self.sync(host, path)
+            cherrypy.response.status = httplib.ACCEPTED
+        reader = self.searcher.indexReader
+        readers = reader.sequentialSubReaders if lucene.MultiReader.instance_(reader) else [reader]
+        return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
     @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
     @cherrypy.tools.allow(methods=['POST'])
@@ -248,18 +281,6 @@ class WebSearcher(object):
         self.searcher = self.searcher.reopen(**caches)
         self.updated = time.time()
         return len(self.searcher)
-    @cherrypy.expose
-    def index(self):
-        """Return index information.
-        
-        **GET** /
-            Return a mapping of the directory to the document count.
-            
-            :return: {*string*: *int*,... }
-        """
-        reader = self.searcher.indexReader
-        readers = reader.sequentialSubReaders if lucene.MultiReader.instance_(reader) else [reader]
-        return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
     @cherrypy.tools.params(**dict.fromkeys(['fields', 'fields.multi', 'fields.indexed', 'fields.vector', 'fields.vector.counts'], multi))
     def docs(self, name=None, value='', **options):
@@ -536,7 +557,7 @@ class WebIndexer(WebSearcher):
     def index(self, directories=()):
         """Add indexes.  See :meth:`WebSearcher.index` for GET method.
         
-        **POST** /
+        **POST** /[index]
             Add indexes without optimization.
             
             [*string*,... ]

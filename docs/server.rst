@@ -32,7 +32,7 @@ WebSearcher
 -----------
 .. autoclass:: WebSearcher
   :members:
-  :exclude-members: new
+  :exclude-members: new, sync
 
 WebIndexer
 -----------

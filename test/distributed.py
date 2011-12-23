@@ -1,9 +1,10 @@
 from future_builtins import map
 import unittest
+import os, shutil
 import heapq
 import time
 import socket, httplib
-from lupyne import client
+from lupyne import client, server
 from . import local, remote
 
 def getresponse(error):
@@ -13,12 +14,10 @@ def getresponse(error):
 class TestCase(remote.BaseTest):
     ports = 8080, 8081, 8082
     hosts = list(map('localhost:{0:d}'.format, ports))
-    def setUp(self):
-        local.BaseTest.setUp(self)
-        self.servers = list(map(self.start, self.ports))
     
     def testInterface(self):
         "Distributed reading and writing."
+        self.servers += map(self.start, self.ports)
         resources = client.Resources(self.hosts, limit=1)
         assert resources.unicast('GET', '/')
         assert not resources.unicast('POST', '/terms')
@@ -70,6 +69,7 @@ class TestCase(remote.BaseTest):
     
     def testSharding(self):
         "Sharding of indices across servers."
+        self.servers += map(self.start, self.ports)
         keys = range(len(self.hosts))
         shards = client.Shards(zip(self.hosts * 2, heapq.merge(keys, keys)), limit=1)
         shards.resources.broadcast('PUT', '/fields/zone', {'store': 'yes'})
@@ -97,6 +97,22 @@ class TestCase(remote.BaseTest):
         assert len(responses) == 2 and all(response() for response in responses)
         shards.resources.priority = lambda hosts: None
         self.assertRaises(ValueError, shards.choice, [[0]])
+    
+    def testReplication(self):
+        "Replication from indexer to searcher."
+        self.servers.append(self.start(self.ports[0], self.tempdir))
+        directory = os.path.join(self.tempdir, 'backup')
+        shutil.copytree(self.tempdir, directory)
+        self.servers.append(self.start(self.ports[1], '-r', directory))
+        resource = client.Resource(self.hosts[0])
+        resource.post('/docs', [{}])
+        assert resource.post('/update') == 1
+        resource = client.Resource(self.hosts[1])
+        response = resource.call('POST', '/', {'host': self.hosts[0]})
+        assert response.status == httplib.ACCEPTED and sum(response().values()) == 0
+        assert resource.post('/update') == 1
+        assert resource.post('/', {'host': self.hosts[0], 'path': '/'})
+        assert resource.post('/update') == 1
 
 if __name__ == '__main__':
     unittest.main()

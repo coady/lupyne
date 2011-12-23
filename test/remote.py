@@ -260,7 +260,7 @@ class TestCase(BaseTest):
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/update/snapshot/segments')
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
-            resource.get('/update/snapshot/segments.gen')
+            resource.download('/update/snapshot/segments.gen', self.tempdir)
         for name in names:
             response = resource.call('GET', '/update/snapshot/' + name)
             assert response and response.getheader('content-type') == 'application/x-download'

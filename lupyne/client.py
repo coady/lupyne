@@ -17,7 +17,7 @@ import warnings
 import random
 import itertools
 import collections
-import io, gzip
+import io, gzip, shutil
 import httplib, urllib, urlparse
 import socket, errno
 try:
@@ -28,8 +28,7 @@ except ImportError:
 class Response(httplib.HTTPResponse):
     "A completed response which handles json and caches its body."
     content_type = 'application/json'
-    def begin(self):
-        httplib.HTTPResponse.begin(self)
+    def end(self):
         self.body = self.read()
         self.close()
         self.time = float(self.getheader('x-response-time', 'nan'))
@@ -61,6 +60,10 @@ class Resource(httplib.HTTPConnection):
             body = json.dumps(body)
             headers.update({'content-length': str(len(body)), 'content-type': self.response_class.content_type})
         httplib.HTTPConnection.request(self, method, path, body, headers)
+    def getresponse(self):
+        response = httplib.HTTPConnection.getresponse(self)
+        response.end()
+        return response
     def call(self, method, path, body=None, params=(), redirect=False):
         "Send request and return completed `response`_."
         if params:
@@ -73,6 +76,14 @@ class Resource(httplib.HTTPConnection):
             warnings.warn('{0}: {1}'.format(response.reason, url.path), DeprecationWarning)
             return self.call(method, url.path, body, params, redirect-1)
         return response
+    def download(self, path, filename):
+        self.request('GET', path)
+        response = httplib.HTTPConnection.getresponse(self)
+        if response:
+            with open(filename, 'w') as output:
+                shutil.copyfileobj(response, output)
+        response.end()
+        return response()
     def multicall(self, *requests):
         "Pipeline requests (method, path[, body]) and return completed responses."
         responses = []
@@ -82,6 +93,7 @@ class Resource(httplib.HTTPConnection):
             self._HTTPConnection__state = 'Idle'
         for response in responses:
             response.begin()
+            response.end()
         return responses
     def get(self, path, **params):
         return self.call('GET', path, params=params)()
