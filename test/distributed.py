@@ -1,11 +1,12 @@
 from future_builtins import map
 import unittest
 import os, shutil
+import sys, subprocess
 import heapq
 import time
 import socket, httplib
 from lupyne import client, server
-from . import local, remote
+from . import remote
 
 def getresponse(error):
     "Test error handling in resources."
@@ -102,6 +103,9 @@ class TestCase(remote.BaseTest):
         "Replication from indexer to searcher."
         self.servers.append(self.start(self.ports[0], self.tempdir))
         directory = os.path.join(self.tempdir, 'backup')
+        sync, update = '--autosync=' + self.hosts[0], '--autoupdate=1'
+        for args in [('-r', self.tempdir), (update, self.tempdir), (update, self.tempdir, self.tempdir)]:
+            assert subprocess.call((sys.executable, '-m', 'lupyne.server', sync) + args, stderr=subprocess.PIPE)
         shutil.copytree(self.tempdir, directory)
         self.servers.append(self.start(self.ports[1], '-r', directory))
         resource = client.Resource(self.hosts[0])
@@ -113,6 +117,13 @@ class TestCase(remote.BaseTest):
         assert resource.post('/update') == 1
         assert resource.post('/', {'host': self.hosts[0], 'path': '/'})
         assert resource.post('/update') == 1
+        self.servers.insert(0, self.start(self.ports[2], '-r', directory, sync, update))
+        resource = client.Resource(self.hosts[0])
+        resource.post('/docs', [{}])
+        assert resource.post('/update') == 2
+        resource = client.Resource(self.hosts[2])
+        time.sleep(1.1)
+        assert sum(resource.get('/').values()) == 2
 
 if __name__ == '__main__':
     unittest.main()
