@@ -8,12 +8,6 @@ import bisect
 import heapq
 import lucene
 
-class ArrayList(lucene.ArrayList):
-    def __init__(self, values=()):
-        lucene.ArrayList.__init__(self)
-        for value in values:
-            self.add(value)
-
 class Query(object):
     """Inherited lucene Query, with dynamic base class acquisition.
     Uses class methods and operator overloading for convenient query construction.
@@ -58,7 +52,7 @@ class Query(object):
     @classmethod
     def disjunct(cls, multiplier, *queries, **terms):
         "Return lucene DisjunctionMaxQuery from queries and terms."
-        self = cls(lucene.DisjunctionMaxQuery, ArrayList(queries), multiplier)
+        self = cls(lucene.DisjunctionMaxQuery, lucene.Arrays.asList(queries), multiplier)
         for name, values in terms.items():
             for value in ([values] if isinstance(values, basestring) else values):
                 self.add(cls.term(name, value))
@@ -169,7 +163,7 @@ class SpanQuery(Query):
     def payload(self, *values):
         "Return lucene SpanPayloadCheckQuery from payload values."
         base = lucene.SpanNearPayloadCheckQuery if lucene.SpanNearQuery.instance_(self) else lucene.SpanPayloadCheckQuery
-        return SpanQuery(base, self, ArrayList(map(lucene.JArray_byte, values)))
+        return SpanQuery(base, self, lucene.Arrays.asList(list(map(lucene.JArray_byte, values))))
 
 class Collector(lucene.PythonCollector):
     "Collect all ids and scores efficiently."

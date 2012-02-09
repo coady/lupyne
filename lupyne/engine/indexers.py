@@ -361,7 +361,8 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     """
     def __init__(self, directory, analyzer=None):
         self.shared = closing()
-        lucene.IndexSearcher.__init__(self, self.shared.directory(directory))
+        lucene.IndexSearcher.__init__(self, self.shared.reader(directory))
+        self.owned = closing([self.indexReader])
         self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
     @classmethod
@@ -562,7 +563,7 @@ class MultiSearcher(IndexSearcher):
     def __init__(self, reader, analyzer=None):
         shared = closing()
         if not lucene.MultiReader.instance_(reader):
-            reader = lucene.MultiReader(list(map(shared.reader, reader)), True)
+            reader = lucene.MultiReader(list(map(shared.reader, reader)))
             self.owned = closing([reader])
         IndexSearcher.__init__(self, reader, analyzer)
         self.shared.update(shared)
@@ -584,17 +585,20 @@ class IndexWriter(lucene.IndexWriter):
     :param mode: file mode (rwa), except updating (+) is implied
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     :param version: lucene Version argument passed to IndexWriterConfig or StandardAnalyzer, default is latest
+    :param attrs: additional attributes to set on IndexWriterConfig
     """
     __len__ = lucene.IndexWriter.numDocs
     __del__ = IndexSearcher.__dict__['__del__']
     parse = IndexSearcher.__dict__['parse']
-    def __init__(self, directory=None, mode='a', analyzer=None, version=None):
+    def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
         if version is None:
             version = lucene.Version.values()[-1]
         config = lucene.IndexWriterConfig(version, self.shared.analyzer(analyzer, version))
         config.openMode = lucene.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
-        config.indexDeletionPolicy = self.policy = lucene.SnapshotDeletionPolicy(lucene.KeepOnlyLastCommitDeletionPolicy())
+        for name, value in attrs.items():
+            setattr(config, name, value)
+        config.indexDeletionPolicy = self.policy = lucene.SnapshotDeletionPolicy(config.indexDeletionPolicy)
         lucene.IndexWriter.__init__(self, self.shared.directory(directory), config)
         self.fields = {}
     def set(self, name, cls=Field, **params):
@@ -654,16 +658,13 @@ class Indexer(IndexWriter):
     
     :param nrt: optionally use a near real-time searcher
     """
-    def __init__(self, directory=None, mode='a', analyzer=None, version=None, nrt=False):
-        IndexWriter.__init__(self, directory, mode, analyzer, version)
+    def __init__(self, directory=None, mode='a', analyzer=None, version=None, nrt=False, **attrs):
+        IndexWriter.__init__(self, directory, mode, analyzer, version, **attrs)
         IndexWriter.commit(self)
         self.nrt = nrt
-        if nrt:
-            reader = lucene.IndexReader.open(self, True)
-            self.indexSearcher = IndexSearcher(reader, self.analyzer)
-            self.indexSearcher.owned = closing([reader])
-        else:
-            self.indexSearcher = IndexSearcher(self.directory, self.analyzer)
+        reader = lucene.IndexReader.open(self if nrt else self.directory, True)
+        self.indexSearcher = IndexSearcher(reader, self.analyzer)
+        self.indexSearcher.owned = closing([reader])
     def __getattr__(self, name):
         if name == 'indexSearcher':
             raise AttributeError(name)
