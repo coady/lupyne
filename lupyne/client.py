@@ -2,7 +2,7 @@
 Restful json clients.
 
 Use `Resource`_ for a single host.
-Use `Resources`_ for multiple hosts with simple partitioning or redundancy.
+Use `Resources`_ for multiple hosts with simple partitioning or replication.
 Use `Shards`_ for horizontally partitioning hosts by different keys.
 
 `Resources`_ optionally reuse connections, handling request timeouts.
@@ -60,8 +60,11 @@ class Resource(httplib.HTTPConnection):
             body = json.dumps(body)
             headers.update({'content-length': str(len(body)), 'content-type': self.response_class.content_type})
         httplib.HTTPConnection.request(self, method, path, body, headers)
-    def getresponse(self):
+    def getresponse(self, filename=''):
         response = httplib.HTTPConnection.getresponse(self)
+        if response and filename:
+            with open(filename, 'w') as output:
+                shutil.copyfileobj(response, output)
         response.end()
         return response
     def call(self, method, path, body=None, params=(), redirect=False):
@@ -78,12 +81,7 @@ class Resource(httplib.HTTPConnection):
         return response
     def download(self, path, filename):
         self.request('GET', path)
-        response = httplib.HTTPConnection.getresponse(self)
-        if response:
-            with open(filename, 'w') as output:
-                shutil.copyfileobj(response, output)
-        response.end()
-        return response()
+        return self.getresponse(filename)()
     def multicall(self, *requests):
         "Pipeline requests (method, path[, body]) and return completed responses."
         responses = []

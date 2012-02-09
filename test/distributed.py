@@ -117,13 +117,26 @@ class TestCase(remote.BaseTest):
         assert resource.post('/update') == 1
         assert resource.post('/', {'host': self.hosts[0], 'path': '/'})
         assert resource.post('/update') == 1
-        self.servers.insert(0, self.start(self.ports[2], '-r', directory, sync, update))
+        shutil.rmtree(directory)
+        self.servers.append(self.start(self.ports[2], '-r', directory, sync, update))
         resource = client.Resource(self.hosts[0])
         resource.post('/docs', [{}])
         assert resource.post('/update') == 2
         resource = client.Resource(self.hosts[2])
         time.sleep(1.1)
         assert sum(resource.get('/').values()) == 2
+        self.stop(self.servers.pop())
+        searcher = server.WebSearcher(directory, hosts=self.hosts[:2])
+        searcher.fields = {}
+        assert searcher.update() == 2
+        assert len(searcher.hosts) == 2
+        self.stop(self.servers.pop(0))
+        assert searcher.update() == 2
+        assert len(searcher.hosts) == 1
+        self.stop(self.servers.pop(0))
+        assert searcher.update() == 2
+        assert len(searcher.hosts) == 0
+        assert isinstance(searcher, server.WebIndexer)
 
 if __name__ == '__main__':
     unittest.main()

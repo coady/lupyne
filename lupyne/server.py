@@ -43,7 +43,8 @@ CherryPy and Lucene VM integration issues:
 from future_builtins import filter, map
 import re
 import time
-import httplib
+import uuid
+import socket, httplib
 import heapq
 import collections
 import itertools, operator
@@ -222,6 +223,9 @@ class WebSearcher(object):
     _cp_config = dict.fromkeys(map('tools.{0}.on'.format, ['gzip', 'accept', 'json', 'allow', 'time', 'validate']), True)
     _cp_config.update({'error_page.default': json_error, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json'], 'tools.accept.media': 'application/json'})
     def __init__(self, *directories, **kwargs):
+        self.hosts = collections.deque(kwargs.pop('hosts', ()))
+        if self.hosts:
+            engine.IndexWriter(*directories).close()
         self.searcher = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
         self.updated = time.time()
     @classmethod
@@ -234,7 +238,7 @@ class WebSearcher(object):
         self.searcher.close()
     def sync(self, host, path=''):
         "Sync with remote index."
-        path = '/' + '{0}/update/{1!r}/'.format(path, self.updated).lstrip('/')
+        path = '/' + '{0}/update/{1}/'.format(path, uuid.uuid1()).lstrip('/')
         directory = lucene.FSDirectory.cast_(self.searcher.directory).directory.path
         resource = client.Resource(host)
         names = set(resource.put(path)).difference(self.searcher.indexCommit.fileNames)
@@ -243,8 +247,7 @@ class WebSearcher(object):
                 resource.download(path + name, os.path.join(directory, name))
         finally:
             resource.delete(path)
-        if names:
-            engine.IndexWriter(self.searcher.directory).close()
+        return names
     @cherrypy.expose
     @cherrypy.tools.json(process_body=dict)
     @cherrypy.tools.allow(methods=['GET', 'POST'])
@@ -278,8 +281,25 @@ class WebSearcher(object):
             
             :return: *int*
         """
+        names = ()
+        while self.hosts:
+            try:
+                names = self.sync(*self.hosts[0].split('/'))
+                break
+            except socket.error:
+                del self.hosts[0]
+            except httplib.HTTPException as exc:
+                assert exc[0] == httplib.METHOD_NOT_ALLOWED, exc
+                break
         self.searcher = self.searcher.reopen(**caches)
         self.updated = time.time()
+        if names:
+            engine.IndexWriter(self.searcher.directory).close()
+        if not self.hosts and hasattr(self, 'fields'):
+            self.indexer = engine.Indexer(self.searcher.directory, analyzer=self.searcher.analyzer)
+            self.indexer.shared, self.indexer.fields = self.searcher.shared, self.fields
+            self.__class__ = WebIndexer
+            del self.__dict__['searcher']
         return len(self.searcher)
     @cherrypy.expose
     @cherrypy.tools.params(**dict.fromkeys(['fields', 'fields.multi', 'fields.indexed', 'fields.vector', 'fields.vector.counts'], multi))
@@ -694,26 +714,23 @@ def init(vmargs='-Xrs', **kwargs):
         if isinstance(app.root, WebSearcher):
             app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))
 
-def mount(root, path='', config=None, autoupdate=0, autosync=''):
+def mount(root, path='', config=None, autoupdate=0):
     """Attach root and subscribe to plugins.
     
     :param root,path,config: see cherrypy.tree.mount
-    :param autoupdate,autosync: see command-line options
+    :param autoupdate: see command-line options
     """
     if hasattr(root, 'close'):
         cherrypy.engine.subscribe('stop', root.close)
-    if autosync:
-        assert autoupdate, 'autosyncing implies autoupdating'
-        AttachedMonitor(cherrypy.engine, lambda: root.sync(*autosync.split('/', 1)) or root.update(), autoupdate).subscribe()
-    elif autoupdate:
+    if autoupdate:
         AttachedMonitor(cherrypy.engine, root.update, autoupdate).subscribe()
     return cherrypy.tree.mount(root, path, config)
 
-def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, autosync='', callback=None):
+def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, callback=None):
     """Attach root, subscribe to plugins, and start server.
     
     :param root,path,config: see cherrypy.quickstart
-    :param pidfile,daemonize,autoreload,autoupdate,autosync: see command-line options
+    :param pidfile,daemonize,autoreload,autoupdate: see command-line options
     :param callback: optional callback function scheduled after daemonizing
     """
     cherrypy.engine.subscribe('start_thread', attach_thread)
@@ -729,7 +746,7 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
         priority = (cherrypy.process.plugins.Daemonizer.start.priority + cherrypy.server.start.priority) // 2
         cherrypy.engine.subscribe('start', callback, priority)
     if root is not None:
-        mount(root, path, config, autoupdate, autosync)
+        mount(root, path, config, autoupdate)
     cherrypy.quickstart(cherrypy.tree.apps.get(path), path, config)
 
 parser = optparse.OptionParser(usage='python -m lupyne.server [index_directory ...]')
@@ -739,19 +756,22 @@ parser.add_option('-p', '--pidfile', metavar='FILE', help='store the process id 
 parser.add_option('-d', '--daemonize', action='store_true', help='run the server as a daemon')
 parser.add_option('--autoreload', type=float, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
 parser.add_option('--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes')
-parser.add_option('--autosync', metavar='HOST[:PORT][/PATH]', help='automatically synchronize searcher with remote indexer and update')
+parser.add_option('--autosync', metavar='HOST[:PORT][/PATH],...', help='automatically synchronize searcher with remote hosts and update')
 parser.add_option('--real-time', action='store_true', help='search in real-time without committing')
 
 if __name__ == '__main__':
     options, args = parser.parse_args()
-    read_only = options.__dict__.pop('read_only') or len(args) > 1
-    kwargs = {'nrt': True} if options.__dict__.pop('real_time') else {}
-    if read_only and (kwargs or not args):
+    read_only = options.read_only or options.autosync or len(args) > 1
+    kwargs = {'nrt': True} if options.real_time else {}
+    if read_only and (options.real_time or not args):
         parser.error('incompatible read/write options')
-    if options.autosync and not (options.autoupdate and read_only and len(args) == 1):
-        parser.error('autosync requires autoupdate and a single searcher')
+    if options.autosync:
+        kwargs['hosts'] = options.autosync.split(',')
+        if not (options.autoupdate and len(args) == 1):
+            parser.error('autosync requires autoupdate and a single directory')
     if options.config and not os.path.exists(options.config):
         options.config = {'global': json.loads(options.config)}
     cls = WebSearcher if read_only else WebIndexer
     root = cls.new(*map(os.path.abspath, args), **kwargs)
+    del options.read_only, options.autosync, options.real_time
     start(root, callback=init, **options.__dict__)

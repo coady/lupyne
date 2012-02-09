@@ -15,8 +15,8 @@ Options:
                         engine.autoreload
   --autoupdate=SECONDS  automatically update index version and commit any
                         changes
-  --autosync=HOST
-                        automatically synchronize searcher with remote indexer
+  --autosync=HOSTS
+                        automatically synchronize searcher with remote hosts
                         and update
   --real-time           search in real-time without committing
 

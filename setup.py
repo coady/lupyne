@@ -15,7 +15,7 @@ A simple client to make interacting with the server as convenient as an RPC inte
 It handles all of the HTTP interactions, with support for compression, json, and connection reuse.
 
 Advanced search features:
- * Distributed searching with support for redundancy, partitioning, and sharding.
+ * Distributed searching with support for replication, partitioning, and sharding.
  * Optimized faceted and grouped search.
  * Optimized prefix and range queries.
  * Geospatial support.
@@ -26,7 +26,8 @@ Changes in 1.1+:
 ==================
  * Server:
    
-   - Synchronize searcher with remote indexer
+   - Synchronization of searcher with remote hosts
+   - Automatic promotion of searcher to indexer
 """
 
 import os
