@@ -24,7 +24,7 @@ Options:
 
 tools
 -----------
-`CherryPy tools <http://www.cherrypy.org/wiki/CustomTools>`_ enabled by default:  tools.\{json,allow,time,validate\}.on
+`CherryPy tools <http://docs.cherrypy.org/stable/progguide/extending/customtools.html>`_ enabled by default:  tools.\{json,allow,time,validate\}.on
 
 .. autofunction:: json_
 .. autofunction:: allow

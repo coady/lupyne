@@ -22,16 +22,11 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.1:
+Changes in 1.1+:
 ==================
- * PyLucene 3.5 supported
- * PyLucene 3.0 dropped
- * Storage and retrieval of binary fields
- * Term query boosting
  * Server:
    
-   - Term vectors retrieval
-   - Real-time indexing command-line option
+   - Synchronize searcher with remote indexer
 """
 
 import os
@@ -53,7 +48,6 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
