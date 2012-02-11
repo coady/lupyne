@@ -4,17 +4,20 @@ Restful json clients.
 Use `Resource`_ for a single host.
 Use `Resources`_ for multiple hosts with simple partitioning or replication.
 Use `Shards`_ for horizontally partitioning hosts by different keys.
+Use `Replicas`_ in coordination with automatic host synchronization.
 
 `Resources`_ optionally reuse connections, handling request timeouts.
 Broadcasting to multiple resources is parallelized with asynchronous requests and responses.
 
 The load balancing strategy is randomized, biased by the number of cached connections available.
 This inherently provides limited failover support, but applications must still handle exceptions as desired.
+`Replicas`_ will automatically retry if host is unreachable.
 """
 
 from future_builtins import map
 import warnings
 import random
+import time
 import itertools
 import collections
 import io, gzip, shutil
@@ -61,6 +64,7 @@ class Resource(httplib.HTTPConnection):
             headers.update({'content-length': str(len(body)), 'content-type': self.response_class.content_type})
         httplib.HTTPConnection.request(self, method, path, body, headers)
     def getresponse(self, filename=''):
+        "Return completed response, optionally write response body to a file."
         response = httplib.HTTPConnection.getresponse(self)
         if response and filename:
             with open(filename, 'w') as output:
@@ -80,6 +84,7 @@ class Resource(httplib.HTTPConnection):
             return self.call(method, url.path, body, params, redirect-1)
         return response
     def download(self, path, filename):
+        "Download response body from GET request to a file."
         self.request('GET', path)
         return self.getresponse(filename)()
     def multicall(self, *requests):
@@ -94,12 +99,16 @@ class Resource(httplib.HTTPConnection):
             response.end()
         return responses
     def get(self, path, **params):
+        "Return response body from GET request."
         return self.call('GET', path, params=params)()
     def post(self, path, body=None, **kwargs):
+        "Return response body from POST request."
         return self.call('POST', path, body, **kwargs)()
     def put(self, path, body=None, **kwargs):
+        "Return response body from PUT request."
         return self.call('PUT', path, body, **kwargs)()
     def delete(self, path, **params):
+        "Return response body from DELETE request."
         return self.call('DELETE', path, params=params)()
 
 class Resources(dict):
@@ -145,22 +154,26 @@ class Resources(dict):
             priorities[self.priority(host)].append(host)
         priorities.pop(None, None)
         return random.choice(priorities[min(priorities)])
+    def stream(self, host, method, path, body=None):
+        resource = self.request(host, method, path, body)
+        yield
+        response = self.getresponse(host, resource)
+        if response is None:
+            resource.request(method, path, body)
+        yield
+        if response is None:
+            response = resource.getresponse()
+        yield response
     def unicast(self, method, path, body=None, hosts=()):
         "Send request and return `response`_ from any host, optionally from given subset."
         host = self.choice(tuple(hosts) or self)
-        resource = self.request(host, method, path, body)
-        response = self.getresponse(host, resource)
-        return resource.call(method, path, body) if response is None else response
+        return list(self.stream(host, method, path, body))[-1]
     def broadcast(self, method, path, body=None, hosts=()):
         "Send requests and return responses from all hosts, optionally from given subset."
         hosts = tuple(hosts) or self
-        resources = [self.request(host, method, path, body) for host in hosts]
-        responses = list(map(self.getresponse, hosts, resources))
-        indices = [index for index, response in enumerate(responses) if response is None]
-        for index in indices:
-            resources[index].request(method, path, body)
-        for index in indices:
-            responses[index] = resources[index].getresponse()
+        streams = [self.stream(host, method, path, body) for host in hosts]
+        for attempt in range(3):
+            responses = list(map(next, streams))
         return responses
 
 class Shards(dict):
@@ -195,3 +208,35 @@ class Shards(dict):
         for key in keys:
             shards = set(hosts.union([host]) for hosts, host in itertools.product(shards, self[key]))
         return self.resources.broadcast(method, path, body, self.choice(shards))
+
+class Replicas(Resources):
+    """Resources which failover assuming the hosts are being automatically synchronized.
+    Writes are dispatched to the first host and sequentially failover.
+    Reads are balanced among all remaining hosts.
+    """
+    get, post, put, delete = map(Resource.__dict__.__getitem__, ['get', 'post', 'put', 'delete'])
+    class queue(Resources.queue):
+        failure = 0
+    def __init__(self, hosts, limit=0):
+        self.hosts = collections.deque(hosts)
+        Resources.__init__(self, self.hosts, limit)
+    def priority(self, host):
+        queue = self[host]
+        if not queue.failure:
+            return -len(queue)
+    def call(self, method, path, body=None, params=(), retry=False):
+        """Send request and return completed `response`_, even if hosts are unreachable.
+        
+        :param retry: optionally retry request on http errors as well, such as waiting for indexer promotion
+        """
+        if params:
+            path += '?' + urllib.urlencode(params, doseq=True)
+        host = self.choice(self) if method == 'GET' else self.hosts[0]
+        try:
+            response = list(self.stream(host, method, path, body))[-1]
+        except socket.error:
+            self[host].failure = time.time()
+            if method != 'GET':
+                del self.hosts[0]
+            return self.call(method, path, body, retry=retry)
+        return response if (response or not retry) else self.call(method, path, body, retry=retry-1)

@@ -219,7 +219,10 @@ def HTTPError(status, *exceptions):
         raise cherrypy.HTTPError(status, str(exc))
 
 class WebSearcher(object):
-    "Dispatch root with a delegated Searcher."
+    """Dispatch root with a delegated Searcher.
+    
+    :param hosts: ordered hosts to synchronize with
+    """
     _cp_config = dict.fromkeys(map('tools.{0}.on'.format, ['gzip', 'accept', 'json', 'allow', 'time', 'validate']), True)
     _cp_config.update({'error_page.default': json_error, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json'], 'tools.accept.media': 'application/json'})
     def __init__(self, *directories, **kwargs):

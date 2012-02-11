@@ -1,6 +1,6 @@
 from future_builtins import map
 import unittest
-import os, shutil
+import os
 import sys, subprocess
 import heapq
 import time
@@ -101,28 +101,27 @@ class TestCase(remote.BaseTest):
     
     def testReplication(self):
         "Replication from indexer to searcher."
-        self.servers.append(self.start(self.ports[0], self.tempdir))
         directory = os.path.join(self.tempdir, 'backup')
         sync, update = '--autosync=' + self.hosts[0], '--autoupdate=1'
+        self.servers += (
+            self.start(self.ports[0], self.tempdir),
+            self.start(self.ports[1], '-r', directory, sync, update),
+            self.start(self.ports[2], '-r', directory),
+        )
         for args in [('-r', self.tempdir), (update, self.tempdir), (update, self.tempdir, self.tempdir)]:
             assert subprocess.call((sys.executable, '-m', 'lupyne.server', sync) + args, stderr=subprocess.PIPE)
-        shutil.copytree(self.tempdir, directory)
-        self.servers.append(self.start(self.ports[1], '-r', directory))
-        resource = client.Resource(self.hosts[0])
-        resource.post('/docs', [{}])
-        assert resource.post('/update') == 1
-        resource = client.Resource(self.hosts[1])
+        replicas = client.Replicas(self.hosts[:2], limit=1)
+        replicas.post('/docs', [{}])
+        assert replicas.post('/update') == 1
+        resource = client.Resource(self.hosts[2])
         response = resource.call('POST', '/', {'host': self.hosts[0]})
         assert response.status == httplib.ACCEPTED and sum(response().values()) == 0
         assert resource.post('/update') == 1
         assert resource.post('/', {'host': self.hosts[0], 'path': '/'})
         assert resource.post('/update') == 1
-        shutil.rmtree(directory)
-        self.servers.append(self.start(self.ports[2], '-r', directory, sync, update))
-        resource = client.Resource(self.hosts[0])
-        resource.post('/docs', [{}])
-        assert resource.post('/update') == 2
-        resource = client.Resource(self.hosts[2])
+        replicas.post('/docs', [{}])
+        assert replicas.post('/update') == 2
+        resource = client.Resource(self.hosts[1])
         time.sleep(1.1)
         assert sum(resource.get('/').values()) == 2
         self.stop(self.servers.pop())
@@ -131,6 +130,10 @@ class TestCase(remote.BaseTest):
         assert searcher.update() == 2
         assert len(searcher.hosts) == 2
         self.stop(self.servers.pop(0))
+        assert replicas.get('/docs')
+        assert replicas.call('POST', '/docs', []).status == httplib.METHOD_NOT_ALLOWED
+        assert replicas.get('/terms', option='indexed') == []
+        assert replicas.call('POST', '/docs', [], retry=True).status == httplib.METHOD_NOT_ALLOWED
         assert searcher.update() == 2
         assert len(searcher.hosts) == 1
         self.stop(self.servers.pop(0))

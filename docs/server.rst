@@ -37,6 +37,10 @@ WebSearcher
   :members:
   :exclude-members: new, sync
 
+  .. attribute:: fields
+
+    optional field settings will trigger indexer promotion when synchronized hosts are exhausted
+
 WebIndexer
 -----------
 .. autoclass:: WebIndexer

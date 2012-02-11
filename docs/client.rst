@@ -33,10 +33,7 @@ Resource
 .. autoclass:: Resource
   :show-inheritance:
   :members:
-  :undoc-members:
   :exclude-members: response_class
-
-  .. automethod:: getresponse
 
 Resources
 ---------
@@ -54,3 +51,9 @@ Shards
   .. attribute:: resources
 
     `Resources`_ mapping.
+
+Replicas
+---------
+.. autoclass:: Replicas
+  :show-inheritance:
+  :members:
