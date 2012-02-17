@@ -5,6 +5,7 @@ import sys, subprocess
 import heapq
 import time
 import socket, httplib
+import lucene
 from lupyne import client, server
 from . import remote
 
@@ -126,6 +127,7 @@ class TestCase(remote.BaseTest):
         assert sum(resource.get('/').values()) == 2
         self.stop(self.servers.pop())
         searcher = server.WebSearcher(directory, hosts=self.hosts[:2])
+        app = server.mount(searcher, autoupdate=1)
         searcher.fields = {}
         assert searcher.update() == 2
         assert len(searcher.hosts) == 2
@@ -139,7 +141,15 @@ class TestCase(remote.BaseTest):
         self.stop(self.servers.pop(0))
         assert searcher.update() == 2
         assert len(searcher.hosts) == 0
-        assert isinstance(searcher, server.WebIndexer)
+        assert isinstance(app.root, server.WebIndexer)
+        assert not hasattr(app.root, 'monitor')
+        app.root.close()
+        app = server.mount(server.WebSearcher(directory))
+        app.root.fields, app.root.autoupdate = {}, 1
+        app.root.update()
+        assert hasattr(app.root, 'monitor')
+        del app.root
 
 if __name__ == '__main__':
+    lucene.initVM()
     unittest.main()

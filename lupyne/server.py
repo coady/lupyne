@@ -299,10 +299,10 @@ class WebSearcher(object):
         if names:
             engine.IndexWriter(self.searcher.directory).close()
         if not self.hosts and hasattr(self, 'fields'):
-            self.indexer = engine.Indexer(self.searcher.directory, analyzer=self.searcher.analyzer)
-            self.indexer.shared, self.indexer.fields = self.searcher.shared, self.fields
-            self.__class__ = WebIndexer
-            del self.__dict__['searcher']
+            other = WebIndexer(self.searcher.directory, analyzer=self.searcher.analyzer)
+            other.indexer.shared, other.indexer.fields = self.searcher.shared, self.fields
+            app, = (app for app in cherrypy.tree.apps.values() if app.root is self)
+            mount(other, app=app, autoupdate=getattr(self, 'autoupdate', 0))
         return len(self.searcher)
     @cherrypy.expose
     @cherrypy.tools.params(**dict.fromkeys(['fields', 'fields.multi', 'fields.indexed', 'fields.vector', 'fields.vector.counts'], multi))
@@ -717,17 +717,25 @@ def init(vmargs='-Xrs', **kwargs):
         if isinstance(app.root, WebSearcher):
             app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))
 
-def mount(root, path='', config=None, autoupdate=0):
+def mount(root, path='', config=None, autoupdate=0, app=None):
     """Attach root and subscribe to plugins.
     
     :param root,path,config: see cherrypy.tree.mount
     :param autoupdate: see command-line options
+    :param app: optionally replace root on existing app
     """
-    if hasattr(root, 'close'):
-        cherrypy.engine.subscribe('stop', root.close)
+    if app is None:
+        app = cherrypy.tree.mount(root, path, config)
+    else:
+        cherrypy.engine.unsubscribe('stop', app.root.close)
+        if hasattr(app.root, 'monitor'):
+            app.root.monitor.unsubscribe()
+        app.root = root
+    cherrypy.engine.subscribe('stop', root.close)
     if autoupdate:
-        AttachedMonitor(cherrypy.engine, root.update, autoupdate).subscribe()
-    return cherrypy.tree.mount(root, path, config)
+        root.monitor = AttachedMonitor(cherrypy.engine, root.update, autoupdate)
+        root.monitor.subscribe()
+    return app
 
 def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, callback=None):
     """Attach root, subscribe to plugins, and start server.

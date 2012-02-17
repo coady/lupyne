@@ -281,7 +281,7 @@ class TestCase(BaseTest):
         os.kill(int(open(pidfile).read()), signal.SIGTERM)
         filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lupyne/server.py')
         assert subprocess.call((sys.executable, filepath, '-c', filepath), stderr=subprocess.PIPE)
-        assert server.mount(None, '/path', config={'': {}})
+        assert cherrypy.tree.mount(None)
         server.init(vmargs=None)
         self.assertRaises(AttributeError, server.start, config=True)
     
