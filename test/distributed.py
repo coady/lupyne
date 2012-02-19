@@ -5,7 +5,7 @@ import sys, subprocess
 import heapq
 import time
 import socket, httplib
-import lucene
+import lucene, cherrypy
 from lupyne import client, server
 from . import remote
 
@@ -126,28 +126,33 @@ class TestCase(remote.BaseTest):
         time.sleep(1.1)
         assert sum(resource.get('/').values()) == 2
         self.stop(self.servers.pop())
-        searcher = server.WebSearcher(directory, hosts=self.hosts[:2])
-        app = server.mount(searcher, autoupdate=1)
-        searcher.fields = {}
-        assert searcher.update() == 2
-        assert len(searcher.hosts) == 2
+        root = server.WebSearcher(directory, hosts=self.hosts[:2])
+        app = server.mount(root)
+        root.fields = {}
+        assert root.update() == 2
+        assert len(root.hosts) == 2
         self.stop(self.servers.pop(0))
         assert replicas.get('/docs')
         assert replicas.call('POST', '/docs', []).status == httplib.METHOD_NOT_ALLOWED
         assert replicas.get('/terms', option='indexed') == []
         assert replicas.call('POST', '/docs', [], retry=True).status == httplib.METHOD_NOT_ALLOWED
-        assert searcher.update() == 2
-        assert len(searcher.hosts) == 1
+        assert root.update() == 2
+        assert len(root.hosts) == 1
         self.stop(self.servers.pop(0))
-        assert searcher.update() == 2
-        assert len(searcher.hosts) == 0
-        assert isinstance(app.root, server.WebIndexer)
-        assert not hasattr(app.root, 'monitor')
+        assert root.update() == 2
+        assert len(root.hosts) == 0 and isinstance(app.root, server.WebIndexer)
         app.root.close()
-        app = server.mount(server.WebSearcher(directory))
-        app.root.fields, app.root.autoupdate = {}, 1
-        app.root.update()
-        assert hasattr(app.root, 'monitor')
+        root = server.WebSearcher(directory)
+        app = server.mount(root, autoupdate=0.1)
+        root.fields, root.autoupdate = {}, 0.1
+        cherrypy.config['log.screen'] = self.config['log.screen']
+        cherrypy.engine.state = cherrypy.engine.states.STARTED
+        root.monitor.start() # simulate engine starting
+        time.sleep(0.2)
+        app.root.indexer.add()
+        time.sleep(0.2)
+        assert len(app.root.indexer) == len(root.searcher) + 1
+        app.root.monitor.unsubscribe()
         del app.root
 
 if __name__ == '__main__':

@@ -209,6 +209,13 @@ class AttachedMonitor(cherrypy.process.plugins.Monitor):
             attach_thread()
             callback()
         cherrypy.process.plugins.Monitor.__init__(self, bus, run, frequency)
+    def subscribe(self):
+        cherrypy.process.plugins.Monitor.subscribe(self)
+        if cherrypy.engine.state == cherrypy.engine.states.STARTED:
+            self.start()
+    def unsubscribe(self):
+        cherrypy.process.plugins.Monitor.unsubscribe(self)
+        self.thread.cancel()
 
 @contextlib.contextmanager
 def HTTPError(status, *exceptions):
