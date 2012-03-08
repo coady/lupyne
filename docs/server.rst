@@ -41,6 +41,10 @@ WebSearcher
 
     optional field settings will trigger indexer promotion when synchronized hosts are exhausted
 
+  .. attribute:: autoupdate
+
+    optional autoupdate timer for use upon indexer promotion
+
 WebIndexer
 -----------
 .. autoclass:: WebIndexer

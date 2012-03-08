@@ -41,7 +41,7 @@ setup(
     long_description=__doc__,
     author='Aric Coady',
     author_email='aric.coady@gmail.com',
-    url='http://lupyne.googlecode.com/',
+    url='https://bitbucket.org/coady/lupyne',
     packages=[dirpath.replace(os.sep, '.') for dirpath, dirnames, filenames in os.walk('lupyne')],
     classifiers=[
         'Development Status :: 5 - Production/Stable',

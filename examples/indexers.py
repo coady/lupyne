@@ -1,5 +1,5 @@
 """
-Basic indexing and searching example adapted from http://lucene.apache.org/java/3_1_0/api/core/index.html
+Basic indexing and searching example adapted from http://lucene.apache.org/java/3_5_0/api/core/index.html
 """
 
 import lucene
@@ -22,7 +22,8 @@ iwriter.addDocument(doc)
 iwriter.close()
 
 # Now search the index:
-isearcher = lucene.IndexSearcher(directory)
+ireader = lucene.IndexReader.open(directory) # read-only=true
+isearcher = lucene.IndexSearcher(ireader)
 # Parse a simple query that searches for "text":
 parser = lucene.QueryParser(lucene.Version.LUCENE_CURRENT, "fieldname", analyzer)
 query = parser.parse("text")
@@ -33,6 +34,7 @@ for hit in hits:
     hitDoc = isearcher.doc(hit.doc)
     assert hitDoc['fieldname'] == text
 isearcher.close()
+ireader.close()
 directory.close()
 
 ### lupyne ###
