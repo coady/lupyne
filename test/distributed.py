@@ -60,12 +60,14 @@ class TestCase(remote.BaseTest):
         assert resources.broadcast('GET', '/')
         assert list(map(len, resources.values())) == counts[::-1]
         host = self.hosts[1]
-        resource = resources.request(host, 'GET', '/')
+        stream = resources[host].stream('GET', '/')
+        resource = next(stream)
         resource.getresponse = lambda: getresponse(socket.error)
-        self.assertRaises(socket.error, resources.getresponse, host, resource)
-        resource = resources.request(host, 'GET', '/')
+        self.assertRaises(socket.error, next, stream)
+        stream = resources[host].stream('GET', '/')
+        resource = next(stream)
         resource.getresponse = lambda: getresponse(httplib.BadStatusLine)
-        assert resources.getresponse(host, resource) is None
+        assert next(stream) is None
         resources.clear()
         self.assertRaises(ValueError, resources.unicast, 'GET', '/')
     

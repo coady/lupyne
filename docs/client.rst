@@ -35,6 +35,12 @@ Resource
   :members:
   :exclude-members: response_class
 
+Pool
+---------
+.. autoclass:: Pool
+  :show-inheritance:
+  :members:
+
 Resources
 ---------
 .. autoclass:: Resources

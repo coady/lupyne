@@ -251,7 +251,7 @@ class WebSearcher(object):
         path = '/' + '{0}/update/{1}/'.format(path, uuid.uuid1()).lstrip('/')
         directory = lucene.FSDirectory.cast_(self.searcher.directory).directory.path
         resource = client.Resource(host)
-        names = set(resource.put(path)).difference(self.searcher.indexCommit.fileNames)
+        names = sorted(set(resource.put(path)).difference(os.listdir(directory)))
         try:
             for name in names:
                 resource.download(path + name, os.path.join(directory, name))
