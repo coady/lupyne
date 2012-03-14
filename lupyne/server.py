@@ -293,11 +293,15 @@ class WebSearcher(object):
         """
         names = ()
         while self.hosts:
+            host = self.hosts[0]
             try:
-                names = self.sync(*self.hosts[0].split('/'))
+                names = self.sync(*host.split('/'))
                 break
             except socket.error:
-                del self.hosts[0]
+                try:
+                    self.hosts.remove(host)
+                except ValueError:
+                    pass
             except httplib.HTTPException as exc:
                 assert exc[0] == httplib.METHOD_NOT_ALLOWED, exc
                 break

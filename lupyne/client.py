@@ -232,6 +232,9 @@ class Replicas(Resources):
         except socket.error:
             self[host].failure = time.time()
             if method != 'GET':
-                del self.hosts[0]
+                try:
+                    self.hosts.remove(host)
+                except ValueError:
+                    pass
             return self.call(method, path, body, retry=retry)
         return response if (response or not retry) else self.call(method, path, body, retry=retry-1)
