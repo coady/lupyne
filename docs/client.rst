@@ -1,6 +1,8 @@
 client
 ======
 .. automodule:: lupyne.client
+.. note::
+  Caching more client connections than the backed server supports will cause blocking under load.  CherryPy's default `thread pool`_ is 10.
 
 Response
 ---------
@@ -37,6 +39,7 @@ Resource
 
 Pool
 ---------
+.. versionadded:: 1.1+
 .. autoclass:: Pool
   :show-inheritance:
   :members:
@@ -60,6 +63,9 @@ Shards
 
 Replicas
 ---------
+.. versionadded:: 1.1+
 .. autoclass:: Replicas
   :show-inheritance:
   :members:
+
+.. _thread pool: http://docs.cherrypy.org/stable/refman/_cpserver.html#cherrypy._cpserver.Server.thread_pool

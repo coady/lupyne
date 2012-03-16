@@ -1,7 +1,8 @@
 """
 Restful json clients.
 
-Use `Resource`_ for a single host.
+Use `Resource`_ for a connection to a single host.
+Use `Pool`_ for persistent thread-safe connections to a single host.
 Use `Resources`_ for multiple hosts with simple partitioning or replication.
 Use `Shards`_ for horizontally partitioning hosts by different keys.
 Use `Replicas`_ in coordination with automatic host synchronization.

@@ -21,10 +21,12 @@ Options:
   --real-time           search in real-time without committing
 
 .. automodule:: lupyne.server
+.. note::
+  Lucene doc ids are ephemeral;  only use doc ids across requests for the same index version.
 
 tools
 -----------
-`CherryPy tools <http://docs.cherrypy.org/stable/progguide/extending/customtools.html>`_ enabled by default:  tools.\{json,allow,time,validate\}.on
+`CherryPy tools`_ enabled by default:  tools.\{json,allow,time,validate\}.on
 
 .. autofunction:: json_
 .. autofunction:: allow
@@ -36,6 +38,9 @@ WebSearcher
 .. autoclass:: WebSearcher
   :members:
   :exclude-members: new, sync
+
+  .. versionchanged:: 1.1+
+    automatic synchronization and promotion
 
   .. attribute:: fields
 
@@ -55,3 +60,5 @@ start
 -----------
 .. autofunction:: mount
 .. autofunction:: start
+
+.. _CherryPy tools: http://docs.cherrypy.org/stable/progguide/extending/customtools.html

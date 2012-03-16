@@ -24,10 +24,19 @@ Advanced search features:
 
 Changes in 1.1+:
 ==================
+ * Engine:
+   
+   - Support for all IndexWriterConfig options
+
  * Server:
    
    - Synchronization of searcher with remote hosts
    - Automatic promotion of searcher to indexer
+
+ * Client:
+   
+   - Resource pooling for single hosts
+   - Replica support with automatic failover
 """
 
 import os

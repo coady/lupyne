@@ -8,7 +8,6 @@ All request and response bodies are `application/json values <http://tools.ietf.
 
 WebSearcher exposes resources for an IndexSearcher.
 In addition to search requests, it provides access to term and document information in the index.
-Note Lucene doc ids are ephemeral;  they should only be used across requests for the same index version.
 
  * :meth:`/ <WebSearcher.index>`
  * :meth:`/search <WebSearcher.search>`
@@ -20,8 +19,8 @@ WebIndexer extends WebSearcher, exposing additional resources and methods for an
 Single documents may be added, deleted, or replaced by a unique indexed field.
 Multiples documents may also be added or deleted by query at once.
 By default changes are not visible until the update resource is called to commit a new index version.
-If a near real-time Indexer is used (an experimental feature in Lucene), then changes are instantly searchable.
-In such cases a commit still hasn't occurred;  the index based :meth:`last-modified header <validate>` shouldn't be used for caching.
+If a near real-time Indexer is used, then changes are instantly searchable.
+In such cases a commit still hasn't occurred, and the index based :meth:`last-modified header <validate>` shouldn't be used for caching.
 
  * :meth:`/ <WebIndexer.index>`
  * :meth:`/search <WebIndexer.search>`

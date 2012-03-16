@@ -3,15 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Lupyne's documentation!
+Lupyne's documentation
 ==================================
 
-`Lupyne <https://bitbucket.org/coady/lupyne>`_ provides:
- * high-level Pythonic search `engine <engine.html>`_ interface to `PyLucene <http://lucene.apache.org/pylucene/>`_
- * `RESTful <http://en.wikipedia.org/wiki/Representational_State_Transfer>`_ `JSON <http://json.org/>`_ `CherryPy <http://cherrypy.org/>`_ `server <server.html>`_
- * simple Python `client <client.html>`_ for interacting with the server
+Lupyne_ is:
+ * a high-level Pythonic search `engine <engine.html>`_ library, built on PyLucene_
+ * a RESTful_ JSON_ search `server <server.html>`_, built on CherryPy_
+ * a simple Python `client <client.html>`_ for interacting with the server
 
-Quickstart:
+Quickstart
+^^^^^^^^^^
 
   >>> from lupyne import engine                       # don't forget to call lucene.initVM
   >>> indexer = engine.Indexer()                      # create an in-memory index (no filename supplied)
@@ -32,7 +33,8 @@ Quickstart:
 
 See more `examples <examples.html>`_
 
-Contents:
+Contents
+^^^^^^^^^^
 
 .. toctree::
 
@@ -51,3 +53,9 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+.. _Lupyne: https://bitbucket.org/coady/lupyne
+.. _PyLucene: http://lucene.apache.org/pylucene/
+.. _RESTful: http://en.wikipedia.org/wiki/Representational_State_Transfer
+.. _JSON: http://json.org/
+.. _CherryPy: http://cherrypy.org
