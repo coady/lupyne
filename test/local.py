@@ -15,17 +15,14 @@ from . import fixture
 
 class typeAsPayload(engine.TokenFilter):
     "Custom implementation of lucene TypeAsPayloadTokenFilter."
-    def incrementToken(self):
-        result = engine.TokenFilter.incrementToken(self)
+    def setattrs(self):
         self.payload = self.type.encode('utf8')
-        return result
 
 @contextlib.contextmanager
 def assertWarns(*categories):
     with warnings.catch_warnings(record=True) as messages:
         yield
-    assert len(messages) == len(categories), messages
-    for message, category in zip(messages, categories):
+    for message, category in itertools.izip_longest(messages, categories):
          assert issubclass(message.category, category), message
 
 class Filter(lucene.PythonFilter):

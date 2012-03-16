@@ -69,23 +69,14 @@ def copy(commit, dest):
                 if not os.path.samefile(*paths):
                     raise
 
-class TokenFilter(lucene.PythonTokenFilter):
-    """Create an iterable lucene TokenFilter from a TokenStream.
-    Subclass and override :meth:`incrementToken`.
-    Attributes are cached as properties to create a Token interface.
-    """
-    def __init__(self, input):
-        lucene.PythonTokenFilter.__init__(self, input)
-        self.input = input
+class TokenStream(lucene.TokenStream):
+    "TokenStream mixin with support for iteration and attributes cached as properties."
     def __iter__(self):
         return self
     def next(self):
         if self.incrementToken():
             return self
         raise StopIteration
-    def incrementToken(self):
-        "Advance to next token and return whether the stream is not empty."
-        return self.input.incrementToken()
     def __getattr__(self, name):
         cls = getattr(lucene, name + 'Attribute').class_
         attr = self.getAttribute(cls) if self.hasAttribute(cls) else self.addAttribute(cls)
@@ -127,6 +118,22 @@ class TokenFilter(lucene.PythonTokenFilter):
     @type.setter
     def type(self, text):
         self.Type.setType(text)
+
+class TokenFilter(lucene.PythonTokenFilter, TokenStream):
+    """Create an iterable lucene TokenFilter from a TokenStream.
+    Subclass and override :meth:`incrementToken` or :meth:`setattrs`.
+    """
+    def __init__(self, input):
+        lucene.PythonTokenFilter.__init__(self, input)
+        self.input = input
+    def incrementToken(self):
+        "Advance to next token and return whether the stream is not empty."
+        result = self.input.incrementToken()
+        self.setattrs()
+        return result
+    def setattrs(self):
+        "Customize current token."
+        pass
 
 class Analyzer(lucene.PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.

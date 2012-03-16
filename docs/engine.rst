@@ -7,9 +7,15 @@ indexers
 ---------
 .. automodule:: lupyne.engine.indexers
 
+TokenStream
+^^^^^^^^^^^^^
+.. autoclass:: TokenStream
+  :members:
+
 TokenFilter
 ^^^^^^^^^^^^^
 .. autoclass:: TokenFilter
+  :show-inheritance:
   :members:
 
 Analyzer
