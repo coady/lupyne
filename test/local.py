@@ -160,10 +160,13 @@ class TestCase(BaseTest):
         assert reader[0].dict() == {} and reader.count('text', '?') == 1
         assert len(reader.comparator('text')) == 4
         indexer.delete('text', '?')
-        indexer.commit(expunge=True)
+        with assertWarns(DeprecationWarning):
+            indexer.commit(expunge=True)
+        indexer.commit(merge=True)
         assert not indexer.hasDeletions()
-        indexer.commit(optimize=2)
-        indexer.commit(optimize=True)
+        indexer.commit(merge=2)
+        with assertWarns(DeprecationWarning):
+            indexer.commit(optimize=True)
         assert indexer.optimized
         del reader.indexReader
         self.assertRaises(AttributeError, getattr, reader, 'maxDoc')
@@ -342,7 +345,7 @@ class TestCase(BaseTest):
         files = set(os.listdir(self.tempdir))
         path = os.path.join(self.tempdir, 'temp')
         with indexer.snapshot('backup') as commit:
-            indexer.commit(optimize=True)
+            indexer.commit(merge=1)
             assert indexer.indexCommit.generation > commit.generation
             engine.indexers.copy(commit, path)
             assert set(os.listdir(path)) == set(commit.fileNames) < files < set(os.listdir(self.tempdir))
@@ -401,7 +404,8 @@ class TestCase(BaseTest):
         searcher = engine.IndexSearcher(directory)
         assert len(searcher) == size and list(searcher.terms('state')) == ['CA']
         path = os.path.join(self.tempdir, 'temp')
-        size = indexer.copy(path, exclude=query, optimize=True)
+        with assertWarns(DeprecationWarning):
+            size = indexer.copy(path, exclude=query, optimize=True)
         assert len(searcher) + size == len(indexer)
         searcher = engine.IndexSearcher(path)
         assert searcher.optimized and 'CA' not in searcher.terms('state')

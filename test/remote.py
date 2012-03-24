@@ -87,6 +87,8 @@ class TestCase(BaseTest):
             resource.post('/terms')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.get('/update')
+        with local.assertWarns(UserWarning):
+            resource.post('/update', [])
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.post('/update/snapshot')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
@@ -223,7 +225,7 @@ class TestCase(BaseTest):
         resource = client.Resource('localhost', self.ports[0])
         assert not resource.delete('/search', q='sample', **{'q.field': 'name', 'q.type': 'term'})
         assert resource.get('/docs') == [0]
-        assert not resource.post('/update', ['expunge'])
+        assert not resource.post('/update', {'merge': True})
         assert resource.get('/docs') == []
         assert not resource.put('/docs/name/sample')
         assert resource.post('/update')
@@ -298,7 +300,7 @@ class TestCase(BaseTest):
             assert sorted(resource.get('/fields/' + name)) == ['index', 'store', 'termvector']
         resource.post('/docs', list(fixture.constitution.docs()))
         assert resource.get('/').values() == [35]
-        resource.post('/update', ['optimize', 'spellcheckers'])
+        resource.post('/update', {'spellcheckers': True, 'merge': 1})
         assert resource.get('/docs/0', **{'fields.indexed': 'amendment:int'}) == {'amendment': 0, 'article': 'Preamble'}
         doc = resource.get('/docs/0', **{'fields.vector': 'text,missing'})
         assert doc['missing'] == [] and doc['text'].index('states') < doc['text'].index('united')

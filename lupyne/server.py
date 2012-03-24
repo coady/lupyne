@@ -158,6 +158,12 @@ def params(**types):
 def multi(value):
     return value and value.split(',')
 
+def mapping(value):
+    if isinstance(value, dict):
+        return value
+    cherrypy.response.headers['warning'] = '199 lupyne "use an object instead of an array"'
+    return dict.fromkeys(value, True)
+
 class params:
     "Parameter parsing."
     @staticmethod
@@ -283,7 +289,7 @@ class WebSearcher(object):
         readers = reader.sequentialSubReaders if lucene.MultiReader.instance_(reader) else [reader]
         return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
-    @cherrypy.tools.json_in(process_body=lambda body: dict.fromkeys(body, True))
+    @cherrypy.tools.json_in(process_body=mapping)
     @cherrypy.tools.allow(methods=['POST'])
     def update(self, **caches):
         """Refresh index version.
@@ -291,7 +297,9 @@ class WebSearcher(object):
         **POST** /update
             Reopen searcher, optionally reloading caches, and return document count.
             
-            ["filters"|"sorters"|"spellcheckers",... ]
+            {"filters"|"sorters"|"spellcheckers": true,... }
+            
+            .. versionchanged:: 1.1+ request body is an object instead of an array
             
             :return: *int*
         """
@@ -590,9 +598,8 @@ class WebIndexer(WebSearcher):
         else:
             cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
-    @cherrypy.tools.json_in(process_body=lambda body: {'directories': list(body)})
     @cherrypy.tools.allow(methods=['GET', 'POST'])
-    def index(self, directories=()):
+    def index(self):
         """Add indexes.  See :meth:`WebSearcher.index` for GET method.
         
         **POST** /[index]
@@ -600,13 +607,14 @@ class WebIndexer(WebSearcher):
             
             [*string*,... ]
         """
-        if cherrypy.request.method == 'POST':
-            for directory in directories:
+        request = cherrypy.serving.request
+        if request.method == 'POST':
+            for directory in getattr(request, 'json', ()):
                 self.indexer += directory
             self.refresh()
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
-    @cherrypy.tools.json_in(process_body=lambda body: dict.fromkeys(body, True))
+    @cherrypy.tools.json_in(process_body=mapping)
     @cherrypy.tools.allow(paths=[('POST',), ('GET', 'PUT', 'DELETE'), ('GET',)])
     def update(self, id='', name='', **options):
         """Commit index changes and refresh index version.
@@ -614,7 +622,9 @@ class WebIndexer(WebSearcher):
         **POST** /update
             Commit write operations and return document count.  See :meth:`WebSearcher.update` for caching options.
             
-            ["expunge"|"optimize",... ]
+            {"merge": true|\ *int*,... }
+            
+            .. versionchanged:: 1.1+ request body is an object instead of an array
             
             :return: *int*
         
