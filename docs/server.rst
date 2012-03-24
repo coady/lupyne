@@ -26,11 +26,12 @@ Options:
 
 tools
 -----------
-`CherryPy tools`_ enabled by default:  tools.\{json,allow,time,validate\}.on
+`CherryPy tools`_ enabled by default:  tools.\{json_in,json_out,allow,timer,validate\}.on
 
-.. autofunction:: json_
+.. autofunction:: json_in
+.. autofunction:: json_out
 .. autofunction:: allow
-.. autofunction:: time_
+.. autofunction:: timer
 .. autofunction:: validate
 
 WebSearcher

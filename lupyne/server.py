@@ -64,16 +64,15 @@ except ValueError:
 def tool(hook):
     "Return decorator to register tool at given hook point."
     def decorator(func):
-        setattr(cherrypy.tools, func.__name__.rstrip('_'), cherrypy.Tool(hook, func))
+        setattr(cherrypy.tools, func.__name__, cherrypy.Tool(hook, func))
         return func
     return decorator
 
 @tool('before_handler')
-def json_(indent=None, content_type='application/json', process_body=None):
-    """Handle request bodies and responses in json format.
+def json_in(content_type='application/json', process_body=None):
+    """Handle request bodies in json format.
     
-    :param indent: indentation level for pretty printing
-    :param content_type: request media type and response content-type header
+    :param content_type: request media type
     :param process_body: optional function to process body into request.params
     """
     request = cherrypy.serving.request
@@ -84,18 +83,25 @@ def json_(indent=None, content_type='application/json', process_body=None):
         if process_body is not None:
             with HTTPError(httplib.BAD_REQUEST, TypeError):
                 request.params.update(process_body(request.json))
-    elif media_type is not None:
-        message = "Received Content-Type header {0}; only {1} is supported.".format(media_type, content_type)
+    elif media_type:
+        message = "Expected an entity of content type {0}".format(content_type)
         raise cherrypy.HTTPError(httplib.UNSUPPORTED_MEDIA_TYPE, message)
+
+@tool('before_handler')
+def json_out(content_type='application/json', indent=None):
+    """Handle responses in json format.
+    
+    :param content_type: response content-type header
+    :param indent: indentation level for pretty printing
+    """
+    request = cherrypy.serving.request
+    request._json_inner_handler = request.handler
     headers = cherrypy.response.headers
-    handler = request.handler
-    def json_handler(*args, **kwargs):
-        body = handler(*args, **kwargs)
-        if headers['content-type'].startswith('text/'):
-            headers['content-type'] = content_type
-            body = json.dumps(body, indent=indent)
-        return body
-    request.handler = json_handler
+    headers['content-type'] = content_type
+    def handler(*args, **kwargs):
+        body = request._json_inner_handler(*args, **kwargs)
+        return json.dumps(body, indent=indent) if headers['content-type'] == content_type else body
+    request.handler = handler
 
 @tool('on_start_resource')
 def allow(methods=('GET',), paths=()):
@@ -106,13 +112,12 @@ def allow(methods=('GET',), paths=()):
             methods = paths[len(request.handler.args)]
     if 'GET' in methods and 'HEAD' not in methods:
         methods += 'HEAD',
-    if request.method not in methods and not isinstance(request.handler, cherrypy.HTTPError):
-        cherrypy.response.headers['allow'] = ', '.join(methods)
-        message = "The path {0!r} does not allow {1}.".format(request.path_info, request.method)
-        raise cherrypy.HTTPError(httplib.METHOD_NOT_ALLOWED, message)
+    cherrypy.response.headers['allow'] = ', '.join(methods)
+    if request.method not in methods:
+        raise cherrypy.HTTPError(httplib.METHOD_NOT_ALLOWED)
 
 @tool('before_finalize')
-def time_():
+def timer():
     "Return response time in headers."
     response = cherrypy.serving.response
     response.headers['x-response-time'] = time.time() - response.time
@@ -229,7 +234,7 @@ class WebSearcher(object):
     
     :param hosts: ordered hosts to synchronize with
     """
-    _cp_config = dict.fromkeys(map('tools.{0}.on'.format, ['gzip', 'accept', 'json', 'allow', 'time', 'validate']), True)
+    _cp_config = dict.fromkeys(map('tools.{0}.on'.format, ['gzip', 'accept', 'json_in', 'json_out', 'allow', 'timer', 'validate']), True)
     _cp_config.update({'error_page.default': json_error, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json'], 'tools.accept.media': 'application/json'})
     def __init__(self, *directories, **kwargs):
         self.hosts = collections.deque(kwargs.pop('hosts', ()))
@@ -258,7 +263,7 @@ class WebSearcher(object):
             resource.delete(path)
         return names
     @cherrypy.expose
-    @cherrypy.tools.json(process_body=dict)
+    @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(methods=['GET', 'POST'])
     def index(self, host='', path=''):
         """Return index information and synchronize with remote index.
@@ -278,7 +283,7 @@ class WebSearcher(object):
         readers = reader.sequentialSubReaders if lucene.MultiReader.instance_(reader) else [reader]
         return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
-    @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
+    @cherrypy.tools.json_in(process_body=lambda body: dict.fromkeys(body, True))
     @cherrypy.tools.allow(methods=['POST'])
     def update(self, **caches):
         """Refresh index version.
@@ -585,7 +590,7 @@ class WebIndexer(WebSearcher):
         else:
             cherrypy.response.status = httplib.ACCEPTED
     @cherrypy.expose
-    @cherrypy.tools.json(process_body=lambda body: {'directories': list(body)})
+    @cherrypy.tools.json_in(process_body=lambda body: {'directories': list(body)})
     @cherrypy.tools.allow(methods=['GET', 'POST'])
     def index(self, directories=()):
         """Add indexes.  See :meth:`WebSearcher.index` for GET method.
@@ -601,7 +606,7 @@ class WebIndexer(WebSearcher):
             self.refresh()
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
-    @cherrypy.tools.json(process_body=lambda body: dict.fromkeys(body, True))
+    @cherrypy.tools.json_in(process_body=lambda body: dict.fromkeys(body, True))
     @cherrypy.tools.allow(paths=[('POST',), ('GET', 'PUT', 'DELETE'), ('GET',)])
     def update(self, id='', name='', **options):
         """Commit index changes and refresh index version.
@@ -691,7 +696,7 @@ class WebIndexer(WebSearcher):
         self.refresh()
     search._cp_config.update(WebSearcher.search._cp_config)
     @cherrypy.expose
-    @cherrypy.tools.json(process_body=dict)
+    @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(paths=[('GET',), ('GET', 'PUT')])
     @cherrypy.tools.validate(on=False)
     def fields(self, name='', **settings):
