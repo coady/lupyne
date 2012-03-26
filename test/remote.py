@@ -216,7 +216,7 @@ class TestCase(BaseTest):
         assert result['facets'] == {'name': {'sample': 1}} and result['spellcheck'] == {}
         resource = client.Resource('localhost', self.ports[-1])
         assert set(resource.get('/').values()) < set([0, 1])
-        assert resource.post('/update', ['filters', 'sorters']) == 2
+        assert resource.post('/update', {'filters': True, 'sorters': True}) == 2
         assert resource.get('/docs') == [0, 1]
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/docs/name/sample')
