@@ -66,14 +66,15 @@ class TestCase(BaseTest):
     
     def testInterface(self):
         "Remote reading and writing."
+        config = {'tools.json_out.indent': 2, 'tools.validate.expires': 0, 'tools.validate.max_age': 0}
         self.servers += (
-            self.start(self.ports[0], self.tempdir, '--autoreload=1', **{'tools.validate.expires': 0, 'tools.validate.max_age': 0}),
+            self.start(self.ports[0], self.tempdir, '--autoreload=1', **config),
             self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2.0'), # concurrent searchers
         )
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
         response = resource.call('GET', '/')
-        assert response.status == httplib.OK and response.reason == 'OK' and response.time > 0
+        assert response.status == httplib.OK and response.reason == 'OK' and response.time > 0 and '\n' in response.body
         assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('application/json')
         version, modified = response.getheader('etag'), response.getheader('last-modified')
         assert version.strip('W/"').isdigit()
@@ -81,7 +82,7 @@ class TestCase(BaseTest):
         dates = list(map(parsedate, [modified, response.getheader('expires'), response.getheader('date')]))
         assert all(dates) and sorted(dates) == dates
         (directory, count), = response().items()
-        assert count == 0 and 'FSDirectory@' in directory
+        assert count == 0 and 'Directory@' in directory
         assert resource.call('HEAD', '/').status == httplib.OK
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.post('/terms')
@@ -159,7 +160,8 @@ class TestCase(BaseTest):
         response = resource.call('GET', '/')
         assert response and response.getheader('etag') != version and parsedate(response.getheader('last-modified')) > parsedate(modified)
         resource.headers['if-match'] = version
-        assert resource.call('GET', '/docs/0').status == httplib.PRECONDITION_FAILED
+        response = resource.call('GET', '/docs/0')
+        assert response.status == httplib.PRECONDITION_FAILED and '\n' in response.body
         del resource.headers['if-match']
         assert resource.get('/docs') == [0]
         assert resource.get('/docs/0') == resource.get('/docs/name/sample') == {'name': 'sample'}

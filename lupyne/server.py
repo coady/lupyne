@@ -198,7 +198,7 @@ class params:
 
 def json_error(version, **body):
     "Transform errors into json format."
-    tool = cherrypy.request.toolmaps['tools'].get('json', {})
+    tool = cherrypy.request.toolmaps['tools'].get('json_out', {})
     cherrypy.response.headers['content-type'] = tool.get('content_type', 'application/json')
     return json.dumps(body, indent=tool.get('indent'))
 
