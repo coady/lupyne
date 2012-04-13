@@ -65,33 +65,28 @@ class NestedField(Field):
     def __init__(self, name, sep='.', index=True, **kwargs):
         Field.__init__(self, name, index=index, **kwargs)
         self.sep = sep
-        self.names = self.split(name)
-    def split(self, value):
-        "Return sequence of words from name or value."
-        return tuple(value.split(self.sep))
-    def join(self, words):
-        "Return text from separate words."
-        return self.sep.join(words)
-    def getname(self, index):
-        "Return prefix of field name."
-        return self.join(self.names[:index])
+        self.names = tuple(self.values(name))
+    def values(self, value):
+        "Generate component field values in order."
+        value = value.split(self.sep)
+        for index in range(1, len(value) + 1):
+            yield self.sep.join(value[:index])
     def items(self, *values):
         "Generate indexed component fields."
         if self.store.stored:
             for value in values:
                 yield lucene.Field(self.name, value, self.store, lucene.Field.Index.NO)
         for value in values:
-            value = self.split(value)
-            for index in range(1, len(value) + 1):
-                yield lucene.Field(self.getname(index), self.join(value[:index]), lucene.Field.Store.NO, self.index, self.termvector)
+            for index, text in enumerate(self.values(value)):
+                yield lucene.Field(self.names[index], text, lucene.Field.Store.NO, self.index, self.termvector)
     def prefix(self, value):
         "Return prefix query of the closest possible prefixed field."
-        index = len(self.split(value))
-        return Query.prefix(self.getname(index), value)
+        index = value.count(self.sep)
+        return Query.prefix(self.names[index], value)
     def range(self, start, stop, lower=True, upper=False):
         "Return range query of the closest possible prefixed field."
-        index = max(len(self.split(value)) for value in (start, stop) if value is not None)
-        return Query.range(self.getname(index), start, stop, lower, upper)
+        index = max(value.count(self.sep) for value in (start, stop) if value is not None)
+        return Query.range(self.names[index], start, stop, lower, upper)
 
 class NumericField(Field):
     """Field which indexes numbers in a prefix tree.
@@ -112,19 +107,24 @@ class NumericField(Field):
             else:
                 field.longValue = long(value)
             yield field
-    def range(self, start, stop, lower=True, upper=False):
-        "Return lucene NumericRangeQuery."
+    def numeric(self, cls, start, stop, lower, upper):
         if isinstance(start, float) or isinstance(stop, float):
             start, stop = (value if value is None else lucene.Double(value) for value in (start, stop))
-            return lucene.NumericRangeQuery.newDoubleRange(self.name, self.step, start, stop, lower, upper)
+            return cls.newDoubleRange(self.name, self.step, start, stop, lower, upper)
         if start is not None:
             start = None if start < lucene.Long.MIN_VALUE else lucene.Long(long(start))
         if stop is not None:
             stop = None if stop > lucene.Long.MAX_VALUE else lucene.Long(long(stop))
-        return lucene.NumericRangeQuery.newLongRange(self.name, self.step, start, stop, lower, upper)
+        return cls.newLongRange(self.name, self.step, start, stop, lower, upper)
+    def range(self, start, stop, lower=True, upper=False):
+        "Return lucene NumericRangeQuery."
+        return self.numeric(lucene.NumericRangeQuery, start, stop, lower, upper)
     def term(self, value):
         "Return range query to match single term."
         return self.range(value, value, upper=True)
+    def filter(self, start, stop, lower=True, upper=False):
+        "Return lucene NumericRangeFilter."
+        return self.numeric(lucene.NumericRangeFilter, start, stop, lower, upper)
 
 class DateTimeField(NumericField):
     """Field which indexes datetimes as a NumericField of timestamps.

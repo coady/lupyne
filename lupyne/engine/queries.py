@@ -18,7 +18,12 @@ class Query(object):
         base.__init__(self, *args)
     def filter(self, cache=True):
         "Return lucene CachingWrapperFilter, optionally just QueryWrapperFilter."
-        filter = lucene.QueryWrapperFilter(self)
+        if isinstance(self, lucene.PrefixQuery):
+            filter = lucene.PrefixFilter(self.getPrefix())
+        elif isinstance(self, lucene.TermRangeQuery):
+            filter = lucene.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
+        else:
+            filter = lucene.QueryWrapperFilter(self)
         return lucene.CachingWrapperFilter(filter) if cache else filter
     def terms(self):
         "Generate set of query term items."
@@ -140,6 +145,10 @@ class BooleanQuery(Query):
 
 class SpanQuery(Query):
     "Inherited lucene SpanQuery with additional span constructors."
+    def filter(self, cache=True):
+        "Return lucene CachingSpanFilter, optionally just SpanQueryFilter."
+        filter = lucene.SpanQueryFilter(self)
+        return lucene.CachingSpanFilter(filter) if cache else filter
     def __getitem__(self, slc):
         start, stop, step = slc.indices(lucene.Integer.MAX_VALUE)
         assert step == 1, 'slice step is not supported'
@@ -217,6 +226,10 @@ class SortField(lucene.SortField):
             lucene.System.arraycopy(array, 0, result, index, len(array))
             index += len(array)
         return result
+    def filter(self, start, stop, lower=True, upper=False):
+        "Return lucene FieldCacheRangeFilter based on field and type."
+        method = getattr(lucene.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))
+        return method(self.field, self.parser, start, stop, lower, upper)
 
 class Highlighter(lucene.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.

@@ -118,6 +118,7 @@ class TestCase(BaseTest):
         query = engine.Query.span('text', 'world')
         assert str(query.mask('name')) == 'mask(text:world) as name'
         assert str(query.payload()) == 'spanPayCheck(text:world, payloadRef: )'
+        assert isinstance(query.filter(cache=False), lucene.SpanQueryFilter) and isinstance(query.filter(), lucene.CachingSpanFilter)
         query = engine.Query.disjunct(0.1, query, name='sample')
         assert str(query) == '(text:world | name:sample)~0.1'
         query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
@@ -274,7 +275,7 @@ class TestCase(BaseTest):
         amendments = ['18', '19']
         assert sorted(hit['amendment'] for hit in hits) == amendments
         query = engine.Query.range('date', '1919', '1921')
-        hits = indexer.search(query)
+        hits = indexer.search(filter=query.filter())
         assert sorted(hit['amendment'] for hit in hits) == amendments
         hits = indexer.search(query | engine.Query.term('text', 'vote'))
         assert set(hit.get('amendment') for hit in hits) > set(amendments)
@@ -515,6 +516,7 @@ class TestCase(BaseTest):
         assert [int(hit['amendment']) for hit in hits] == [1, 2, 3]
         hits = indexer.search(count=3, sort='year', reverse=True)
         assert [int(hit['amendment']) for hit in hits] == [27, 26, 25]
+        assert indexer.count(filter=indexer.sorters['year'].filter(None, 1792)) == 10
         assert cache == len(lucene.FieldCache.DEFAULT.cacheEntries)
         indexer.add()
         indexer.commit(sorters=True)
@@ -532,8 +534,7 @@ class TestCase(BaseTest):
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
         indexer.commit()
-        query = indexer.fields['amendment'].range(None, 10)
-        assert indexer.count(query) == 9
+        assert indexer.count(filter=indexer.fields['amendment'].filter(None, 10)) == 9
         field = indexer.fields['date']
         query = field.prefix((1791, 12))
         assert indexer.count(query) == 10
