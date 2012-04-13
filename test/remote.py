@@ -155,6 +155,7 @@ class TestCase(BaseTest):
         del resource.headers['if-none-match']
         resource.headers['if-modified-since'] = modified
         assert resource.call('GET', '/').status == httplib.NOT_MODIFIED
+        del resource.headers['if-modified-since']
         time.sleep(max(0, calendar.timegm(parsedate(modified)) + 1 - time.time()))
         assert resource.post('/update')
         response = resource.call('GET', '/')
@@ -249,7 +250,7 @@ class TestCase(BaseTest):
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/docs/missing/sample')
         assert not resource.delete('/search')
-        responses = resource.multicall(('POST', '/docs', [{}]), ('POST', '/update'), ('GET', '/docs'))
+        responses = list(resource.multicall(('POST', '/docs', [{}]), ('POST', '/update'), ('GET', '/docs')))
         assert responses[0].status == httplib.ACCEPTED and responses[1]() == len(responses[2]()) == 1
         assert resource.post('/', [self.tempdir]).values() == [2]
         with local.assertWarns(DeprecationWarning, UserWarning):

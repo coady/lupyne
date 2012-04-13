@@ -123,29 +123,27 @@ def timer():
     response.headers['x-response-time'] = time.time() - response.time
 
 @tool('on_start_resource')
-def validate(methods=('GET', 'HEAD'), etag=True, last_modified=True, max_age=None, expires=None):
-    """Return and validate caching headers for GET requests.
+def validate(etag=True, last_modified=True, max_age=None, expires=None):
+    """Return and validate caching headers.
     
-    :param methods: only set headers for specified methods
     :param etag: return weak entity tag header based on index version and validate if-match headers
     :param last_modified: return last-modified header based on index timestamp and validate if-modified headers
     :param max_age: return cache-control max-age and age headers based on last update timestamp
     :param expires: return expires header offset from last update timestamp
     """
-    request = cherrypy.serving.request
+    root = cherrypy.request.app.root
     headers = cherrypy.response.headers
-    if request.method in methods and not isinstance(request.handler, cherrypy.HTTPError):
-        if etag:
-            headers['etag'] = 'W/"{0}"'.format(request.app.root.searcher.version)
-            cherrypy.lib.cptools.validate_etags()
-        if last_modified:
-            headers['last-modified'] = formatdate(request.app.root.searcher.timestamp, usegmt=True)
-            cherrypy.lib.cptools.validate_since()
-        if max_age is not None:
-            headers['age'] = int(time.time() - request.app.root.updated)
-            headers['cache-control'] = 'max-age={0}'.format(max_age)
-        if expires is not None:
-            headers['expires'] = formatdate(expires + request.app.root.updated, usegmt=True)
+    if etag:
+        headers['etag'] = 'W/"{0}"'.format(root.searcher.version)
+        cherrypy.lib.cptools.validate_etags()
+    if last_modified:
+        headers['last-modified'] = formatdate(root.searcher.timestamp, usegmt=True)
+        cherrypy.lib.cptools.validate_since()
+    if max_age is not None:
+        headers['age'] = int(time.time() - root.updated)
+        headers['cache-control'] = 'max-age={0}'.format(max_age)
+    if expires is not None:
+        headers['expires'] = formatdate(expires + root.updated, usegmt=True)
 
 @tool('before_handler')
 def params(**types):
@@ -310,10 +308,7 @@ class WebSearcher(object):
                 names = self.sync(*host.split('/'))
                 break
             except socket.error:
-                try:
-                    self.hosts.remove(host)
-                except ValueError:
-                    pass
+                client.Replicas.discard.__func__(self, host)
             except httplib.HTTPException as exc:
                 assert exc[0] == httplib.METHOD_NOT_ALLOWED, exc
                 break

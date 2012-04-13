@@ -49,7 +49,6 @@ Resources
 .. autoclass:: Resources
   :show-inheritance:
   :members:
-  :exclude-members: queue
 
 Shards
 ---------

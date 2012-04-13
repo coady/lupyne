@@ -114,6 +114,7 @@ class TestCase(remote.BaseTest):
         for args in [('-r', self.tempdir), (update, self.tempdir), (update, self.tempdir, self.tempdir)]:
             assert subprocess.call((sys.executable, '-m', 'lupyne.server', sync) + args, stderr=subprocess.PIPE)
         replicas = client.Replicas(self.hosts[:2], limit=1)
+        replicas.discard(None)
         replicas.post('/docs', [{}])
         assert replicas.post('/update') == 1
         resource = client.Resource(self.hosts[2])

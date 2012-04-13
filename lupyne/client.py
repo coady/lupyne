@@ -88,7 +88,7 @@ class Resource(httplib.HTTPConnection):
         self.request('GET', path)
         return self.getresponse(filename)()
     def multicall(self, *requests):
-        "Pipeline requests (method, path[, body]) and return completed responses."
+        "Pipeline requests (method, path[, body]) and generate completed responses."
         responses = []
         for request in requests:
             self.request(*request)
@@ -97,7 +97,7 @@ class Resource(httplib.HTTPConnection):
         for response in responses:
             response.begin()
             response.end()
-        return responses
+            yield response
     def get(self, path, **params):
         "Return response body from GET request."
         return self.call('GET', path, params=params)()
@@ -220,6 +220,12 @@ class Replicas(Resources):
         pool = self[host]
         if not pool.failure:
             return -len(pool)
+    def discard(self, host):
+        "Remove host from availablity."
+        try:
+            self.hosts.remove(host)
+        except ValueError:
+            pass
     def call(self, method, path, body=None, params=(), retry=False):
         """Send request and return completed `response`_, even if hosts are unreachable.
         
@@ -233,9 +239,6 @@ class Replicas(Resources):
         except socket.error:
             self[host].failure = time.time()
             if method != 'GET':
-                try:
-                    self.hosts.remove(host)
-                except ValueError:
-                    pass
+                self.discard(host)
             return self.call(method, path, body, retry=retry)
         return response if (response or not retry) else self.call(method, path, body, retry=retry-1)
