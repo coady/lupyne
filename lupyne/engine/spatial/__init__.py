@@ -9,6 +9,7 @@ The quadkeys are then indexed using a prefix tree, creating a cartesian tier of 
 """
 
 import itertools
+import warnings
 import lucene
 from .globalmaptiles import GlobalMercator
 from ..queries import Query
@@ -104,8 +105,8 @@ class PointField(NumericField, Tiler):
         return Query.any(*itertools.starmap(self.range, slices))
     def filter(self, lng, lat, distance, lngfield, latfield, limit=Tiler.base):
         """Return lucene LatLongDistanceFilter based on :meth:`within` query.
-        Alternative distance comparator which requires the spatial contrib module.
-        Distances estimates may be more accurate, and performance may vary.
+        
+        .. deprecated:: 1.1+ spatial contrib module deprecated as of lucene 3.6
         """
         filter = self.within(lng, lat, distance, limit).filter()
         return DistanceFilter(filter, lng, lat, distance, lngfield, latfield)
@@ -137,6 +138,7 @@ class DistanceFilter(getattr(lucene, 'LatLongDistanceFilter', object)):
     "Inherited lucene LatLongDistanceFilter which supports the comparator interface."
     meters = 1609.344
     def __init__(self, filter, lng, lat, distance, lngfield, latfield):
+        warnings.warn('Spatial contrib module deprecated as of lucene 3.6.', DeprecationWarning)
         lucene.LatLongDistanceFilter.__init__(self, filter, lat, lng, distance / self.meters, latfield, lngfield)
     def __getitem__(self, id):
         distance = self.getDistance(id)

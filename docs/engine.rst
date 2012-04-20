@@ -14,13 +14,13 @@ TokenStream
 
 TokenFilter
 ^^^^^^^^^^^^^
-.. autoclass:: TokenFilter
+.. autoclass:: lupyne.engine.TokenFilter
   :show-inheritance:
   :members:
 
 Analyzer
 ^^^^^^^^^^^^^
-.. autoclass:: Analyzer
+.. autoclass:: lupyne.engine.Analyzer
   :members:
 
 IndexReader
@@ -38,7 +38,7 @@ IndexReader
 
 IndexSearcher
 ^^^^^^^^^^^^^
-.. autoclass:: IndexSearcher
+.. autoclass:: lupyne.engine.IndexSearcher
   :show-inheritance:
   :members:
 
@@ -64,12 +64,12 @@ IndexSearcher
 
 MultiSearcher
 ^^^^^^^^^^^^^
-.. autoclass:: MultiSearcher
+.. autoclass:: lupyne.engine.MultiSearcher
   :show-inheritance:
 
 IndexWriter
 ^^^^^^^^^^^^^
-.. autoclass:: IndexWriter
+.. autoclass:: lupyne.engine.IndexWriter
   :show-inheritance:
   :members:
 
@@ -87,7 +87,7 @@ IndexWriter
 
 Indexer
 ^^^^^^^^^^^^^
-.. autoclass:: Indexer
+.. autoclass:: lupyne.engine.Indexer
   :show-inheritance:
   :members:
 
@@ -98,7 +98,7 @@ documents
 
 Document
 ^^^^^^^^^^^^^
-.. autoclass:: Document
+.. autoclass:: lupyne.engine.Document
   :show-inheritance:
   :members:
 
@@ -119,12 +119,12 @@ Hits
 
 Field
 ^^^^^^^^^^^^^
-.. autoclass:: Field
+.. autoclass:: lupyne.engine.Field
   :members:
 
 FormatField
 ^^^^^^^^^^^^^
-.. autoclass:: FormatField
+.. autoclass:: lupyne.engine.FormatField
   :show-inheritance:
   :members:
 
@@ -134,19 +134,19 @@ FormatField
 
 NestedField
 ^^^^^^^^^^^^^
-.. autoclass:: NestedField
+.. autoclass:: lupyne.engine.NestedField
   :show-inheritance:
   :members:
 
 NumericField
 ^^^^^^^^^^^^^
-.. autoclass:: NumericField
+.. autoclass:: lupyne.engine.NumericField
   :show-inheritance:
   :members:
 
 DateTimeField
 ^^^^^^^^^^^^^
-.. autoclass:: DateTimeField
+.. autoclass:: lupyne.engine.DateTimeField
   :show-inheritance:
   :members:
 
@@ -157,7 +157,7 @@ queries
 
 Query
 ^^^^^^^^^^^^^
-.. autoclass:: Query
+.. autoclass:: lupyne.engine.Query
   :members:
 
   .. automethod:: __and__
@@ -216,7 +216,7 @@ SpanQuery
 
 SortField
 ^^^^^^^^^^^^^
-.. autoclass:: SortField
+.. autoclass:: lupyne.engine.SortField
   :show-inheritance:
   :members:
 
@@ -259,13 +259,13 @@ Tiler
 
 PointField
 ^^^^^^^^^^^^^
-.. autoclass:: PointField
+.. autoclass:: lupyne.engine.PointField
   :show-inheritance:
   :members:
 
 PolygonField
 ^^^^^^^^^^^^^
-.. autoclass:: PolygonField
+.. autoclass:: lupyne.engine.PolygonField
   :show-inheritance:
   :members:
 
@@ -273,13 +273,6 @@ DistanceComparator
 ^^^^^^^^^^^^^^^^^^
 .. autoclass:: DistanceComparator
   :show-inheritance:
-  :members:
-
-  .. automethod:: __getitem__
-
-DistanceFilter
-^^^^^^^^^^^^^^^^^^
-.. autoclass:: DistanceFilter
   :members:
 
   .. automethod:: __getitem__

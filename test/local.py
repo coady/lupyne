@@ -461,7 +461,8 @@ class TestCase(BaseTest):
         assert len(field.within(x, y, 10**8)) == 1
         self.assertRaises(NameError, list, field.radiate(y, x, 1, 0))
         if hasattr(lucene, 'LatLongDistanceFilter'):
-            f = field.filter(x, y, 10**4, 'longitude', 'latitude')
+            with assertWarns(DeprecationWarning):
+                f = field.filter(x, y, 10**4, 'longitude', 'latitude')
             ids = indexer.search(query, sort=distances.__getitem__).ids
             hits = indexer.search(count=10, filter=f, sort=f.sorter())
             assert len(hits) < len(ids) and hits.ids == ids[:len(hits)]
