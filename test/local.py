@@ -460,6 +460,10 @@ class TestCase(BaseTest):
         assert 1 == counts[0] < counts[2] < counts[1]
         assert len(field.within(x, y, 10**8)) == 1
         self.assertRaises(NameError, list, field.radiate(y, x, 1, 0))
+        hits = hits.filter(lambda id: distances[id] < 10**4)
+        assert 0 < len(hits) < sum(counts.values())
+        hits = hits.sorted(distances.__getitem__, reverse=True)
+        assert 0 == distances[hits.ids[-1]] < distances[hits.ids[0]] < 10**4
         if hasattr(lucene, 'LatLongDistanceFilter'):
             with assertWarns(DeprecationWarning):
                 f = field.filter(x, y, 10**4, 'longitude', 'latitude')

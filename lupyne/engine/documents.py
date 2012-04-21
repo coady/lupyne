@@ -244,3 +244,16 @@ class Hits(object):
             group.ids.append(id)
             group.scores.append(score)
         return sorted(groups.values(), key=lambda group: group.__dict__.pop('index'))
+    def filter(self, func):
+        "Return `Hits`_ filtered by function applied to doc ids."
+        ids, scores = [], []
+        for id, score in self.items():
+            if func(id):
+                ids.append(id)
+                scores.append(score)
+        return type(self)(self.searcher, ids, scores, fields=self.fields)
+    def sorted(self, key, reverse=False):
+        "Return `Hits`_ sorted by key function applied to doc ids."
+        ids = sorted(self.ids, key=key, reverse=reverse)
+        scores = list(map(dict(self.items()).__getitem__, ids))
+        return type(self)(self.searcher, ids, scores, self.count, self.maxscore, self.fields)
