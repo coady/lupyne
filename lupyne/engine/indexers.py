@@ -134,7 +134,6 @@ class TokenFilter(lucene.PythonTokenFilter, TokenStream):
         return result
     def setattrs(self):
         "Customize current token."
-        pass
 
 class Analyzer(lucene.PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
@@ -458,7 +457,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         if count is None:
             collector = Collector()
         else:
-            count, inorder = min(count, self.maxDoc()), not weight.scoresDocsOutOfOrder()
+            count, inorder = min(count, self.maxDoc() or 1), not weight.scoresDocsOutOfOrder()
             if sort is None:
                 collector = lucene.TopScoreDocCollector.create(count, inorder)
             else:

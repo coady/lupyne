@@ -64,6 +64,7 @@ class TestCase(BaseTest):
         searcher = indexer.indexSearcher
         indexer.commit()
         assert searcher is indexer.indexSearcher
+        assert not searcher.search(count=1)
         indexer.add(text='hello worlds', name='sample', tag=['python', 'search'])
         assert len(indexer) == 1 and list(indexer) == []
         assert not indexer.optimized
