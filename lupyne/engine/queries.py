@@ -23,6 +23,9 @@ class Query(object):
             filter = lucene.PrefixFilter(self.getPrefix())
         elif isinstance(self, lucene.TermRangeQuery):
             filter = lucene.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
+        elif isinstance(self, lucene.TermQuery):
+            filter = lucene.TermsFilter()
+            filter.addTerm(self.getTerm())
         else:
             filter = lucene.QueryWrapperFilter(self)
         return lucene.CachingWrapperFilter(filter) if cache else filter
@@ -195,7 +198,7 @@ class Collector(lucene.PythonCollector):
         return ids, list(map(self.scores.__getitem__, ids))
 
 class TermsFilter(lucene.CachingWrapperFilter):
-    """Experimental caching filter based on a unique field and set of matching values.
+    """Caching filter based on a unique field and set of matching values.
     Optimized for many terms and docs, with support for incremental updates.
     Suitable for searching external metadata associated with indexed identifiers.
     Call :meth:`refresh` to cache a new (or reopened) reader.
@@ -265,14 +268,15 @@ class SortField(lucene.SortField):
             namespace = {'parse' + type: staticmethod(parser)}
             parser = object.__class__(base.__name__, (base,), namespace)()
         lucene.SortField.__init__(self, name, parser, reverse)
-    def comparator(self, reader):
-        "Return indexed values from default FieldCache using the given reader."
+    def array(self, reader):
         method = getattr(lucene.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
-        args = [self.parser] * bool(self.parser)
+        return method(reader, self.field, *[self.parser][:bool(self.parser)])
+    def comparator(self, reader):
+        "Return indexed values from default FieldCache using the given top-level reader."
         readers = reader.sequentialSubReaders
         if lucene.MultiReader.instance_(reader):
             readers = itertools.chain.from_iterable(reader.sequentialSubReaders for reader in readers)
-        arrays = [method(reader, self.field, *args) for reader in readers]
+        arrays = list(map(self.array, readers))
         if len(arrays) <= 1:
             return arrays[0]
         cls, = set(map(type, arrays))
@@ -285,6 +289,15 @@ class SortField(lucene.SortField):
         "Return lucene FieldCacheRangeFilter based on field and type."
         method = getattr(lucene.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))
         return method(self.field, self.parser, start, stop, lower, upper)
+    def terms(self, filter, *readers):
+        "Generate field cache terms from docs which match filter from all segments."
+        for reader in readers:
+            array, it = self.array(reader), filter.getDocIdSet(reader).iterator()
+            try:
+                while True:
+                    yield array[it.nextDoc()]
+            except IndexError:
+                pass
 
 class Highlighter(lucene.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.

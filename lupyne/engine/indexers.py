@@ -12,7 +12,7 @@ import contextlib
 import abc, collections
 import warnings
 import lucene
-from .queries import Query, Collector, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
+from .queries import Query, Collector, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
 from .spatial import DistanceComparator
 
@@ -715,3 +715,37 @@ class Indexer(IndexWriter):
                 self.optimize(merge)
             IndexWriter.commit(self)
         self.refresh(**caches)
+
+class ParallelIndexer(Indexer):
+    """Indexer which tracks a unique identifying field.
+    Handles atomic updates of rapidly changing fields, managing :attr:`termsfilters`.
+    """
+    def __init__(self, field, *args, **kwargs):
+        Indexer.__init__(self, *args, **kwargs)
+        self.field = field
+        self.set(field, index=True, omitNorms=True)
+        self.termsfilters = {}
+    def termsfilter(self, filter, *others):
+        "Return `TermsFilter`_ synced to given filter and optionally associated with other indexers."
+        terms = self.sorter(self.field).terms(filter, *self.sequentialSubReaders)
+        termsfilter = self.termsfilters[filter] = TermsFilter(self.field, terms)
+        for other in others:
+            termsfilter.refresh(other)
+            other.termsfilters.add(termsfilter)
+        return termsfilter
+    def update(self, value, document=(), **terms):
+        "Atomically update document based on unique field."
+        terms[self.field] = value
+        self.updateDocument(lucene.Term(self.field, value), self.document(document, **terms))
+    def refresh(self, **caches):
+        "Store refreshed searcher and synchronize :attr:`termsfilters`."
+        sorter, segments = self.sorter(self.field), self.segments
+        searcher = self.indexSearcher.reopen(**caches)
+        readers = [reader for reader in searcher.sequentialSubReaders if lucene.SegmentReader.cast_(reader).segmentName not in segments]
+        terms = list(itertools.chain.from_iterable(IndexReader(reader).terms(self.field) for reader in readers))
+        for filter, termsfilter in self.termsfilters.items():
+            if terms:
+                termsfilter.update(terms, op='andNot', cache=not self.nrt)
+            if readers:
+                termsfilter.update(sorter.terms(filter, *readers), cache=not self.nrt)
+        self.indexSearcher = searcher

@@ -270,7 +270,7 @@ class TestCase(BaseTest):
         query = engine.Query.term('text', 'right', boost=2.0)
         assert query.boost == 2.0
         assert indexer.facets(str(query), 'amendment', 'article') == {'amendment': 12, 'article': 1}
-        self.assertRaises(TypeError, indexer.overlap, query.filter(), query.filter(cache=False))
+        self.assertRaises(TypeError, indexer.overlap, query.filter(), lucene.QueryWrapperFilter(query))
         hits = indexer.search('text:people', filter=query.filter())
         assert len(hits) == 4
         hit, = indexer.search('date:192*')
@@ -636,19 +636,28 @@ class TestCase(BaseTest):
         for name in ('alpha', 'bravo', 'charlie'):
             indexer.add(name=name)
         indexer.commit()
-        filter = engine.TermsFilter('name', ('alpha', 'bravo'))
+        filter = engine.TermsFilter('name')
         assert indexer.count(filter=filter) == len(filter.readers) == 0
-        filter.refresh(indexer)
-        indexer.termsfilters.add(filter)
-        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha', 'bravo']
+        filter.add('alpha', 'bravo')
         filter.discard('bravo', 'charlie')
-        filter.add('charlie', 'delta')
-        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha', 'charlie']
+        assert filter.values == set(['alpha'])
+        parallel = engine.ParallelIndexer('name')
+        parallel.set('priority', index=True)
+        for name in ('alpha', 'bravo', 'delta'):
+            parallel.update(name, priority='high')
+        parallel.commit()
+        filter = parallel.termsfilter(engine.Query.term('priority', 'high').filter(), indexer)
+        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha', 'bravo']
         indexer.add(name='delta')
         indexer.delete('name', 'alpha')
         indexer.commit()
         assert filter.readers > set(indexer.sequentialSubReaders)
+        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['bravo', 'delta']
+        parallel.update('bravo')
+        parallel.update('charlie', priority='high')
+        parallel.commit()
         assert [hit['name'] for hit in indexer.search(filter=filter)] == ['charlie', 'delta']
+        parallel.commit()
         filter.refresh(indexer)
         assert filter.readers == set(indexer.sequentialSubReaders)
 

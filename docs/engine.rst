@@ -95,6 +95,18 @@ Indexer
   :show-inheritance:
   :members:
 
+ParallelIndexer
+^^^^^^^^^^^^^^^
+.. versionadded:: 1.1+
+.. note::  This interface is experimental and might change in incompatible ways in the next release.
+.. autoclass:: ParallelIndexer
+  :show-inheritance:
+  :members:
+
+  .. attribute:: termsfilters
+
+    Mapping of filters to synchronized termsfilters.
+
 
 documents
 ---------
@@ -220,6 +232,8 @@ SpanQuery
 
 TermsFilter
 ^^^^^^^^^^^^^
+.. versionadded:: 1.1+
+.. note::  This interface is experimental and might change in incompatible ways in the next release.
 .. autoclass:: lupyne.engine.TermsFilter
   :show-inheritance:
   :members:

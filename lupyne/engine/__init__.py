@@ -11,7 +11,7 @@ warnings.simplefilter('default', DeprecationWarning)
 
 from .queries import Query, SortField, TermsFilter
 from .documents import Document, Field, FormatField, NestedField, NumericField, DateTimeField
-from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, IndexWriter, Indexer
+from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, IndexWriter, Indexer, ParallelIndexer
 from .spatial import PointField, PolygonField
 
 assert lucene.VERSION >= '3.1'
