@@ -84,8 +84,8 @@ class TestCase(BaseTest):
         assert not list(indexer.termvector(0, 'tag'))
         assert indexer.count('text', 'hello') == indexer.count('text:hello') == 1
         assert sorted(indexer.names()) == ['name', 'tag', 'text']
-        assert sorted(indexer.names('indexed')) == ['tag', 'text']
-        assert indexer.names('unindexed') == ['name']
+        assert sorted(indexer.names('indexed', isIndexed=True)) == ['tag', 'text']
+        assert indexer.names('unindexed', isIndexed=False) == ['name']
         assert list(indexer.terms('text')) == ['hello', 'world']
         assert list(indexer.terms('text', 'h', 'v')) == ['hello']
         assert dict(indexer.terms('text', 'w', counts=True)) == {'world': 1}
@@ -107,7 +107,7 @@ class TestCase(BaseTest):
         assert indexer.search('text:hello hi') and not indexer.search('text:hello hi', op='and')
         assert indexer.search('text:*hello', allowLeadingWildcard=True)
         query = engine.Query.multiphrase('text', ('hello', 'hi'), None, 'world')
-        assert str(query) == 'text:"(hello hi) world"' and list(query.positions) == [0, 2]
+        assert str(query).startswith('text:"(hello hi) ') and list(query.positions) == [0, 2]
         query = engine.Query.wildcard('text', '*')
         assert str(query) == 'text:*' and isinstance(query, lucene.WildcardQuery)
         assert str(lucene.MatchAllDocsQuery() | query) == '*:* text:*'
@@ -371,8 +371,8 @@ class TestCase(BaseTest):
                 location = '.'.join(doc[name] for name in ['state', 'county', 'city'])
                 indexer.add(doc, latitude=lat, longitude=lng, location=location)
         indexer.commit()
-        assert set(['state', 'zipcode']) < set(indexer.names('indexed'))
-        assert set(['latitude', 'longitude', 'county', 'city']) == set(indexer.names('unindexed'))
+        assert set(['state', 'zipcode']) < set(indexer.names('indexed', isIndexed=True))
+        assert set(['latitude', 'longitude', 'county', 'city']) == set(indexer.names('unindexed', isIndexed=False))
         states = list(indexer.terms('state'))
         assert states[0] == 'AK' and states[-1] == 'WY'
         counties = [term.split('.')[-1] for term in indexer.terms('state.county', 'CA', 'CA~')]

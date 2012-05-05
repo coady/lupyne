@@ -26,6 +26,7 @@ Changes in 1.1+:
 ==================
  * Engine:
    
+   - PyLucene 3.6 supported
    - PyLucene 3.1 deprecated
    - Support for all IndexWriterConfig options
 

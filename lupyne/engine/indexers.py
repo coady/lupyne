@@ -242,10 +242,12 @@ class IndexReader(object):
     def count(self, name, value):
         "Return number of documents with given term."
         return self.docFreq(lucene.Term(name, value))
-    def names(self, option='all'):
-        "Return field names, given option description."
-        option = getattr(self.FieldOption, option.upper())
-        return list(self.getFieldNames(option))
+    def names(self, option='all', **attrs):
+        "Return field names, given option description or as of lucene 3.6 FieldInfo attributes to filter."
+        if hasattr(lucene.IndexReader, 'getFieldNames'):
+            return list(self.getFieldNames(getattr(self.FieldOption, option.upper())))
+        fieldinfos = lucene.ReaderUtil.getMergedFieldInfos(self.indexReader).iterator()
+        return [fieldinfo.name for fieldinfo in fieldinfos if all(getattr(fieldinfo, name) == attrs[name] for name in attrs)]
     def terms(self, name, value='', stop=None, counts=False, **fuzzy):
         """Generate a slice of term values, optionally with frequency counts.
         Supports a range of terms, wildcard terms, or fuzzy terms.
@@ -424,7 +426,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     def highlighter(self, query, field, **kwargs):
         "Return `Highlighter`_ or if applicable `FastVectorHighlighter`_ specific to searcher and query."
         query = self.parse(query, field=field)
-        vector = field in self.names('termvector_with_position_offset')
+        vector = field in self.names('termvector_with_position_offset', storeTermVector=True)
         return (FastVectorHighlighter if vector else Highlighter)(self, query, field, **kwargs)
     def count(self, *query, **options):
         """Return number of hits for given query or term.

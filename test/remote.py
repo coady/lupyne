@@ -169,7 +169,7 @@ class TestCase(BaseTest):
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
         assert resource.get('/docs/0', fields='', **{'fields.multi': 'missing'}) == {'missing': []}
         assert resource.get('/terms') == ['name', 'text']
-        assert resource.get('/terms', option='unindexed') == []
+        assert resource.get('/terms', option='unindexed', isIndexed=False) == []
         assert resource.get('/terms/text') == ['hello', 'world']
         assert resource.get('/terms/text/world') == 1
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
