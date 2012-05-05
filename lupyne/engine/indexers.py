@@ -29,7 +29,7 @@ class closing(set):
     "Manage lifespan of registered objects, similar to contextlib.closing."
     def __del__(self):
         for obj in self:
-            obj.close()
+            getattr(obj, 'decRef', obj.close)()
     def analyzer(self, analyzer, version=None):
         if analyzer is None:
             analyzer = lucene.StandardAnalyzer(version or lucene.Version.values()[-1])
@@ -398,7 +398,8 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         if self.current:
             return self
         other = type(self)(self.indexReader.reopen(), self.analyzer)
-        other.shared, other.owned = self.shared, closing([other.indexReader])
+        other.decRef()
+        other.shared = self.shared
         other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
         if filters:
             other.facets(Query.any(), *other.filters)
@@ -577,7 +578,7 @@ class MultiSearcher(IndexSearcher):
         shared = closing()
         if not lucene.MultiReader.instance_(reader):
             reader = lucene.MultiReader(list(map(shared.reader, reader)))
-            self.owned = closing([reader])
+            owned = closing([reader]) # decRef when finished
         IndexSearcher.__init__(self, reader, analyzer)
         self.shared.update(shared)
         shared.clear()
@@ -675,9 +676,7 @@ class Indexer(IndexWriter):
         IndexWriter.__init__(self, directory, mode, analyzer, version, **attrs)
         IndexWriter.commit(self)
         self.nrt = nrt
-        reader = lucene.IndexReader.open(self if nrt else self.directory, True)
-        self.indexSearcher = IndexSearcher(reader, self.analyzer)
-        self.indexSearcher.owned = closing([reader])
+        self.indexSearcher = IndexSearcher(self if nrt else self.directory, self.analyzer)
     def __getattr__(self, name):
         if name == 'indexSearcher':
             raise AttributeError(name)

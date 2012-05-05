@@ -193,13 +193,16 @@ class TestCase(BaseTest):
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
         indexer.delete('amendment', doc['amendment'])
         indexer.add(doc)
+        reader = indexer.indexReader
         indexer.commit(filters=True, spellcheckers=True)
+        assert reader.refCount == 0
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
         doc['amendment'] = engine.Analyzer(lucene.WhitespaceTokenizer).tokens(doc['amendment'])
         doc['date'] = engine.Analyzer(lucene.WhitespaceTokenizer).tokens(doc['date']), 2.0
         scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
         assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
         searcher = engine.MultiSearcher([indexer.indexReader, self.tempdir])
+        assert searcher.refCount == 1
         assert searcher.count() == len(searcher) == 2 * len(indexer)
         searcher.sorters['amendment'] = engine.SortField('amenmdment', int)
         comparator = searcher.comparator('amendment')
