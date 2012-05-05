@@ -6,6 +6,7 @@ from future_builtins import filter, map
 import itertools
 import bisect
 import heapq
+import threading
 import lucene
 
 class Query(object):
@@ -193,9 +194,63 @@ class Collector(lucene.PythonCollector):
         ids.sort(key=key, reverse=reverse)
         return ids, list(map(self.scores.__getitem__, ids))
 
+class TermsFilter(lucene.CachingWrapperFilter):
+    """Experimental caching filter based on a unique field and set of matching values.
+    Optimized for many terms and docs, with support for incremental updates.
+    Suitable for searching external metadata associated with indexed identifiers.
+    Call :meth:`refresh` to cache a new (or reopened) reader.
+    
+    :param field: field name
+    :param values: initial term values, synchronized with the cached filters
+    """
+    ops = {'or': 'update', 'and': 'intersection_update', 'andNot': 'difference_update'}
+    def __init__(self, field, values=()):
+        assert hasattr(lucene, 'FixedBitSet'), 'requires FixedBitSet introduced in lucene 3.4'
+        lucene.CachingWrapperFilter.__init__(self, lucene.TermsFilter())
+        self.field = field
+        self.values = set(values)
+        self.readers = set()
+        self.lock = threading.Lock()
+    def filter(self, values, cache=True):
+        "Return lucene TermsFilter, optionally using the FieldCache."
+        if cache:
+            return lucene.FieldCacheTermsFilter(self.field, tuple(values))
+        filter, term = lucene.TermsFilter(), lucene.Term(self.field)
+        for value in values:
+            filter.addTerm(term.createTerm(value))
+        return filter
+    def apply(self, filter, op, readers):
+        for reader in readers:
+            bitset = lucene.FixedBitSet.cast_(self.getDocIdSet(reader))
+            getattr(bitset, op)(filter.getDocIdSet(reader).iterator())
+    def update(self, values, op='or', cache=True):
+        """Update allowed values and corresponding cached bitsets.
+        
+        :param values: additional term values
+        :param op: set operation used to combine terms and docs
+        :param cache: optionally cache all term values using FieldCache
+        """
+        values = tuple(values)
+        filter = self.filter(values, cache)
+        with self.lock:
+            getattr(self.values, self.ops[op])(values)
+            self.apply(filter, op, self.readers)
+    def refresh(self, reader):
+        "Refresh cached bitsets of current values for new segments of top-level reader."
+        readers = set(reader.sequentialSubReaders)
+        with self.lock:
+            self.apply(self.filter(self.values), 'or', readers - self.readers)
+            self.readers = set(reader for reader in readers | self.readers if reader.refCount)
+    def add(self, *values):
+        "Add a few term values."
+        self.update(values, cache=False)
+    def discard(self, *values):
+        "Discard a few term values."
+        self.update(values, op='andNot', cache=False)
+
 class SortField(lucene.SortField):
     """Inherited lucene SortField used for caching FieldCache parsers.
-        
+    
     :param name: field name
     :param type: type object or name compatible with SortField constants
     :param parser: lucene FieldCache.Parser or callable applied to field values

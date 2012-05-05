@@ -62,6 +62,10 @@ IndexSearcher
 
     Mapping of cached spellcheckers by field.
 
+  .. attribute:: termsfilters
+
+    Set of registered termsfilters.
+
 MultiSearcher
 ^^^^^^^^^^^^^
 .. autoclass:: lupyne.engine.MultiSearcher
@@ -213,6 +217,12 @@ SpanQuery
   .. automethod:: __or__
 
     <SpanOrQuery: spanOr(spans)>
+
+TermsFilter
+^^^^^^^^^^^^^
+.. autoclass:: lupyne.engine.TermsFilter
+  :show-inheritance:
+  :members:
 
 SortField
 ^^^^^^^^^^^^^

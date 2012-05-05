@@ -378,6 +378,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         self.owned = closing([self.indexReader])
         self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
+        self.termsfilters = set()
     @classmethod
     def load(cls, directory, analyzer=None):
         "Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."
@@ -390,6 +391,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
             self.close()
     def reopen(self, filters=False, sorters=False, spellcheckers=False):
         """Return current `IndexSearcher`_, only creating a new one if necessary.
+        Any registered :attr:`termsfilters` are also refreshed.
         
         :param filters: refresh cached facet :attr:`filters`
         :param sorters: refresh cached :attr:`sorters` with associated parsers
@@ -401,6 +403,8 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         other.decRef()
         other.shared = self.shared
         other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
+        for termsfilter in self.termsfilters:
+            termsfilter.refresh(other)
         if filters:
             other.facets(Query.any(), *other.filters)
         other.sorters = dict((name, SortField(sorter.field, sorter.typename, sorter.parser)) for name, sorter in self.sorters.items())

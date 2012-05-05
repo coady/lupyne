@@ -626,6 +626,31 @@ class TestCase(BaseTest):
         indexer.add()
         indexer.commit()
         assert indexer.count() == engine.IndexSearcher(indexer.directory).count() == 2
+    
+    def testFilters(self):
+        "Custom filters."
+        if not hasattr(lucene, 'FixedBitSet'):
+            return self.assertRaises(AssertionError, engine.queries.TermsFilter, '')
+        indexer = engine.Indexer()
+        indexer.set('name', store=True, index=True)
+        for name in ('alpha', 'bravo', 'charlie'):
+            indexer.add(name=name)
+        indexer.commit()
+        filter = engine.TermsFilter('name', ('alpha', 'bravo'))
+        assert indexer.count(filter=filter) == len(filter.readers) == 0
+        filter.refresh(indexer)
+        indexer.termsfilters.add(filter)
+        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha', 'bravo']
+        filter.discard('bravo', 'charlie')
+        filter.add('charlie', 'delta')
+        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha', 'charlie']
+        indexer.add(name='delta')
+        indexer.delete('name', 'alpha')
+        indexer.commit()
+        assert filter.readers > set(indexer.sequentialSubReaders)
+        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['charlie', 'delta']
+        filter.refresh(indexer)
+        assert filter.readers == set(indexer.sequentialSubReaders)
 
 if __name__ == '__main__':
     lucene.initVM()
