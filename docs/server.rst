@@ -40,7 +40,7 @@ WebSearcher
   :members:
   :exclude-members: new, sync
 
-  .. versionchanged:: 1.1+
+  .. versionchanged:: 1.2
     automatic synchronization and promotion
 
   .. attribute:: fields

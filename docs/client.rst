@@ -39,7 +39,7 @@ Resource
 
 Pool
 ---------
-.. versionadded:: 1.1+
+.. versionadded:: 1.2
 .. autoclass:: Pool
   :show-inheritance:
   :members:
@@ -62,7 +62,7 @@ Shards
 
 Replicas
 ---------
-.. versionadded:: 1.1+
+.. versionadded:: 1.2
 .. autoclass:: Replicas
   :show-inheritance:
   :members:

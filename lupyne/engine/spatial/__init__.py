@@ -106,7 +106,7 @@ class PointField(NumericField, Tiler):
     def filter(self, lng, lat, distance, lngfield, latfield, limit=Tiler.base):
         """Return lucene LatLongDistanceFilter based on :meth:`within` query.
         
-        .. deprecated:: 1.1+ spatial contrib module deprecated as of lucene 3.6
+        .. deprecated:: 1.2 spatial contrib module deprecated as of lucene 3.6
         """
         filter = self.within(lng, lat, distance, limit).filter()
         return DistanceFilter(filter, lng, lat, distance, lngfield, latfield)

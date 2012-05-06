@@ -2,6 +2,11 @@ engine
 ======
 .. automodule:: lupyne.engine
 
+  * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_, `ParallelIndexer`_
+  * `Document`_, `Field`_, `FormatField`_, `NestedField`_, `NumericField`_, `DateTimeField`_
+  * `Query`_, `SortField`_, `TermsFilter`_
+  * `PointField`_, `PolygonField`_
+
 
 indexers
 ---------
@@ -14,13 +19,13 @@ TokenStream
 
 TokenFilter
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.TokenFilter
+.. autoclass:: TokenFilter
   :show-inheritance:
   :members:
 
 Analyzer
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.Analyzer
+.. autoclass:: Analyzer
   :members:
 
 IndexReader
@@ -38,7 +43,7 @@ IndexReader
 
 IndexSearcher
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.IndexSearcher
+.. autoclass:: IndexSearcher
   :show-inheritance:
   :members:
 
@@ -68,12 +73,12 @@ IndexSearcher
 
 MultiSearcher
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.MultiSearcher
+.. autoclass:: MultiSearcher
   :show-inheritance:
 
 IndexWriter
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.IndexWriter
+.. autoclass:: IndexWriter
   :show-inheritance:
   :members:
 
@@ -91,13 +96,13 @@ IndexWriter
 
 Indexer
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.Indexer
+.. autoclass:: Indexer
   :show-inheritance:
   :members:
 
 ParallelIndexer
 ^^^^^^^^^^^^^^^
-.. versionadded:: 1.1+
+.. versionadded:: 1.2
 .. note::  This interface is experimental and might change in incompatible ways in the next release.
 .. autoclass:: ParallelIndexer
   :show-inheritance:
@@ -114,7 +119,7 @@ documents
 
 Document
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.Document
+.. autoclass:: Document
   :show-inheritance:
   :members:
 
@@ -135,12 +140,12 @@ Hits
 
 Field
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.Field
+.. autoclass:: Field
   :members:
 
 FormatField
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.FormatField
+.. autoclass:: FormatField
   :show-inheritance:
   :members:
 
@@ -150,19 +155,19 @@ FormatField
 
 NestedField
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.NestedField
+.. autoclass:: NestedField
   :show-inheritance:
   :members:
 
 NumericField
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.NumericField
+.. autoclass:: NumericField
   :show-inheritance:
   :members:
 
 DateTimeField
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.DateTimeField
+.. autoclass:: DateTimeField
   :show-inheritance:
   :members:
 
@@ -173,7 +178,7 @@ queries
 
 Query
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.Query
+.. autoclass:: Query
   :members:
 
   .. automethod:: __and__
@@ -232,15 +237,15 @@ SpanQuery
 
 TermsFilter
 ^^^^^^^^^^^^^
-.. versionadded:: 1.1+
+.. versionadded:: 1.2
 .. note::  This interface is experimental and might change in incompatible ways in the next release.
-.. autoclass:: lupyne.engine.TermsFilter
+.. autoclass:: TermsFilter
   :show-inheritance:
   :members:
 
 SortField
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.SortField
+.. autoclass:: SortField
   :show-inheritance:
   :members:
 
@@ -283,13 +288,13 @@ Tiler
 
 PointField
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.PointField
+.. autoclass:: PointField
   :show-inheritance:
   :members:
 
 PolygonField
 ^^^^^^^^^^^^^
-.. autoclass:: lupyne.engine.PolygonField
+.. autoclass:: PolygonField
   :show-inheritance:
   :members:
 

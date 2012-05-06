@@ -223,7 +223,7 @@ class IndexReader(object):
         :param query: optional lucene Query to select documents
         :param exclude: optional lucene Query to exclude documents
         :param merge: optionally merge into maximum number of segments
-        :param optimize: .. deprecated:: 1.1+ use **merge** param instead
+        :param optimize: .. deprecated:: 1.2 use **merge** param instead
         """
         copy(self.indexCommit, dest)
         with contextlib.closing(IndexWriter(dest)) as writer:
@@ -243,7 +243,10 @@ class IndexReader(object):
         "Return number of documents with given term."
         return self.docFreq(lucene.Term(name, value))
     def names(self, option='all', **attrs):
-        "Return field names, given option description or as of lucene 3.6 FieldInfo attributes to filter."
+        """Return field names, given option description.
+        
+        .. versionchanged:: 1.2 lucene 3.6 requires FieldInfo filter attributes instead of option
+        """
         if hasattr(lucene.IndexReader, 'getFieldNames'):
             return list(self.getFieldNames(getattr(self.FieldOption, option.upper())))
         fieldinfos = lucene.ReaderUtil.getMergedFieldInfos(self.indexReader).iterator()
@@ -698,7 +701,7 @@ class Indexer(IndexWriter):
         """Commit writes and :meth:`refresh` searcher.
         
         :param merge: merge segments with deletes, or optionally specify maximum number of segments
-        :param expunge,optimize: .. deprecated:: 1.1+ use **merge** param instead
+        :param expunge,optimize: .. deprecated:: 1.2 use **merge** param instead
         """
         IndexWriter.commit(self)
         if expunge:

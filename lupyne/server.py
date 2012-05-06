@@ -297,7 +297,7 @@ class WebSearcher(object):
             
             {"filters"|"sorters"|"spellcheckers": true,... }
             
-            .. versionchanged:: 1.1+ request body is an object instead of an array
+            .. versionchanged:: 1.2 request body is an object instead of an array
             
             :return: *int*
         """
@@ -619,7 +619,7 @@ class WebIndexer(WebSearcher):
             
             {"merge": true|\ *int*,... }
             
-            .. versionchanged:: 1.1+ request body is an object instead of an array
+            .. versionchanged:: 1.2 request body is an object instead of an array
             
             :return: *int*
         

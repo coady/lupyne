@@ -29,6 +29,7 @@ Changes in 1.1+:
    - PyLucene 3.6 supported
    - PyLucene 3.1 deprecated
    - Support for all IndexWriterConfig options
+   - Dynamic filter wrappers
    - Flexible hit sorting and filtering
    - TermsFilter and ParallelIndexer for searching external metadata
 
