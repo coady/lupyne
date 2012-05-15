@@ -88,8 +88,6 @@ class TestCase(BaseTest):
             resource.post('/terms')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.get('/update')
-        with local.assertWarns(UserWarning):
-            resource.post('/update', [])
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):
             resource.post('/update/snapshot')
         with assertRaises(httplib.HTTPException, httplib.METHOD_NOT_ALLOWED):

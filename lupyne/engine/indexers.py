@@ -10,7 +10,6 @@ import re
 import itertools, operator
 import contextlib
 import abc, collections
-import warnings
 import lucene
 from .queries import Query, Collector, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
@@ -215,7 +214,7 @@ class IndexReader(object):
     def segments(self):
         "segment filenames with document counts"
         return dict((lucene.SegmentReader.cast_(reader).segmentName, reader.numDocs()) for reader in self.sequentialSubReaders)
-    def copy(self, dest, query=None, exclude=None, optimize=False, merge=0):
+    def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.
         Optimized to use hard links if the destination is a file system path.
         
@@ -223,7 +222,6 @@ class IndexReader(object):
         :param query: optional lucene Query to select documents
         :param exclude: optional lucene Query to exclude documents
         :param merge: optionally merge into maximum number of segments
-        :param optimize: .. deprecated:: 1.2 use **merge** param instead
         """
         copy(self.indexCommit, dest)
         with contextlib.closing(IndexWriter(dest)) as writer:
@@ -233,9 +231,6 @@ class IndexReader(object):
                 writer.delete(exclude)
             writer.commit()
             writer.expungeDeletes()
-            if optimize:
-                warnings.warn("Use merge=int instead of optimize parameter.", DeprecationWarning)
-                merge = int(optimize)
             if merge:
                 writer.optimize(merge)
             return len(writer)
@@ -697,20 +692,12 @@ class Indexer(IndexWriter):
     def refresh(self, **caches):
         "Store refreshed searcher with :meth:`IndexSearcher.reopen` caches."
         self.indexSearcher = self.indexSearcher.reopen(**caches)
-    def commit(self, expunge=False, optimize=False, merge=False, **caches):
+    def commit(self, merge=False, **caches):
         """Commit writes and :meth:`refresh` searcher.
         
         :param merge: merge segments with deletes, or optionally specify maximum number of segments
-        :param expunge,optimize: .. deprecated:: 1.2 use **merge** param instead
         """
         IndexWriter.commit(self)
-        if expunge:
-            warnings.warn("Use merge=True instead of expunge parameter.", DeprecationWarning)
-            self.expungeDeletes()
-            IndexWriter.commit(self)
-        if optimize:
-            warnings.warn("Use merge=int instead of optimize parameter.", DeprecationWarning)
-            merge = int(optimize)
         if merge:
             if isinstance(merge, bool):
                 self.expungeDeletes()

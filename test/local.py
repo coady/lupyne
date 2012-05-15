@@ -162,13 +162,9 @@ class TestCase(BaseTest):
         assert reader[0].dict() == {} and reader.count('text', '?') == 1
         assert len(reader.comparator('text')) == 4
         indexer.delete('text', '?')
-        with assertWarns(DeprecationWarning):
-            indexer.commit(expunge=True)
         indexer.commit(merge=True)
         assert not indexer.hasDeletions()
-        indexer.commit(merge=2)
-        with assertWarns(DeprecationWarning):
-            indexer.commit(optimize=True)
+        indexer.commit(merge=1)
         assert indexer.optimized
         del reader.indexReader
         self.assertRaises(AttributeError, getattr, reader, 'maxDoc')
@@ -409,8 +405,7 @@ class TestCase(BaseTest):
         searcher = engine.IndexSearcher(directory)
         assert len(searcher) == size and list(searcher.terms('state')) == ['CA']
         path = os.path.join(self.tempdir, 'temp')
-        with assertWarns(DeprecationWarning):
-            size = indexer.copy(path, exclude=query, optimize=True)
+        size = indexer.copy(path, exclude=query, merge=1)
         assert len(searcher) + size == len(indexer)
         searcher = engine.IndexSearcher(path)
         assert searcher.optimized and 'CA' not in searcher.terms('state')
@@ -468,14 +463,6 @@ class TestCase(BaseTest):
         assert 0 < len(hits) < sum(counts.values())
         hits = hits.sorted(distances.__getitem__, reverse=True)
         assert 0 == distances[hits.ids[-1]] < distances[hits.ids[0]] < 10**4
-        if hasattr(lucene, 'LatLongDistanceFilter'):
-            with assertWarns(DeprecationWarning):
-                f = field.filter(x, y, 10**4, 'longitude', 'latitude')
-            ids = indexer.search(query, sort=distances.__getitem__).ids
-            hits = indexer.search(count=10, filter=f, sort=f.sorter())
-            assert len(hits) < len(ids) and hits.ids == ids[:len(hits)]
-            assert all(f[id] <= distances[id] < 10**4 for id in hits.ids)
-            self.assertRaises(KeyError, f.__getitem__, -1)
     
     def testFields(self):
         "Custom fields."

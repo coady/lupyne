@@ -156,12 +156,6 @@ def params(**types):
 def multi(value):
     return value and value.split(',')
 
-def mapping(value):
-    if isinstance(value, dict):
-        return value
-    cherrypy.response.headers['warning'] = '199 lupyne "use an object instead of an array"'
-    return dict.fromkeys(value, True)
-
 class params:
     "Parameter parsing."
     @staticmethod
@@ -287,7 +281,7 @@ class WebSearcher(object):
         readers = reader.sequentialSubReaders if lucene.MultiReader.instance_(reader) else [reader]
         return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
-    @cherrypy.tools.json_in(process_body=mapping)
+    @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(methods=['POST'])
     def update(self, **caches):
         """Refresh index version.
@@ -609,7 +603,7 @@ class WebIndexer(WebSearcher):
             self.refresh()
         return {unicode(self.indexer.directory): len(self.indexer)}
     @cherrypy.expose
-    @cherrypy.tools.json_in(process_body=mapping)
+    @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(paths=[('POST',), ('GET', 'PUT', 'DELETE'), ('GET',)])
     def update(self, id='', name='', **options):
         """Commit index changes and refresh index version.
