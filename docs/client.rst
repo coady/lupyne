@@ -1,8 +1,7 @@
 client
 ======
 .. automodule:: lupyne.client
-.. note::
-  Caching more client connections than the backend server supports may cause blocking under load.  CherryPy's default `thread pool`_ is 10.
+.. note:: Caching more client connections than the backend server supports may cause blocking under load.  CherryPy's default `thread pool`_ is 10.
 
 Response
 ---------

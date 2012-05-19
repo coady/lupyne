@@ -21,8 +21,7 @@ Options:
   --real-time           search in real-time without committing
 
 .. automodule:: lupyne.server
-.. note::
-  Lucene doc ids are ephemeral;  only use doc ids across requests for the same index version.
+.. note:: Lucene doc ids are ephemeral;  only use doc ids across requests for the same index version.
 
 tools
 -----------

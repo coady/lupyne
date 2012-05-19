@@ -208,7 +208,7 @@ class TermsFilter(lucene.CachingWrapperFilter):
     """
     ops = {'or': 'update', 'and': 'intersection_update', 'andNot': 'difference_update'}
     def __init__(self, field, values=()):
-        assert hasattr(lucene, 'FixedBitSet'), 'requires FixedBitSet introduced in lucene 3.4'
+        assert lucene.VERSION >= '3.5', 'requires FixedBitSet set operations introduced in lucene 3.5'
         lucene.CachingWrapperFilter.__init__(self, lucene.TermsFilter())
         self.field = field
         self.values = set(values)
@@ -230,7 +230,7 @@ class TermsFilter(lucene.CachingWrapperFilter):
         """Update allowed values and corresponding cached bitsets.
         
         :param values: additional term values
-        :param op: set operation used to combine terms and docs
+        :param op: set operation used to combine terms and docs: *and*, *or*, *andNot*
         :param cache: optionally cache all term values using FieldCache
         """
         values = tuple(values)

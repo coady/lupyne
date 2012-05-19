@@ -616,7 +616,7 @@ class TestCase(BaseTest):
     
     def testFilters(self):
         "Custom filters."
-        if not hasattr(lucene, 'FixedBitSet'):
+        if lucene.VERSION < '3.5':
             return self.assertRaises(AssertionError, engine.queries.TermsFilter, '')
         indexer = engine.Indexer()
         indexer.set('name', store=True, index=True)

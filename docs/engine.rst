@@ -103,7 +103,8 @@ Indexer
 ParallelIndexer
 ^^^^^^^^^^^^^^^
 .. versionadded:: 1.2
-.. note::  This interface is experimental and might change in incompatible ways in the next release.
+  requires lucene >= 3.5
+.. note:: This interface is experimental and might change in incompatible ways in the next release.
 .. autoclass:: ParallelIndexer
   :show-inheritance:
   :members:
@@ -238,7 +239,7 @@ SpanQuery
 TermsFilter
 ^^^^^^^^^^^^^
 .. versionadded:: 1.2
-.. note::  This interface is experimental and might change in incompatible ways in the next release.
+  requires lucene >= 3.5
 .. autoclass:: TermsFilter
   :show-inheritance:
   :members:
