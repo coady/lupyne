@@ -1,25 +1,7 @@
 server
 ======
-Usage: python -m lupyne.server [index_directory ...]
-
-Options:
-  -h, --help            show this help message and exit
-  -r, --read-only       expose only read methods; no write lock
-  -c CONFIG, --config=CONFIG
-                        optional configuration file or json object of global
-                        params
-  -p FILE, --pidfile=FILE
-                        store the process id in the given file
-  -d, --daemonize       run the server as a daemon
-  --autoreload=SECONDS  automatically reload modules; replacement for
-                        engine.autoreload
-  --autoupdate=SECONDS  automatically update index version and commit any
-                        changes
-  --autosync=HOSTS
-                        automatically synchronize searcher with remote hosts
-                        and update
-  --real-time           search in real-time without committing
-
+.. program-output:: python -m lupyne.server -h
+  :cwd: ..
 .. automodule:: lupyne.server
 .. note:: Lucene doc ids are ephemeral;  only use doc ids across requests for the same index version.
 
