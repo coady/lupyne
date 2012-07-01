@@ -97,7 +97,9 @@ class TestCase(BaseTest):
         assert list(indexer.positions('text', 'world', payloads=True)) == [(0, [(1, '<ALPHANUM>')])]
         hits = indexer.search('text:hello')
         assert len(hits) == hits.count == 1
-        assert hits.ids == [0]
+        self.assertRaises(AssertionError, hits.__getitem__, slice(None, None, 2))
+        assert hits.scoredocs is hits[:1].scoredocs and not hits[1:]
+        assert list(hits.ids) == [0]
         score, = hits.scores
         assert 0 < score < 1
         assert dict(hits.items()) == {0: score}
@@ -232,14 +234,14 @@ class TestCase(BaseTest):
         assert len(hits) == hits.count == 8
         assert set(map(type, hits.ids)) == set([int]) and set(map(type, hits.scores)) == set([float])
         assert hits.maxscore == max(hits.scores)
-        ids = hits.ids
+        ids = list(hits.ids)
         hits = indexer.search('people', count=5, field='text')
-        assert hits.ids == ids[:len(hits)]
+        assert list(hits.ids) == ids[:len(hits)]
         assert len(hits) == 5 and hits.count == 8
         assert not any(map(math.isnan, hits.scores))
         assert hits.maxscore == max(hits.scores)
         hits = indexer.search('text:people', count=5, sort=lucene.Sort.INDEXORDER)
-        assert sorted(hits.ids) == hits.ids
+        assert sorted(hits.ids) == list(hits.ids)
         sort = engine.SortField('amendment', type=int)
         hits = indexer.search('text:people', count=5, sort=sort)
         assert [hit.get('amendment') for hit in hits] == [None, None, '1', '2', '4']
@@ -250,11 +252,12 @@ class TestCase(BaseTest):
         hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
         assert hits.maxscore > max(hits.scores)
         comparator = indexer.comparator('amendment', type=int, parser=lambda value: int(value or -1))
-        hits = indexer.search('text:people', sort=comparator.__getitem__)
-        assert sorted(hits.ids) == hits.ids and hits.ids != ids
+        with assertWarns(DeprecationWarning):
+            hits = indexer.search('text:people', sort=comparator.__getitem__)
+        assert sorted(hits.ids) == list(hits.ids) and list(hits.ids) != ids
         comparator = list(zip(*map(indexer.comparator, ['article', 'amendment'])))
         hits = indexer.search('text:people', sort=comparator.__getitem__)
-        assert sorted(hits.ids) != hits.ids
+        assert sorted(hits.ids) != list(hits.ids)
         hits = indexer.search('text:people', count=5, sort='amendment', reverse=True)
         assert [hit['amendment'] for hit in hits] == ['9', '4', '2', '17', '10']
         hit, = indexer.search('freedom', field='text')
@@ -446,7 +449,7 @@ class TestCase(BaseTest):
         query = field.within(x, y, 10**4)
         assert len(query) < 3
         distances = indexer.distances(x, y, 'longitude', 'latitude')
-        hits = indexer.search(query, sort=distances.__getitem__)
+        hits = indexer.search(query).sorted(distances.__getitem__)
         assert hits[0]['zipcode'] == zipcode and distances[hits[0].id] < 10
         cities = set(hit['city'] for hit in hits)
         assert city in cities and 100 > len(cities) > 50
@@ -462,7 +465,8 @@ class TestCase(BaseTest):
         hits = hits.filter(lambda id: distances[id] < 10**4)
         assert 0 < len(hits) < sum(counts.values())
         hits = hits.sorted(distances.__getitem__, reverse=True)
-        assert 0 == distances[hits.ids[-1]] < distances[hits.ids[0]] < 10**4
+        ids = list(hits.ids)
+        assert 0 == distances[ids[-1]] < distances[ids[0]] < 10**4
     
     def testFields(self):
         "Custom fields."
@@ -499,10 +503,10 @@ class TestCase(BaseTest):
         sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
         ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
         query = engine.Query.range('size', '1000', None)
-        hits = indexer.search(query, sort=sizes.get)
-        assert hits.ids == ids
+        hits = indexer.search(query).sorted(sizes.get)
+        assert list(hits.ids) == ids
         hits = indexer.search(query, count=3, sort=engine.SortField('size', type=long))
-        assert hits.ids == ids[:len(hits)]
+        assert list(hits.ids) == ids[:len(hits)]
         query = engine.Query.range('size', None, '1000')
         assert indexer.count(query) == len(sizes) - len(ids)
         indexer.sorters['year'] = engine.SortField('Y-m-d', type=int, parser=lambda date: int(date.split('-')[0]))
@@ -550,10 +554,10 @@ class TestCase(BaseTest):
         sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
         ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
         query = field.range(1000, None)
-        hits = indexer.search(query, sort=sizes.get)
-        assert hits.ids == ids
+        hits = indexer.search(query).sorted(sizes.get)
+        assert list(hits.ids) == ids
         hits = indexer.search(query, count=3, sort=engine.SortField('size', type=long))
-        assert hits.ids == ids[:len(hits)]
+        assert list(hits.ids) == ids[:len(hits)]
         query = field.range(None, 1000)
         assert indexer.count(query) == len(sizes) - len(ids)
         self.assertRaises(OverflowError, list, field.items(-2**64))

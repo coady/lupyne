@@ -2,23 +2,20 @@
 PyLucene has several pitfalls when collecting or sorting a large query result.
 Generally they involve the overhead of traversing the VM in an internal loop.
 
-Lucene's performance itself drops off noticeably as the requested doc count increases.
-This is heavily compounded by having to iterate through a large set of ScoreDocs in PyLucene.
+Lucene also requires supplying a maximum doc count for searches,
+and supplying an excessively large count is a poor workaround because the collection heap is pre-allocated.
 
-Lucene also only supports sorting a query result when a doc count is supplied.
-And supplying an excessively large count is not a good workaround because of the aforementioned problem.
-
-Finally the custom sorting interface, although well-supported in PyLucene, is bascially useless.
-The sort key of every potential doc must realistically be cached anyway,
-but the performance overhead of O(n log n) comparison calls in java is still horrid.
+Finally the custom sorting interface, although well-supported in PyLucene, has horrible performance.
+The sort key of every potential doc must realistically be cached,
+but the overhead of O(n log n) comparison calls dispatched through the VM is far worse than iterating ScoreDocs.
 
 To mitigate all these problems, Lupyne first provides a unified search interface.
-The same Hits type is returned regardless of whether a doc count is supplied.
+The same Hits type is returned regardless of optional doc count or sorting parameters.
 As with lucene, the result is fully evaluated but each individual Hit object will only be loaded on demand.
-Internally an optimized custom hit Collector is used when all docs are requested.
+Internally a CachingCollector is used when all docs are requested.
 
-The search method does allow lucene Sort parameters to be passed through, since that's still optimal.
-So the only gotcha is that with no doc count the sort parameter must instead be a python callable key.
+The search method allows lucene Sort parameters to be passed through, since that's still optimal.
+Additionally the hits themselves can be sorted afterwards with any python callable key.
 The IndexSearcher.comparator method is convenient for creating a sort key table from indexed fields.
 The upshot is custom sorting and sorting large results are both easier and faster.
 
@@ -68,9 +65,9 @@ assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] =
 
 ### lupyne ###
 
-hits = indexer.search(count=10, sort='color')
+hits = indexer.search(sort='color')
 assert [hit['color'] for hit in hits] == sorted(colors)
 comparator = indexer.comparator('color')
 assert list(comparator) == list(colors)
-hits = indexer.search(sort=comparator.__getitem__)
+hits = indexer.search().sorted(comparator.__getitem__)
 assert [hit['color'] for hit in hits] == sorted(colors)

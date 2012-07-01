@@ -4,6 +4,7 @@ Wrappers for lucene Fields and Documents.
 
 from future_builtins import map, zip
 import datetime, calendar
+import operator
 import collections
 import lucene
 from .queries import Query
@@ -210,50 +211,51 @@ class Hits(object):
     Provides a read-only sequence interface to hit objects.
     
     :param searcher: `IndexSearcher`_ which can retrieve documents
-    :param ids: ordered doc ids
-    :param scores: ordered doc scores
+    :param scoredocs: lucene ScoreDocs
     :param count: total number of hits
     :param maxscore: maximum score
     :param fields: optional field selectors
     """
-    def __init__(self, searcher, ids, scores, count=None, maxscore=None, fields=None):
-        self.searcher = searcher
-        self.ids, self.scores = ids, scores
+    def __init__(self, searcher, scoredocs, count=None, maxscore=None, fields=None):
+        self.searcher, self.scoredocs = searcher, scoredocs
         self.count, self.maxscore = count, maxscore
         self.fields = lucene.MapFieldSelector(fields) if isinstance(fields, collections.Iterable) else fields
     def __len__(self):
-        return len(self.ids)
+        return len(self.scoredocs)
     def __getitem__(self, index):
-        id, score = self.ids[index], self.scores[index]
         if isinstance(index, slice):
-            return type(self)(self.searcher, id, score, self.count, self.maxscore, self.fields)
-        return Hit(self.searcher.doc(id, self.fields), id, score)
+            start, stop, step = index.indices(len(self))
+            assert step == 1, 'slice step is not supported'
+            scoredocs = self.scoredocs[start:stop] if stop - start < len(self) else self.scoredocs
+            return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
+        scoredoc = self.scoredocs[index]
+        return Hit(self.searcher.doc(scoredoc.doc, self.fields), scoredoc.doc, scoredoc.score)
+    @property
+    def ids(self):
+        return map(operator.attrgetter('doc'), self.scoredocs)
+    @property
+    def scores(self):
+        return map(operator.attrgetter('score'), self.scoredocs)
     def items(self):
         "Generate zipped ids and scores."
-        return zip(self.ids, self.scores)
+        return map(operator.attrgetter('doc', 'score'), self.scoredocs)
     def groupby(self, func):
         "Return ordered list of `Hits`_ grouped by value of function applied to doc ids."
         groups = {}
-        for id, score in self.items():
-            value = func(id)
+        for scoredoc in self.scoredocs:
+            value = func(scoredoc.doc)
             try:
                 group = groups[value]
             except KeyError:
-                group = groups[value] = type(self)(self.searcher, [], [], fields=self.fields)
+                group = groups[value] = type(self)(self.searcher, [], fields=self.fields)
                 group.index, group.value = len(groups), value
-            group.ids.append(id)
-            group.scores.append(score)
+            group.scoredocs.append(scoredoc)
         return sorted(groups.values(), key=lambda group: group.__dict__.pop('index'))
     def filter(self, func):
         "Return `Hits`_ filtered by function applied to doc ids."
-        ids, scores = [], []
-        for id, score in self.items():
-            if func(id):
-                ids.append(id)
-                scores.append(score)
-        return type(self)(self.searcher, ids, scores, fields=self.fields)
+        scoredocs = [scoredoc for scoredoc in self.scoredocs if func(scoredoc.doc)]
+        return type(self)(self.searcher, scoredocs, fields=self.fields)
     def sorted(self, key, reverse=False):
         "Return `Hits`_ sorted by key function applied to doc ids."
-        ids = sorted(self.ids, key=key, reverse=reverse)
-        scores = list(map(dict(self.items()).__getitem__, ids))
-        return type(self)(self.searcher, ids, scores, self.count, self.maxscore, self.fields)
+        scoredocs = sorted(self.scoredocs, key=lambda scoredoc: key(scoredoc.doc), reverse=reverse)
+        return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)

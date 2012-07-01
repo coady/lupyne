@@ -181,8 +181,6 @@ class TestCase(BaseTest):
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search?count=')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
-            resource.get('/search', sort='-x,y')
-        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', count=1, sort='x:str')
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
             resource.get('/search', count=1, group='x:str')
@@ -353,23 +351,19 @@ class TestCase(BaseTest):
         assert sorted(docs, key=operator.itemgetter('__score__'), reverse=True) == docs
         assert len(docs) == result['count'] == 8
         result = resource.get('/search', q='text:people', count=5)
+        maxscore = result['maxscore']
         assert docs[:5] == result['docs'] and result['count'] == len(docs)
         result = resource.get('/search', q='text:people', count=5, sort='-amendment:int')
         assert math.isnan(result['maxscore']) and all(math.isnan(doc['__score__']) for doc in result['docs'])
         assert [doc['amendment'] for doc in result['docs']] == ['17', '10', '9', '4', '2']
         result = resource.get('/search', q='text:people', sort='-amendment:int')
         assert [doc.get('amendment') for doc in result['docs']] == ['17', '10', '9', '4', '2', '1', None, None]
-        assert result == resource.get('/search', q='text:people', sort='-date,-amendment:int')
-        maxscore = result['maxscore']
-        assert maxscore == max(doc['__score__'] for doc in result['docs'])
         result = resource.get('/search', q='text:people', count=5, sort='-amendment:int', **{'sort.scores': ''})
         assert math.isnan(result['maxscore']) and maxscore in (doc['__score__'] for doc in result['docs'])
         result = resource.get('/search', q='text:people', count=1, sort='-amendment:int', **{'sort.scores': 'max'})
         assert maxscore == result['maxscore'] and maxscore not in (doc['__score__'] for doc in result['docs'])
         result = resource.get('/search', q='text:people', count=5, sort='-article,amendment:int')
         assert [doc.get('amendment') for doc in result['docs']] == [None, None, '1', '2', '4']
-        with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
-            resource.get('/search', q='text:people', sort='-article,amendment:int')
         result = resource.get('/search', q='text:people', start=2, count=2, facets='article,amendment')
         assert [doc['amendment'] for doc in result['docs']] == ['10', '1']
         assert result['count'] == sum(sum(facets.values()) for facets in result['facets'].values())

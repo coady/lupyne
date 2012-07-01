@@ -417,14 +417,8 @@ class WebSearcher(object):
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort)
             sort = [(name, (type or 'string'), (reverse == '-')) for reverse, name, type in sort]
-            if count is None:
-                with HTTPError(httplib.BAD_REQUEST, ValueError, AttributeError):
-                    reverse, = set(reverse for name, type, reverse in sort) # only one sort direction allowed with unlimited count
-                    comparators = [searcher.comparator(name, type) for name, type, reverse in sort]
-                sort = comparators[0].__getitem__ if len(comparators) == 1 else lambda id: tuple(map(operator.itemgetter(id), comparators))
-            else:
-                with HTTPError(httplib.BAD_REQUEST, AttributeError):
-                    sort = [searcher.sorter(name, type, reverse=reverse) for name, type, reverse in sort]
+            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+                sort = [searcher.sorter(name, type, reverse=reverse) for name, type, reverse in sort]
         q = params.q(searcher, q, **options)
         qfilter = options.pop('filter', None)
         if qfilter is not None and qfilter not in searcher.filters:
@@ -432,7 +426,7 @@ class WebSearcher(object):
         qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
             if q is not None:
-                mlt = searcher.search(q, count=mlt+1, sort=sort, reverse=reverse).ids[mlt]
+                mlt, = searcher.search(q, count=mlt+1, sort=sort, reverse=reverse)[mlt:].ids
             mltfields = options.pop('mlt.fields', ())
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))

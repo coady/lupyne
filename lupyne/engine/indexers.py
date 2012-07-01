@@ -10,8 +10,9 @@ import re
 import itertools, operator
 import contextlib
 import abc, collections
+import warnings
 import lucene
-from .queries import Query, Collector, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
+from .queries import Query, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits
 from .spatial import DistanceComparator
 
@@ -443,52 +444,55 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         collector = lucene.TotalHitCountCollector()
         lucene.IndexSearcher.search(self, query, options.get('filter'), collector)
         return collector.totalHits
+    def collector(self, query, count=None, sort=None, reverse=False, scores=False, maxscore=False):
+        weight = self.createNormalizedWeight(query) if hasattr(self, 'createNormalizedWeight') else query.weight(self)
+        inorder = not weight.scoresDocsOutOfOrder()
+        if count is None:
+            return lucene.CachingCollector.create(not inorder, True, float('inf'))
+        count = min(count, self.maxDoc() or 1)
+        if callable(sort) or sort is None:
+            return lucene.TopScoreDocCollector.create(count, inorder)
+        if isinstance(sort, basestring):
+            sort = self.sorter(sort, reverse=reverse)
+        if not isinstance(sort, lucene.Sort):
+            sort = lucene.Sort(sort)
+        return lucene.TopFieldCollector.create(sort, count, False, scores, maxscore, inorder)
     def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
+        
+        .. deprecated:: 1.2+ sort param for lucene only; use Hits.sorted with a callable
         
         :param query: query string or lucene Query
         :param filter: lucene Filter
         :param count: maximum number of hits to retrieve
-        :param sort: if count is given, lucene Sort parameters, else a callable key
+        :param sort: lucene Sort parameters
         :param reverse: reverse flag used with sort
-        :param scores: compute scores for candidate results when using lucene Sort
-        :param maxscore: compute maximum score of all results when using lucene Sort
+        :param scores: compute scores for candidate results when sorting
+        :param maxscore: compute maximum score of all results when sorting
         :param timeout: stop search after elapsed number of seconds
         :param parser: :meth:`Analyzer.parse` options
         """
         query = lucene.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
-        weight = self.createNormalizedWeight(query) if hasattr(self, 'createNormalizedWeight') else query.weight(self)
-        # use custom Collector if all results are necessary, otherwise use lucene's TopDocsCollectors
-        if count is None:
-            collector = Collector()
-        else:
-            count, inorder = min(count, self.maxDoc() or 1), not weight.scoresDocsOutOfOrder()
-            if sort is None:
-                collector = lucene.TopScoreDocCollector.create(count, inorder)
-            else:
-                if isinstance(sort, basestring):
-                    sort = self.sorter(sort, reverse=reverse)
-                if not isinstance(sort, lucene.Sort):
-                    sort = lucene.Sort(sort)
-                collector = lucene.TopFieldCollector.create(sort, count, False, scores, maxscore, inorder)
+        cache = collector = self.collector(query, count, sort, reverse, scores, maxscore)
         args = [lucene.TimeLimitingCollector.getGlobalCounter()] if hasattr(lucene, 'Counter') else []
         results = collector if timeout is None else lucene.TimeLimitingCollector(collector, *(args + [long(timeout * 1000)]))
         try:
-            lucene.IndexSearcher.search(self, weight, filter, results)
+            lucene.IndexSearcher.search(self, query, filter, results)
         except lucene.JavaError as timeout:
             if not lucene.TimeLimitingCollector.TimeExceededException.instance_(timeout.getJavaException()):
                 raise
-        if isinstance(collector, Collector):
-            ids, scores = collector.sorted(key=sort, reverse=reverse)
-            collector.finalize()
-            stats = len(ids), max(scores or [float('nan')])
-        else:
-            topdocs = collector.topDocs()
-            scoredocs = list(topdocs.scoreDocs)
-            ids, scores = (list(map(operator.attrgetter(name), scoredocs)) for name in ('doc', 'score'))
-            stats = topdocs.totalHits, topdocs.maxScore
-        stats *= not isinstance(timeout, lucene.JavaError)
-        return Hits(self, ids, scores, *stats)
+        if isinstance(cache, lucene.CachingCollector):
+            collector = lucene.TotalHitCountCollector()
+            cache.replay(collector)
+            collector = self.collector(query, collector.totalHits or 1, sort, reverse, scores, maxscore)
+            cache.replay(collector)
+        topdocs = collector.topDocs()
+        stats = (topdocs.totalHits, topdocs.maxScore) * (not isinstance(timeout, lucene.JavaError))
+        hits = Hits(self, topdocs.scoreDocs, *stats)
+        if callable(sort):
+            warnings.warn('Use lucene sorting or call Hits.sorted.', DeprecationWarning)
+            return hits.sorted(sort, reverse)
+        return hits
     def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.
         

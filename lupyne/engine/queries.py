@@ -178,25 +178,6 @@ class SpanQuery(Query):
         base = lucene.SpanNearPayloadCheckQuery if lucene.SpanNearQuery.instance_(self) else lucene.SpanPayloadCheckQuery
         return SpanQuery(base, self, lucene.Arrays.asList(list(map(lucene.JArray_byte, values))))
 
-class Collector(lucene.PythonCollector):
-    "Collect all ids and scores efficiently."
-    def __init__(self):
-        lucene.PythonCollector.__init__(self)
-        self.scores = {}
-    def collect(self, id, score):
-        self.scores[id + self.base] = score
-    def setNextReader(self, reader, base):
-        self.base = base
-    def acceptsDocsOutOfOrder(self):
-        return True
-    def sorted(self, key=None, reverse=False):
-        "Return ordered ids and scores."
-        ids = sorted(self.scores)
-        if key is None:
-            key, reverse = self.scores.__getitem__, True
-        ids.sort(key=key, reverse=reverse)
-        return ids, list(map(self.scores.__getitem__, ids))
-
 class TermsFilter(lucene.CachingWrapperFilter):
     """Caching filter based on a unique field and set of matching values.
     Optimized for many terms and docs, with support for incremental updates.
