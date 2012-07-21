@@ -1,0 +1,16 @@
+@import url("nature.css");
+
+div.related {
+    background-color: #5E84BB;
+    background-image: url('logo.png');
+    background-repeat: no-repeat;
+    line-height: 64px;
+}
+
+div.related a {
+    color: #fff;
+}
+
+div.related ul {
+    padding-left: 96px;
+}
