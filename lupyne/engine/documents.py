@@ -259,3 +259,52 @@ class Hits(object):
         "Return `Hits`_ sorted by key function applied to doc ids."
         scoredocs = sorted(self.scoredocs, key=lambda scoredoc: key(scoredoc.doc), reverse=reverse)
         return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
+
+class Grouping(object):
+    """Delegated lucene SearchGroups with optimized faceting.
+    
+    :param searcher: `IndexSearcher`_ which can retrieve documents
+    :param field: unique field name to group by
+    :param query: lucene Query to select groups
+    :param count: maximum number of groups
+    :param sort: lucene Sort to order groups
+    """
+    def __init__(self, searcher, field, query=None, count=None, sort=None):
+        self.searcher, self.field = searcher, field
+        self.query = query or lucene.MatchAllDocsQuery()
+        self.sort = sort or lucene.Sort.RELEVANCE
+        if count is None:
+            collector = lucene.TermAllGroupsCollector(field)
+            lucene.IndexSearcher.search(self.searcher, self.query, collector)
+            count = collector.groupCount
+        collector = lucene.TermFirstPassGroupingCollector(field, self.sort, count)
+        lucene.IndexSearcher.search(self.searcher, self.query, collector)
+        self.searchgroups = collector.getTopGroups(0, False).of_(lucene.SearchGroup)
+    def __len__(self):
+        return self.searchgroups.size()
+    def __iter__(self):
+        for searchgroup in self.searchgroups:
+            yield searchgroup.groupValue.toString()
+    def facets(self, filter):
+        "Generate field values and counts which match given filter."
+        collector = lucene.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, self.sort, 1, False, False, False)
+        lucene.IndexSearcher.search(self.searcher, self.query, filter, collector)
+        for groupdocs in collector.getTopGroups(0).groups:
+            yield groupdocs.groupValue.toString(), groupdocs.totalHits
+    def groups(self, count=1, sort=None, scores=False, maxscore=False):
+        """Generate grouped `Hits`_ from second pass grouping collector.
+        
+        :param count: maximum number of docs per group
+        :param sort: lucene Sort to order docs within group
+        :param scores: compute scores for candidate results
+        :param maxscore: compute maximum score of all results
+        """
+        sort = sort or self.sort
+        if sort == lucene.Sort.RELEVANCE:
+            scores = maxscore = True
+        collector = lucene.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, False)
+        lucene.IndexSearcher.search(self.searcher, self.query, collector)
+        for groupdocs in collector.getTopGroups(0).groups:
+            hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
+            hits.value = groupdocs.groupValue.toString()
+            yield hits

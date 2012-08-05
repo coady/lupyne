@@ -13,7 +13,7 @@ import abc, collections
 import warnings
 import lucene
 from .queries import Query, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
-from .documents import Field, Document, Hits
+from .documents import Field, Document, Hits, Grouping
 from .spatial import DistanceComparator
 
 class Atomic(object):
@@ -377,7 +377,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         self.owned = closing([self.indexReader])
         self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
-        self.termsfilters = set()
+        self.termsfilters, self.groupings = set(), {}
     @classmethod
     def load(cls, directory, analyzer=None):
         "Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."
@@ -508,7 +508,9 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
             query = lucene.CachingWrapperFilter(query)
         for key in keys:
             filters = self.filters.get(key)
-            if isinstance(filters, lucene.Filter):
+            if key in self.groupings:
+                counts[key] = dict(self.groupings[key].facets(query))
+            elif isinstance(filters, lucene.Filter):
                 counts[key] = self.overlap(query, filters)
             else:
                 name, value = (key, None) if isinstance(key, basestring) else key
@@ -522,6 +524,12 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
                         filters[value] = Query.term(name, value).filter()
                     counts[name][value] = self.overlap(query, filters[value])
         return dict(counts)
+    def grouping(self, field, query=None, count=None, sort=None):
+        "Return `Grouping`_ for unique field and lucene search parameters."
+        try:
+            return self.groupings[field]
+        except KeyError:
+            return Grouping(self, field, query, count, sort)
     def sorter(self, field, type='string', parser=None, reverse=False):
         "Return `SortField`_ with cached attributes if available."
         sorter = self.sorters.get(field, SortField(field, type, parser, reverse))

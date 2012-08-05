@@ -395,7 +395,22 @@ class TestCase(BaseTest):
         assert la == 'CA.Los Angeles' and facets[la] > 100
         assert orange == 'CA.Orange' and facets[orange] > 10
         (field, facets), = indexer.facets(query, ('state.county', 'CA.*')).items()
-        assert all(value.startswith('CA.') for value in facets) and set(facets) < set(indexer.filters['state.county'])
+        assert all(value.startswith('CA.') for value in facets) and set(facets) < set(indexer.filters[field])
+        if hasattr(lucene, 'TermFirstPassGroupingCollector'):
+            assert set(indexer.grouping('state', count=1)) < set(indexer.grouping('state')) == set(states)
+            grouping = indexer.grouping(field, query, sort=lucene.Sort(indexer.sorter(field)))
+            assert len(grouping) == 2 and list(grouping) == [la, orange]
+            for value, (name, count) in zip(grouping, grouping.facets(None)):
+                assert value == name and count > 0
+            grouping = indexer.groupings[field] = indexer.grouping(field, engine.Query.term('state', 'CA'))
+            assert indexer.facets(query, field)[field] == facets
+            hits = next(grouping.groups())
+            assert hits.value == 'CA.Los Angeles' and hits.count > 100 and len(hits) == 1
+            hit, = hits
+            assert hit['county'] == 'Los Angeles' and hits.maxscore >= hit.score > 0
+            hits = next(grouping.groups(count=2, sort=lucene.Sort(indexer.sorter('zipcode')), scores=True))
+            assert hits.value == 'CA.Los Angeles' and math.isnan(hits.maxscore) and len(hits) == 2
+            assert all(hit.score > 0 and hit['zipcode'] > '90000' for hit in hits)
         for count in (None, len(indexer)):
             hits = indexer.search(query, count=count, timeout=0.01)
             assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)
