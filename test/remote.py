@@ -283,7 +283,10 @@ class TestCase(BaseTest):
         filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lupyne/server.py')
         assert subprocess.call((sys.executable, filepath, '-c', filepath), stderr=subprocess.PIPE)
         assert cherrypy.tree.mount(None)
-        server.init(vmargs=None)
+        try:
+            server.init(vmargs=None)
+        except ValueError:
+            pass
         self.assertRaises(AttributeError, server.start, config=True)
     
     def testBasic(self):
