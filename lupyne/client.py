@@ -111,8 +111,13 @@ class Resource(httplib.HTTPConnection):
         "Return response body from DELETE request."
         return self.call('DELETE', path, params=params)()
 
+if hasattr(httplib, 'HTTPSConnection'):
+    class SResource(Resource, httplib.HTTPSConnection, object):
+        pass
+
 class Pool(collections.deque):
     "Thread-safe resource pool for one host."
+    resource_class = Resource
     def __init__(self, host, limit=0):
         collections.deque.__init__(self, maxlen=limit)
         self.host = host
@@ -121,7 +126,7 @@ class Pool(collections.deque):
         try:
             resource = self.popleft()
         except IndexError:
-            resource = Resource(self.host)
+            resource = self.resource_class(self.host)
         resource.request(method, path, body)
         response = yield resource
         try:

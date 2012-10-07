@@ -1,6 +1,6 @@
 from __future__ import print_function
 import unittest
-import os, sys
+import sys
 import lucene
 
 from .local import TestCase as local

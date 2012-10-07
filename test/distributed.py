@@ -70,6 +70,10 @@ class TestCase(remote.BaseTest):
         assert next(stream) is None
         resources.clear()
         self.assertRaises(ValueError, resources.unicast, 'GET', '/')
+        if hasattr(client, 'SResource'):
+            client.Pool.resource_class = client.SResource
+            self.assertRaises(httplib.ssl.SSLError, client.Pool(self.hosts[-1]).call, 'GET', '/')
+        client.Pool.resource_class = client.Resource
     
     def testSharding(self):
         "Sharding of indices across servers."
