@@ -6,7 +6,6 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 
 from future_builtins import map, zip
 import os
-import re
 import itertools, operator
 import contextlib
 import abc, collections
@@ -29,7 +28,7 @@ class closing(set):
     "Manage lifespan of registered objects, similar to contextlib.closing."
     def __del__(self):
         for obj in self:
-            getattr(obj, 'decRef', obj.close)()
+            obj.close()
     def analyzer(self, analyzer, version=None):
         if analyzer is None:
             analyzer = lucene.StandardAnalyzer(version or lucene.Version.values()[-1])
@@ -374,7 +373,6 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     def __init__(self, directory, analyzer=None):
         self.shared = closing()
         lucene.IndexSearcher.__init__(self, self.shared.reader(directory))
-        self.owned = closing([self.indexReader])
         self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
         self.termsfilters, self.groupings = set(), {}
@@ -387,7 +385,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         return self
     def __del__(self):
         if hash(self):
-            self.close()
+            self.decRef()
     def reopen(self, filters=False, sorters=False, spellcheckers=False):
         """Return current `IndexSearcher`_, only creating a new one if necessary.
         Any registered :attr:`termsfilters` are also refreshed.
@@ -592,7 +590,7 @@ class MultiSearcher(IndexSearcher):
         shared = closing()
         if not lucene.MultiReader.instance_(reader):
             reader = lucene.MultiReader(list(map(shared.reader, reader)))
-            owned = closing([reader]) # decRef when finished
+            ref = closing([reader])
         IndexSearcher.__init__(self, reader, analyzer)
         self.shared.update(shared)
         shared.clear()
@@ -616,7 +614,6 @@ class IndexWriter(lucene.IndexWriter):
     :param attrs: additional attributes to set on IndexWriterConfig
     """
     __len__ = lucene.IndexWriter.numDocs
-    __del__ = IndexSearcher.__dict__['__del__']
     parse = IndexSearcher.__dict__['parse']
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
@@ -629,6 +626,9 @@ class IndexWriter(lucene.IndexWriter):
         config.indexDeletionPolicy = self.policy = lucene.SnapshotDeletionPolicy(config.indexDeletionPolicy)
         lucene.IndexWriter.__init__(self, self.shared.directory(directory), config)
         self.fields = {}
+    def __del__(self):
+        if hash(self):
+            self.close()
     def set(self, name, cls=Field, **params):
         """Assign parameters to field name.
         

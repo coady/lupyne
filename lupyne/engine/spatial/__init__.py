@@ -9,7 +9,6 @@ The quadkeys are then indexed using a prefix tree, creating a cartesian tier of 
 """
 
 import itertools
-import lucene
 from .globalmaptiles import GlobalMercator
 from ..queries import Query
 from ..documents import NumericField

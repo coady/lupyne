@@ -14,7 +14,6 @@ Example queries:
  * http://localhost:8080/search?q=text:right&count=3&facets=year
 """
 
-import os
 import lucene
 from lupyne import engine, server
 from test import fixture

@@ -2,7 +2,7 @@
 Wrappers for lucene Fields and Documents.
 """
 
-from future_builtins import map, zip
+from future_builtins import map
 import datetime, calendar
 import operator
 import collections

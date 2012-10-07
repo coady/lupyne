@@ -3,7 +3,6 @@ import unittest
 import os
 import tempfile, shutil
 import itertools
-import collections
 import warnings
 import datetime
 import math

@@ -39,14 +39,14 @@ CherryPy and Lucene VM integration issues:
  * Recommended that the VM ignores keyboard interrupts (-Xrs) for clean server shutdown.
 """
 
-from future_builtins import filter, map
+from future_builtins import map
 import re
 import time
 import uuid
 import socket, httplib
 import heapq
 import collections
-import itertools, operator
+import itertools
 import os, optparse
 from email.utils import formatdate
 import contextlib
