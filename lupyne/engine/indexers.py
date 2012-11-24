@@ -534,10 +534,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         return sorter if sorter.reverse == reverse else SortField(sorter.field, sorter.typename, sorter.parser, reverse)
     def comparator(self, field, type='string', parser=None):
         "Return :meth:`IndexReader.comparator` using a cached `SortField`_ if available."
-        sorter = self.sorter(field, type, parser)
-        if not hasattr(sorter, 'cache'):
-            sorter.cache = sorter.comparator(self.indexReader)
-        return sorter.cache
+        return self.sorter(field, type, parser).comparator(self.indexReader)
     def distances(self, lng, lat, lngfield, latfield):
         "Return distance comparator computed from cached lat/lng fields."
         arrays = (self.comparator(field, 'double') for field in (lngfield, latfield))

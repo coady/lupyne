@@ -203,7 +203,7 @@ class TestCase(BaseTest):
         assert searcher.count() == len(searcher) == 2 * len(indexer)
         searcher.sorters['amendment'] = engine.SortField('amenmdment', int)
         comparator = searcher.comparator('amendment')
-        assert comparator is searcher.comparator('amendment') and set(map(type, comparator)) == set([int])
+        assert set(map(type, comparator)) == set([int])
         assert searcher is searcher.reopen()
         assert searcher.facets(lucene.MatchAllDocsQuery(), 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
         reader = searcher.indexReader
@@ -535,7 +535,7 @@ class TestCase(BaseTest):
         indexer.add()
         indexer.commit(sorters=True)
         cache = len(lucene.FieldCache.DEFAULT.cacheEntries)
-        assert indexer.comparator('year')[-1] == 0
+        assert list(indexer.comparator('year'))[-1] == 0
         assert cache == len(lucene.FieldCache.DEFAULT.cacheEntries)
     
     def testNumeric(self):

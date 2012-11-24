@@ -232,6 +232,21 @@ class TermsFilter(lucene.CachingWrapperFilter):
         "Discard a few term values."
         self.update(values, op='andNot', cache=False)
 
+class Comparator(object):
+    "Chained arrays with bisection lookup."
+    def __init__(self, arrays):
+        self.arrays = list(arrays)
+        self.offsets = [0]
+        for array in self.arrays:
+            self.offsets.append(len(self) + len(array))
+    def __len__(self):
+        return self.offsets[-1]
+    def __iter__(self):
+        return itertools.chain(*self.arrays)
+    def __getitem__(self, index):
+        point = bisect.bisect_right(self.offsets, index) - 1
+        return self.arrays[point][index - self.offsets[point]]
+
 class SortField(lucene.SortField):
     """Inherited lucene SortField used for caching FieldCache parsers.
     
@@ -258,14 +273,7 @@ class SortField(lucene.SortField):
         if lucene.MultiReader.instance_(reader):
             readers = itertools.chain.from_iterable(reader.sequentialSubReaders for reader in readers)
         arrays = list(map(self.array, readers))
-        if len(arrays) <= 1:
-            return arrays[0]
-        cls, = set(map(type, arrays))
-        index, result = 0, cls(sum(map(len, arrays)))
-        for array in arrays:
-            lucene.System.arraycopy(array, 0, result, index, len(array))
-            index += len(array)
-        return result
+        return arrays[0] if len(arrays) <= 1 else Comparator(arrays)
     def filter(self, start, stop, lower=True, upper=False):
         "Return lucene FieldCacheRangeFilter based on field and type."
         method = getattr(lucene.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))
@@ -273,12 +281,9 @@ class SortField(lucene.SortField):
     def terms(self, filter, *readers):
         "Generate field cache terms from docs which match filter from all segments."
         for reader in readers:
-            array, it = self.array(reader), filter.getDocIdSet(reader).iterator()
-            try:
-                while True:
-                    yield array[it.nextDoc()]
-            except IndexError:
-                pass
+            array, docset = self.array(reader), filter.getDocIdSet(reader)
+            for id in iter(docset.iterator().nextDoc, lucene.DocIdSetIterator.NO_MORE_DOCS):
+                yield array[id]
 
 class Highlighter(lucene.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
