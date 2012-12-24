@@ -22,26 +22,22 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.2:
+Changes in 1.2+:
 ==================
  * Engine:
    
-   - PyLucene 3.6 supported
-   - PyLucene 3.1 deprecated
-   - Support for all IndexWriterConfig options
-   - Dynamic filter wrappers
-   - Flexible hit sorting and filtering
-   - TermsFilter and ParallelIndexer for searching external metadata
+   - PyLucene 3.3 and 3.4 deprecated
+   - Optimized searching and sorting with unlimited count
+   - Support for contrib grouping collectors and faceting
+   - FieldCache comparators optimized for memory and real-time searching
 
  * Server:
    
-   - Synchronization of searcher with remote hosts
-   - Automatic promotion of searcher to indexer
+   - CherryPy 3.1 deprecated
 
  * Client:
    
-   - Resource pooling for single hosts
-   - Replica support with automatic failover
+   - Support for https
 """
 
 import os

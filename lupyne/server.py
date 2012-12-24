@@ -54,12 +54,16 @@ try:
     import simplejson as json
 except ImportError:
     import json
+import warnings
 import lucene
 import cherrypy
 try:
     from . import engine, client
 except ValueError:
     import engine, client
+
+if cherrypy.__version__ < '3.2':
+    warnings.warn('Support for cherrypy 3.1 will be removed in the next release.', DeprecationWarning)
 
 def tool(hook):
     "Return decorator to register tool at given hook point."
