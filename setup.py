@@ -30,6 +30,7 @@ Changes in 1.2+:
    - Optimized searching and sorting with unlimited count
    - Support for contrib grouping collectors and faceting
    - FieldCache comparators optimized for memory and real-time searching
+   - Caching for sort keys
 
  * Server:
    

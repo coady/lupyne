@@ -454,7 +454,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
             sort = self.sorter(sort, reverse=reverse)
         if not isinstance(sort, lucene.Sort):
             sort = lucene.Sort(sort)
-        return lucene.TopFieldCollector.create(sort, count, False, scores, maxscore, inorder)
+        return lucene.TopFieldCollector.create(sort, count, True, scores, maxscore, inorder)
     def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
         

@@ -244,6 +244,7 @@ class TestCase(BaseTest):
         sort = engine.SortField('amendment', type=int)
         hits = indexer.search('text:people', count=5, sort=sort)
         assert [hit.get('amendment') for hit in hits] == [None, None, '1', '2', '4']
+        assert [key for hit in hits for key in hit.keys]== [0, 0, 1, 2, 4]
         assert all(map(math.isnan, hits.scores))
         hits = indexer.search('text:right', count=10**7, sort=sort, scores=True)
         assert not any(map(math.isnan, hits.scores)) and sorted(hits.scores, reverse=True) != hits.scores
@@ -406,10 +407,11 @@ class TestCase(BaseTest):
             hits = next(grouping.groups())
             assert hits.value == 'CA.Los Angeles' and hits.count > 100 and len(hits) == 1
             hit, = hits
+            assert hit.score in hit.keys
             assert hit['county'] == 'Los Angeles' and hits.maxscore >= hit.score > 0
             hits = next(grouping.groups(count=2, sort=lucene.Sort(indexer.sorter('zipcode')), scores=True))
             assert hits.value == 'CA.Los Angeles' and math.isnan(hits.maxscore) and len(hits) == 2
-            assert all(hit.score > 0 and hit['zipcode'] > '90000' for hit in hits)
+            assert all(hit.score > 0 and hit['zipcode'] > '90000' and hit['zipcode'] in hit.keys for hit in hits)
         for count in (None, len(indexer)):
             hits = indexer.search(query, count=count, timeout=0.01)
             assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)

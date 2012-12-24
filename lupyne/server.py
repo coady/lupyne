@@ -407,10 +407,11 @@ class WebSearcher(object):
             
             :return:
                 | {
-                | "query": *string*,
+                | "query": *string*\|null,
                 | "count": *int*\|null,
                 | "maxscore": *number*\|null,
-                | "docs": [{"__id__": *int*, "__score__": *number*, "__highlights__": {*string*: *array*,... }, *string*: *object*,... },... ],
+                | "docs": [{"__id__": *int*, "__score__": *number*, "__keys__": *array*,
+                    "__highlights__": {*string*: *array*,... }, *string*: *value*,... },... ],
                 | "facets": {*string*: {*string*: *int*,... },... },
                 | "groups": [{"count": *int*, "value": *value*, "docs": [*object*,... ]},... ]
                 | "spellcheck": {*string*: {*string*: [*string*,... ],... },... },

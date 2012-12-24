@@ -195,15 +195,25 @@ class Document(dict):
         defaults.update((name, self.getlist(name)) for name in names)
         return defaults
 
+def convert(value):
+    "Return python object from java Object."
+    if not lucene.Number.instance_(value):
+        return value.toString() if lucene.Object.instance_(value) else value
+    value = lucene.Number.cast_(value)
+    return value.doubleValue() if lucene.Float.instance_(value) or lucene.Double.instance_(value) else int(value.longValue())
+
 class Hit(Document):
-    "A Document with an id and score, from a search result."
-    def __init__(self, doc, id, score):
+    "A Document from a search result, with :attr:`id`, :attr:`score`, and optional sort :attr:`keys`."
+    def __init__(self, doc, id, score, keys=()):
         Document.__init__(self, doc)
         self.id, self.score = id, score
+        self.keys = tuple(map(convert, keys))
     def dict(self, *names, **defaults):
-        "Return dict representation of document with __id__ and __score__."
+        "Return dict representation of document with __id__, __score__, and any sort __keys__."
         result = Document.dict(self, *names, **defaults)
         result.update(__id__=self.id, __score__=self.score)
+        if self.keys:
+            result['__keys__'] = self.keys
         return result
 
 class Hits(object):
@@ -229,7 +239,8 @@ class Hits(object):
             scoredocs = self.scoredocs[start:stop] if stop - start < len(self) else self.scoredocs
             return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
         scoredoc = self.scoredocs[index]
-        return Hit(self.searcher.doc(scoredoc.doc, self.fields), scoredoc.doc, scoredoc.score)
+        keys = lucene.FieldDoc.cast_(scoredoc).fields if lucene.FieldDoc.instance_(scoredoc) else ()
+        return Hit(self.searcher.doc(scoredoc.doc, self.fields), scoredoc.doc, scoredoc.score, keys)
     @property
     def ids(self):
         return map(operator.attrgetter('doc'), self.scoredocs)
@@ -302,7 +313,7 @@ class Grouping(object):
         sort = sort or self.sort
         if sort == lucene.Sort.RELEVANCE:
             scores = maxscore = True
-        collector = lucene.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, False)
+        collector = lucene.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, True)
         lucene.IndexSearcher.search(self.searcher, self.query, collector)
         for groupdocs in collector.getTopGroups(0).groups:
             hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
