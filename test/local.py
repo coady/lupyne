@@ -141,7 +141,8 @@ class TestCase(BaseTest):
         indexer.commit()
         assert 0 not in indexer and len(indexer) == 0 and sum(indexer.segments.values()) == 0
         indexer.add(tag='test', name='old')
-        indexer.update('tag', boost=2.0, tag='test')
+        with assertWarns(DeprecationWarning):
+            indexer.update('tag', boost=2.0, tag='test')
         indexer.commit()
         assert [indexer[id].dict() for id in indexer] == [{'tag': 'test'}]
         indexer.update('tag', 'test', {'name': 'new'})
@@ -179,7 +180,7 @@ class TestCase(BaseTest):
         for name, params in fixture.constitution.fields.items():
             indexer.set(name, **params)
         for doc in fixture.constitution.docs():
-            indexer.add(doc, boost=('article' in doc) + 1.0)
+            indexer.add(doc)
         indexer.commit()
         searcher = engine.IndexSearcher.load(self.tempdir)
         engine.IndexSearcher.load(searcher.directory) # ensure directory isn't closed
@@ -229,7 +230,7 @@ class TestCase(BaseTest):
         assert hit['article'] == 'Preamble'
         assert sorted(hit.dict()) == ['__id__', '__score__', 'article']
         hits = indexer.search('people', field='text')
-        assert hits[0]['article'] == 'Preamble'
+        assert 'Preamble' in (hit.get('article') for hit in hits)
         assert len(hits) == hits.count == 8
         assert set(map(type, hits.ids)) == set([int]) and set(map(type, hits.scores)) == set([float])
         assert hits.maxscore == max(hits.scores)

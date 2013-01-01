@@ -634,10 +634,12 @@ class IndexWriter(lucene.IndexWriter):
         :param params: store,index,termvector options compatible with `Field`_
         """
         self.fields[name] = cls(name, **params)
-    def document(self, document=(), boost=1.0, **terms):
+    def document(self, document=(), boost=None, **terms):
         "Return lucene Document from mapping of field names to one or multiple values."
         doc = lucene.Document()
-        doc.boost = boost
+        if boost is not None:
+            warnings.warn('Document boosting has been removed from lucene 4; set Field boosts instead.', DeprecationWarning)
+            doc.boost = boost
         for name, values in dict(document, **terms).items():
             if isinstance(values, Atomic):
                 values = values,
