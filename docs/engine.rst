@@ -3,7 +3,7 @@ engine
 .. automodule:: lupyne.engine
 
   * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_, `ParallelIndexer`_
-  * `Document`_, `Field`_, `FormatField`_, `NestedField`_, `NumericField`_, `DateTimeField`_
+  * `Document`_, `Field`_, `MapField`_, `FormatField`_, `NestedField`_, `NumericField`_, `DateTimeField`_
   * `Query`_, `SortField`_, `TermsFilter`_
   * `PointField`_, `PolygonField`_
 
@@ -160,8 +160,15 @@ Field
 .. autoclass:: Field
   :members:
 
+MapField
+^^^^^^^^^^^^^
+.. autoclass:: MapField
+  :show-inheritance:
+  :members:
+
 FormatField
 ^^^^^^^^^^^^^
+.. deprecated:: 1.2+ use `MapField`_ with format method instead.
 .. autoclass:: FormatField
   :show-inheritance:
   :members:

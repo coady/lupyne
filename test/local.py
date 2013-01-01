@@ -494,8 +494,9 @@ class TestCase(BaseTest):
         attrs = 'indexed', 'tokenized', 'termVectorStored', 'storePositionWithTermVector', 'storeOffsetWithTermVector', 'omitNorms'
         assert all(getattr(field, attr) for attr in attrs)
         indexer = engine.Indexer(self.tempdir)
-        indexer.set('amendment', engine.FormatField, format='{0:02d}', store=True)
-        indexer.set('size', engine.FormatField, format='{0:04d}', store=True)
+        with assertWarns(DeprecationWarning):
+            indexer.set('amendment', engine.FormatField, format='{0:02d}', store=True)
+        indexer.set('size', engine.MapField, func='{0:04d}'.format, store=True)
         field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:

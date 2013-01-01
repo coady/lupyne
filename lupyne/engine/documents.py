@@ -6,6 +6,7 @@ from future_builtins import map
 import datetime, calendar
 import operator
 import collections
+import warnings
 import lucene
 from .queries import Query
 
@@ -45,17 +46,27 @@ class Field(object):
                 setattr(field, name, value)
             yield field
 
-class FormatField(Field):
+class MapField(Field):
+    """Field which applies a function across its values.
+    
+    :param func: callable
+    """
+    def __init__(self, name, func, **kwargs):
+        Field.__init__(self, name, **kwargs)
+        self.func = func
+    def items(self, *values):
+        "Generate fields with mapped values."
+        return Field.items(self, *map(self.func, values))
+
+class FormatField(MapField):
     """Field which uses string formatting on its values.
     
     :param format: format string
     """
     def __init__(self, name, format='{0}', **kwargs):
-        Field.__init__(self, name, **kwargs)
-        self.format = format.format
-    def items(self, *values):
-        "Generate fields with formatted values."
-        return Field.items(self, *map(self.format, values))
+        warnings.warn('FormatField will be removed in the next release; use MapField instead.', DeprecationWarning)
+        MapField.__init__(self, name, format.format, **kwargs)
+        self.format = self.func
 
 class NestedField(Field):
     """Field which indexes every component into its own field.

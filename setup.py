@@ -31,6 +31,7 @@ Changes in 1.2+:
    - Support for contrib grouping collectors and faceting
    - FieldCache comparators optimized for memory and real-time searching
    - Caching for sort keys
+   - Field support for mapping functions
 
  * Server:
    
