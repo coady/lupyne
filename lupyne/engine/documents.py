@@ -8,6 +8,13 @@ import operator
 import collections
 import warnings
 import lucene
+try:
+    from java.lang import Double, Float, Long, Number, Object
+    from org.apache.lucene import document, search, util
+    from org.apache.lucene.search import grouping
+except ImportError:
+    from lucene import Double, Float, Long, Number, Object
+    document = search = util = grouping = lucene
 from .queries import Query
 
 class Field(object):
@@ -23,25 +30,25 @@ class Field(object):
         self.name, self.attrs = name, attrs
         if isinstance(store, bool):
             store = 'yes' if store else 'no'
-        self.store = lucene.Field.Store.valueOf(store.upper())
+        self.store = document.Field.Store.valueOf(store.upper())
         if isinstance(index, bool):
-            self.index = lucene.Field.Index.toIndex(index, analyzed, omitNorms)
+            self.index = document.Field.Index.toIndex(index, analyzed, omitNorms)
         else:
-            self.index = lucene.Field.Index.valueOf(index.upper())
+            self.index = document.Field.Index.valueOf(index.upper())
         if isinstance(termvector, bool):
-            self.termvector = lucene.Field.TermVector.toTermVector(termvector, withOffsets, withPositions)
+            self.termvector = document.Field.TermVector.toTermVector(termvector, withOffsets, withPositions)
         else:
-            self.termvector = lucene.Field.TermVector.valueOf(termvector.upper())
+            self.termvector = document.Field.TermVector.valueOf(termvector.upper())
         next(Field.items(self, ' ')) # validate settings
     def items(self, *values):
         "Generate lucene Fields suitable for adding to a document."
         for value in values:
             if isinstance(value, basestring):
-                field = lucene.Field(self.name, value, self.store, self.index, self.termvector)
+                field = document.Field(self.name, value, self.store, self.index, self.termvector)
             elif isinstance(value, lucene.JArray_byte):
-                field = lucene.Field(self.name, value)
+                field = document.Field(self.name, value)
             else:
-                field = lucene.Field(self.name, value, self.termvector)
+                field = document.Field(self.name, value, self.termvector)
             for name, value in self.attrs.items():
                 setattr(field, name, value)
             yield field
@@ -87,10 +94,10 @@ class NestedField(Field):
         "Generate indexed component fields."
         if self.store.stored:
             for value in values:
-                yield lucene.Field(self.name, value, self.store, lucene.Field.Index.NO)
+                yield document.Field(self.name, value, self.store, document.Field.Index.NO)
         for value in values:
             for index, text in enumerate(self.values(value)):
-                yield lucene.Field(self.names[index], text, lucene.Field.Store.NO, self.index, self.termvector)
+                yield document.Field(self.names[index], text, document.Field.Store.NO, self.index, self.termvector)
     def prefix(self, value):
         "Return prefix query of the closest possible prefixed field."
         index = value.count(self.sep)
@@ -108,12 +115,12 @@ class NumericField(Field):
     """
     def __init__(self, name, step=None, store=False, index=True):
         Field.__init__(self, name, store)
-        self.step = step or lucene.NumericUtils.PRECISION_STEP_DEFAULT
+        self.step = step or util.NumericUtils.PRECISION_STEP_DEFAULT
         self.index = index
     def items(self, *values):
         "Generate lucene NumericFields suitable for adding to a document."
         for value in values:
-            field = lucene.NumericField(self.name, self.step, self.store, self.index)
+            field = document.NumericField(self.name, self.step, self.store, self.index)
             if isinstance(value, float):
                 field.doubleValue = value
             else:
@@ -121,22 +128,22 @@ class NumericField(Field):
             yield field
     def numeric(self, cls, start, stop, lower, upper):
         if isinstance(start, float) or isinstance(stop, float):
-            start, stop = (value if value is None else lucene.Double(value) for value in (start, stop))
+            start, stop = (value if value is None else Double(value) for value in (start, stop))
             return cls.newDoubleRange(self.name, self.step, start, stop, lower, upper)
         if start is not None:
-            start = None if start < lucene.Long.MIN_VALUE else lucene.Long(long(start))
+            start = None if start < Long.MIN_VALUE else Long(long(start))
         if stop is not None:
-            stop = None if stop > lucene.Long.MAX_VALUE else lucene.Long(long(stop))
+            stop = None if stop > Long.MAX_VALUE else Long(long(stop))
         return cls.newLongRange(self.name, self.step, start, stop, lower, upper)
     def range(self, start, stop, lower=True, upper=False):
         "Return lucene NumericRangeQuery."
-        return self.numeric(lucene.NumericRangeQuery, start, stop, lower, upper)
+        return self.numeric(search.NumericRangeQuery, start, stop, lower, upper)
     def term(self, value):
         "Return range query to match single term."
         return self.range(value, value, upper=True)
     def filter(self, start, stop, lower=True, upper=False):
         "Return lucene NumericRangeFilter."
-        return self.numeric(lucene.NumericRangeFilter, start, stop, lower, upper)
+        return self.numeric(search.NumericRangeFilter, start, stop, lower, upper)
 
 class DateTimeField(NumericField):
     """Field which indexes datetimes as a NumericField of timestamps.
@@ -208,10 +215,10 @@ class Document(dict):
 
 def convert(value):
     "Return python object from java Object."
-    if not lucene.Number.instance_(value):
-        return value.toString() if lucene.Object.instance_(value) else value
-    value = lucene.Number.cast_(value)
-    return value.doubleValue() if lucene.Float.instance_(value) or lucene.Double.instance_(value) else int(value.longValue())
+    if not Number.instance_(value):
+        return value.toString() if Object.instance_(value) else value
+    value = Number.cast_(value)
+    return value.doubleValue() if Float.instance_(value) or Double.instance_(value) else int(value.longValue())
 
 class Hit(Document):
     "A Document from a search result, with :attr:`id`, :attr:`score`, and optional sort :attr:`keys`."
@@ -240,7 +247,7 @@ class Hits(object):
     def __init__(self, searcher, scoredocs, count=None, maxscore=None, fields=None):
         self.searcher, self.scoredocs = searcher, scoredocs
         self.count, self.maxscore = count, maxscore
-        self.fields = lucene.MapFieldSelector(fields) if isinstance(fields, collections.Iterable) else fields
+        self.fields = document.MapFieldSelector(fields) if isinstance(fields, collections.Iterable) else fields
     def __len__(self):
         return len(self.scoredocs)
     def __getitem__(self, index):
@@ -250,7 +257,7 @@ class Hits(object):
             scoredocs = self.scoredocs[start:stop] if stop - start < len(self) else self.scoredocs
             return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
         scoredoc = self.scoredocs[index]
-        keys = lucene.FieldDoc.cast_(scoredoc).fields if lucene.FieldDoc.instance_(scoredoc) else ()
+        keys = search.FieldDoc.cast_(scoredoc).fields if search.FieldDoc.instance_(scoredoc) else ()
         return Hit(self.searcher.doc(scoredoc.doc, self.fields), scoredoc.doc, scoredoc.score, keys)
     @property
     def ids(self):
@@ -293,15 +300,15 @@ class Grouping(object):
     """
     def __init__(self, searcher, field, query=None, count=None, sort=None):
         self.searcher, self.field = searcher, field
-        self.query = query or lucene.MatchAllDocsQuery()
-        self.sort = sort or lucene.Sort.RELEVANCE
+        self.query = query or search.MatchAllDocsQuery()
+        self.sort = sort or search.Sort.RELEVANCE
         if count is None:
-            collector = lucene.TermAllGroupsCollector(field)
-            lucene.IndexSearcher.search(self.searcher, self.query, collector)
+            collector = grouping.TermAllGroupsCollector(field)
+            search.IndexSearcher.search(self.searcher, self.query, collector)
             count = collector.groupCount
-        collector = lucene.TermFirstPassGroupingCollector(field, self.sort, count)
-        lucene.IndexSearcher.search(self.searcher, self.query, collector)
-        self.searchgroups = collector.getTopGroups(0, False).of_(lucene.SearchGroup)
+        collector = grouping.TermFirstPassGroupingCollector(field, self.sort, count)
+        search.IndexSearcher.search(self.searcher, self.query, collector)
+        self.searchgroups = collector.getTopGroups(0, False).of_(grouping.SearchGroup)
     def __len__(self):
         return self.searchgroups.size()
     def __iter__(self):
@@ -309,8 +316,8 @@ class Grouping(object):
             yield searchgroup.groupValue.toString()
     def facets(self, filter):
         "Generate field values and counts which match given filter."
-        collector = lucene.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, self.sort, 1, False, False, False)
-        lucene.IndexSearcher.search(self.searcher, self.query, filter, collector)
+        collector = grouping.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, self.sort, 1, False, False, False)
+        search.IndexSearcher.search(self.searcher, self.query, filter, collector)
         for groupdocs in collector.getTopGroups(0).groups:
             yield groupdocs.groupValue.toString(), groupdocs.totalHits
     def groups(self, count=1, sort=None, scores=False, maxscore=False):
@@ -322,10 +329,10 @@ class Grouping(object):
         :param maxscore: compute maximum score of all results
         """
         sort = sort or self.sort
-        if sort == lucene.Sort.RELEVANCE:
+        if sort == search.Sort.RELEVANCE:
             scores = maxscore = True
-        collector = lucene.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, True)
-        lucene.IndexSearcher.search(self.searcher, self.query, collector)
+        collector = grouping.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, True)
+        search.IndexSearcher.search(self.searcher, self.query, collector)
         for groupdocs in collector.getTopGroups(0).groups:
             hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
             hits.value = groupdocs.groupValue.toString()

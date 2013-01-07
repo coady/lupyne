@@ -9,6 +9,15 @@ import math
 import bisect
 import contextlib
 import lucene
+try:
+    from java.io import StringReader
+    from org.apache.lucene import analysis, document, search, store, util
+    from org.apache.lucene.analysis import miscellaneous, standard
+    from org.apache.lucene.search import grouping, highlight, vectorhighlight
+    from org.apache.pylucene.search import PythonFilter
+except ImportError:
+    from lucene import StringReader, PythonFilter
+    analysis = document = search = store = util = miscellaneous = standard = grouping = highlight = vectorhighlight = lucene
 from lupyne import engine
 from . import fixture
 
@@ -24,7 +33,7 @@ def assertWarns(*categories):
     for message, category in itertools.izip_longest(messages, categories):
          assert issubclass(message.category, category), message
 
-class Filter(lucene.PythonFilter):
+class Filter(PythonFilter):
     "Broken filter to test errors are raised."
     def getDocIdSet(self, indexReader):
         assert False
@@ -40,11 +49,11 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Indexer and document interfaces."
         self.assertRaises(TypeError, engine.IndexSearcher)
-        analyzer = lucene.StandardAnalyzer(lucene.Version.values()[-1])
-        stemmer = engine.Analyzer(analyzer, lucene.PorterStemFilter, typeAsPayload)
+        analyzer = standard.StandardAnalyzer(util.Version.values()[-1])
+        stemmer = engine.Analyzer(analyzer, analysis.PorterStemFilter, typeAsPayload)
         for token in stemmer.tokens('hello'):
             assert token.positionIncrement == 1
-            assert engine.TokenFilter(lucene.EmptyTokenStream()).payload is None
+            assert engine.TokenFilter(miscellaneous.EmptyTokenStream()).payload is None
             assert token.term == 'hello'
             assert token.type == token.payload == '<ALPHANUM>'
             assert token.offset == (0, 5)
@@ -52,13 +61,13 @@ class TestCase(BaseTest):
             token.offset, token.positionIncrement = (0, 0), 0
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
-        indexer = engine.Indexer(analyzer=stemmer, version=lucene.Version.LUCENE_30, writeLockTimeout=100L)
+        indexer = engine.Indexer(analyzer=stemmer, version=util.Version.LUCENE_30, writeLockTimeout=100L)
         assert indexer.writeLockTimeout == 100
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
         indexer.set('name', store=True, index=False, boost=2.0)
         for field in indexer.fields['name'].items('sample'):
-            assert isinstance(field, lucene.Field) and field.boost == 2.0
+            assert isinstance(field, document.Field) and field.boost == 2.0
         indexer.set('tag', store=True, index=True)
         searcher = indexer.indexSearcher
         indexer.commit()
@@ -110,9 +119,9 @@ class TestCase(BaseTest):
         query = engine.Query.multiphrase('text', ('hello', 'hi'), None, 'world')
         assert str(query).startswith('text:"(hello hi) ') and list(query.positions) == [0, 2]
         query = engine.Query.wildcard('text', '*')
-        assert str(query) == 'text:*' and isinstance(query, lucene.WildcardQuery)
-        assert str(lucene.MatchAllDocsQuery() | query) == '*:* text:*'
-        assert str(lucene.MatchAllDocsQuery() - query) == '*:* -text:*'
+        assert str(query) == 'text:*' and isinstance(query, search.WildcardQuery)
+        assert str(search.MatchAllDocsQuery() | query) == '*:* text:*'
+        assert str(search.MatchAllDocsQuery() - query) == '*:* -text:*'
         query = +query
         query &= engine.Query.fuzzy('text', 'hello')
         query |= engine.Query.fuzzy('text', 'hello', 0.1)
@@ -120,7 +129,7 @@ class TestCase(BaseTest):
         query = engine.Query.span('text', 'world')
         assert str(query.mask('name')) == 'mask(text:world) as name'
         assert str(query.payload()) == 'spanPayCheck(text:world, payloadRef: )'
-        assert isinstance(query.filter(cache=False), lucene.SpanQueryFilter) and isinstance(query.filter(), lucene.CachingSpanFilter)
+        assert isinstance(query.filter(cache=False), search.SpanQueryFilter) and isinstance(query.filter(), search.CachingSpanFilter)
         query = engine.Query.disjunct(0.1, query, name='sample')
         assert str(query) == '(text:world | name:sample)~0.1'
         query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
@@ -157,7 +166,7 @@ class TestCase(BaseTest):
         indexer += temp.directory
         indexer += self.tempdir
         assert len(indexer) == 3
-        indexer.add(text=lucene.WhitespaceTokenizer(lucene.StringReader('?')), name=lucene.JArray_byte('{}'))
+        indexer.add(text=analysis.WhitespaceTokenizer(StringReader('?')), name=lucene.JArray_byte('{}'))
         indexer.commit()
         assert indexer[next(indexer.docs('text', '?'))] == {'name': ['{}']}
         reader = engine.indexers.IndexReader(indexer.indexReader)
@@ -184,9 +193,9 @@ class TestCase(BaseTest):
         indexer.commit()
         searcher = engine.IndexSearcher.load(self.tempdir)
         engine.IndexSearcher.load(searcher.directory) # ensure directory isn't closed
-        assert len(indexer) == len(searcher) and lucene.RAMDirectory.instance_(searcher.directory)
+        assert len(indexer) == len(searcher) and store.RAMDirectory.instance_(searcher.directory)
         assert indexer.filters == indexer.spellcheckers == {}
-        assert indexer.facets(lucene.MatchAllDocsQuery(), 'amendment')
+        assert indexer.facets(search.MatchAllDocsQuery(), 'amendment')
         assert indexer.suggest('amendment', '')
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
         indexer.delete('amendment', doc['amendment'])
@@ -195,8 +204,8 @@ class TestCase(BaseTest):
         indexer.commit(filters=True, spellcheckers=True)
         assert reader.refCount == 0
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
-        doc['amendment'] = engine.Analyzer(lucene.WhitespaceTokenizer).tokens(doc['amendment'])
-        doc['date'] = engine.Analyzer(lucene.WhitespaceTokenizer).tokens(doc['date']), 2.0
+        doc['amendment'] = engine.Analyzer(analysis.WhitespaceTokenizer).tokens(doc['amendment'])
+        doc['date'] = engine.Analyzer(analysis.WhitespaceTokenizer).tokens(doc['date']), 2.0
         scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
         assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
         searcher = engine.MultiSearcher([indexer.indexReader, self.tempdir])
@@ -206,7 +215,7 @@ class TestCase(BaseTest):
         comparator = searcher.comparator('amendment')
         assert set(map(type, comparator)) == set([int])
         assert searcher is searcher.reopen()
-        assert searcher.facets(lucene.MatchAllDocsQuery(), 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
+        assert searcher.facets(search.MatchAllDocsQuery(), 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
         reader = searcher.indexReader
         del searcher
         self.assertRaises(lucene.JavaError, reader.isCurrent)
@@ -240,7 +249,7 @@ class TestCase(BaseTest):
         assert len(hits) == 5 and hits.count == 8
         assert not any(map(math.isnan, hits.scores))
         assert hits.maxscore == max(hits.scores)
-        hits = indexer.search('text:people', count=5, sort=lucene.Sort.INDEXORDER)
+        hits = indexer.search('text:people', count=5, sort=search.Sort.INDEXORDER)
         assert sorted(hits.ids) == list(hits.ids)
         sort = engine.SortField('amendment', type=int)
         hits = indexer.search('text:people', count=5, sort=sort)
@@ -270,7 +279,7 @@ class TestCase(BaseTest):
         query = engine.Query.term('text', 'right', boost=2.0)
         assert query.boost == 2.0
         assert indexer.facets(str(query), 'amendment', 'article') == {'amendment': 12, 'article': 1}
-        self.assertRaises(TypeError, indexer.overlap, query.filter(), lucene.QueryWrapperFilter(query))
+        self.assertRaises(TypeError, indexer.overlap, query.filter(), search.QueryWrapperFilter(query))
         hits = indexer.search('text:people', filter=query.filter())
         assert len(hits) == 4
         hit, = indexer.search('date:192*')
@@ -341,9 +350,9 @@ class TestCase(BaseTest):
         assert list(indexer.correct('text', 'write', distance=1, minSimilarity=0.7)) == ['writs', 'writ']
         assert list(indexer.correct('text', 'write', minSimilarity=0.9)) == ['writs', 'writ', 'crime', 'written']
         query = indexer.parse('text:write', spellcheck=True)
-        assert lucene.TermQuery.instance_(query) and str(query) == 'text:writs'
+        assert search.TermQuery.instance_(query) and str(query) == 'text:writs'
         query = indexer.parse('"hello world"', field='text', spellcheck=True)
-        assert lucene.PhraseQuery.instance_(query) and str(query) == 'text:"held would"'
+        assert search.PhraseQuery.instance_(query) and str(query) == 'text:"held would"'
         assert str(indexer.parse('vwxyz', field='text', spellcheck=True)) == 'text:vwxyz'
         with indexer.snapshot() as commit:
             self.assertRaises(lucene.JavaError, indexer.snapshot().__enter__)
@@ -397,20 +406,20 @@ class TestCase(BaseTest):
         assert orange == 'CA.Orange' and facets[orange] > 10
         (field, facets), = indexer.facets(query, ('state.county', 'CA.*')).items()
         assert all(value.startswith('CA.') for value in facets) and set(facets) < set(indexer.filters[field])
-        if hasattr(lucene, 'TermFirstPassGroupingCollector'):
+        if hasattr(grouping, 'TermFirstPassGroupingCollector'):
             assert set(indexer.grouping('state', count=1)) < set(indexer.grouping('state')) == set(states)
-            grouping = indexer.grouping(field, query, sort=lucene.Sort(indexer.sorter(field)))
-            assert len(grouping) == 2 and list(grouping) == [la, orange]
-            for value, (name, count) in zip(grouping, grouping.facets(None)):
+            grouper = indexer.grouping(field, query, sort=search.Sort(indexer.sorter(field)))
+            assert len(grouper) == 2 and list(grouper) == [la, orange]
+            for value, (name, count) in zip(grouper, grouper.facets(None)):
                 assert value == name and count > 0
-            grouping = indexer.groupings[field] = indexer.grouping(field, engine.Query.term('state', 'CA'))
+            grouper = indexer.groupings[field] = indexer.grouping(field, engine.Query.term('state', 'CA'))
             assert indexer.facets(query, field)[field] == facets
-            hits = next(grouping.groups())
+            hits = next(grouper.groups())
             assert hits.value == 'CA.Los Angeles' and hits.count > 100 and len(hits) == 1
             hit, = hits
             assert hit.score in hit.keys
             assert hit['county'] == 'Los Angeles' and hits.maxscore >= hit.score > 0
-            hits = next(grouping.groups(count=2, sort=lucene.Sort(indexer.sorter('zipcode')), scores=True))
+            hits = next(grouper.groups(count=2, sort=search.Sort(indexer.sorter('zipcode')), scores=True))
             assert hits.value == 'CA.Los Angeles' and math.isnan(hits.maxscore) and len(hits) == 2
             assert all(hit.score > 0 and hit['zipcode'] > '90000' and hit['zipcode'] in hit.keys for hit in hits)
         for count in (None, len(indexer)):
@@ -419,7 +428,7 @@ class TestCase(BaseTest):
             hits = indexer.search(query, count=count, timeout=-1)
             assert len(hits) == 0 and hits.count is hits.maxscore is None
         self.assertRaises(lucene.JavaError, indexer.search, filter=Filter())
-        directory = lucene.RAMDirectory()
+        directory = store.RAMDirectory()
         query = engine.Query.term('state', 'CA')
         size = indexer.copy(directory, query)
         searcher = engine.IndexSearcher(directory)
@@ -529,18 +538,18 @@ class TestCase(BaseTest):
         assert indexer.count(query) == len(sizes) - len(ids)
         indexer.sorters['year'] = engine.SortField('Y-m-d', type=int, parser=lambda date: int(date.split('-')[0]))
         assert indexer.comparator('year')[:10] == [1791] * 10
-        cache = len(lucene.FieldCache.DEFAULT.cacheEntries)
+        cache = len(search.FieldCache.DEFAULT.cacheEntries)
         hits = indexer.search(count=3, sort='year')
         assert [int(hit['amendment']) for hit in hits] == [1, 2, 3]
         hits = indexer.search(count=3, sort='year', reverse=True)
         assert [int(hit['amendment']) for hit in hits] == [27, 26, 25]
         assert indexer.count(filter=indexer.sorters['year'].filter(None, 1792)) == 10
-        assert cache == len(lucene.FieldCache.DEFAULT.cacheEntries)
+        assert cache == len(search.FieldCache.DEFAULT.cacheEntries)
         indexer.add()
         indexer.commit(sorters=True)
-        cache = len(lucene.FieldCache.DEFAULT.cacheEntries)
+        cache = len(search.FieldCache.DEFAULT.cacheEntries)
         assert list(indexer.comparator('year'))[-1] == 0
-        assert cache == len(lucene.FieldCache.DEFAULT.cacheEntries)
+        assert cache == len(search.FieldCache.DEFAULT.cacheEntries)
     
     def testNumeric(self):
         "Numeric fields."
@@ -608,24 +617,24 @@ class TestCase(BaseTest):
         id = 3
         text = indexer[id]['text']
         query = '"persons, houses, papers"'
-        highlighter = indexer.highlighter(query, '', terms=True, fields=True, formatter=lucene.SimpleHTMLFormatter('*', '*'))
+        highlighter = indexer.highlighter(query, '', terms=True, fields=True, formatter=highlight.SimpleHTMLFormatter('*', '*'))
         fragments = highlighter.fragments(text, count=3)
         assert len(fragments) == 2 and fragments[0].count('*') == 2*3 and '*persons*' in fragments[1]
         highlighter = indexer.highlighter(query, '', terms=True)
-        highlighter.textFragmenter = lucene.SimpleFragmenter(200)
+        highlighter.textFragmenter = highlight.SimpleFragmenter(200)
         fragment, = highlighter.fragments(text, count=3)
         assert len(fragment) > len(text) and fragment.count('<B>persons</B>') == 2
         fragment, = indexer.highlighter(query, 'text', tag='em').fragments(id, count=3)
         assert len(fragment) < len(text) and fragment.index('<em>persons') < fragment.index('papers</em>')
         fragment, = indexer.highlighter(query, 'text').fragments(id)
         assert fragment.count('<b>') == fragment.count('</b>') == 1
-        highlighter = indexer.highlighter(query, 'text', fragListBuilder=lucene.SingleFragListBuilder())
+        highlighter = indexer.highlighter(query, 'text', fragListBuilder=vectorhighlight.SingleFragListBuilder())
         text, = highlighter.fragments(id)
         assert fragment in text and len(text) > len(fragment)
     
     def testNearRealTime(self):
         "Near real-time index updates."
-        indexer = engine.Indexer(version=lucene.Version.LUCENE_30, nrt=True)
+        indexer = engine.Indexer(version=util.Version.LUCENE_30, nrt=True)
         indexer.add()
         assert indexer.count() == 0 and not indexer.current
         indexer.refresh(filters=True)

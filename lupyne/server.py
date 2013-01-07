@@ -56,6 +56,10 @@ except ImportError:
     import json
 import warnings
 import lucene
+try:
+    from org.apache.lucene import document, index, search, store
+except ImportError:
+    document = index = search = store = lucene
 import cherrypy
 try:
     from . import engine, client
@@ -229,7 +233,7 @@ def HTTPError(status, *exceptions):
     try:
         yield
     except exceptions as exc:
-        raise cherrypy.HTTPError(status, str(exc))
+        raise cherrypy.HTTPError(status, str(exc.getJavaException() if isinstance(exc, lucene.JavaError) else exc))
 
 class WebSearcher(object):
     """Dispatch root with a delegated Searcher.
@@ -255,7 +259,7 @@ class WebSearcher(object):
     def sync(self, host, path=''):
         "Sync with remote index."
         path = '/' + '{0}/update/{1}/'.format(path, uuid.uuid1()).lstrip('/')
-        directory = lucene.FSDirectory.cast_(self.searcher.directory).directory.path
+        directory = store.FSDirectory.cast_(self.searcher.directory).directory.path
         resource = client.Resource(host)
         names = sorted(set(resource.put(path)).difference(os.listdir(directory)))
         try:
@@ -282,7 +286,7 @@ class WebSearcher(object):
             self.sync(host, path)
             cherrypy.response.status = httplib.ACCEPTED
         reader = self.searcher.indexReader
-        readers = reader.sequentialSubReaders if lucene.MultiReader.instance_(reader) else [reader]
+        readers = reader.sequentialSubReaders if index.MultiReader.instance_(reader) else [reader]
         return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
@@ -452,7 +456,7 @@ class WebSearcher(object):
         if fields is None:
             fields = {}
         else:
-            hits.fields = lucene.MapFieldSelector(list(itertools.chain(fields, multi)))
+            hits.fields = document.MapFieldSelector(list(itertools.chain(fields, multi)))
         with HTTPError(httplib.BAD_REQUEST, AttributeError):
             groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__) if group else [hits]
         result['groups'], limit = [], options.get('group.limit', len(groups))
@@ -470,7 +474,7 @@ class WebSearcher(object):
             result['groups'].append({'docs': [], 'count': len(hits), 'value': hits.value})
         if not group:
             result['docs'] = result.pop('groups')[0]['docs']
-        q = q or lucene.MatchAllDocsQuery()
+        q = q or search.MatchAllDocsQuery()
         if facets:
             facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets)
             facets = result['facets'] = searcher.facets(q, *facets)
@@ -642,7 +646,7 @@ class WebIndexer(WebSearcher):
         if not name:
             return list(commit.fileNames)
         with HTTPError(httplib.NOT_FOUND, TypeError, AssertionError):
-            directory = lucene.FSDirectory.cast_(self.indexer.directory).directory.path
+            directory = store.FSDirectory.cast_(self.indexer.directory).directory.path
             assert name in commit.fileNames, 'file not referenced in commit'
         return cherrypy.lib.static.serve_download(os.path.join(directory, name))
     @cherrypy.expose

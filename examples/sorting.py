@@ -24,6 +24,12 @@ Custom sorting isn't necessary in the below example of course, just there for de
 
 import lucene
 lucene.initVM()
+try:
+    from org.apache.lucene import search
+    from org.apache.pylucene.search import PythonFieldComparator, PythonFieldComparatorSource
+except ImportError:
+    search = lucene
+    from lucene import PythonFieldComparator, PythonFieldComparatorSource
 from lupyne import engine
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
@@ -35,18 +41,18 @@ indexer.commit()
 
 ### lucene ###
 
-searcher = lucene.IndexSearcher(indexer.directory)
-topdocs = searcher.search(lucene.MatchAllDocsQuery(), None, 10, lucene.Sort(lucene.SortField('color', lucene.SortField.STRING)))
+searcher = search.IndexSearcher(indexer.directory)
+topdocs = searcher.search(search.MatchAllDocsQuery(), None, 10, search.Sort(search.SortField('color', search.SortField.STRING)))
 assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] == sorted(colors)
 
-class ComparatorSource(lucene.PythonFieldComparatorSource):
-    class newComparator(lucene.PythonFieldComparator):
+class ComparatorSource(PythonFieldComparatorSource):
+    class newComparator(PythonFieldComparator):
         def __init__(self, name, numHits, sortPos, reversed):
-            lucene.PythonFieldComparator.__init__(self)
+            PythonFieldComparator.__init__(self)
             self.name = name
             self.values = [None] * numHits
         def setNextReader(self, reader, base):
-            self.comparator = lucene.FieldCache.DEFAULT.getStrings(reader, self.name)
+            self.comparator = search.FieldCache.DEFAULT.getStrings(reader, self.name)
         def compare(self, slot1, slot2):
             return cmp(self.values[slot1], self.values[slot2])
         def setBottom(self, slot):
@@ -58,9 +64,9 @@ class ComparatorSource(lucene.PythonFieldComparatorSource):
         def value(self, slot):
             pass
 
-sorter = lucene.Sort(lucene.SortField('color', ComparatorSource()))
+sorter = search.Sort(search.SortField('color', ComparatorSource()))
 # still must supply excessive doc count to use the sorter
-topdocs = searcher.search(lucene.MatchAllDocsQuery(), None, 10, sorter)
+topdocs = searcher.search(search.MatchAllDocsQuery(), None, 10, sorter)
 assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] == sorted(colors)
 
 ### lupyne ###

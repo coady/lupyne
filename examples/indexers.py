@@ -4,28 +4,33 @@ Basic indexing and searching example adapted from http://lucene.apache.org/java/
 
 import lucene
 lucene.initVM()
+try:
+    from org.apache.lucene import document, index, queryParser, search, store, util
+    from org.apache.lucene.analysis import standard
+except ImportError:
+    document = index = queryParser = search = store = util = standard = lucene
 from lupyne import engine
 
 ### lucene ###
 
-analyzer = lucene.StandardAnalyzer(lucene.Version.LUCENE_CURRENT)
+analyzer = standard.StandardAnalyzer(util.Version.LUCENE_CURRENT)
 
 # Store the index in memory:
-directory = lucene.RAMDirectory()
+directory = store.RAMDirectory()
 # To store an index on disk, use this instead:
-#Directory directory = FSDirectory.open(lucene.File("/tmp/testindex"))
-iwriter = lucene.IndexWriter(directory, analyzer, True, lucene.IndexWriter.MaxFieldLength(25000))
-doc = lucene.Document()
+#Directory directory = FSDirectory.open(File("/tmp/testindex"))
+iwriter = index.IndexWriter(directory, analyzer, True, index.IndexWriter.MaxFieldLength(25000))
+doc = document.Document()
 text = "This is the text to be indexed."
-doc.add(lucene.Field("fieldname", text, lucene.Field.Store.YES, lucene.Field.Index.ANALYZED))
+doc.add(document.Field("fieldname", text, document.Field.Store.YES, document.Field.Index.ANALYZED))
 iwriter.addDocument(doc)
 iwriter.close()
 
 # Now search the index:
-ireader = lucene.IndexReader.open(directory) # read-only=true
-isearcher = lucene.IndexSearcher(ireader)
+ireader = index.IndexReader.open(directory) # read-only=true
+isearcher = search.IndexSearcher(ireader)
 # Parse a simple query that searches for "text":
-parser = lucene.QueryParser(lucene.Version.LUCENE_CURRENT, "fieldname", analyzer)
+parser = queryParser.QueryParser(util.Version.LUCENE_CURRENT, "fieldname", analyzer)
 query = parser.parse("text")
 hits = isearcher.search(query, None, 1000).scoreDocs
 assert len(hits) == 1

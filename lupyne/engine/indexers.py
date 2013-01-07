@@ -11,6 +11,20 @@ import contextlib
 import abc, collections
 import warnings
 import lucene
+try:
+    from java.io import File, StringReader
+    from java.lang import Float
+    from java.util import HashMap
+    from org.apache.lucene import analysis, document, index, queryParser, search, store, util
+    from org.apache.lucene.analysis import standard, tokenattributes
+    from org.apache.lucene.index import memory
+    from org.apache.lucene.search import similar, spans
+    from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
+    from org.apache.pylucene.queryParser import PythonQueryParser
+except ImportError:
+    from lucene import File, StringReader, Float, HashMap, PythonAnalyzer, PythonTokenFilter, PythonQueryParser
+    analysis = document = index = queryParser = search = store = util = \
+    standard = tokenattributes = memory = similar = spans = lucene
 from .queries import Query, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, Grouping
 from .spatial import DistanceComparator
@@ -21,7 +35,7 @@ class Atomic(object):
     @classmethod
     def __subclasshook__(cls, other):
         return not issubclass(other, collections.Iterable) or NotImplemented
-for cls in (basestring, lucene.TokenStream, lucene.JArray_byte):
+for cls in (basestring, analysis.TokenStream, lucene.JArray_byte):
     Atomic.register(cls)
 
 class closing(set):
@@ -31,23 +45,23 @@ class closing(set):
             obj.close()
     def analyzer(self, analyzer, version=None):
         if analyzer is None:
-            analyzer = lucene.StandardAnalyzer(version or lucene.Version.values()[-1])
+            analyzer = standard.StandardAnalyzer(version or util.Version.values()[-1])
             self.add(analyzer)
         return analyzer
     def directory(self, directory):
         if directory is None:
-            directory = lucene.RAMDirectory()
+            directory = store.RAMDirectory()
             self.add(directory)
         elif isinstance(directory, basestring):
-            directory = lucene.FSDirectory.open(lucene.File(directory))
+            directory = store.FSDirectory.open(File(directory))
             self.add(directory)
         return directory
     def reader(self, reader):
         reader = self.directory(reader)
-        if isinstance(reader, lucene.IndexReader):
+        if isinstance(reader, index.IndexReader):
             reader.incRef()
         else:
-            reader = lucene.IndexReader.open(reader, True)
+            reader = index.IndexReader.open(reader, True)
         return reader
 
 def copy(commit, dest):
@@ -55,11 +69,11 @@ def copy(commit, dest):
     Optimized to use hard links if the destination is a file system path.
     """
     src = commit.directory
-    if isinstance(dest, lucene.Directory):
+    if isinstance(dest, store.Directory):
         for filename in commit.fileNames:
             src.copy(dest, filename, filename)
     else:
-        src = lucene.FSDirectory.cast_(src).directory.path
+        src = store.FSDirectory.cast_(src).directory.path
         os.path.isdir(dest) or os.makedirs(dest)
         for filename in commit.fileNames:
             paths = os.path.join(src, filename), os.path.join(dest, filename)
@@ -69,7 +83,7 @@ def copy(commit, dest):
                 if not os.path.samefile(*paths):
                     raise
 
-class TokenStream(lucene.TokenStream):
+class TokenStream(analysis.TokenStream):
     "TokenStream mixin with support for iteration and attributes cached as properties."
     def __iter__(self):
         return self
@@ -78,7 +92,7 @@ class TokenStream(lucene.TokenStream):
             return self
         raise StopIteration
     def __getattr__(self, name):
-        cls = getattr(lucene, name + 'Attribute').class_
+        cls = getattr(tokenattributes, name + 'Attribute').class_
         attr = self.getAttribute(cls) if self.hasAttribute(cls) else self.addAttribute(cls)
         setattr(self, name, attr)
         return attr
@@ -96,7 +110,7 @@ class TokenStream(lucene.TokenStream):
         return payload and getattr(payload.data, 'string_', None)
     @payload.setter
     def payload(self, data):
-        self.Payload.payload = lucene.Payload(lucene.JArray_byte(data))
+        self.Payload.payload = index.Payload(lucene.JArray_byte(data))
     @property
     def positionIncrement(self):
         "Position relative to the previous token."
@@ -119,12 +133,12 @@ class TokenStream(lucene.TokenStream):
     def type(self, text):
         self.Type.setType(text)
 
-class TokenFilter(lucene.PythonTokenFilter, TokenStream):
+class TokenFilter(PythonTokenFilter, TokenStream):
     """Create an iterable lucene TokenFilter from a TokenStream.
     Subclass and override :meth:`incrementToken` or :meth:`setattrs`.
     """
     def __init__(self, input):
-        lucene.PythonTokenFilter.__init__(self, input)
+        PythonTokenFilter.__init__(self, input)
         self.input = input
     def incrementToken(self):
         "Advance to next token and return whether the stream is not empty."
@@ -134,23 +148,23 @@ class TokenFilter(lucene.PythonTokenFilter, TokenStream):
     def setattrs(self):
         "Customize current token."
 
-class Analyzer(lucene.PythonAnalyzer):
+class Analyzer(PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
     
     :param tokenizer: lucene Tokenizer or Analyzer
     :param filters: lucene TokenFilters
     """
     def __init__(self, tokenizer, *filters):
-        lucene.PythonAnalyzer.__init__(self)
+        PythonAnalyzer.__init__(self)
         self.tokenizer, self.filters = tokenizer, filters
     def tokenStream(self, field, reader):
-        tokens = self.tokenizer.tokenStream(field, reader) if isinstance(self.tokenizer, lucene.Analyzer) else self.tokenizer(reader)
+        tokens = self.tokenizer.tokenStream(field, reader) if isinstance(self.tokenizer, analysis.Analyzer) else self.tokenizer(reader)
         for filter in self.filters:
             tokens = filter(tokens)
         return tokens
     def tokens(self, text, field=None):
         "Return lucene TokenStream from text."
-        return self.tokenStream(field, lucene.StringReader(text))
+        return self.tokenStream(field, StringReader(text))
     def parse(self, query, field='', op='', version='', parser=None, **attrs):
         """Return parsed lucene Query.
         
@@ -162,25 +176,25 @@ class Analyzer(lucene.PythonAnalyzer):
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        args = [lucene.Version.valueOf('LUCENE_' + version.replace('.', '')) if version else lucene.Version.values()[-1]]
+        args = [util.Version.valueOf('LUCENE_' + version.replace('.', '')) if version else util.Version.values()[-1]]
         if isinstance(field, collections.Mapping):
-            boosts = lucene.HashMap()
+            boosts = HashMap()
             for key in field:
-                boosts.put(key, lucene.Float(field[key]))
+                boosts.put(key, Float(field[key]))
             args += list(field), self, boosts
         else:
             args += field, self
-        parser = (parser or lucene.QueryParser if isinstance(field, basestring) else lucene.MultiFieldQueryParser)(*args)
+        parser = (parser or queryParser.QueryParser if isinstance(field, basestring) else queryParser.MultiFieldQueryParser)(*args)
         if op:
-            parser.defaultOperator = getattr(lucene.QueryParser.Operator, op.upper())
+            parser.defaultOperator = getattr(queryParser.QueryParser.Operator, op.upper())
         for name, value in attrs.items():
             setattr(parser, name, value)
-        if isinstance(parser, lucene.MultiFieldQueryParser):
-            return lucene.MultiFieldQueryParser.parse(parser, query)
+        if isinstance(parser, queryParser.MultiFieldQueryParser):
+            return queryParser.MultiFieldQueryParser.parse(parser, query)
         try:
             return parser.parse(query)
         finally:
-            if isinstance(parser, lucene.PythonQueryParser):
+            if isinstance(parser, PythonQueryParser):
                 parser.finalize()
 
 class IndexReader(object):
@@ -213,7 +227,7 @@ class IndexReader(object):
     @property
     def segments(self):
         "segment filenames with document counts"
-        return dict((lucene.SegmentReader.cast_(reader).segmentName, reader.numDocs()) for reader in self.sequentialSubReaders)
+        return dict((index.SegmentReader.cast_(reader).segmentName, reader.numDocs()) for reader in self.sequentialSubReaders)
     def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.
         Optimized to use hard links if the destination is a file system path.
@@ -226,7 +240,7 @@ class IndexReader(object):
         copy(self.indexCommit, dest)
         with contextlib.closing(IndexWriter(dest)) as writer:
             if query:
-                writer.delete(Query(lucene.MatchAllDocsQuery) - query)
+                writer.delete(Query(search.MatchAllDocsQuery) - query)
             if exclude:
                 writer.delete(exclude)
             writer.commit()
@@ -236,15 +250,15 @@ class IndexReader(object):
             return len(writer)
     def count(self, name, value):
         "Return number of documents with given term."
-        return self.docFreq(lucene.Term(name, value))
+        return self.docFreq(index.Term(name, value))
     def names(self, option='all', **attrs):
         """Return field names, given option description.
         
         .. versionchanged:: 1.2 lucene 3.6 requires FieldInfo filter attributes instead of option
         """
-        if hasattr(lucene.IndexReader, 'getFieldNames'):
+        if hasattr(index.IndexReader, 'getFieldNames'):
             return list(self.getFieldNames(getattr(self.FieldOption, option.upper())))
-        fieldinfos = lucene.ReaderUtil.getMergedFieldInfos(self.indexReader).iterator()
+        fieldinfos = util.ReaderUtil.getMergedFieldInfos(self.indexReader).iterator()
         return [fieldinfo.name for fieldinfo in fieldinfos if all(getattr(fieldinfo, name) == attrs[name] for name in attrs)]
     def terms(self, name, value='', stop=None, counts=False, **fuzzy):
         """Generate a slice of term values, optionally with frequency counts.
@@ -256,14 +270,14 @@ class IndexReader(object):
         :param counts: include frequency counts
         :param fuzzy: optional keyword arguments for fuzzy terms
         """
-        term = lucene.Term(name, value)
+        term = index.Term(name, value)
         if fuzzy:
             args = fuzzy.pop('minSimilarity', 0.5), fuzzy.pop('prefixLength', 0)
-            termenum = lucene.FuzzyTermEnum(self.indexReader, term, *args, **fuzzy)
+            termenum = search.FuzzyTermEnum(self.indexReader, term, *args, **fuzzy)
         elif '*' in value or '?' in value:
-            termenum = lucene.WildcardTermEnum(self.indexReader, term)
+            termenum = search.WildcardTermEnum(self.indexReader, term)
         else:
-            termenum = lucene.TermRangeTermEnum(self.indexReader, name, value, stop, True, False, None)
+            termenum = search.TermRangeTermEnum(self.indexReader, name, value, stop, True, False, None)
         with contextlib.closing(termenum):
             term = termenum.term()
             while term:
@@ -278,10 +292,10 @@ class IndexReader(object):
         :param type: int or float
         :param counts: include frequency counts
         """
-        term = lucene.Term(name, chr(ord(' ') + step))
-        decode = lucene.NumericUtils.prefixCodedToLong
-        convert = lucene.NumericUtils.sortableLongToDouble if issubclass(type, float) else int
-        with contextlib.closing(lucene.PrefixTermEnum(self.indexReader, term)) as termenum:
+        term = index.Term(name, chr(ord(' ') + step))
+        decode = util.NumericUtils.prefixCodedToLong
+        convert = util.NumericUtils.sortableLongToDouble if issubclass(type, float) else int
+        with contextlib.closing(search.PrefixTermEnum(self.indexReader, term)) as termenum:
             term = termenum.term()
             while term:
                 value = convert(decode(term.text()))
@@ -289,14 +303,14 @@ class IndexReader(object):
                 term = termenum.next() and termenum.term()
     def docs(self, name, value, counts=False):
         "Generate doc ids which contain given term, optionally with frequency counts."
-        with contextlib.closing(self.termDocs(lucene.Term(name, value))) as termdocs:
+        with contextlib.closing(self.termDocs(index.Term(name, value))) as termdocs:
             while termdocs.next():
                 doc = termdocs.doc()
                 yield (doc, termdocs.freq()) if counts else doc
     def positions(self, name, value, payloads=False):
         "Generate doc ids and positions which contain given term, optionally only with payloads."
         array = lucene.JArray_byte('')
-        with contextlib.closing(self.termPositions(lucene.Term(name, value))) as termpositions:
+        with contextlib.closing(self.termPositions(index.Term(name, value))) as termpositions:
             while termpositions.next():
                 doc = termpositions.doc()
                 positions = (termpositions.nextPosition() for n in xrange(termpositions.freq()))
@@ -321,27 +335,27 @@ class IndexReader(object):
         :param positions: optionally include slice positions instead of counts
         :param payloads: optionally only include slice positions with payloads
         """
-        spans = itertools.takewhile(lucene.Spans.next, itertools.repeat(query.getSpans(self.indexReader)))
-        for doc, spans in itertools.groupby(spans, key=lucene.Spans.doc):
+        spans_ = itertools.takewhile(spans.Spans.next, itertools.repeat(query.getSpans(self.indexReader)))
+        for doc, spans_ in itertools.groupby(spans_, key=spans.Spans.doc):
             if payloads:
                 yield doc, [(span.start(), span.end(), [lucene.JArray_byte.cast_(data).string_ for data in span.payload]) \
-                    for span in spans if span.payloadAvailable]
+                    for span in spans_ if span.payloadAvailable]
             elif positions:
-                yield doc, [(span.start(), span.end()) for span in spans]
+                yield doc, [(span.start(), span.end()) for span in spans_]
             else:
-                yield doc, sum(1 for span in spans)
+                yield doc, sum(1 for span in spans_)
     def termvector(self, id, field, counts=False):
         "Generate terms for given doc id and field, optionally with frequency counts."
-        tfv = self.getTermFreqVector(id, field) or lucene.QueryTermVector([])
+        tfv = self.getTermFreqVector(id, field) or search.QueryTermVector([])
         return zip(tfv.terms, tfv.termFrequencies) if counts else iter(tfv.terms)
     def positionvector(self, id, field, offsets=False):
         "Generate terms and positions for given doc id and field, optionally with character offsets."
-        tpv = lucene.TermPositionVector.cast_(self.getTermFreqVector(id, field))
-        for index, term in enumerate(tpv.terms):
+        tpv = index.TermPositionVector.cast_(self.getTermFreqVector(id, field))
+        for idx, term in enumerate(tpv.terms):
             if offsets:
-                yield term, list(map(operator.attrgetter('startOffset', 'endOffset'), tpv.getOffsets(index)))
+                yield term, list(map(operator.attrgetter('startOffset', 'endOffset'), tpv.getOffsets(idx)))
             else:
-                yield term, list(tpv.getTermPositions(index))
+                yield term, list(tpv.getTermPositions(idx))
     def morelikethis(self, doc, *fields, **attrs):
         """Return MoreLikeThis query for document.
         
@@ -349,22 +363,22 @@ class IndexReader(object):
         :param fields: document fields to use, optional for termvectors
         :param attrs: additional attributes to set on the morelikethis object
         """
-        mlt = lucene.MoreLikeThis(self.indexReader)
+        mlt = similar.MoreLikeThis(self.indexReader)
         mlt.fieldNames = fields or None
         for name, value in attrs.items():
             setattr(mlt, name, value)
-        return mlt.like(lucene.StringReader(doc) if isinstance(doc, basestring) else doc)
+        return mlt.like(StringReader(doc) if isinstance(doc, basestring) else doc)
     def overlap(self, left, right):
         "Return intersection count of cached filters."
-        count, bitset = 0, getattr(lucene, 'FixedBitSet', lucene.OpenBitSet)
+        count, bitset = 0, getattr(util, 'FixedBitSet', util.OpenBitSet)
         for reader in self.sequentialSubReaders:
             docsets = left.getDocIdSet(reader), right.getDocIdSet(reader)
-            if lucene.DocIdSet.EMPTY_DOCIDSET not in docsets:
+            if search.DocIdSet.EMPTY_DOCIDSET not in docsets:
                 bits = [bitset.cast_(docset).bits for docset in docsets]
-                count += lucene.BitUtil.pop_intersect(bits[0], bits[1], 0, min(map(len, bits)))
+                count += util.BitUtil.pop_intersect(bits[0], bits[1], 0, min(map(len, bits)))
         return int(count)
 
-class IndexSearcher(lucene.IndexSearcher, IndexReader):
+class IndexSearcher(search.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
     
     :param directory: directory path, lucene Directory, or lucene IndexReader
@@ -372,7 +386,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     """
     def __init__(self, directory, analyzer=None):
         self.shared = closing()
-        lucene.IndexSearcher.__init__(self, self.shared.reader(directory))
+        search.IndexSearcher.__init__(self, self.shared.reader(directory))
         self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
         self.termsfilters, self.groupings = set(), {}
@@ -380,7 +394,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
     def load(cls, directory, analyzer=None):
         "Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."
         ref = closing()
-        self = cls(lucene.RAMDirectory(ref.directory(directory)), analyzer)
+        self = cls(store.RAMDirectory(ref.directory(directory)), analyzer)
         self.shared.add(self.directory)
         return self
     def __del__(self):
@@ -399,7 +413,7 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         other = type(self)(self.indexReader.reopen(), self.analyzer)
         other.decRef()
         other.shared = self.shared
-        other.filters.update((key, value if isinstance(value, lucene.Filter) else dict(value)) for key, value in self.filters.items())
+        other.filters.update((key, value if isinstance(value, search.Filter) else dict(value)) for key, value in self.filters.items())
         for termsfilter in self.termsfilters:
             termsfilter.refresh(other)
         if filters:
@@ -418,9 +432,9 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         return Document(self.doc(id))
     def get(self, id, *fields):
         "Return `Document`_ with only selected fields loaded."
-        return Document(self.doc(id, lucene.MapFieldSelector(fields)))
+        return Document(self.doc(id, document.MapFieldSelector(fields)))
     def parse(self, query, spellcheck=False, **kwargs):
-        if isinstance(query, lucene.Query):
+        if isinstance(query, search.Query):
             return query
         if spellcheck:
             kwargs['parser'], kwargs['searcher'] = SpellParser, self
@@ -437,24 +451,24 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         :param options: additional :meth:`search` options
         """
         if len(query) > 1:
-            return self.docFreq(lucene.Term(*query))
-        query = self.parse(*query, **options) if query else lucene.MatchAllDocsQuery()
-        collector = lucene.TotalHitCountCollector()
-        lucene.IndexSearcher.search(self, query, options.get('filter'), collector)
+            return self.docFreq(index.Term(*query))
+        query = self.parse(*query, **options) if query else search.MatchAllDocsQuery()
+        collector = search.TotalHitCountCollector()
+        search.IndexSearcher.search(self, query, options.get('filter'), collector)
         return collector.totalHits
     def collector(self, query, count=None, sort=None, reverse=False, scores=False, maxscore=False):
         weight = self.createNormalizedWeight(query) if hasattr(self, 'createNormalizedWeight') else query.weight(self)
         inorder = not weight.scoresDocsOutOfOrder()
         if count is None:
-            return lucene.CachingCollector.create(not inorder, True, float('inf'))
+            return search.CachingCollector.create(not inorder, True, float('inf'))
         count = min(count, self.maxDoc() or 1)
         if callable(sort) or sort is None:
-            return lucene.TopScoreDocCollector.create(count, inorder)
+            return search.TopScoreDocCollector.create(count, inorder)
         if isinstance(sort, basestring):
             sort = self.sorter(sort, reverse=reverse)
-        if not isinstance(sort, lucene.Sort):
-            sort = lucene.Sort(sort)
-        return lucene.TopFieldCollector.create(sort, count, True, scores, maxscore, inorder)
+        if not isinstance(sort, search.Sort):
+            sort = search.Sort(sort)
+        return search.TopFieldCollector.create(sort, count, True, scores, maxscore, inorder)
     def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
         
@@ -470,17 +484,17 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         :param timeout: stop search after elapsed number of seconds
         :param parser: :meth:`Analyzer.parse` options
         """
-        query = lucene.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
+        query = search.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
         cache = collector = self.collector(query, count, sort, reverse, scores, maxscore)
-        args = [lucene.TimeLimitingCollector.getGlobalCounter()] if hasattr(lucene, 'Counter') else []
-        results = collector if timeout is None else lucene.TimeLimitingCollector(collector, *(args + [long(timeout * 1000)]))
+        args = [search.TimeLimitingCollector.getGlobalCounter()] if hasattr(util, 'Counter') else []
+        results = collector if timeout is None else search.TimeLimitingCollector(collector, *(args + [long(timeout * 1000)]))
         try:
-            lucene.IndexSearcher.search(self, query, filter, results)
+            search.IndexSearcher.search(self, query, filter, results)
         except lucene.JavaError as timeout:
-            if not lucene.TimeLimitingCollector.TimeExceededException.instance_(timeout.getJavaException()):
+            if not search.TimeLimitingCollector.TimeExceededException.instance_(timeout.getJavaException()):
                 raise
-        if isinstance(cache, lucene.CachingCollector):
-            collector = lucene.TotalHitCountCollector()
+        if isinstance(cache, search.CachingCollector):
+            collector = search.TotalHitCountCollector()
             cache.replay(collector)
             collector = self.collector(query, collector.totalHits or 1, sort, reverse, scores, maxscore)
             cache.replay(collector)
@@ -500,15 +514,15 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
         counts = collections.defaultdict(dict)
         if isinstance(query, basestring):
             query = self.parse(query)
-        if isinstance(query, lucene.Query):
-            query = lucene.QueryWrapperFilter(query)
-        if not isinstance(query, lucene.CachingWrapperFilter):
-            query = lucene.CachingWrapperFilter(query)
+        if isinstance(query, search.Query):
+            query = search.QueryWrapperFilter(query)
+        if not isinstance(query, search.CachingWrapperFilter):
+            query = search.CachingWrapperFilter(query)
         for key in keys:
             filters = self.filters.get(key)
             if key in self.groupings:
                 counts[key] = dict(self.groupings[key].facets(query))
-            elif isinstance(filters, lucene.Filter):
+            elif isinstance(filters, search.Filter):
                 counts[key] = self.overlap(query, filters)
             else:
                 name, value = (key, None) if isinstance(key, basestring) else key
@@ -567,11 +581,11 @@ class IndexSearcher(lucene.IndexSearcher, IndexReader):
                 yield word
     def match(self, document, *queries):
         "Generate scores for all queries against a given document mapping."
-        searcher = lucene.MemoryIndex()
+        searcher = memory.MemoryIndex()
         for name, value in document.items():
             if isinstance(value, basestring):
                 value = value, self.analyzer
-            elif isinstance(value, lucene.TokenStream):
+            elif isinstance(value, analysis.TokenStream):
                 value = value,
             searcher.addField(name, *value)
         for query in queries:
@@ -585,8 +599,8 @@ class MultiSearcher(IndexSearcher):
     """
     def __init__(self, reader, analyzer=None):
         shared = closing()
-        if not lucene.MultiReader.instance_(reader):
-            reader = lucene.MultiReader(list(map(shared.reader, reader)))
+        if not index.MultiReader.instance_(reader):
+            reader = index.MultiReader(list(map(shared.reader, reader)))
             ref = closing([reader])
         IndexSearcher.__init__(self, reader, analyzer)
         self.shared.update(shared)
@@ -600,7 +614,7 @@ class MultiSearcher(IndexSearcher):
     def overlap(self, *filters):
         return sum(IndexReader(reader).overlap(*filters) for reader in self.sequentialSubReaders)
 
-class IndexWriter(lucene.IndexWriter):
+class IndexWriter(index.IndexWriter):
     """Inherited lucene IndexWriter.
     Supports setting fields parameters explicitly, so documents can be represented as dictionaries.
     
@@ -610,18 +624,18 @@ class IndexWriter(lucene.IndexWriter):
     :param version: lucene Version argument passed to IndexWriterConfig or StandardAnalyzer, default is latest
     :param attrs: additional attributes to set on IndexWriterConfig
     """
-    __len__ = lucene.IndexWriter.numDocs
+    __len__ = index.IndexWriter.numDocs
     parse = IndexSearcher.__dict__['parse']
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
         if version is None:
-            version = lucene.Version.values()[-1]
-        config = lucene.IndexWriterConfig(version, self.shared.analyzer(analyzer, version))
-        config.openMode = lucene.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
+            version = util.Version.values()[-1]
+        config = index.IndexWriterConfig(version, self.shared.analyzer(analyzer, version))
+        config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
         for name, value in attrs.items():
             setattr(config, name, value)
-        config.indexDeletionPolicy = self.policy = lucene.SnapshotDeletionPolicy(config.indexDeletionPolicy)
-        lucene.IndexWriter.__init__(self, self.shared.directory(directory), config)
+        config.indexDeletionPolicy = self.policy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
+        index.IndexWriter.__init__(self, self.shared.directory(directory), config)
         self.fields = {}
     def __del__(self):
         if hash(self):
@@ -634,13 +648,13 @@ class IndexWriter(lucene.IndexWriter):
         :param params: store,index,termvector options compatible with `Field`_
         """
         self.fields[name] = cls(name, **params)
-    def document(self, document=(), boost=None, **terms):
+    def document(self, items=(), boost=None, **terms):
         "Return lucene Document from mapping of field names to one or multiple values."
-        doc = lucene.Document()
+        doc = document.Document()
         if boost is not None:
             warnings.warn('Document boosting has been removed from lucene 4; set Field boosts instead.', DeprecationWarning)
             doc.boost = boost
-        for name, values in dict(document, **terms).items():
+        for name, values in dict(items, **terms).items():
             if isinstance(values, Atomic):
                 values = values,
             for field in self.fields[name].items(*values):
@@ -652,20 +666,20 @@ class IndexWriter(lucene.IndexWriter):
     def update(self, name, value='', document=(), **terms):
         "Atomically delete documents which match given term and add the new :meth:`document` with optional boost."
         doc = self.document(document, **terms)
-        self.updateDocument(lucene.Term(name, *[value] if value else doc.getValues(name)), doc)
+        self.updateDocument(index.Term(name, *[value] if value else doc.getValues(name)), doc)
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
         
         :param query: :meth:`IndexSearcher.search` compatible query, or optimally a name and value
         :param options: additional :meth:`Analyzer.parse` options
         """
-        parse = self.parse if len(query) == 1 else lucene.Term
+        parse = self.parse if len(query) == 1 else index.Term
         self.deleteDocuments(parse(*query, **options))
     def __iadd__(self, directory):
         "Add directory (or reader, searcher, writer) to index."
         ref = closing()
         directory = ref.directory(directory)
-        self.addIndexes([directory if isinstance(directory, lucene.Directory) else directory.directory])
+        self.addIndexes([directory if isinstance(directory, store.Directory) else directory.directory])
         return self
     @contextlib.contextmanager
     def snapshot(self, id=''):
@@ -737,12 +751,12 @@ class ParallelIndexer(Indexer):
     def update(self, value, document=(), **terms):
         "Atomically update document based on unique field."
         terms[self.field] = value
-        self.updateDocument(lucene.Term(self.field, value), self.document(document, **terms))
+        self.updateDocument(index.Term(self.field, value), self.document(document, **terms))
     def refresh(self, **caches):
         "Store refreshed searcher and synchronize :attr:`termsfilters`."
         sorter, segments = self.sorter(self.field), self.segments
         searcher = self.indexSearcher.reopen(**caches)
-        readers = [reader for reader in searcher.sequentialSubReaders if lucene.SegmentReader.cast_(reader).segmentName not in segments]
+        readers = [reader for reader in searcher.sequentialSubReaders if index.SegmentReader.cast_(reader).segmentName not in segments]
         terms = list(itertools.chain.from_iterable(IndexReader(reader).terms(self.field) for reader in readers))
         for filter, termsfilter in self.termsfilters.items():
             if terms:

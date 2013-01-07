@@ -8,6 +8,16 @@ import bisect
 import heapq
 import threading
 import lucene
+try:
+    from java.lang import Integer
+    from java.util import Arrays, HashSet
+    from org.apache.lucene import document, index, search, util
+    from org.apache.lucene.search import highlight, spans, vectorhighlight
+    from org.apache.pylucene import search as search_
+    from org.apache.pylucene.queryParser import PythonQueryParser
+except ImportError:
+    from lucene import Integer, Arrays, HashSet, PythonQueryParser
+    document = index = search = util = highlight = spans = vectorhighlight = search_ = lucene
 
 class Query(object):
     """Inherited lucene Query, with dynamic base class acquisition.
@@ -19,31 +29,31 @@ class Query(object):
         base.__init__(self, *args)
     def filter(self, cache=True):
         "Return lucene CachingWrapperFilter, optionally just QueryWrapperFilter."
-        if isinstance(self, lucene.PrefixQuery):
-            filter = lucene.PrefixFilter(self.getPrefix())
-        elif isinstance(self, lucene.TermRangeQuery):
-            filter = lucene.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
-        elif isinstance(self, lucene.TermQuery):
-            filter = lucene.TermsFilter()
+        if isinstance(self, search.PrefixQuery):
+            filter = search.PrefixFilter(self.getPrefix())
+        elif isinstance(self, search.TermRangeQuery):
+            filter = search.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
+        elif isinstance(self, search.TermQuery):
+            filter = search.TermsFilter()
             filter.addTerm(self.getTerm())
         else:
-            filter = lucene.QueryWrapperFilter(self)
-        return lucene.CachingWrapperFilter(filter) if cache else filter
+            filter = search.QueryWrapperFilter(self)
+        return search.CachingWrapperFilter(filter) if cache else filter
     def terms(self):
         "Generate set of query term items."
-        terms = lucene.HashSet().of_(lucene.Term)
+        terms = HashSet().of_(index.Term)
         self.extractTerms(terms)
         for term in terms:
             yield term.field(), term.text()
     @classmethod
     def term(cls, name, value, boost=1.0):
         "Return lucene TermQuery."
-        self = cls(lucene.TermQuery, lucene.Term(name, value))
+        self = cls(search.TermQuery, index.Term(name, value))
         self.boost = boost
         return self
     @classmethod
     def boolean(cls, occur, *queries, **terms):
-        self = BooleanQuery(lucene.BooleanQuery)
+        self = BooleanQuery(search.BooleanQuery)
         for query in queries:
             self.add(query, occur)
         for name, values in terms.items():
@@ -53,15 +63,15 @@ class Query(object):
     @classmethod
     def any(cls, *queries, **terms):
         "Return `BooleanQuery`_ (OR) from queries and terms."
-        return cls.boolean(lucene.BooleanClause.Occur.SHOULD, *queries, **terms)
+        return cls.boolean(search.BooleanClause.Occur.SHOULD, *queries, **terms)
     @classmethod
     def all(cls, *queries, **terms):
         "Return `BooleanQuery`_ (AND) from queries and terms."
-        return cls.boolean(lucene.BooleanClause.Occur.MUST, *queries, **terms)
+        return cls.boolean(search.BooleanClause.Occur.MUST, *queries, **terms)
     @classmethod
     def disjunct(cls, multiplier, *queries, **terms):
         "Return lucene DisjunctionMaxQuery from queries and terms."
-        self = cls(lucene.DisjunctionMaxQuery, lucene.Arrays.asList(queries), multiplier)
+        self = cls(search.DisjunctionMaxQuery, Arrays.asList(queries), multiplier)
         for name, values in terms.items():
             for value in ([values] if isinstance(values, basestring) else values):
                 self.add(cls.term(name, value))
@@ -70,8 +80,8 @@ class Query(object):
     def span(cls, *term):
         "Return `SpanQuery`_ from term name and value or a MultiTermQuery."
         if len(term) <= 1:
-            return SpanQuery(lucene.SpanMultiTermQueryWrapper, *term)
-        return SpanQuery(lucene.SpanTermQuery, lucene.Term(*term))
+            return SpanQuery(spans.SpanMultiTermQueryWrapper, *term)
+        return SpanQuery(spans.SpanTermQuery, index.Term(*term))
     @classmethod
     def near(cls, name, *values, **kwargs):
         """Return :meth:`SpanNearQuery <SpanQuery.near>` from terms.
@@ -81,41 +91,41 @@ class Query(object):
     @classmethod
     def prefix(cls, name, value):
         "Return lucene PrefixQuery."
-        return cls(lucene.PrefixQuery, lucene.Term(name, value))
+        return cls(search.PrefixQuery, index.Term(name, value))
     @classmethod
     def range(cls, name, start, stop, lower=True, upper=False):
         "Return lucene RangeQuery, by default with a half-open interval."
-        return cls(lucene.TermRangeQuery, name, start, stop, lower, upper)
+        return cls(search.TermRangeQuery, name, start, stop, lower, upper)
     @classmethod
     def phrase(cls, name, *values):
         "Return lucene PhraseQuery.  None may be used as a placeholder."
-        self = cls(lucene.PhraseQuery)
-        for index, value in enumerate(values):
+        self = cls(search.PhraseQuery)
+        for idx, value in enumerate(values):
             if value is not None:
-                self.add(lucene.Term(name, value), index)
+                self.add(index.Term(name, value), idx)
         return self
     @classmethod
     def multiphrase(cls, name, *values):
         "Return lucene MultiPhraseQuery.  None may be used as a placeholder."
-        self = cls(lucene.MultiPhraseQuery)
-        for index, words in enumerate(values):
+        self = cls(search.MultiPhraseQuery)
+        for idx, words in enumerate(values):
             if isinstance(words, basestring):
                 words = [words]
             if words is not None:
-                self.add([lucene.Term(name, word) for word in words], index)
+                self.add([index.Term(name, word) for word in words], idx)
         return self
     @classmethod
     def wildcard(cls, name, value):
         "Return lucene WildcardQuery."
-        return cls(lucene.WildcardQuery, lucene.Term(name, value))
+        return cls(search.WildcardQuery, index.Term(name, value))
     @classmethod
     def fuzzy(cls, name, value, minimumSimilarity=0.5, prefixLength=0):
         "Return lucene FuzzyQuery."
-        return cls(lucene.FuzzyQuery, lucene.Term(name, value), minimumSimilarity, prefixLength)
+        return cls(search.FuzzyQuery, index.Term(name, value), minimumSimilarity, prefixLength)
     def __pos__(self):
         return Query.all(self)
     def __neg__(self):
-        return Query.boolean(lucene.BooleanClause.Occur.MUST_NOT, self)
+        return Query.boolean(search.BooleanClause.Occur.MUST_NOT, self)
     def __and__(self, other):
         return Query.all(self, other)
     def __rand__(self, other):
@@ -138,30 +148,30 @@ class BooleanQuery(Query):
     def __getitem__(self, index):
         return self.getClauses()[index]
     def __iand__(self, other):
-        self.add(other, lucene.BooleanClause.Occur.MUST)
+        self.add(other, search.BooleanClause.Occur.MUST)
         return self
     def __ior__(self, other):
-        self.add(other, lucene.BooleanClause.Occur.SHOULD)
+        self.add(other, search.BooleanClause.Occur.SHOULD)
         return self
     def __isub__(self, other):
-        self.add(other, lucene.BooleanClause.Occur.MUST_NOT)
+        self.add(other, search.BooleanClause.Occur.MUST_NOT)
         return self
 
 class SpanQuery(Query):
     "Inherited lucene SpanQuery with additional span constructors."
     def filter(self, cache=True):
         "Return lucene CachingSpanFilter, optionally just SpanQueryFilter."
-        filter = lucene.SpanQueryFilter(self)
-        return lucene.CachingSpanFilter(filter) if cache else filter
+        filter = search.SpanQueryFilter(self)
+        return search.CachingSpanFilter(filter) if cache else filter
     def __getitem__(self, slc):
-        start, stop, step = slc.indices(lucene.Integer.MAX_VALUE)
+        start, stop, step = slc.indices(Integer.MAX_VALUE)
         assert step == 1, 'slice step is not supported'
-        return SpanQuery(lucene.SpanPositionRangeQuery, self, start, stop)
+        return SpanQuery(spans.SpanPositionRangeQuery, self, start, stop)
     def __sub__(self, other):
-        return SpanQuery(lucene.SpanNotQuery, self, other)
-    def __or__(*spans):
-        return SpanQuery(lucene.SpanOrQuery, spans)
-    def near(*spans, **kwargs):
+        return SpanQuery(spans.SpanNotQuery, self, other)
+    def __or__(*spans_):
+        return SpanQuery(spans.SpanOrQuery, spans_)
+    def near(*spans_, **kwargs):
         """Return lucene SpanNearQuery from SpanQueries.
         
         :param slop: default 0
@@ -169,16 +179,16 @@ class SpanQuery(Query):
         :param collectPayloads: default True
         """
         args = map(kwargs.get, ('slop', 'inOrder', 'collectPayloads'), (0, True, True))
-        return SpanQuery(lucene.SpanNearQuery, spans, *args)
+        return SpanQuery(spans.SpanNearQuery, spans_, *args)
     def mask(self, name):
         "Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."
-        return SpanQuery(lucene.FieldMaskingSpanQuery, self, name)
+        return SpanQuery(spans.FieldMaskingSpanQuery, self, name)
     def payload(self, *values):
         "Return lucene SpanPayloadCheckQuery from payload values."
-        base = lucene.SpanNearPayloadCheckQuery if lucene.SpanNearQuery.instance_(self) else lucene.SpanPayloadCheckQuery
-        return SpanQuery(base, self, lucene.Arrays.asList(list(map(lucene.JArray_byte, values))))
+        base = spans.SpanNearPayloadCheckQuery if spans.SpanNearQuery.instance_(self) else spans.SpanPayloadCheckQuery
+        return SpanQuery(base, self, Arrays.asList(list(map(lucene.JArray_byte, values))))
 
-class TermsFilter(lucene.CachingWrapperFilter):
+class TermsFilter(search.CachingWrapperFilter):
     """Caching filter based on a unique field and set of matching values.
     Optimized for many terms and docs, with support for incremental updates.
     Suitable for searching external metadata associated with indexed identifiers.
@@ -190,7 +200,7 @@ class TermsFilter(lucene.CachingWrapperFilter):
     ops = {'or': 'update', 'and': 'intersection_update', 'andNot': 'difference_update'}
     def __init__(self, field, values=()):
         assert lucene.VERSION >= '3.5', 'requires FixedBitSet set operations introduced in lucene 3.5'
-        lucene.CachingWrapperFilter.__init__(self, lucene.TermsFilter())
+        search.CachingWrapperFilter.__init__(self, search.TermsFilter())
         self.field = field
         self.values = set(values)
         self.readers = set()
@@ -198,14 +208,14 @@ class TermsFilter(lucene.CachingWrapperFilter):
     def filter(self, values, cache=True):
         "Return lucene TermsFilter, optionally using the FieldCache."
         if cache:
-            return lucene.FieldCacheTermsFilter(self.field, tuple(values))
-        filter, term = lucene.TermsFilter(), lucene.Term(self.field)
+            return search.FieldCacheTermsFilter(self.field, tuple(values))
+        filter, term = search.TermsFilter(), index.Term(self.field)
         for value in values:
             filter.addTerm(term.createTerm(value))
         return filter
     def apply(self, filter, op, readers):
         for reader in readers:
-            bitset = lucene.FixedBitSet.cast_(self.getDocIdSet(reader))
+            bitset = util.FixedBitSet.cast_(self.getDocIdSet(reader))
             getattr(bitset, op)(filter.getDocIdSet(reader).iterator())
     def update(self, values, op='or', cache=True):
         """Update allowed values and corresponding cached bitsets.
@@ -247,7 +257,7 @@ class Comparator(object):
         point = bisect.bisect_right(self.offsets, index) - 1
         return self.arrays[point][index - self.offsets[point]]
 
-class SortField(lucene.SortField):
+class SortField(search.SortField):
     """Inherited lucene SortField used for caching FieldCache parsers.
     
     :param name: field name
@@ -258,34 +268,34 @@ class SortField(lucene.SortField):
     def __init__(self, name, type='string', parser=None, reverse=False):
         type = self.typename = getattr(type, '__name__', type).capitalize()
         if parser is None:
-            parser = getattr(lucene.SortField, type.upper())
-        elif not lucene.FieldCache.Parser.instance_(parser):
-            base = getattr(lucene, 'Python{0}Parser'.format(type))
+            parser = getattr(search.SortField, type.upper())
+        elif not search.FieldCache.Parser.instance_(parser):
+            base = getattr(search_, 'Python{0}Parser'.format(type))
             namespace = {'parse' + type: staticmethod(parser)}
             parser = object.__class__(base.__name__, (base,), namespace)()
-        lucene.SortField.__init__(self, name, parser, reverse)
+        search.SortField.__init__(self, name, parser, reverse)
     def array(self, reader):
-        method = getattr(lucene.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
+        method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
         return method(reader, self.field, *[self.parser][:bool(self.parser)])
     def comparator(self, reader):
         "Return indexed values from default FieldCache using the given top-level reader."
         readers = reader.sequentialSubReaders
-        if lucene.MultiReader.instance_(reader):
+        if index.MultiReader.instance_(reader):
             readers = itertools.chain.from_iterable(reader.sequentialSubReaders for reader in readers)
         arrays = list(map(self.array, readers))
         return arrays[0] if len(arrays) <= 1 else Comparator(arrays)
     def filter(self, start, stop, lower=True, upper=False):
         "Return lucene FieldCacheRangeFilter based on field and type."
-        method = getattr(lucene.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))
+        method = getattr(search.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))
         return method(self.field, self.parser, start, stop, lower, upper)
     def terms(self, filter, *readers):
         "Generate field cache terms from docs which match filter from all segments."
         for reader in readers:
             array, docset = self.array(reader), filter.getDocIdSet(reader)
-            for id in iter(docset.iterator().nextDoc, lucene.DocIdSetIterator.NO_MORE_DOCS):
+            for id in iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS):
                 yield array[id]
 
-class Highlighter(lucene.Highlighter):
+class Highlighter(highlight.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
     
     :param searcher: `IndexSearcher`_ used for analysis, scoring, and optionally text retrieval
@@ -299,11 +309,11 @@ class Highlighter(lucene.Highlighter):
     """
     def __init__(self, searcher, query, field, terms=False, fields=False, tag='', formatter=None, encoder=None):
         if tag:
-            formatter = lucene.SimpleHTMLFormatter('<{0}>'.format(tag), '</{0}>'.format(tag))
-        scorer = (lucene.QueryTermScorer if terms else lucene.QueryScorer)(query, *(searcher.indexReader, field) * (not fields))
-        lucene.Highlighter.__init__(self, *filter(None, [formatter, encoder, scorer]))
+            formatter = highlight.SimpleHTMLFormatter('<{0}>'.format(tag), '</{0}>'.format(tag))
+        scorer = (highlight.QueryTermScorer if terms else highlight.QueryScorer)(query, *(searcher.indexReader, field) * (not fields))
+        highlight.Highlighter.__init__(self, *filter(None, [formatter, encoder, scorer]))
         self.searcher, self.field = searcher, field
-        self.selector = lucene.MapFieldSelector([field])
+        self.selector = document.MapFieldSelector([field])
     def fragments(self, doc, count=1):
         """Return highlighted text fragments.
         
@@ -314,7 +324,7 @@ class Highlighter(lucene.Highlighter):
             doc = self.searcher.doc(doc, self.selector)[self.field]
         return doc and list(self.getBestFragments(self.searcher.analyzer, self.field, doc, count))
 
-class FastVectorHighlighter(lucene.FastVectorHighlighter):
+class FastVectorHighlighter(vectorhighlight.FastVectorHighlighter):
     """Inherited lucene FastVectorHighlighter with stored query.
     Fields must be stored and have term vectors with offsets and positions.
     
@@ -329,9 +339,9 @@ class FastVectorHighlighter(lucene.FastVectorHighlighter):
     """
     def __init__(self, searcher, query, field, terms=False, fields=False, tag='', fragListBuilder=None, fragmentsBuilder=None):
         if tag:
-            fragmentsBuilder = lucene.SimpleFragmentsBuilder(['<{0}>'.format(tag)], ['</{0}>'.format(tag)])
-        args = fragListBuilder or lucene.SimpleFragListBuilder(), fragmentsBuilder or lucene.SimpleFragmentsBuilder()
-        lucene.FastVectorHighlighter.__init__(self, not terms, not fields, *args)
+            fragmentsBuilder = vectorhighlight.SimpleFragmentsBuilder(['<{0}>'.format(tag)], ['</{0}>'.format(tag)])
+        args = fragListBuilder or vectorhighlight.SimpleFragListBuilder(), fragmentsBuilder or vectorhighlight.SimpleFragmentsBuilder()
+        vectorhighlight.FastVectorHighlighter.__init__(self, not terms, not fields, *args)
         self.searcher, self.field = searcher, field
         self.query = self.getFieldQuery(query)
     def fragments(self, id, count=1, size=100):
@@ -385,7 +395,7 @@ class SpellChecker(dict):
             groups = map(self.edits, edits, edits.values())
             edits = dict((edit, group[edit]) for group in groups for edit in group if edit not in previous)
 
-class SpellParser(lucene.PythonQueryParser):
+class SpellParser(PythonQueryParser):
     """Inherited lucene QueryParser which corrects spelling.
     Assign a searcher attribute or override :meth:`correct` implementation.
     """
@@ -393,15 +403,15 @@ class SpellParser(lucene.PythonQueryParser):
         "Return term with text replaced as necessary."
         field = term.field()
         for text in self.searcher.correct(field, term.text()):
-            return lucene.Term(field, text)
+            return index.Term(field, text)
         return term
     def rewrite(self, query):
         "Return term or phrase query with corrected terms substituted."
-        if lucene.TermQuery.instance_(query):
-            term = lucene.TermQuery.cast_(query).term
-            return lucene.TermQuery(self.correct(term))
-        query = lucene.PhraseQuery.cast_(query)
-        phrase = lucene.PhraseQuery()
+        if search.TermQuery.instance_(query):
+            term = search.TermQuery.cast_(query).term
+            return search.TermQuery(self.correct(term))
+        query = search.PhraseQuery.cast_(query)
+        phrase = search.PhraseQuery()
         for position, term in zip(query.positions, query.terms):
             phrase.add(self.correct(term), position)
         return phrase
