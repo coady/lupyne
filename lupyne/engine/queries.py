@@ -192,7 +192,7 @@ class TermsFilter(search.CachingWrapperFilter):
     """Caching filter based on a unique field and set of matching values.
     Optimized for many terms and docs, with support for incremental updates.
     Suitable for searching external metadata associated with indexed identifiers.
-    Call :meth:`refresh` to cache a new (or reopened) reader.
+    Call :meth:`refresh` to cache a new (or reopened) searcher.
     
     :param field: field name
     :param values: initial term values, synchronized with the cached filters
@@ -209,9 +209,9 @@ class TermsFilter(search.CachingWrapperFilter):
         "Return lucene TermsFilter, optionally using the FieldCache."
         if cache:
             return search.FieldCacheTermsFilter(self.field, tuple(values))
-        filter, term = search.TermsFilter(), index.Term(self.field)
+        filter = search.TermsFilter()
         for value in values:
-            filter.addTerm(term.createTerm(value))
+            filter.addTerm(index.Term(self.field, value))
         return filter
     def apply(self, filter, op, readers):
         for reader in readers:
@@ -229,9 +229,9 @@ class TermsFilter(search.CachingWrapperFilter):
         with self.lock:
             getattr(self.values, self.ops[op])(values)
             self.apply(filter, op, self.readers)
-    def refresh(self, reader):
-        "Refresh cached bitsets of current values for new segments of top-level reader."
-        readers = set(reader.sequentialSubReaders)
+    def refresh(self, searcher):
+        "Refresh cached bitsets of current values for new segments of searcher."
+        readers = set(searcher.readers)
         with self.lock:
             self.apply(self.filter(self.values), 'or', readers - self.readers)
             self.readers = set(reader for reader in readers | self.readers if reader.refCount)
@@ -277,12 +277,9 @@ class SortField(search.SortField):
     def array(self, reader):
         method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
         return method(reader, self.field, *[self.parser][:bool(self.parser)])
-    def comparator(self, reader):
-        "Return indexed values from default FieldCache using the given top-level reader."
-        readers = reader.sequentialSubReaders
-        if index.MultiReader.instance_(reader):
-            readers = itertools.chain.from_iterable(reader.sequentialSubReaders for reader in readers)
-        arrays = list(map(self.array, readers))
+    def comparator(self, searcher):
+        "Return indexed values from default FieldCache using the given searcher."
+        arrays = list(map(self.array, searcher.readers))
         return arrays[0] if len(arrays) <= 1 else Comparator(arrays)
     def filter(self, start, stop, lower=True, upper=False):
         "Return lucene FieldCacheRangeFilter based on field and type."

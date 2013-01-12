@@ -57,9 +57,9 @@ except ImportError:
 import warnings
 import lucene
 try:
-    from org.apache.lucene import document, index, search, store
+    from org.apache.lucene import index, search
 except ImportError:
-    document = index = search = store = lucene
+    index = search = lucene
 import cherrypy
 try:
     from . import engine, client
@@ -131,7 +131,7 @@ def timer():
     response.headers['x-response-time'] = time.time() - response.time
 
 @tool('on_start_resource')
-def validate(etag=True, last_modified=True, max_age=None, expires=None):
+def validate(etag=True, last_modified=False, max_age=None, expires=None):
     """Return and validate caching headers.
     
     :param etag: return weak entity tag header based on index version and validate if-match headers
@@ -259,7 +259,7 @@ class WebSearcher(object):
     def sync(self, host, path=''):
         "Sync with remote index."
         path = '/' + '{0}/update/{1}/'.format(path, uuid.uuid1()).lstrip('/')
-        directory = store.FSDirectory.cast_(self.searcher.directory).directory.path
+        directory = self.searcher.path
         resource = client.Resource(host)
         names = sorted(set(resource.put(path)).difference(os.listdir(directory)))
         try:
@@ -456,7 +456,7 @@ class WebSearcher(object):
         if fields is None:
             fields = {}
         else:
-            hits.fields = document.MapFieldSelector(list(itertools.chain(fields, multi)))
+            hits.select(*itertools.chain(fields, multi))
         with HTTPError(httplib.BAD_REQUEST, AttributeError):
             groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__) if group else [hits]
         result['groups'], limit = [], options.get('group.limit', len(groups))
@@ -646,7 +646,7 @@ class WebIndexer(WebSearcher):
         if not name:
             return list(commit.fileNames)
         with HTTPError(httplib.NOT_FOUND, TypeError, AssertionError):
-            directory = store.FSDirectory.cast_(self.indexer.directory).directory.path
+            directory = self.searcher.path
             assert name in commit.fileNames, 'file not referenced in commit'
         return cherrypy.lib.static.serve_download(os.path.join(directory, name))
     @cherrypy.expose

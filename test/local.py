@@ -24,7 +24,7 @@ from . import fixture
 class typeAsPayload(engine.TokenFilter):
     "Custom implementation of lucene TypeAsPayloadTokenFilter."
     def setattrs(self):
-        self.payload = self.type.encode('utf8')
+        self.payload = self.type
 
 @contextlib.contextmanager
 def assertWarns(*categories):
@@ -209,7 +209,7 @@ class TestCase(BaseTest):
         scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
         assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
         searcher = engine.MultiSearcher([indexer.indexReader, self.tempdir])
-        assert searcher.refCount == 1
+        assert searcher.refCount == 1 and searcher.timestamp
         assert searcher.count() == len(searcher) == 2 * len(indexer)
         searcher.sorters['amendment'] = engine.SortField('amenmdment', int)
         comparator = searcher.comparator('amendment')
@@ -227,6 +227,8 @@ class TestCase(BaseTest):
         assert sorted(map(int, indexer.terms('amendment'))) == range(1, 28)
         assert list(itertools.islice(indexer.terms('text', 'right'), 2)) == ['right', 'rights']
         assert list(indexer.terms('text', 'right*')) == ['right', 'rights']
+        with assertWarns(DeprecationWarning):
+            assert list(indexer.terms('text', 'right?')) == ['rights']
         assert list(indexer.terms('text', 'right', minSimilarity=0.5)) == ['eight', 'right', 'rights']
         word, count = next(indexer.terms('text', 'people', counts=True))
         assert word == 'people' and count == 8
@@ -669,7 +671,7 @@ class TestCase(BaseTest):
         indexer.add(name='delta')
         indexer.delete('name', 'alpha')
         indexer.commit()
-        assert filter.readers > set(indexer.sequentialSubReaders)
+        assert filter.readers > set(indexer.readers)
         assert [hit['name'] for hit in indexer.search(filter=filter)] == ['bravo', 'delta']
         parallel.update('bravo')
         parallel.update('charlie', priority='high')
@@ -677,7 +679,7 @@ class TestCase(BaseTest):
         assert [hit['name'] for hit in indexer.search(filter=filter)] == ['charlie', 'delta']
         parallel.commit()
         filter.refresh(indexer)
-        assert filter.readers == set(indexer.sequentialSubReaders)
+        assert filter.readers == set(indexer.readers)
 
 if __name__ == '__main__':
     lucene.initVM()

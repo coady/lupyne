@@ -24,10 +24,12 @@ class Field(object):
     :param store,index,termvector: field parameters, expressed as bools or strs, with lucene defaults
     :param analyzed,omitNorms: additional index boolean settings
     :param withPositions,withOffsets: additional termvector boolean settings
+    :param boost: boost factor
     :param attrs: additional attributes to set on the field
     """
-    def __init__(self, name, store=False, index='analyzed', termvector=False, analyzed=False, omitNorms=False, withPositions=False, withOffsets=False, **attrs):
-        self.name, self.attrs = name, attrs
+    def __init__(self, name, store=False, index='analyzed', termvector=False, analyzed=False, omitNorms=False, \
+            withPositions=False, withOffsets=False, boost=1.0, **attrs):
+        self.name, self.boost, self.attrs = name, boost, attrs
         if isinstance(store, bool):
             store = 'yes' if store else 'no'
         self.store = document.Field.Store.valueOf(store.upper())
@@ -49,6 +51,7 @@ class Field(object):
                 field = document.Field(self.name, value)
             else:
                 field = document.Field(self.name, value, self.termvector)
+            field.setBoost(self.boost)
             for name, value in self.attrs.items():
                 setattr(field, name, value)
             yield field
@@ -92,7 +95,7 @@ class NestedField(Field):
             yield self.sep.join(value[:index])
     def items(self, *values):
         "Generate indexed component fields."
-        if self.store.stored:
+        if self.store == document.Field.Store.YES:
             for value in values:
                 yield document.Field(self.name, value, self.store, document.Field.Index.NO)
         for value in values:
@@ -247,7 +250,10 @@ class Hits(object):
     def __init__(self, searcher, scoredocs, count=None, maxscore=None, fields=None):
         self.searcher, self.scoredocs = searcher, scoredocs
         self.count, self.maxscore = count, maxscore
-        self.fields = document.MapFieldSelector(fields) if isinstance(fields, collections.Iterable) else fields
+        self.fields = fields
+    def select(self, *fields):
+        "Only load selected fields."
+        self.fields = document.MapFieldSelector(fields)
     def __len__(self):
         return len(self.scoredocs)
     def __getitem__(self, index):
@@ -313,13 +319,13 @@ class Grouping(object):
         return self.searchgroups.size()
     def __iter__(self):
         for searchgroup in self.searchgroups:
-            yield searchgroup.groupValue.toString()
+            yield convert(searchgroup.groupValue)
     def facets(self, filter):
         "Generate field values and counts which match given filter."
         collector = grouping.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, self.sort, 1, False, False, False)
         search.IndexSearcher.search(self.searcher, self.query, filter, collector)
         for groupdocs in collector.getTopGroups(0).groups:
-            yield groupdocs.groupValue.toString(), groupdocs.totalHits
+            yield convert(groupdocs.groupValue), groupdocs.totalHits
     def groups(self, count=1, sort=None, scores=False, maxscore=False):
         """Generate grouped `Hits`_ from second pass grouping collector.
         
@@ -335,5 +341,5 @@ class Grouping(object):
         search.IndexSearcher.search(self.searcher, self.query, collector)
         for groupdocs in collector.getTopGroups(0).groups:
             hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
-            hits.value = groupdocs.groupValue.toString()
+            hits.value = convert(groupdocs.groupValue)
             yield hits

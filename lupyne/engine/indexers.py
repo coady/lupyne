@@ -68,12 +68,11 @@ def copy(commit, dest):
     """Copy the index commit to the destination directory.
     Optimized to use hard links if the destination is a file system path.
     """
-    src = commit.directory
     if isinstance(dest, store.Directory):
         for filename in commit.fileNames:
-            src.copy(dest, filename, filename)
+            commit.directory.copy(dest, filename, filename)
     else:
-        src = store.FSDirectory.cast_(src).directory.path
+        src = IndexSearcher.path.fget(commit)
         os.path.isdir(dest) or os.makedirs(dest)
         for filename in commit.fileNames:
             paths = os.path.join(src, filename), os.path.join(dest, filename)
@@ -110,7 +109,7 @@ class TokenStream(analysis.TokenStream):
         return payload and getattr(payload.data, 'string_', None)
     @payload.setter
     def payload(self, data):
-        self.Payload.payload = index.Payload(lucene.JArray_byte(data))
+        self.Payload.payload = index.Payload(lucene.JArray_byte(data.encode('utf8') if isinstance(data, unicode) else data))
     @property
     def positionIncrement(self):
         "Position relative to the previous token."
@@ -221,13 +220,21 @@ class IndexReader(object):
         "reader's lucene Directory"
         return self.indexReader.directory()
     @property
+    def path(self):
+        "FSDirectory path"
+        return store.FSDirectory.cast_(self.directory).directory.path
+    @property
     def timestamp(self):
         "timestamp of reader's last commit"
         return self.indexCommit.timestamp / 1000.0
     @property
+    def readers(self):
+        "segment readers"
+        return map(index.SegmentReader.cast_, self.sequentialSubReaders)
+    @property
     def segments(self):
         "segment filenames with document counts"
-        return dict((index.SegmentReader.cast_(reader).segmentName, reader.numDocs()) for reader in self.sequentialSubReaders)
+        return dict((reader.segmentName, reader.numDocs()) for reader in self.readers)
     def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.
         Optimized to use hard links if the destination is a file system path.
@@ -244,9 +251,9 @@ class IndexReader(object):
             if exclude:
                 writer.delete(exclude)
             writer.commit()
-            writer.expungeDeletes()
+            writer.forceMergeDeletes()
             if merge:
-                writer.optimize(merge)
+                writer.forceMerge(merge)
             return len(writer)
     def count(self, name, value):
         "Return number of documents with given term."
@@ -275,6 +282,9 @@ class IndexReader(object):
             args = fuzzy.pop('minSimilarity', 0.5), fuzzy.pop('prefixLength', 0)
             termenum = search.FuzzyTermEnum(self.indexReader, term, *args, **fuzzy)
         elif '*' in value or '?' in value:
+            value = value.rstrip('*')
+            if '*' in value or '?' in value:
+                warnings.warn('Wildcard term enumeration has been removed from lucene 4; use a prefix instead.', DeprecationWarning)
             termenum = search.WildcardTermEnum(self.indexReader, term)
         else:
             termenum = search.TermRangeTermEnum(self.indexReader, name, value, stop, True, False, None)
@@ -327,7 +337,7 @@ class IndexReader(object):
         :param type: type object or name compatible with FieldCache
         :param parser: lucene FieldCache.Parser or callable applied to field values
         """
-        return SortField(name, type, parser).comparator(self.indexReader)
+        return SortField(name, type, parser).comparator(self)
     def spans(self, query, positions=False, payloads=False):
         """Generate docs with occurrence counts for a span query.
         
@@ -371,7 +381,7 @@ class IndexReader(object):
     def overlap(self, left, right):
         "Return intersection count of cached filters."
         count, bitset = 0, getattr(util, 'FixedBitSet', util.OpenBitSet)
-        for reader in self.sequentialSubReaders:
+        for reader in self.readers:
             docsets = left.getDocIdSet(reader), right.getDocIdSet(reader)
             if search.DocIdSet.EMPTY_DOCIDSET not in docsets:
                 bits = [bitset.cast_(docset).bits for docset in docsets]
@@ -548,7 +558,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return sorter if sorter.reverse == reverse else SortField(sorter.field, sorter.typename, sorter.parser, reverse)
     def comparator(self, field, type='string', parser=None):
         "Return :meth:`IndexReader.comparator` using a cached `SortField`_ if available."
-        return self.sorter(field, type, parser).comparator(self.indexReader)
+        return self.sorter(field, type, parser).comparator(self)
     def distances(self, lng, lat, lngfield, latfield):
         "Return distance comparator computed from cached lat/lng fields."
         arrays = (self.comparator(field, 'double') for field in (lngfield, latfield))
@@ -605,14 +615,13 @@ class MultiSearcher(IndexSearcher):
         IndexSearcher.__init__(self, reader, analyzer)
         self.shared.update(shared)
         shared.clear()
+        self.version = sum(reader.version for reader in self.sequentialSubReaders)
     @property
-    def version(self):
-        return sum(map(operator.attrgetter('version'), self.sequentialSubReaders))
+    def readers(self):
+        return itertools.chain.from_iterable(IndexReader(reader).readers for reader in self.sequentialSubReaders)
     @property
     def timestamp(self):
         return max(IndexReader(reader).timestamp for reader in self.sequentialSubReaders)
-    def overlap(self, *filters):
-        return sum(IndexReader(reader).overlap(*filters) for reader in self.sequentialSubReaders)
 
 class IndexWriter(index.IndexWriter):
     """Inherited lucene IndexWriter.
@@ -626,6 +635,8 @@ class IndexWriter(index.IndexWriter):
     """
     __len__ = index.IndexWriter.numDocs
     parse = IndexSearcher.__dict__['parse']
+    if not hasattr(index.IndexWriter, 'forceMerge'):
+        forceMerge, forceMergeDeletes = index.IndexWriter.optimize, index.IndexWriter.expungeDeletes
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
         if version is None:
@@ -725,9 +736,9 @@ class Indexer(IndexWriter):
         IndexWriter.commit(self)
         if merge:
             if isinstance(merge, bool):
-                self.expungeDeletes()
+                self.forceMergeDeletes()
             else:
-                self.optimize(merge)
+                self.forceMerge(merge)
             IndexWriter.commit(self)
         self.refresh(**caches)
 
@@ -742,7 +753,7 @@ class ParallelIndexer(Indexer):
         self.termsfilters = {}
     def termsfilter(self, filter, *others):
         "Return `TermsFilter`_ synced to given filter and optionally associated with other indexers."
-        terms = self.sorter(self.field).terms(filter, *self.sequentialSubReaders)
+        terms = self.sorter(self.field).terms(filter, *self.readers)
         termsfilter = self.termsfilters[filter] = TermsFilter(self.field, terms)
         for other in others:
             termsfilter.refresh(other)
@@ -756,7 +767,7 @@ class ParallelIndexer(Indexer):
         "Store refreshed searcher and synchronize :attr:`termsfilters`."
         sorter, segments = self.sorter(self.field), self.segments
         searcher = self.indexSearcher.reopen(**caches)
-        readers = [reader for reader in searcher.sequentialSubReaders if index.SegmentReader.cast_(reader).segmentName not in segments]
+        readers = [reader for reader in searcher.readers if reader.segmentName not in segments]
         terms = list(itertools.chain.from_iterable(IndexReader(reader).terms(self.field) for reader in readers))
         for filter, termsfilter in self.termsfilters.items():
             if terms:

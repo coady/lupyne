@@ -66,7 +66,7 @@ class TestCase(BaseTest):
     
     def testInterface(self):
         "Remote reading and writing."
-        config = {'tools.json_out.indent': 2, 'tools.validate.expires': 0, 'tools.validate.max_age': 0}
+        config = {'tools.json_out.indent': 2, 'tools.validate.last_modified': True, 'tools.validate.expires': 0, 'tools.validate.max_age': 0}
         self.servers += (
             self.start(self.ports[0], self.tempdir, '--autoreload=1', **config),
             self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2.0'), # concurrent searchers
@@ -316,7 +316,6 @@ class TestCase(BaseTest):
         assert resource.get('/terms/text/:0') == []
         assert resource.get('/terms/text/z:') == []
         assert resource.get('/terms/text/right:right~') == resource.get('/terms/text/right*') == ['right', 'rights']
-        assert resource.get('/terms/text/writ%3f') == ['writs']
         assert resource.get('/terms/text/writ*') == ['writ', 'writing', 'writings', 'writs', 'written']
         assert resource.get('/terms/text/*?count=0') == []
         assert resource.get('/terms/text/writ*?count=10') == ['writs', 'writ', 'writing', 'writings', 'written']
