@@ -43,22 +43,22 @@ class BaseTest(local.BaseTest):
         local.BaseTest.run(self, result)
     def setUp(self):
         local.BaseTest.setUp(self)
-        self.servers = []
+        self.servers = {}
     def tearDown(self):
-        for server in self.servers:
-            self.stop(server)
+        for port in list(self.servers):
+            self.stop(port)
         local.BaseTest.tearDown(self)
     def start(self, port, *args, **config):
         "Start server in separate process on given port."
         config.update(self.config)
         config['server.socket_port'] = port
         cherrypy.process.servers.wait_for_free_port('localhost', port)
-        server = subprocess.Popen((sys.executable, '-m', 'lupyne.server', '-c', json.dumps(config)) + args)
+        server = self.servers[port] = subprocess.Popen((sys.executable, '-m', 'lupyne.server', '-c', json.dumps(config)) + args)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
         assert not server.poll()
-        return server
-    def stop(self, server):
-        "Terminate server."
+    def stop(self, port):
+        "Terminate server on given port."
+        server = self.servers.pop(port)
         server.terminate()
         assert server.wait() == 0
 
@@ -67,10 +67,8 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Remote reading and writing."
         config = {'tools.json_out.indent': 2, 'tools.validate.last_modified': True, 'tools.validate.expires': 0, 'tools.validate.max_age': 0}
-        self.servers += (
-            self.start(self.ports[0], self.tempdir, '--autoreload=1', **config),
-            self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2.0'), # concurrent searchers
-        )
+        self.start(self.ports[0], self.tempdir, '--autoreload=1', **config),
+        self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2.0'), # concurrent searchers
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
         response = resource.call('GET', '/')
@@ -275,11 +273,13 @@ class TestCase(BaseTest):
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
-        self.stop(self.servers.pop(0))
+        port = self.ports[0]
+        self.stop(port)
         pidfile = os.path.join(self.tempdir, 'pid')
-        self.start(self.ports[0], '-dp', pidfile)
+        self.start(port, '-dp', pidfile)
         time.sleep(1)
         os.kill(int(open(pidfile).read()), signal.SIGTERM)
+        del self.servers[port]
         filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lupyne/server.py')
         assert subprocess.call((sys.executable, filepath, '-c', filepath), stderr=subprocess.PIPE)
         assert cherrypy.tree.mount(None)
@@ -291,7 +291,7 @@ class TestCase(BaseTest):
     
     def testBasic(self):
         "Remote text indexing and searching."
-        self.servers.append(self.start(self.ports[0], self.tempdir))
+        self.start(self.ports[0], self.tempdir)
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/fields') == []
         for name, settings in fixture.constitution.fields.items():
@@ -331,7 +331,7 @@ class TestCase(BaseTest):
         positions = dict(resource.get('/terms/text/people/docs/positions'))
         assert sorted(positions) == docs and list(map(len, positions.values())) == counts.values()
         doc, = resource.get('/search', q='amendment:1', fields='', **{'fields.indexed': 'article,amendment:int'})['docs']
-        assert doc['amendment'] == 1 and doc['article'] is None
+        assert doc['amendment'] == 1 and not doc['article']
         result = resource.get('/search', **{'q.field': 'text', 'q': 'write "hello world"', 'spellcheck': 3})
         terms = result['spellcheck'].pop('text')
         assert result['docs'] == [] and result['spellcheck'] == {}
@@ -416,7 +416,7 @@ class TestCase(BaseTest):
         assert all(min(group['count'], 2) >= len(group['docs']) for group in result['groups'])
         assert all(doc.get('date') == group['value'] for group in result['groups'] for doc in group['docs'])
         group = result['groups'][0]
-        assert group['value'] == '1791-12-15' and result['groups'][-1]['value'] is None
+        assert group['value'] == '1791-12-15' and not result['groups'][-1]['value']
         assert sorted(group) == ['count', 'docs', 'value'] and group['count'] == 5
         assert len(group['docs']) == 2 and group['docs'][0]['amendment'] == '2'
         assert len(result['groups'][1]['docs']) == 1 and all(group['docs'] == [] for group in result['groups'][2:])
@@ -429,7 +429,7 @@ class TestCase(BaseTest):
         "Nested and numeric fields."
         writer = engine.IndexWriter(self.tempdir)
         writer.commit()
-        self.servers.append(self.start(self.ports[0], '-r', self.tempdir, **{'tools.validate.etag': False, 'tools.validate.last_modified': False}))
+        self.start(self.ports[0], '-r', self.tempdir, **{'tools.validate.etag': False})
         writer.set('zipcode', engine.NumericField, store=True)
         writer.fields['location'] = engine.NestedField('county.city')
         for doc in fixture.zipcodes.docs():
@@ -460,11 +460,12 @@ class TestCase(BaseTest):
         "Real Time updating and searching."
         for args in [('-r',), ('--real-time', 'index0', 'index1'), ('-r', '--real-time', 'index')]:
             assert subprocess.call((sys.executable, '-m', 'lupyne.server') + args, stderr=subprocess.PIPE)
-        with contextlib.closing(server.WebIndexer(self.tempdir)) as root:
-            root.indexer.add()
-            assert root.update() == 1
+        root = server.WebIndexer(self.tempdir)
+        root.indexer.add()
+        assert root.update() == 1
+        del root
         port = self.ports[0]
-        self.servers.append(self.start(self.ports[0], '--real-time', **{'tools.validate.expires': 0, 'tools.validate.last_modified': False}))
+        self.start(self.ports[0], '--real-time', **{'tools.validate.expires': 0})
         resource = client.Resource('localhost', port)
         response = resource.call('GET', '/docs')
         version, modified, expires = map(response.getheader, ('etag', 'last-modified', 'expires'))

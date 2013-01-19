@@ -25,10 +25,10 @@ Custom sorting isn't necessary in the below example of course, just there for de
 import lucene
 lucene.initVM()
 try:
-    from org.apache.lucene import search
+    from org.apache.lucene import search, util
     from org.apache.pylucene.search import PythonFieldComparator, PythonFieldComparatorSource
 except ImportError:
-    search = lucene
+    search = util = lucene
     from lucene import PythonFieldComparator, PythonFieldComparatorSource
 from lupyne import engine
 
@@ -41,8 +41,9 @@ indexer.commit()
 
 ### lucene ###
 
-searcher = search.IndexSearcher(indexer.directory)
-topdocs = searcher.search(search.MatchAllDocsQuery(), None, 10, search.Sort(search.SortField('color', search.SortField.STRING)))
+searcher = search.IndexSearcher(indexer.indexReader)
+sorttype = getattr(search.SortField, 'Type', search.SortField).STRING
+topdocs = searcher.search(search.MatchAllDocsQuery(), None, 10, search.Sort(search.SortField('color', sorttype)))
 assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] == sorted(colors)
 
 class ComparatorSource(PythonFieldComparatorSource):
@@ -51,8 +52,16 @@ class ComparatorSource(PythonFieldComparatorSource):
             PythonFieldComparator.__init__(self)
             self.name = name
             self.values = [None] * numHits
-        def setNextReader(self, reader, base):
-            self.comparator = search.FieldCache.DEFAULT.getStrings(reader, self.name)
+        def setNextReader(self, reader, *args):
+            if not args:
+                reader = reader.reader()
+            if hasattr(search.FieldCache, 'getStrings'):
+                self.comparator = search.FieldCache.DEFAULT.getStrings(reader, self.name)
+            else:
+                br = util.BytesRef()
+                comparator = search.FieldCache.DEFAULT.getTerms(reader, self.name)
+                self.comparator = [comparator.getTerm(index, br).utf8ToString() for index in range(comparator.size())]
+            return self
         def compare(self, slot1, slot2):
             return cmp(self.values[slot1], self.values[slot2])
         def setBottom(self, slot):

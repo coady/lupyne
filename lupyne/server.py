@@ -57,9 +57,9 @@ except ImportError:
 import warnings
 import lucene
 try:
-    from org.apache.lucene import index, search
+    from org.apache.lucene import search
 except ImportError:
-    index = search = lucene
+    search = lucene
 import cherrypy
 try:
     from . import engine, client
@@ -285,9 +285,10 @@ class WebSearcher(object):
         if cherrypy.request.method == 'POST':
             self.sync(host, path)
             cherrypy.response.status = httplib.ACCEPTED
-        reader = self.searcher.indexReader
-        readers = reader.sequentialSubReaders if index.MultiReader.instance_(reader) else [reader]
-        return dict((unicode(reader.directory()), reader.numDocs()) for reader in readers)
+        if isinstance(self.searcher, engine.MultiSearcher):
+            readers = map(engine.indexers.IndexReader, self.searcher.sequentialSubReaders)
+            return dict((reader.directory.toString(), reader.numDocs()) for reader in readers)
+        return {self.searcher.directory.toString(): len(self.searcher)}
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(methods=['POST'])
@@ -439,7 +440,7 @@ class WebSearcher(object):
             mltfields = options.pop('mlt.fields', ())
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))
-            q = searcher.morelikethis(mlt, *mltfields, **attrs)
+            q = searcher.morelikethis(mlt, *mltfields, analyzer=searcher.analyzer, **attrs)
         if count is not None:
             count += start
         if count == 0:
@@ -730,6 +731,12 @@ class WebIndexer(WebSearcher):
 def init(vmargs='-Xrs', **kwargs):
     "Callback to initialize VM and app roots after daemonizing."
     lucene.initVM(vmargs=vmargs, **kwargs)
+    try:
+        from org.apache.lucene import codecs
+    except ImportError:
+        pass
+    else:  # initialize codecs in main thread to avoid ExceptionInInitializerError
+        codecs.Codec.getDefault()
     for app in cherrypy.tree.apps.values():
         if isinstance(app.root, WebSearcher):
             app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))

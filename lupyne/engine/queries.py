@@ -14,10 +14,15 @@ try:
     from org.apache.lucene import document, index, search, util
     from org.apache.lucene.search import highlight, spans, vectorhighlight
     from org.apache.pylucene import search as search_
-    from org.apache.pylucene.queryParser import PythonQueryParser
+    try:
+        from org.apache.lucene import queries
+        from org.apache.pylucene.queryparser.classic import PythonQueryParser
+    except ImportError:
+        queries = search
+        from org.apache.pylucene.queryParser import PythonQueryParser
 except ImportError:
     from lucene import Integer, Arrays, HashSet, PythonQueryParser
-    document = index = search = util = highlight = spans = vectorhighlight = search_ = lucene
+    document = index = search = util = highlight = queries = spans = vectorhighlight = search_ = lucene
 
 class Query(object):
     """Inherited lucene Query, with dynamic base class acquisition.
@@ -34,11 +39,14 @@ class Query(object):
         elif isinstance(self, search.TermRangeQuery):
             filter = search.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
         elif isinstance(self, search.TermQuery):
-            filter = search.TermsFilter()
+            filter = queries.TermsFilter()
             filter.addTerm(self.getTerm())
         else:
             filter = search.QueryWrapperFilter(self)
-        return search.CachingWrapperFilter(filter) if cache else filter
+        if not cache:
+            return filter
+        flag = search.CachingWrapperFilter.DeletesMode.RECACHE if hasattr(search.CachingWrapperFilter, 'DeletesMode') else True
+        return search.CachingWrapperFilter(filter, flag)
     def terms(self):
         "Generate set of query term items."
         terms = HashSet().of_(index.Term)
@@ -95,6 +103,10 @@ class Query(object):
     @classmethod
     def range(cls, name, start, stop, lower=True, upper=False):
         "Return lucene RangeQuery, by default with a half-open interval."
+        try:
+            return cls(search.TermRangeQuery, name, start, stop, lower, upper)
+        except lucene.InvalidArgsError:
+            start, stop = (value if value is None else util.BytesRef(value) for value in (start, stop))
         return cls(search.TermRangeQuery, name, start, stop, lower, upper)
     @classmethod
     def phrase(cls, name, *values):
@@ -119,8 +131,10 @@ class Query(object):
         "Return lucene WildcardQuery."
         return cls(search.WildcardQuery, index.Term(name, value))
     @classmethod
-    def fuzzy(cls, name, value, minimumSimilarity=0.5, prefixLength=0):
+    def fuzzy(cls, name, value, minimumSimilarity=None, prefixLength=0):
         "Return lucene FuzzyQuery."
+        if minimumSimilarity is None:
+            minimumSimilarity = getattr(search.FuzzyQuery, 'defaultMaxEdits', 0.5)
         return cls(search.FuzzyQuery, index.Term(name, value), minimumSimilarity, prefixLength)
     def __pos__(self):
         return Query.all(self)
@@ -161,6 +175,8 @@ class SpanQuery(Query):
     "Inherited lucene SpanQuery with additional span constructors."
     def filter(self, cache=True):
         "Return lucene CachingSpanFilter, optionally just SpanQueryFilter."
+        if not hasattr(search, 'SpanQueryFilter'):
+            return Query.filter(self, cache)
         filter = search.SpanQueryFilter(self)
         return search.CachingSpanFilter(filter) if cache else filter
     def __getitem__(self, slc):
@@ -200,7 +216,8 @@ class TermsFilter(search.CachingWrapperFilter):
     ops = {'or': 'update', 'and': 'intersection_update', 'andNot': 'difference_update'}
     def __init__(self, field, values=()):
         assert lucene.VERSION >= '3.5', 'requires FixedBitSet set operations introduced in lucene 3.5'
-        search.CachingWrapperFilter.__init__(self, search.TermsFilter())
+        args = [True] if lucene.VERSION >= '4' else []
+        search.CachingWrapperFilter.__init__(self, queries.TermsFilter(), *args)
         self.field = field
         self.values = set(values)
         self.readers = set()
@@ -209,14 +226,18 @@ class TermsFilter(search.CachingWrapperFilter):
         "Return lucene TermsFilter, optionally using the FieldCache."
         if cache:
             return search.FieldCacheTermsFilter(self.field, tuple(values))
-        filter = search.TermsFilter()
+        filter = queries.TermsFilter()
         for value in values:
             filter.addTerm(index.Term(self.field, value))
         return filter
     def apply(self, filter, op, readers):
         for reader in readers:
-            bitset = util.FixedBitSet.cast_(self.getDocIdSet(reader))
-            getattr(bitset, op)(filter.getDocIdSet(reader).iterator())
+            try:
+                args = [reader.context, reader.liveDocs] if hasattr(index.IndexReader, 'context') else [reader]
+                bitset = util.FixedBitSet.cast_(self.getDocIdSet(*args))
+                getattr(bitset, op)(filter.getDocIdSet(*args).iterator())
+            except lucene.JavaError as exc:
+                assert not reader.refCount, exc
     def update(self, values, op='or', cache=True):
         """Update allowed values and corresponding cached bitsets.
         
@@ -248,14 +269,14 @@ class Comparator(object):
         self.arrays = list(arrays)
         self.offsets = [0]
         for array in self.arrays:
-            self.offsets.append(len(self) + len(array))
+            self.offsets.append(len(self) + getattr(type(array), 'size', len)(array))
     def __len__(self):
         return self.offsets[-1]
-    def __iter__(self):
-        return itertools.chain(*self.arrays)
     def __getitem__(self, index):
         point = bisect.bisect_right(self.offsets, index) - 1
-        return self.arrays[point][index - self.offsets[point]]
+        index -= self.offsets[point]
+        array = self.arrays[point]
+        return array.getTerm(index, util.BytesRef()).utf8ToString() if hasattr(array, 'getTerm') else array[index]
 
 class SortField(search.SortField):
     """Inherited lucene SortField used for caching FieldCache parsers.
@@ -268,19 +289,29 @@ class SortField(search.SortField):
     def __init__(self, name, type='string', parser=None, reverse=False):
         type = self.typename = getattr(type, '__name__', type).capitalize()
         if parser is None:
-            parser = getattr(search.SortField, type.upper())
+            parser = getattr(getattr(self, 'Type', self), type.upper())
         elif not search.FieldCache.Parser.instance_(parser):
             base = getattr(search_, 'Python{0}Parser'.format(type))
             namespace = {'parse' + type: staticmethod(parser)}
             parser = object.__class__(base.__name__, (base,), namespace)()
         search.SortField.__init__(self, name, parser, reverse)
     def array(self, reader):
-        method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
-        return method(reader, self.field, *[self.parser][:bool(self.parser)])
+        try:
+            method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
+        except AttributeError:
+            if self.typename != 'String':
+                raise
+            return search.FieldCache.DEFAULT.getTermsIndex(reader, self.field)
+        args = []
+        if self.parser:
+            args.append(self.parser)
+        if lucene.VERSION >= '4':
+            args.append(False)
+        return method(reader, self.field, *args)
     def comparator(self, searcher):
         "Return indexed values from default FieldCache using the given searcher."
         arrays = list(map(self.array, searcher.readers))
-        return arrays[0] if len(arrays) <= 1 else Comparator(arrays)
+        return arrays[0] if len(arrays) <= 1 and not hasattr(arrays[0], 'getTerm') else Comparator(arrays)
     def filter(self, start, stop, lower=True, upper=False):
         "Return lucene FieldCacheRangeFilter based on field and type."
         method = getattr(search.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))
@@ -288,9 +319,16 @@ class SortField(search.SortField):
     def terms(self, filter, *readers):
         "Generate field cache terms from docs which match filter from all segments."
         for reader in readers:
-            array, docset = self.array(reader), filter.getDocIdSet(reader)
-            for id in iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS):
-                yield array[id]
+            args = [reader.context, reader.liveDocs] if hasattr(reader, 'liveDocs') else [reader]
+            array, docset = self.array(reader), filter.getDocIdSet(*args)
+            ids = iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS)
+            if hasattr(array, 'getTerm'):
+                br = util.BytesRef()
+                for id in ids:
+                    yield array.getTerm(id, br).utf8ToString()
+            else:
+                for id in ids:
+                    yield array[id]
 
 class Highlighter(highlight.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
@@ -310,7 +348,7 @@ class Highlighter(highlight.Highlighter):
         scorer = (highlight.QueryTermScorer if terms else highlight.QueryScorer)(query, *(searcher.indexReader, field) * (not fields))
         highlight.Highlighter.__init__(self, *filter(None, [formatter, encoder, scorer]))
         self.searcher, self.field = searcher, field
-        self.selector = document.MapFieldSelector([field])
+        self.selector = getattr(document, 'MapFieldSelector', HashSet)(Arrays.asList([field]))
     def fragments(self, doc, count=1):
         """Return highlighted text fragments.
         
@@ -318,7 +356,7 @@ class Highlighter(highlight.Highlighter):
         :param count: maximum number of fragments
         """
         if not isinstance(doc, basestring):
-            doc = self.searcher.doc(doc, self.selector)[self.field]
+            doc = getattr(search.IndexSearcher, 'document', search.IndexSearcher.doc)(self.searcher, doc, self.selector)[self.field]
         return doc and list(self.getBestFragments(self.searcher.analyzer, self.field, doc, count))
 
 class FastVectorHighlighter(vectorhighlight.FastVectorHighlighter):

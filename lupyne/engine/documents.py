@@ -5,15 +5,15 @@ Wrappers for lucene Fields and Documents.
 from future_builtins import map
 import datetime, calendar
 import operator
-import collections
 import warnings
 import lucene
 try:
     from java.lang import Double, Float, Long, Number, Object
+    from java.util import Arrays, HashSet
     from org.apache.lucene import document, search, util
     from org.apache.lucene.search import grouping
 except ImportError:
-    from lucene import Double, Float, Long, Number, Object
+    from lucene import Double, Float, Long, Number, Object, Arrays, HashSet
     document = search = util = grouping = lucene
 from .queries import Query
 
@@ -120,14 +120,27 @@ class NumericField(Field):
         Field.__init__(self, name, store)
         self.step = step or util.NumericUtils.PRECISION_STEP_DEFAULT
         self.index = index
+        if hasattr(document, 'FieldType'):
+            self.type = document.FieldType()
+            self.type.setNumericPrecisionStep(self.step)
+            self.type.setStored(self.store == document.Field.Store.YES)
+            self.type.setIndexed(index)
     def items(self, *values):
         "Generate lucene NumericFields suitable for adding to a document."
         for value in values:
-            field = document.NumericField(self.name, self.step, self.store, self.index)
-            if isinstance(value, float):
-                field.doubleValue = value
+            if hasattr(self, 'type'):
+                if isinstance(value, float):
+                    self.type.setNumericType(document.FieldType.NumericType.DOUBLE)
+                    field = document.DoubleField(self.name, value, self.type)
+                else:
+                    self.type.setNumericType(document.FieldType.NumericType.LONG)
+                    field = document.LongField(self.name, long(value), self.type)
             else:
-                field.longValue = long(value)
+                field = document.NumericField(self.name, self.step, self.store, self.index)
+                if isinstance(value, float):
+                    field.doubleValue = value
+                else:
+                    field.longValue = long(value)
             yield field
     def numeric(self, cls, start, stop, lower, upper):
         if isinstance(start, float) or isinstance(stop, float):
@@ -198,7 +211,11 @@ class Document(dict):
     "Multimapping of field names to values, but default getters return the first value."
     def __init__(self, doc):
         for field in doc.getFields():
-            self.setdefault(field.name(), []).append(field.binaryValue.string_ if field.binary else field.stringValue())
+            try:
+                value = field.binaryValue.string_ if field.binary else field.stringValue()
+            except AttributeError:
+                value = field.stringValue() or field.binaryValue() or field.numericValue().toString()
+            self.setdefault(field.name(), []).append(value)
     def __getitem__(self, name):
         return dict.__getitem__(self, name)[0]
     def get(self, name, default=None):
@@ -218,6 +235,8 @@ class Document(dict):
 
 def convert(value):
     "Return python object from java Object."
+    if hasattr(util, 'BytesRef') and util.BytesRef.instance_(value):
+        return util.BytesRef.cast_(value).utf8ToString()
     if not Number.instance_(value):
         return value.toString() if Object.instance_(value) else value
     value = Number.cast_(value)
@@ -253,7 +272,7 @@ class Hits(object):
         self.fields = fields
     def select(self, *fields):
         "Only load selected fields."
-        self.fields = document.MapFieldSelector(fields)
+        self.fields = getattr(document, 'MapFieldSelector', HashSet)(Arrays.asList(fields))
     def __len__(self):
         return len(self.scoredocs)
     def __getitem__(self, index):
@@ -264,7 +283,13 @@ class Hits(object):
             return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
         scoredoc = self.scoredocs[index]
         keys = search.FieldDoc.cast_(scoredoc).fields if search.FieldDoc.instance_(scoredoc) else ()
-        return Hit(self.searcher.doc(scoredoc.doc, self.fields), scoredoc.doc, scoredoc.score, keys)
+        if self.fields is None:
+            doc = self.searcher.doc(scoredoc.doc)
+        elif hasattr(search.IndexSearcher, 'document'):
+            doc = self.searcher.document(scoredoc.doc, self.fields)
+        else:
+            doc = self.searcher.doc(scoredoc.doc, self.fields)
+        return Hit(doc, scoredoc.doc, scoredoc.score, keys)
     @property
     def ids(self):
         return map(operator.attrgetter('doc'), self.scoredocs)

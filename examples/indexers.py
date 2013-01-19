@@ -1,11 +1,15 @@
 """
-Basic indexing and searching example adapted from http://lucene.apache.org/java/3_5_0/api/core/index.html
+Basic indexing and searching example adapted from http://lucene.apache.org/java/3_6_2/api/core/index.html
 """
 
 import lucene
 lucene.initVM()
 try:
-    from org.apache.lucene import document, index, queryParser, search, store, util
+    from org.apache.lucene import document, index, search, store, util
+    try:
+        from org.apache.lucene.queryparser import classic as queryParser
+    except ImportError:
+        from org.apache.lucene import queryParser
     from org.apache.lucene.analysis import standard
 except ImportError:
     document = index = queryParser = search = store = util = standard = lucene
@@ -19,7 +23,8 @@ analyzer = standard.StandardAnalyzer(util.Version.LUCENE_CURRENT)
 directory = store.RAMDirectory()
 # To store an index on disk, use this instead:
 #Directory directory = FSDirectory.open(File("/tmp/testindex"))
-iwriter = index.IndexWriter(directory, analyzer, True, index.IndexWriter.MaxFieldLength(25000))
+config = index.IndexWriterConfig(util.Version.LUCENE_CURRENT, analyzer)
+iwriter = index.IndexWriter(directory, config)
 doc = document.Document()
 text = "This is the text to be indexed."
 doc.add(document.Field("fieldname", text, document.Field.Store.YES, document.Field.Index.ANALYZED))
@@ -38,7 +43,6 @@ assert len(hits) == 1
 for hit in hits:
     hitDoc = isearcher.doc(hit.doc)
     assert hitDoc['fieldname'] == text
-isearcher.close()
 ireader.close()
 directory.close()
 

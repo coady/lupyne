@@ -19,7 +19,8 @@ class TestCase(remote.BaseTest):
     
     def testInterface(self):
         "Distributed reading and writing."
-        self.servers += map(self.start, self.ports)
+        for port in self.ports:
+            self.start(port)
         resources = client.Resources(self.hosts, limit=1)
         assert resources.unicast('GET', '/')
         assert not resources.unicast('POST', '/terms')
@@ -47,7 +48,7 @@ class TestCase(remote.BaseTest):
             docs += result['docs']
         assert len(docs) == len(resources) + 1
         assert len(set(doc['__id__'] for doc in docs)) == 2
-        self.stop(self.servers.pop(0))
+        self.stop(self.ports[0])
         self.assertRaises(socket.error, resources.broadcast, 'GET', '/')
         assert resources.unicast('GET', '/')()
         del resources[self.hosts[0]]
@@ -77,7 +78,8 @@ class TestCase(remote.BaseTest):
     
     def testSharding(self):
         "Sharding of indices across servers."
-        self.servers += map(self.start, self.ports)
+        for port in self.ports:
+            self.start(port)
         keys = range(len(self.hosts))
         shards = client.Shards(zip(self.hosts * 2, heapq.merge(keys, keys)), limit=1)
         shards.resources.broadcast('PUT', '/fields/zone', {'store': 'yes'})
@@ -99,7 +101,7 @@ class TestCase(remote.BaseTest):
             assert len(docs) == 2
             zones.update(doc['zone'] for doc in docs)
         assert zones == set('012')
-        self.stop(self.servers.pop(0))
+        self.stop(self.ports[0])
         self.assertRaises(socket.error, shards.broadcast, 0, 'GET', '/')
         responses = shards.multicast([0, 1, 2], 'GET', '/')
         assert len(responses) == 2 and all(response() for response in responses)
@@ -110,11 +112,9 @@ class TestCase(remote.BaseTest):
         "Replication from indexer to searcher."
         directory = os.path.join(self.tempdir, 'backup')
         sync, update = '--autosync=' + self.hosts[0], '--autoupdate=1'
-        self.servers += (
-            self.start(self.ports[0], self.tempdir),
-            self.start(self.ports[1], '-r', directory, sync, update),
-            self.start(self.ports[2], '-r', directory),
-        )
+        self.start(self.ports[0], self.tempdir),
+        self.start(self.ports[1], '-r', directory, sync, update),
+        self.start(self.ports[2], '-r', directory),
         for args in [('-r', self.tempdir), (update, self.tempdir), (update, self.tempdir, self.tempdir)]:
             assert subprocess.call((sys.executable, '-m', 'lupyne.server', sync) + args, stderr=subprocess.PIPE)
         replicas = client.Replicas(self.hosts[:2], limit=1)
@@ -132,20 +132,20 @@ class TestCase(remote.BaseTest):
         resource = client.Resource(self.hosts[1])
         time.sleep(1.1)
         assert sum(resource.get('/').values()) == 2
-        self.stop(self.servers.pop())
+        self.stop(self.ports[-1])
         root = server.WebSearcher(directory, hosts=self.hosts[:2])
         app = server.mount(root)
         root.fields = {}
         assert root.update() == 2
         assert len(root.hosts) == 2
-        self.stop(self.servers.pop(0))
+        self.stop(self.ports[0])
         assert replicas.get('/docs')
         assert replicas.call('POST', '/docs', []).status == httplib.METHOD_NOT_ALLOWED
         assert replicas.get('/terms', option='indexed') == []
         assert replicas.call('POST', '/docs', [], retry=True).status == httplib.METHOD_NOT_ALLOWED
         assert root.update() == 2
         assert len(root.hosts) == 1
-        self.stop(self.servers.pop(0))
+        self.stop(self.ports[1])
         assert root.update() == 2
         assert len(root.hosts) == 0 and isinstance(app.root, server.WebIndexer)
         app.root.close()
