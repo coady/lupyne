@@ -45,16 +45,11 @@ class Tiler(GlobalMercator):
         "Generate tile keys within distance of given point, adjusting precision to limit the number considered."
         x, y = self.LatLonToMeters(lat, lng)
         for precision in range(precision, 0, -1):
-            left, bottom = self.MetersToTile(x-distance, y-distance, precision)
-            right, top = self.MetersToTile(x+distance, y+distance, precision)
-            count = (right+1 - left) * (top+1 - bottom)
-            if count > self.base ** precision: # spanned globe
-                for tile in range(self.base):
-                    yield str(tile)
-                return
-            if count <= limit:
+            left, bottom = (max(value, 0) for value in self.MetersToTile(x-distance, y-distance, precision))
+            right, top = (min(value + 1, 2 ** precision) for value in self.MetersToTile(x+distance, y+distance, precision))
+            if (right - left) * (top - bottom) <= limit:
                 break
-        for i, j in itertools.product(range(left, right+1), range(bottom, top+1)):
+        for i, j in itertools.product(range(left, right), range(bottom, top)):
             left, bottom, right, top = self.TileBounds(i, j, precision)
             dx = min(0, x-left, right-x)
             dy = min(0, y-bottom, top-y)
@@ -75,11 +70,22 @@ class PointField(NumericField, Tiler):
         "Generate tiles from points (lng, lat)."
         tiles = set(self.encode(lat, lng, self.precision) for lng, lat in points)
         return NumericField.items(self, *(int(tile, self.base) for tile in tiles))
+    def ranges(self, tiles):
+        "Generate range queries by grouping adjacent tiles."
+        precision, = set(map(len, tiles))
+        step = self.base ** (self.precision - precision)
+        tiles = (int(tile, self.base) * step for tile in tiles)
+        start = next(tiles)
+        stop = start + step
+        for tile in tiles:
+            if tile != stop:
+                yield self.range(start, stop)
+                start = tile
+            stop = tile + step
+        yield self.range(start, stop)
     def prefix(self, tile):
         "Return range query which is equivalent to the prefix of the tile."
-        shift = self.base ** (self.precision - len(tile))
-        value = int(tile, self.base) * shift
-        return self.range(value, value + shift)
+        return next(self.ranges([tile]))
     def near(self, lng, lat, precision=None):
         "Return prefix query for point at given precision."
         return self.prefix(self.encode(lat, lng, precision or self.precision))
@@ -91,16 +97,7 @@ class PointField(NumericField, Tiler):
         :param limit: maximum number of tiles to consider
         """
         tiles = sorted(self.radiate(lat, lng, distance, self.precision, limit))
-        precision, = set(map(len, tiles))
-        shift = self.base ** (self.precision - precision)
-        slices = []
-        for tile in tiles:
-            tile = int(tile, self.base) * shift
-            if slices and slices[-1][1] == tile:
-                slices[-1] = slices[-1][0], tile + shift
-            else:
-                slices.append((tile, tile + shift))
-        return Query.any(*itertools.starmap(self.range, slices))
+        return Query.any(*self.ranges(tiles))
 
 class PolygonField(PointField):
     """PointField which implicitly supports polygons (technically linear rings of points).
