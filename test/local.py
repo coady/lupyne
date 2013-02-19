@@ -445,7 +445,7 @@ class TestCase(BaseTest):
         assert orange == 'CA.Orange' and facets[orange] > 10
         (field, facets), = indexer.facets(query, ('state.county', 'CA.*')).items()
         assert all(value.startswith('CA.') for value in facets) and set(facets) < set(indexer.filters[field])
-        if hasattr(grouping, 'TermFirstPassGroupingCollector'):
+        if lucene.VERSION >= '3.3':
             assert set(indexer.grouping('state', count=1)) < set(indexer.grouping('state')) == set(states)
             grouper = indexer.grouping(field, query, sort=search.Sort(indexer.sorter(field)))
             assert len(grouper) == 2 and list(grouper) == [la, orange]
@@ -700,7 +700,7 @@ class TestCase(BaseTest):
             indexer.add(name=name)
         indexer.commit()
         filter = engine.TermsFilter('name')
-        assert indexer.count(filter=filter) == len(filter.readers) == 0
+        assert len(filter.readers) == 0
         filter.add('alpha', 'bravo')
         filter.discard('bravo', 'charlie')
         assert filter.values == set(['alpha'])

@@ -39,14 +39,14 @@ class Query(object):
         elif isinstance(self, search.TermRangeQuery):
             filter = search.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
         elif isinstance(self, search.TermQuery):
-            filter = queries.TermsFilter()
-            filter.addTerm(self.getTerm())
+            if hasattr(queries.TermsFilter, 'addTerm'):
+                filter = queries.TermsFilter()
+                filter.addTerm(self.getTerm())
+            else:
+                filter = queries.TermsFilter([self.getTerm()])
         else:
             filter = search.QueryWrapperFilter(self)
-        if not cache:
-            return filter
-        flag = search.CachingWrapperFilter.DeletesMode.RECACHE if hasattr(search.CachingWrapperFilter, 'DeletesMode') else True
-        return search.CachingWrapperFilter(filter, flag)
+        return search.CachingWrapperFilter(filter) if cache else filter
     def terms(self):
         "Generate set of query term items."
         terms = HashSet().of_(index.Term)
@@ -204,6 +204,17 @@ class SpanQuery(Query):
         base = spans.SpanNearPayloadCheckQuery if spans.SpanNearQuery.instance_(self) else spans.SpanPayloadCheckQuery
         return SpanQuery(base, self, Arrays.asList(list(map(lucene.JArray_byte, values))))
 
+class BooleanFilter(queries.BooleanFilter):
+    "Inherited lucene BooleanFilter similar to BooleanQuery."
+    def __init__(self, occur, *filters):
+        queries.BooleanFilter.__init__(self)
+        for filter in filters:
+            self.add(queries.FilterClause(filter, occur))
+    @classmethod
+    def all(cls, *filters):
+        "Return `BooleanFilter`_ (AND) from filters."
+        return cls(search.BooleanClause.Occur.MUST, *filters)
+
 class TermsFilter(search.CachingWrapperFilter):
     """Caching filter based on a unique field and set of matching values.
     Optimized for many terms and docs, with support for incremental updates.
@@ -216,8 +227,7 @@ class TermsFilter(search.CachingWrapperFilter):
     ops = {'or': 'update', 'and': 'intersection_update', 'andNot': 'difference_update'}
     def __init__(self, field, values=()):
         assert lucene.VERSION >= '3.5', 'requires FixedBitSet set operations introduced in lucene 3.5'
-        args = [True] if lucene.VERSION >= '4' else []
-        search.CachingWrapperFilter.__init__(self, queries.TermsFilter(), *args)
+        search.CachingWrapperFilter.__init__(self, search.QueryWrapperFilter(search.MatchAllDocsQuery()))
         self.field = field
         self.values = set(values)
         self.readers = set()
@@ -226,15 +236,20 @@ class TermsFilter(search.CachingWrapperFilter):
         "Return lucene TermsFilter, optionally using the FieldCache."
         if cache:
             return search.FieldCacheTermsFilter(self.field, tuple(values))
+        terms = [index.Term(self.field, value) for value in values]
+        if not hasattr(queries.TermsFilter, 'addTerm'):
+            return queries.TermsFilter(terms)
         filter = queries.TermsFilter()
-        for value in values:
-            filter.addTerm(index.Term(self.field, value))
+        for term in terms:
+            filter.addTerm(term)
         return filter
     def apply(self, filter, op, readers):
         for reader in readers:
             try:
-                args = [reader.context, reader.liveDocs] if hasattr(index.IndexReader, 'context') else [reader]
+                args = [reader.context, None] if hasattr(index.IndexReader, 'context') else [reader]
                 bitset = util.FixedBitSet.cast_(self.getDocIdSet(*args))
+                if reader not in self.readers:
+                    bitset.clear(0, bitset.length())
                 getattr(bitset, op)(filter.getDocIdSet(*args).iterator())
             except lucene.JavaError as exc:
                 assert not reader.refCount, exc

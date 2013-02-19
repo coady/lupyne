@@ -32,7 +32,7 @@ except ImportError:
     from lucene import File, StringReader, Float, Arrays, HashMap, HashSet, PythonAnalyzer, PythonTokenFilter, PythonQueryParser
     analysis = document = index = queryParser = search = store = util = \
     standard = tokenattributes = memory = similar = spans = lucene
-from .queries import Query, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
+from .queries import Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, Grouping
 from .spatial import DistanceComparator
 
@@ -176,6 +176,7 @@ class Analyzer(PythonAnalyzer):
         source = tokens = self.tokenizer.tokenStream(field, reader) if isinstance(self.tokenizer, analysis.Analyzer) else self.tokenizer(reader)
         for filter in self.filters:
             tokens = filter(tokens)
+        tokens.reset()
         return source, tokens
     def tokenStream(self, field, reader):
         return self.components(field, reader)[1]
@@ -479,18 +480,6 @@ class IndexReader(object):
             return mlt.like(StringReader(doc), '') if isinstance(doc, basestring) else mlt.like(doc)
         except lucene.InvalidArgsError:
             return mlt.like(StringReader(doc))
-    def overlap(self, left, right):
-        "Return intersection count of cached filters."
-        count, bitset = 0, getattr(util, 'FixedBitSet', util.OpenBitSet)
-        for reader in self.readers:
-            if hasattr(reader, 'liveDocs'):
-                docsets = [filter.getDocIdSet(reader.context, reader.liveDocs).bits() for filter in (left, right)]
-            else:
-                docsets = left.getDocIdSet(reader), right.getDocIdSet(reader)
-            if all(map(bitset.instance_, docsets)):
-                bits = [bitset.cast_(docset).getBits() for docset in docsets]
-                count += util.BitUtil.pop_intersect(bits[0], bits[1], 0, min(map(len, bits)))
-        return int(count)
 
 class IndexSearcher(search.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
@@ -647,14 +636,13 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if isinstance(query, search.Query):
             query = search.QueryWrapperFilter(query)
         if not isinstance(query, search.CachingWrapperFilter):
-            flag = search.CachingWrapperFilter.DeletesMode.RECACHE if hasattr(search.CachingWrapperFilter, 'DeletesMode') else True
-            query = search.CachingWrapperFilter(query, flag)
+            query = search.CachingWrapperFilter(query)
         for key in keys:
             filters = self.filters.get(key)
             if key in self.groupings:
                 counts[key] = dict(self.groupings[key].facets(query))
             elif isinstance(filters, search.Filter):
-                counts[key] = self.overlap(query, filters)
+                counts[key] = self.count(filter=BooleanFilter.all(query, filters))
             else:
                 name, value = (key, None) if isinstance(key, basestring) else key
                 filters = self.filters.setdefault(name, {})
@@ -665,7 +653,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 for value in values:
                     if value not in filters:
                         filters[value] = Query.term(name, value).filter()
-                    counts[name][value] = self.overlap(query, filters[value])
+                    counts[name][value] = self.count(filter=BooleanFilter.all(query, filters[value]))
         return dict(counts)
     def grouping(self, field, query=None, count=None, sort=None):
         "Return `Grouping`_ for unique field and lucene search parameters."

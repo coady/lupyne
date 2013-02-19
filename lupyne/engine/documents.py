@@ -329,15 +329,16 @@ class Grouping(object):
     :param count: maximum number of groups
     :param sort: lucene Sort to order groups
     """
+    collectors = getattr(grouping, 'term', grouping)
     def __init__(self, searcher, field, query=None, count=None, sort=None):
         self.searcher, self.field = searcher, field
         self.query = query or search.MatchAllDocsQuery()
         self.sort = sort or search.Sort.RELEVANCE
         if count is None:
-            collector = grouping.TermAllGroupsCollector(field)
+            collector = self.collectors.TermAllGroupsCollector(field)
             search.IndexSearcher.search(self.searcher, self.query, collector)
             count = collector.groupCount
-        collector = grouping.TermFirstPassGroupingCollector(field, self.sort, count)
+        collector = self.collectors.TermFirstPassGroupingCollector(field, self.sort, count)
         search.IndexSearcher.search(self.searcher, self.query, collector)
         self.searchgroups = collector.getTopGroups(0, False).of_(grouping.SearchGroup)
     def __len__(self):
@@ -347,7 +348,7 @@ class Grouping(object):
             yield convert(searchgroup.groupValue)
     def facets(self, filter):
         "Generate field values and counts which match given filter."
-        collector = grouping.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, self.sort, 1, False, False, False)
+        collector = self.collectors.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, self.sort, 1, False, False, False)
         search.IndexSearcher.search(self.searcher, self.query, filter, collector)
         for groupdocs in collector.getTopGroups(0).groups:
             yield convert(groupdocs.groupValue), groupdocs.totalHits
@@ -362,7 +363,7 @@ class Grouping(object):
         sort = sort or self.sort
         if sort == search.Sort.RELEVANCE:
             scores = maxscore = True
-        collector = grouping.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, True)
+        collector = self.collectors.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, True)
         search.IndexSearcher.search(self.searcher, self.query, collector)
         for groupdocs in collector.getTopGroups(0).groups:
             hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
