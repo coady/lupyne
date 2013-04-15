@@ -60,7 +60,7 @@ class ComparatorSource(PythonFieldComparatorSource):
             else:
                 br = util.BytesRef()
                 comparator = search.FieldCache.DEFAULT.getTerms(reader, self.name)
-                self.comparator = [comparator.getTerm(index, br).utf8ToString() for index in range(comparator.size())]
+                self.comparator = [comparator.get(id, br) or br.utf8ToString() for id in range(reader.maxDoc())]
             return self
         def compare(self, slot1, slot2):
             return cmp(self.values[slot1], self.values[slot2])

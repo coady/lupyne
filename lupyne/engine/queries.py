@@ -7,6 +7,7 @@ import itertools
 import bisect
 import heapq
 import threading
+import warnings
 import lucene
 try:
     from java.lang import Integer
@@ -280,18 +281,24 @@ class TermsFilter(search.CachingWrapperFilter):
 
 class Comparator(object):
     "Chained arrays with bisection lookup."
-    def __init__(self, arrays):
-        self.arrays = list(arrays)
-        self.offsets = [0]
-        for array in self.arrays:
-            self.offsets.append(len(self) + getattr(type(array), 'size', len)(array))
+    def __init__(self, items):
+        self.arrays, self.offsets = [], [0]
+        for array, size in items:
+            self.arrays.append(array)
+            self.offsets.append(len(self) + size)
     def __len__(self):
         return self.offsets[-1]
-    def __getitem__(self, index):
-        point = bisect.bisect_right(self.offsets, index) - 1
-        index -= self.offsets[point]
-        array = self.arrays[point]
-        return array.getTerm(index, util.BytesRef()).utf8ToString() if hasattr(array, 'getTerm') else array[index]
+    def __getitem__(self, id):
+        idx = bisect.bisect_right(self.offsets, id) - 1
+        id -= self.offsets[idx]
+        array = self.arrays[idx]
+        if lucene.VERSION < '4':
+            return array[id]
+        if not isinstance(array, index.BinaryDocValues):
+            return array.get(id)
+        br = util.BytesRef()
+        array.get(id, br)
+        return br.utf8ToString()
 
 class SortField(search.SortField):
     """Inherited lucene SortField used for caching FieldCache parsers.
@@ -307,17 +314,14 @@ class SortField(search.SortField):
             parser = getattr(getattr(self, 'Type', self), type.upper())
         elif not search.FieldCache.Parser.instance_(parser):
             base = getattr(search_, 'Python{0}Parser'.format(type))
-            namespace = {'parse' + type: staticmethod(parser)}
+            namespace = {'parse' + type: staticmethod(parser), 'termsEnum': lambda self, terms: terms.iterator(None)}
             parser = object.__class__(base.__name__, (base,), namespace)()
         search.SortField.__init__(self, name, parser, reverse)
     def array(self, reader):
-        try:
-            method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
-        except AttributeError:
-            if self.typename != 'String':
-                raise
-            return search.FieldCache.DEFAULT.getTermsIndex(reader, self.field)
+        if lucene.VERSION >= '4' and self.typename == 'String':
+            return search.FieldCache.DEFAULT.getTerms(reader, self.field)
         args = []
+        method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
         if self.parser:
             args.append(self.parser)
         if lucene.VERSION >= '4':
@@ -325,8 +329,7 @@ class SortField(search.SortField):
         return method(reader, self.field, *args)
     def comparator(self, searcher):
         "Return indexed values from default FieldCache using the given searcher."
-        arrays = list(map(self.array, searcher.readers))
-        return arrays[0] if len(arrays) <= 1 and not hasattr(arrays[0], 'getTerm') else Comparator(arrays)
+        return Comparator((self.array(reader), reader.maxDoc()) for reader in searcher.readers)
     def filter(self, start, stop, lower=True, upper=False):
         "Return lucene FieldCacheRangeFilter based on field and type."
         method = getattr(search.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))
@@ -337,13 +340,18 @@ class SortField(search.SortField):
             args = [reader.context, reader.liveDocs] if hasattr(reader, 'liveDocs') else [reader]
             array, docset = self.array(reader), filter.getDocIdSet(*args)
             ids = iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS)
-            if hasattr(array, 'getTerm'):
-                br = util.BytesRef()
-                for id in ids:
-                    yield array.getTerm(id, br).utf8ToString()
-            else:
+            if lucene.VERSION < '4':
                 for id in ids:
                     yield array[id]
+            else:
+                br = util.BytesRef()
+                if isinstance(array, index.BinaryDocValues):
+                    for id in ids:
+                        array.get(id, br)
+                        yield br.utf8ToString()
+                else:
+                    for id in ids:
+                        yield array.get(id)
 
 class Highlighter(highlight.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
@@ -372,6 +380,9 @@ class Highlighter(highlight.Highlighter):
         """
         if not isinstance(doc, basestring):
             doc = getattr(search.IndexSearcher, 'document', search.IndexSearcher.doc)(self.searcher, doc, self.selector)[self.field]
+        if doc and lucene.VERSION >= '4' and highlight.QueryScorer.instance_(self.fragmentScorer):
+            warnings.warn("LUCENE-4918: reader may leak reference to compensate for being closed in error.")
+            self.searcher.incRef()
         return doc and list(self.getBestFragments(self.searcher.analyzer, self.field, doc, count))
 
 class FastVectorHighlighter(vectorhighlight.FastVectorHighlighter):

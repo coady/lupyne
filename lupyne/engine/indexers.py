@@ -460,6 +460,7 @@ class IndexReader(object):
             for bytesref in util.BytesRefIterator.cast_(termenum):
                 term = bytesref.utf8ToString()
                 docsenum = termenum.docsAndPositions(None, None)
+                assert 0 <= docsenum.nextDoc() < docsenum.NO_MORE_DOCS
                 positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
                 if offsets:
                     yield term, [(docsenum.startOffset(), docsenum.endOffset()) for position in positions]

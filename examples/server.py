@@ -18,6 +18,9 @@ import lucene
 from lupyne import engine, server
 from test import fixture
 
+def parse(date):
+    return int((date.utf8ToString() if hasattr(date, 'utf8ToString') else date).split('-')[0])
+
 if __name__ == '__main__':
     lucene.initVM(vmargs='-Xrs')
     root = server.WebIndexer()
@@ -31,7 +34,7 @@ if __name__ == '__main__':
             root.indexer.add(doc)
     root.update()
     # assign custom filter and sorter based on year
-    root.searcher.sorters['year'] = engine.SortField('date', int, lambda date: int(date.split('-')[0]))
+    root.searcher.sorters['year'] = engine.SortField('date', int, parse)
     years = set(date.split('-')[0] for date in root.searcher.terms('date'))
     root.searcher.filters['year'] = dict((year, engine.Query.prefix('date', year).filter()) for year in years)
     # start with pretty-printing

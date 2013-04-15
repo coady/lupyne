@@ -423,7 +423,6 @@ class WebSearcher(object):
                 | }
         """
         searcher = self.searcher
-        reverse = False
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort)
             sort = [(name, (type or 'string'), (reverse == '-')) for reverse, name, type in sort]
@@ -436,7 +435,7 @@ class WebSearcher(object):
         qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
             if q is not None:
-                mlt, = searcher.search(q, count=mlt+1, sort=sort, reverse=reverse)[mlt:].ids
+                mlt, = searcher.search(q, count=mlt+1, sort=sort)[mlt:].ids
             mltfields = options.pop('mlt.fields', ())
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))
@@ -447,7 +446,7 @@ class WebSearcher(object):
             start = count = 1
         scores = options.get('sort.scores')
         scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
-        hits = searcher.search(q, filter=qfilter, count=count, sort=sort, reverse=reverse, timeout=timeout, **scores)[start:]
+        hits = searcher.search(q, filter=qfilter, count=count, sort=sort, timeout=timeout, **scores)[start:]
         result = {'query': q and unicode(q), 'count': hits.count, 'maxscore': hits.maxscore}
         tag, enable = options.get('hl.tag', 'strong'), options.get('hl.enable', '')
         hlcount = options.get('hl.count', 1)

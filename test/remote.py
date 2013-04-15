@@ -465,7 +465,7 @@ class TestCase(BaseTest):
         assert root.update() == 1
         del root
         port = self.ports[0]
-        self.start(self.ports[0], '--real-time', **{'tools.validate.expires': 0})
+        self.start(port, '--real-time', **{'tools.validate.expires': 0})
         resource = client.Resource('localhost', port)
         response = resource.call('GET', '/docs')
         version, modified, expires = map(response.getheader, ('etag', 'last-modified', 'expires'))

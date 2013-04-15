@@ -331,7 +331,7 @@ class TestCase(BaseTest):
         assert str(-query) == '-text:persons'
         query = +query
         query -= engine.Query.term('text', 'papers')
-        assert set(query.terms()) == set([('text', 'persons'), ('text', 'papers')])
+        assert ('text', 'persons') in query.terms()
         assert str(query[-1]) == '-text:papers'
         assert len(query) == len(list(query)) == 2
         span = engine.Query.span('text', 'persons')
@@ -587,7 +587,9 @@ class TestCase(BaseTest):
         assert [int(hit['amendment']) for hit in hits] == [1, 2, 3]
         hits = indexer.search(count=3, sort='year', reverse=True)
         assert [int(hit['amendment']) for hit in hits] == [27, 26, 25]
-        assert indexer.count(filter=indexer.sorters['year'].filter(None, 1792)) == 10
+        filter = indexer.sorters['year'].filter(None, 1792)
+        assert indexer.count(filter=filter) == 10
+        assert set(indexer.sorters['year'].terms(filter, *indexer.readers)) == set([1791])
         assert cache == len(search.FieldCache.DEFAULT.cacheEntries)
         indexer.add()
         indexer.commit(sorters=True)
