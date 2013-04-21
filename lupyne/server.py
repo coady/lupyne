@@ -730,12 +730,6 @@ class WebIndexer(WebSearcher):
 def init(vmargs='-Xrs', **kwargs):
     "Callback to initialize VM and app roots after daemonizing."
     lucene.initVM(vmargs=vmargs, **kwargs)
-    try:
-        from org.apache.lucene import codecs
-    except ImportError:
-        pass
-    else:  # initialize codecs in main thread to avoid ExceptionInInitializerError
-        codecs.Codec.getDefault()
     for app in cherrypy.tree.apps.values():
         if isinstance(app.root, WebSearcher):
             app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))

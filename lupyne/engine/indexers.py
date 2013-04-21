@@ -20,14 +20,9 @@ try:
     from org.apache.lucene.index import memory
     from org.apache.lucene.search import spans
     from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
-    try:
-        from org.apache.lucene.queryparser import classic as queryParser
-        from org.apache.lucene.queries import mlt as similar
-        from org.apache.pylucene.queryparser.classic import PythonQueryParser
-    except ImportError:
-        from org.apache.lucene import queryParser
-        from org.apache.lucene.search import similar
-        from org.apache.pylucene.queryParser import PythonQueryParser
+    from org.apache.lucene.queryparser import classic as queryParser
+    from org.apache.lucene.queries import mlt as similar
+    from org.apache.pylucene.queryparser.classic import PythonQueryParser
 except ImportError:
     from lucene import File, StringReader, Float, Arrays, HashMap, HashSet, PythonAnalyzer, PythonTokenFilter, PythonQueryParser
     analysis = document = index = queryParser = search = store = util = \
@@ -592,7 +587,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
         
-        .. deprecated:: 1.2+ sort param for lucene only; use Hits.sorted with a callable
+        .. deprecated:: 1.3 sort param for lucene only; use Hits.sorted with a callable
         
         :param query: query string or lucene Query
         :param filter: lucene Filter

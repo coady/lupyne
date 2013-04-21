@@ -12,15 +12,10 @@ import lucene
 try:
     from java.lang import Integer
     from java.util import Arrays, HashSet
-    from org.apache.lucene import document, index, search, util
+    from org.apache.lucene import document, index, queries, search, util
     from org.apache.lucene.search import highlight, spans, vectorhighlight
     from org.apache.pylucene import search as search_
-    try:
-        from org.apache.lucene import queries
-        from org.apache.pylucene.queryparser.classic import PythonQueryParser
-    except ImportError:
-        queries = search
-        from org.apache.pylucene.queryParser import PythonQueryParser
+    from org.apache.pylucene.queryparser.classic import PythonQueryParser
 except ImportError:
     from lucene import Integer, Arrays, HashSet, PythonQueryParser
     document = index = search = util = highlight = queries = spans = vectorhighlight = search_ = lucene

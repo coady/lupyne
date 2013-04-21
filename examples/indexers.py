@@ -6,10 +6,7 @@ import lucene
 lucene.initVM()
 try:
     from org.apache.lucene import document, index, search, store, util
-    try:
-        from org.apache.lucene.queryparser import classic as queryParser
-    except ImportError:
-        from org.apache.lucene import queryParser
+    from org.apache.lucene.queryparser import classic as queryParser
     from org.apache.lucene.analysis import standard
 except ImportError:
     document = index = queryParser = search = store = util = standard = lucene

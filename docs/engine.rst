@@ -108,7 +108,6 @@ ParallelIndexer
 ^^^^^^^^^^^^^^^
 .. versionadded:: 1.2
   requires lucene >= 3.5
-.. note:: This interface is experimental and might change in incompatible ways in the next release.
 .. autoclass:: ParallelIndexer
   :show-inheritance:
   :members:
@@ -145,7 +144,7 @@ Hits
 
 Grouping
 ^^^^^^^^^^^^^
-.. versionadded:: 1.2+
+.. versionadded:: 1.3
   requires grouping contrib module in lucene >= 3.3
 .. note:: This interface is experimental and might change in incompatible ways in the next release.
 .. autoclass:: Grouping
@@ -168,7 +167,7 @@ MapField
 
 FormatField
 ^^^^^^^^^^^^^
-.. deprecated:: 1.2+ use `MapField`_ with format method instead.
+.. deprecated:: 1.3 use `MapField`_ with format method instead.
 .. autoclass:: FormatField
   :show-inheritance:
   :members:
