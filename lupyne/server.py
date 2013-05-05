@@ -233,7 +233,7 @@ def HTTPError(status, *exceptions):
     try:
         yield
     except exceptions as exc:
-        raise cherrypy.HTTPError(status, str(exc.getJavaException() if isinstance(exc, lucene.JavaError) else exc))
+        raise cherrypy.HTTPError(status, str(exc))
 
 class WebSearcher(object):
     """Dispatch root with a delegated Searcher.

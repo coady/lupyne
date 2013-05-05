@@ -754,8 +754,9 @@ class IndexWriter(index.IndexWriter):
         config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
         for name, value in attrs.items():
             setattr(config, name, value)
-        config.indexDeletionPolicy = self.policy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
+        config.indexDeletionPolicy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
         index.IndexWriter.__init__(self, self.shared.directory(directory), config)
+        self.policy = index.SnapshotDeletionPolicy.cast_(self.config.indexDeletionPolicy)
         self.fields = {}
     def __del__(self):
         if hash(self):

@@ -26,7 +26,7 @@ Changes in 1.2+:
 ==================
  * Engine:
    
-   - PyLucene 4.2 supported
+   - PyLucene 4.3 supported
    - PyLucene 3.2, 3.3, and 3.4 deprecated
    - Optimized searching and sorting with unlimited count
    - Support for contrib grouping collectors and faceting

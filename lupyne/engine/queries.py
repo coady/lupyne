@@ -7,7 +7,6 @@ import itertools
 import bisect
 import heapq
 import threading
-import warnings
 import lucene
 try:
     from java.lang import Integer
@@ -375,9 +374,6 @@ class Highlighter(highlight.Highlighter):
         """
         if not isinstance(doc, basestring):
             doc = getattr(search.IndexSearcher, 'document', search.IndexSearcher.doc)(self.searcher, doc, self.selector)[self.field]
-        if doc and lucene.VERSION >= '4' and highlight.QueryScorer.instance_(self.fragmentScorer):
-            warnings.warn("LUCENE-4918: reader may leak reference to compensate for being closed in error.")
-            self.searcher.incRef()
         return doc and list(self.getBestFragments(self.searcher.analyzer, self.field, doc, count))
 
 class FastVectorHighlighter(vectorhighlight.FastVectorHighlighter):
