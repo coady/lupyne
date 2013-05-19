@@ -167,11 +167,7 @@ class TestCase(BaseTest):
         indexer.commit()
         assert 0 not in indexer and len(indexer) == 0 and sum(indexer.segments.values()) == 0
         indexer.add(tag='test', name='old')
-        if hasattr(document.Document, 'boost'):
-            with assertWarns(DeprecationWarning):
-                indexer.update('tag', boost=2.0, tag='test')
-        else:
-            indexer.update('tag', tag='test')
+        indexer.update('tag', tag='test')
         indexer.commit()
         assert [indexer[id].dict() for id in indexer] == [{'tag': 'test'}]
         indexer.update('tag', 'test', {'name': 'new'})
@@ -288,11 +284,10 @@ class TestCase(BaseTest):
         assert hits.maxscore > max(hits.scores)
         parser = lambda value: int((value.utf8ToString() if hasattr(value, 'utf8ToString') else value) or -1)
         comparator = indexer.comparator('amendment', type=int, parser=parser)
-        with assertWarns(DeprecationWarning):
-            hits = indexer.search('text:people', sort=comparator.__getitem__)
+        hits = indexer.search('text:people').sorted(comparator.__getitem__)
         assert sorted(hits.ids) == list(hits.ids) and list(hits.ids) != ids
         comparator = list(zip(*map(indexer.comparator, ['article', 'amendment'])))
-        hits = indexer.search('text:people', sort=comparator.__getitem__)
+        hits = indexer.search('text:people').sorted(comparator.__getitem__)
         assert sorted(hits.ids) != list(hits.ids)
         hits = indexer.search('text:people', count=5, sort='amendment', reverse=True)
         assert [hit['amendment'] for hit in hits] == ['9', '4', '2', '17', '10']
@@ -445,22 +440,21 @@ class TestCase(BaseTest):
         assert orange == 'CA.Orange' and facets[orange] > 10
         (field, facets), = indexer.facets(query, ('state.county', 'CA.*')).items()
         assert all(value.startswith('CA.') for value in facets) and set(facets) < set(indexer.filters[field])
-        if lucene.VERSION >= '3.3':
-            assert set(indexer.grouping('state', count=1)) < set(indexer.grouping('state')) == set(states)
-            grouper = indexer.grouping(field, query, sort=search.Sort(indexer.sorter(field)))
-            assert len(grouper) == 2 and list(grouper) == [la, orange]
-            for value, (name, count) in zip(grouper, grouper.facets(None)):
-                assert value == name and count > 0
-            grouper = indexer.groupings[field] = indexer.grouping(field, engine.Query.term('state', 'CA'))
-            assert indexer.facets(query, field)[field] == facets
-            hits = next(grouper.groups())
-            assert hits.value == 'CA.Los Angeles' and hits.count > 100 and len(hits) == 1
-            hit, = hits
-            assert hit.score in hit.keys
-            assert hit['county'] == 'Los Angeles' and hits.maxscore >= hit.score > 0
-            hits = next(grouper.groups(count=2, sort=search.Sort(indexer.sorter('zipcode')), scores=True))
-            assert hits.value == 'CA.Los Angeles' and math.isnan(hits.maxscore) and len(hits) == 2
-            assert all(hit.score > 0 and hit['zipcode'] > '90000' and hit['zipcode'] in hit.keys for hit in hits)
+        assert set(indexer.grouping('state', count=1)) < set(indexer.grouping('state')) == set(states)
+        grouper = indexer.grouping(field, query, sort=search.Sort(indexer.sorter(field)))
+        assert len(grouper) == 2 and list(grouper) == [la, orange]
+        for value, (name, count) in zip(grouper, grouper.facets(None)):
+            assert value == name and count > 0
+        grouper = indexer.groupings[field] = indexer.grouping(field, engine.Query.term('state', 'CA'))
+        assert indexer.facets(query, field)[field] == facets
+        hits = next(grouper.groups())
+        assert hits.value == 'CA.Los Angeles' and hits.count > 100 and len(hits) == 1
+        hit, = hits
+        assert hit.score in hit.keys
+        assert hit['county'] == 'Los Angeles' and hits.maxscore >= hit.score > 0
+        hits = next(grouper.groups(count=2, sort=search.Sort(indexer.sorter('zipcode')), scores=True))
+        assert hits.value == 'CA.Los Angeles' and math.isnan(hits.maxscore) and len(hits) == 2
+        assert all(hit.score > 0 and hit['zipcode'] > '90000' and hit['zipcode'] in hit.keys for hit in hits)
         for count in (None, len(indexer)):
             hits = indexer.search(query, count=count, timeout=0.01)
             assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)
@@ -547,15 +541,14 @@ class TestCase(BaseTest):
             attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
             assert all(getattr(field.fieldType(), attr)() for attr in attrs)
         indexer = engine.Indexer(self.tempdir)
-        with assertWarns(DeprecationWarning):
-            indexer.set('amendment', engine.FormatField, format='{0:02d}', store=True)
+        indexer.set('amendment', engine.MapField, func='{0:02d}'.format, store=True)
         indexer.set('size', engine.MapField, func='{0:04d}'.format, store=True)
         field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', store=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=doc['date'], size=len(doc['text']))
         indexer.commit()
-        query = engine.Query.range('amendment', '', indexer.fields['amendment'].format(10))
+        query = engine.Query.range('amendment', '', indexer.fields['amendment'].func(10))
         assert indexer.count(query) == 9
         query = engine.Query.prefix('amendment', '0')
         assert indexer.count(query) == 9
@@ -694,8 +687,6 @@ class TestCase(BaseTest):
     
     def testFilters(self):
         "Custom filters."
-        if lucene.VERSION < '3.5':
-            return self.assertRaises(AssertionError, engine.queries.TermsFilter, '')
         indexer = engine.Indexer()
         indexer.set('name', store=True, index=True)
         for name in ('alpha', 'bravo', 'charlie'):

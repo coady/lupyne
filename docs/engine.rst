@@ -3,7 +3,7 @@ engine
 .. automodule:: lupyne.engine
 
   * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_, `ParallelIndexer`_
-  * `Document`_, `Field`_, `MapField`_, `FormatField`_, `NestedField`_, `NumericField`_, `DateTimeField`_
+  * `Document`_, `Field`_, `MapField`_, `NestedField`_, `NumericField`_, `DateTimeField`_
   * `Query`_, `SortField`_, `TermsFilter`_
   * `PointField`_, `PolygonField`_
 
@@ -107,7 +107,6 @@ Indexer
 ParallelIndexer
 ^^^^^^^^^^^^^^^
 .. versionadded:: 1.2
-  requires lucene >= 3.5
 .. autoclass:: ParallelIndexer
   :show-inheritance:
   :members:
@@ -145,7 +144,6 @@ Hits
 Grouping
 ^^^^^^^^^^^^^
 .. versionadded:: 1.3
-  requires grouping contrib module in lucene >= 3.3
 .. note:: This interface is experimental and might change in incompatible ways in the next release.
 .. autoclass:: Grouping
   :members:
@@ -164,17 +162,6 @@ MapField
 .. autoclass:: MapField
   :show-inheritance:
   :members:
-
-FormatField
-^^^^^^^^^^^^^
-.. deprecated:: 1.3 use `MapField`_ with format method instead.
-.. autoclass:: FormatField
-  :show-inheritance:
-  :members:
-
-  .. method:: format(value)
-
-    Return formatted value.
 
 NestedField
 ^^^^^^^^^^^^^
@@ -261,7 +248,6 @@ SpanQuery
 TermsFilter
 ^^^^^^^^^^^^^
 .. versionadded:: 1.2
-  requires lucene >= 3.5
 .. autoclass:: TermsFilter
   :show-inheritance:
   :members:

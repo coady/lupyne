@@ -472,10 +472,7 @@ class IndexReader(object):
         mlt.fieldNames = fields or None
         for name, value in attrs.items():
             setattr(mlt, name, value)
-        try:
-            return mlt.like(StringReader(doc), '') if isinstance(doc, basestring) else mlt.like(doc)
-        except lucene.InvalidArgsError:
-            return mlt.like(StringReader(doc))
+        return mlt.like(StringReader(doc), '') if isinstance(doc, basestring) else mlt.like(doc)
 
 class IndexSearcher(search.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
@@ -512,12 +509,11 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param sorters: refresh cached :attr:`sorters` with associated parsers
         :param spellcheckers: refresh cached :attr:`spellcheckers`
         """
+        cls = getattr(index, 'DirectoryReader', index.IndexReader)
         try:
-            reader = index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
-        except AttributeError:
-            reader = None if self.current else self.indexReader.reopen()
+            reader = cls.openIfChanged(cls.cast_(self.indexReader))
         except TypeError:
-            readers = [index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(reader)) for reader in self.sequentialSubReaders]
+            readers = [cls.openIfChanged(cls.cast_(reader)) for reader in self.sequentialSubReaders]
             reader = index.MultiReader([new or old for new, old in zip(readers, self.sequentialSubReaders)]) if any(readers) else None
         if reader is None:
             return self
@@ -572,8 +568,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         search.IndexSearcher.search(self, query, options.get('filter'), collector)
         return collector.totalHits
     def collector(self, query, count=None, sort=None, reverse=False, scores=False, maxscore=False):
-        weight = self.createNormalizedWeight(query) if hasattr(self, 'createNormalizedWeight') else query.weight(self)
-        inorder = not weight.scoresDocsOutOfOrder()
+        inorder = not self.createNormalizedWeight(query).scoresDocsOutOfOrder()
         if count is None:
             return search.CachingCollector.create(not inorder, True, float('inf'))
         count = min(count, self.maxDoc() or 1)
@@ -601,8 +596,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """
         query = search.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
         cache = collector = self.collector(query, count, sort, reverse, scores, maxscore)
-        args = [search.TimeLimitingCollector.getGlobalCounter()] if hasattr(util, 'Counter') else []
-        results = collector if timeout is None else search.TimeLimitingCollector(collector, *(args + [long(timeout * 1000)]))
+        counter = search.TimeLimitingCollector.getGlobalCounter()
+        results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, long(timeout * 1000))
         try:
             search.IndexSearcher.search(self, query, filter, results)
         except lucene.JavaError as timeout:
@@ -615,11 +610,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             cache.replay(collector)
         topdocs = collector.topDocs()
         stats = (topdocs.totalHits, topdocs.maxScore) * (not isinstance(timeout, lucene.JavaError))
-        hits = Hits(self, topdocs.scoreDocs, *stats)
-        if callable(sort):
-            warnings.warn('Use lucene sorting or call Hits.sorted.', DeprecationWarning)
-            return hits.sorted(sort, reverse)
-        return hits
+        return Hits(self, topdocs.scoreDocs, *stats)
     def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
@@ -744,8 +735,6 @@ class IndexWriter(index.IndexWriter):
     """
     __len__ = index.IndexWriter.numDocs
     parse = IndexSearcher.__dict__['parse']
-    if not hasattr(index.IndexWriter, 'forceMerge'):
-        forceMerge, forceMergeDeletes = index.IndexWriter.optimize, index.IndexWriter.expungeDeletes
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
         if version is None:
@@ -769,12 +758,9 @@ class IndexWriter(index.IndexWriter):
         :param params: store,index,termvector options compatible with `Field`_
         """
         self.fields[name] = cls(name, **params)
-    def document(self, items=(), boost=None, **terms):
+    def document(self, items=(), **terms):
         "Return lucene Document from mapping of field names to one or multiple values."
         doc = document.Document()
-        if boost is not None:
-            warnings.warn('Document boosting has been removed from lucene 4; set Field boosts instead.', DeprecationWarning)
-            doc.boost = boost
         for name, values in dict(items, **terms).items():
             if isinstance(values, Atomic):
                 values = values,

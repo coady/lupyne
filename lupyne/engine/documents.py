@@ -5,7 +5,6 @@ Wrappers for lucene Fields and Documents.
 from future_builtins import map
 import datetime, calendar
 import operator
-import warnings
 import lucene
 try:
     from java.lang import Double, Float, Long, Number, Object
@@ -67,16 +66,6 @@ class MapField(Field):
     def items(self, *values):
         "Generate fields with mapped values."
         return Field.items(self, *map(self.func, values))
-
-class FormatField(MapField):
-    """Field which uses string formatting on its values.
-    
-    :param format: format string
-    """
-    def __init__(self, name, format='{0}', **kwargs):
-        warnings.warn('FormatField will be removed in the next release; use MapField instead.', DeprecationWarning)
-        MapField.__init__(self, name, format.format, **kwargs)
-        self.format = self.func
 
 class NestedField(Field):
     """Field which indexes every component into its own field.

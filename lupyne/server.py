@@ -48,13 +48,11 @@ import heapq
 import collections
 import itertools
 import os, optparse
-from email.utils import formatdate
 import contextlib
 try:
     import simplejson as json
 except ImportError:
     import json
-import warnings
 import lucene
 try:
     from org.apache.lucene import search
@@ -66,9 +64,6 @@ try:
 except ValueError:
     import engine, client
 
-if cherrypy.__version__ < '3.2':
-    warnings.warn('Support for cherrypy 3.1 will be removed in the next release.', DeprecationWarning)
-
 def tool(hook):
     "Return decorator to register tool at given hook point."
     def decorator(func):
@@ -76,53 +71,41 @@ def tool(hook):
         return func
     return decorator
 
-@tool('before_handler')
-def json_in(content_type='application/json', process_body=None):
+@tool('before_request_body')
+def json_in(process_body=None, **kwargs):
     """Handle request bodies in json format.
     
     :param content_type: request media type
     :param process_body: optional function to process body into request.params
     """
     request = cherrypy.serving.request
-    media_type = request.headers.get('content-type')
-    if media_type == content_type:
-        with HTTPError(httplib.BAD_REQUEST, ValueError, AttributeError):
-            request.json = json.load(request.body)
+    def processor(entity):
+        cherrypy.lib.jsontools.json_processor(entity)
         if process_body is not None:
             with HTTPError(httplib.BAD_REQUEST, TypeError):
                 request.params.update(process_body(request.json))
-    elif media_type:
-        message = "Expected an entity of content type {0}".format(content_type)
-        raise cherrypy.HTTPError(httplib.UNSUPPORTED_MEDIA_TYPE, message)
+    cherrypy.lib.jsontools.json_in(force='content-type' in request.headers, processor=processor, **kwargs)
 
 @tool('before_handler')
-def json_out(content_type='application/json', indent=None):
+def json_out(content_type='application/json', indent=None, **kwargs):
     """Handle responses in json format.
     
     :param content_type: response content-type header
     :param indent: indentation level for pretty printing
     """
-    request = cherrypy.serving.request
-    request._json_inner_handler = request.handler
-    headers = cherrypy.response.headers
-    headers['content-type'] = content_type
     def handler(*args, **kwargs):
-        body = request._json_inner_handler(*args, **kwargs)
-        return json.dumps(body, indent=indent) if headers['content-type'] == content_type else body
-    request.handler = handler
+        body = cherrypy.request._json_inner_handler(*args, **kwargs)
+        return json.dumps(body, indent=indent) if cherrypy.response.headers['content-type'] == content_type else body
+    cherrypy.lib.jsontools.json_out(content_type, handler=handler, **kwargs)
 
 @tool('on_start_resource')
-def allow(methods=('GET',), paths=()):
+def allow(methods=None, paths=(), **kwargs):
     "Only allow specified methods."
-    request = cherrypy.serving.request
-    if paths and hasattr(request.handler, 'args'):
+    handler = cherrypy.request.handler
+    if paths and hasattr(handler, 'args'):
         with HTTPError(httplib.NOT_FOUND, IndexError):
-            methods = paths[len(request.handler.args)]
-    if 'GET' in methods and 'HEAD' not in methods:
-        methods += 'HEAD',
-    cherrypy.response.headers['allow'] = ', '.join(methods)
-    if request.method not in methods:
-        raise cherrypy.HTTPError(httplib.METHOD_NOT_ALLOWED)
+            methods = paths[len(handler.args)]
+    cherrypy.lib.cptools.allow(methods, **kwargs)
 
 @tool('before_finalize')
 def timer():
@@ -145,13 +128,13 @@ def validate(etag=True, last_modified=False, max_age=None, expires=None):
         headers['etag'] = 'W/"{0}"'.format(root.searcher.version)
         cherrypy.lib.cptools.validate_etags()
     if last_modified:
-        headers['last-modified'] = formatdate(root.searcher.timestamp, usegmt=True)
+        headers['last-modified'] = cherrypy.lib.httputil.HTTPDate(root.searcher.timestamp)
         cherrypy.lib.cptools.validate_since()
     if max_age is not None:
         headers['age'] = int(time.time() - root.updated)
         headers['cache-control'] = 'max-age={0}'.format(max_age)
     if expires is not None:
-        headers['expires'] = formatdate(expires + root.updated, usegmt=True)
+        headers['expires'] = cherrypy.lib.httputil.HTTPDate(expires + root.updated)
 
 @tool('before_handler')
 def params(**types):

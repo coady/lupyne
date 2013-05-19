@@ -221,7 +221,6 @@ class TermsFilter(search.CachingWrapperFilter):
     """
     ops = {'or': 'update', 'and': 'intersection_update', 'andNot': 'difference_update'}
     def __init__(self, field, values=()):
-        assert lucene.VERSION >= '3.5', 'requires FixedBitSet set operations introduced in lucene 3.5'
         search.CachingWrapperFilter.__init__(self, search.QueryWrapperFilter(search.MatchAllDocsQuery()))
         self.field = field
         self.values = set(values)
