@@ -241,11 +241,12 @@ class WebSearcher(object):
         self.searcher.close()
     def sync(self, host, path=''):
         "Sync with remote index."
-        path = '/' + '{0}/update/{1}/'.format(path, uuid.uuid1()).lstrip('/')
         directory = self.searcher.path
         resource = client.Resource(host)
-        names = sorted(set(resource.put(path)).difference(os.listdir(directory)))
+        response = resource.call('PUT', '/' + '{0}/update/{1}'.format(path, uuid.uuid1()).lstrip('/'))
+        names = sorted(set(response()).difference(os.listdir(directory)))
         try:
+            path = response.getheader('location') + '/'
             for name in names:
                 resource.download(path + name, os.path.join(directory, name))
         finally:
@@ -606,6 +607,8 @@ class WebIndexer(WebSearcher):
         **GET, PUT, DELETE** /update/*chars*
             Verify, create, or release unique snapshot by id of current index commit and return array of referenced filenames.
             
+            .. versionchanged:: 1.4 lucene 4.4 identifies snapshots by commit generation;  use location header
+            
             :return: [*string*,... ]
         
         **GET** /update/*chars*/*chars*
@@ -616,16 +619,30 @@ class WebIndexer(WebSearcher):
             self.updated = time.time()
             return len(self.indexer)
         method = cherrypy.request.method
-        if method == 'DELETE':
-            with HTTPError(httplib.CONFLICT, lucene.JavaError):
-                return self.indexer.policy.release(id)
-        if method == 'PUT':
-            cherrypy.response.status = httplib.CREATED
-            with HTTPError(httplib.CONFLICT, lucene.JavaError):
-                commit = self.indexer.policy.snapshot(id)
+        response = cherrypy.serving.response
+        if lucene.VERSION < '4.4':
+            if method == 'DELETE':
+                with HTTPError(httplib.CONFLICT, lucene.JavaError):
+                    return self.indexer.policy.release(id)
+            if method == 'PUT':
+                response.status = httplib.CREATED
+                response.headers['location'] = cherrypy.url(relative='server')
+                with HTTPError(httplib.CONFLICT, lucene.JavaError):
+                    commit = self.indexer.policy.snapshot(id)
+            else:
+                with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
+                    commit = self.indexer.policy.getSnapshot(id)
         else:
-            with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
-                commit = self.indexer.policy.getSnapshot(id)
+            if method == 'PUT':
+                commit = self.indexer.policy.snapshot()
+                response.status = httplib.CREATED
+                response.headers['location'] = cherrypy.url('/update/{0:d}'.format(commit.generation), relative='server')
+            else:
+                with HTTPError(httplib.NOT_FOUND, ValueError, AssertionError):
+                    commit = self.indexer.policy.getIndexCommit(long(id))
+                    assert commit is not None, 'commit not snapshotted'
+                if method == 'DELETE':
+                    self.indexer.policy.release(commit)
         if not name:
             return list(commit.fileNames)
         with HTTPError(httplib.NOT_FOUND, TypeError, AssertionError):
@@ -710,7 +727,7 @@ class WebIndexer(WebSearcher):
             field = self.indexer.fields[name]
         return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
 
-def init(vmargs='-Xrs', **kwargs):
+def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
     "Callback to initialize VM and app roots after daemonizing."
     lucene.initVM(vmargs=vmargs, **kwargs)
     for app in cherrypy.tree.apps.values():

@@ -380,8 +380,6 @@ class TestCase(BaseTest):
         query = indexer.parse('"hello world"', field='text', spellcheck=True)
         assert search.PhraseQuery.instance_(query) and str(query) == 'text:"held would"'
         assert str(indexer.parse('vwxyz', field='text', spellcheck=True)) == 'text:vwxyz'
-        with indexer.snapshot() as commit:
-            self.assertRaises(lucene.JavaError, indexer.snapshot().__enter__)
         files = set(os.listdir(self.tempdir))
         path = os.path.join(self.tempdir, 'temp')
         with indexer.snapshot('backup') as commit:

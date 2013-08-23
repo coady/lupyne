@@ -144,7 +144,6 @@ Hits
 Grouping
 ^^^^^^^^^^^^^
 .. versionadded:: 1.3
-.. note:: This interface is experimental and might change in incompatible ways in the next release.
 .. autoclass:: Grouping
   :members:
 

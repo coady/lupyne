@@ -22,25 +22,16 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.3:
+Changes in 1.3+:
 ==================
  * Engine:
    
-   - PyLucene 4.3 supported
-   - PyLucene 3.2, 3.3, and 3.4 deprecated
-   - Optimized searching and sorting with unlimited count
-   - Support for contrib grouping collectors and faceting
-   - FieldCache comparators optimized for memory and real-time searching
-   - Caching for sort keys
-   - Field support for mapping functions
+   - PyLucene 4.4 supported
+   - PyLucene 3.5 and 3.6 deprecated
 
  * Server:
-   
-   - CherryPy 3.1 deprecated
 
  * Client:
-   
-   - Support for https
 """
 
 import os

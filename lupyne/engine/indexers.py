@@ -572,7 +572,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if count is None:
             return search.CachingCollector.create(not inorder, True, float('inf'))
         count = min(count, self.maxDoc() or 1)
-        if callable(sort) or sort is None:
+        if sort is None:
             return search.TopScoreDocCollector.create(count, inorder)
         if isinstance(sort, basestring):
             sort = self.sorter(sort, reverse=reverse)
@@ -582,7 +582,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
         
-        .. deprecated:: 1.3 sort param for lucene only; use Hits.sorted with a callable
+        .. versionchanged:: 1.4 sort param for lucene only;  use Hits.sorted with a callable
         
         :param query: query string or lucene Query
         :param filter: lucene Filter
@@ -792,13 +792,13 @@ class IndexWriter(index.IndexWriter):
     def snapshot(self, id=''):
         """Return context manager of an index commit snapshot.
         
-        :param id: optional unique snapshot id
+        .. versionchanged:: 1.4 lucene 4.4 identifies snapshots by commit generation
         """
-        commit = self.policy.snapshot(id)
+        commit = self.policy.snapshot(id) if lucene.VERSION < '4.4' else self.policy.snapshot()
         try:
             yield commit
         finally:
-            self.policy.release(id)
+            self.policy.release(id if lucene.VERSION < '4.4' else commit)
 
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.

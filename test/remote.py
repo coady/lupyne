@@ -253,23 +253,25 @@ class TestCase(BaseTest):
             resource.get('/update/snapshot')
         response = resource.call('PUT', '/update/snapshot')
         assert response.status == httplib.CREATED
+        path = response.getheader('location')
         names = response()
         assert all(name.startswith('_') or name.startswith('segments_') for name in names)
-        assert resource.get('/update/snapshot') == names
+        assert resource.get(path) == names
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
-            resource.get('/update/snapshot/segments')
+            resource.get(path + '/segments')
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
-            resource.download('/update/snapshot/segments.gen', self.tempdir)
+            resource.download(path + '/segments.gen', self.tempdir)
         for name in names:
-            response = resource.call('GET', '/update/snapshot/' + name)
+            response = resource.call('GET', path + '/' + name)
             assert response and response.getheader('content-type') == 'application/x-download'
             assert len(response.body) == os.path.getsize(os.path.join(self.tempdir, name))
         assert resource.put('/update/backup') == names
-        with assertRaises(httplib.HTTPException, httplib.CONFLICT):
-            resource.put('/update/snapshot')
-        assert not resource.delete('/update/snapshot')
-        with assertRaises(httplib.HTTPException, httplib.CONFLICT):
-            resource.delete('/update/snapshot')
+        if lucene.VERSION < '4.4':
+            with assertRaises(httplib.HTTPException, httplib.CONFLICT):
+                resource.put('/update/snapshot')
+            assert not resource.delete('/update/snapshot')
+            with assertRaises(httplib.HTTPException, httplib.CONFLICT):
+                resource.delete('/update/snapshot')
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')

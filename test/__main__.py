@@ -14,5 +14,5 @@ class TestRunner(unittest.TextTestRunner):
         return unittest.TextTestRunner.run(self, test)
 
 if __name__ == '__main__':
-    lucene.initVM()
+    lucene.initVM(vmargs='-Djava.awt.headless=true')
     unittest.main(testRunner=TestRunner)
