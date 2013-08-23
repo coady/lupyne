@@ -457,6 +457,23 @@ class TestCase(BaseTest):
         result = resource.get('/search', q='Los Angeles', group='county.city', **{'group.count': 0, 'q.field': 'county', 'q.type': 'prefix'})
         assert all(group['value'].startswith('Los Angeles') for group in result['groups'])
         assert sum(map(operator.itemgetter('count'), result['groups'])) == sum(facets.values()) == result['count']
+        assert resource.get('/queries') == []
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/queries/default')
+        resource.call('PUT', '/queries/default/alpha', '*:*').status == httplib.CREATED
+        assert resource.put('/queries/default/alpha', 'name:alpha') == 'name:alpha'
+        assert resource.put('/queries/default/bravo', 'name:bravo') == 'name:bravo'
+        assert resource.get('/queries') == ['default']
+        assert resource.get('/queries/default') == {'alpha': 0.0, 'bravo': 0.0}
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            resource.get('/queries/default/charlie')
+        queries = resource.post('/queries/default', {'name': 'alpha'})
+        assert queries['alpha'] > 0.0 and queries['bravo'] == 0.0
+        queries = resource.call('GET', '/queries/default', {'name': 'alpha bravo alpha'})()
+        assert queries['alpha'] > queries['bravo'] > 0.0
+        assert resource.delete('/queries/default/alpha') == 'name:alpha'
+        assert resource.delete('/queries/default/alpha') is None
+        assert resource.get('/queries/default') == {'bravo': 0.0}
     
     def testRealTime(self):
         "Real Time updating and searching."

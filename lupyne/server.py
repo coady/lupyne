@@ -14,6 +14,7 @@ In addition to search requests, it provides access to term and document informat
  * :meth:`/docs <WebSearcher.docs>`
  * :meth:`/terms <WebSearcher.terms>`
  * :meth:`/update <WebSearcher.update>`
+ * :meth:`/queries <WebSearcher.queries>`
 
 WebIndexer extends WebSearcher, exposing additional resources and methods for an Indexer.
 Single documents may be added, deleted, or replaced by a unique indexed field.
@@ -39,7 +40,7 @@ CherryPy and Lucene VM integration issues:
  * Recommended that the VM ignores keyboard interrupts (-Xrs) for clean server shutdown.
 """
 
-from future_builtins import map
+from future_builtins import map, zip
 import re
 import time
 import uuid
@@ -231,6 +232,7 @@ class WebSearcher(object):
             engine.IndexWriter(*directories).close()
         self.searcher = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
         self.updated = time.time()
+        self.query_map = {}
     @classmethod
     def new(cls, *args, **kwargs):
         "Return new uninitialized root which can be mounted on dispatch tree before VM initialization."
@@ -555,12 +557,60 @@ class WebSearcher(object):
             if path[1:] == ('positions',):
                 return list(searcher.positions(name, value))
         raise cherrypy.NotFound()
+    @cherrypy.expose
+    @cherrypy.tools.allow(paths=[('GET',), ('GET', 'POST'), ('GET', 'PUT', 'DELETE')])
+    def queries(self, name='', value=''):
+        """Match a document against registered queries.
+        Queries are cached by a unique name and value, suitable for document indexing.
+        
+        .. versionadded:: 1.4
+        .. note:: This interface is experimental and might change in incompatible ways in the next release.
+        
+        **GET** /queries
+            Return query set names.
+            
+            :return: [*string*,... ]
+        
+        **GET, POST** /queries/*chars*
+            Return query values and scores which match given document.
+            
+            {*string*: *string*,... }
+            
+            :return: {*string*: *number*,... }
+        
+        **GET, PUT, DELETE** /queries/*chars*/*chars*
+            Return, create, or delete a registered query.
+            
+            *string*
+            
+            :return: *string*
+        """
+        request = cherrypy.serving.request
+        if not name:
+            return sorted(self.query_map)
+        if not value:
+            if request.method == 'GET':
+                request.body.process()
+            with HTTPError(httplib.NOT_FOUND, KeyError):
+                queries = self.query_map[name]
+            scores = self.searcher.match(getattr(request, 'json', {}), *queries.values())
+            return dict(zip(queries, scores))
+        if request.method == 'DELETE':
+            return str(self.query_map.get(name, {}).pop(value, '')) or None
+        if request.method == 'PUT':
+            queries = self.query_map.setdefault(name, {})
+            if value not in queries:
+                cherrypy.response.status = httplib.CREATED
+            queries[value] = self.searcher.parse(request.json)
+        with HTTPError(httplib.NOT_FOUND, KeyError):
+            return str(self.query_map[name][value])
 
 class WebIndexer(WebSearcher):
     "Dispatch root with a delegated Indexer, exposing write methods."
     def __init__(self, *args, **kwargs):
         self.indexer = engine.Indexer(*args, **kwargs)
         self.updated = time.time()
+        self.query_map = {}
     @property
     def searcher(self):
         return self.indexer.indexSearcher

@@ -30,6 +30,8 @@ Changes in 1.3+:
    - PyLucene 3.5 and 3.6 deprecated
 
  * Server:
+   
+   - Document matching against registered queries
 
  * Client:
 """
