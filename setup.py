@@ -22,7 +22,7 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.3+:
+Changes in 1.4
 ==================
  * Engine:
    
@@ -32,8 +32,6 @@ Changes in 1.3+:
  * Server:
    
    - Document matching against registered queries
-
- * Client:
 """
 
 import os
