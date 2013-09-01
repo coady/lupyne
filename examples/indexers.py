@@ -1,20 +1,15 @@
 """
-Basic indexing and searching example adapted from http://lucene.apache.org/java/3_6_2/api/core/index.html
+Basic indexing and searching example adapted from http://lucene.apache.org/core/4_3_0/core/index.html
 """
 
 import lucene
 lucene.initVM()
-try:
-    from org.apache.lucene import document, index, search, store, util
-    from org.apache.lucene.queryparser import classic as queryParser
-    from org.apache.lucene.analysis import standard
-except ImportError:
-    document = index = queryParser = search = store = util = standard = lucene
+from org.apache.lucene import analysis, document, index, queryparser, search, store, util
 from lupyne import engine
 
 ### lucene ###
 
-analyzer = standard.StandardAnalyzer(util.Version.LUCENE_CURRENT)
+analyzer = analysis.standard.StandardAnalyzer(util.Version.LUCENE_CURRENT)
 
 # Store the index in memory:
 directory = store.RAMDirectory()
@@ -24,15 +19,15 @@ config = index.IndexWriterConfig(util.Version.LUCENE_CURRENT, analyzer)
 iwriter = index.IndexWriter(directory, config)
 doc = document.Document()
 text = "This is the text to be indexed."
-doc.add(document.Field("fieldname", text, document.Field.Store.YES, document.Field.Index.ANALYZED))
+doc.add(document.Field("fieldname", text, document.TextField.TYPE_STORED))
 iwriter.addDocument(doc)
 iwriter.close()
 
 # Now search the index:
-ireader = index.IndexReader.open(directory) # read-only=true
+ireader = index.IndexReader.open(directory)
 isearcher = search.IndexSearcher(ireader)
 # Parse a simple query that searches for "text":
-parser = queryParser.QueryParser(util.Version.LUCENE_CURRENT, "fieldname", analyzer)
+parser = queryparser.classic.QueryParser(util.Version.LUCENE_CURRENT, "fieldname", analyzer)
 query = parser.parse("text")
 hits = isearcher.search(query, None, 1000).scoreDocs
 assert len(hits) == 1

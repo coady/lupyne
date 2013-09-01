@@ -55,10 +55,7 @@ try:
 except ImportError:
     import json
 import lucene
-try:
-    from org.apache.lucene import search
-except ImportError:
-    search = lucene
+from org.apache.lucene import search
 import cherrypy
 try:
     from . import engine, client
@@ -272,8 +269,7 @@ class WebSearcher(object):
             self.sync(host, path)
             cherrypy.response.status = httplib.ACCEPTED
         if isinstance(self.searcher, engine.MultiSearcher):
-            readers = map(engine.indexers.IndexReader, self.searcher.sequentialSubReaders)
-            return dict((reader.directory.toString(), reader.numDocs()) for reader in readers)
+            return dict((reader.directory().toString(), reader.numDocs()) for reader in self.searcher.indexReaders)
         return {self.searcher.directory.toString(): len(self.searcher)}
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
@@ -476,14 +472,14 @@ class WebSearcher(object):
                 terms[name][value] = list(itertools.islice(searcher.correct(name, value), spellcheck))
         return result
     @cherrypy.expose
-    @cherrypy.tools.params(count=int, step=int)
+    @cherrypy.tools.params(count=int, step=int, indexed=json.loads)
     def terms(self, name='', value=':', *path, **options):
         """Return data about indexed terms.
         
         **GET** /terms?
             Return field names, with optional selection.
             
-            &option=\ *chars*
+            &indexed=true|false
             
             :return: [*string*,... ]
         
@@ -779,7 +775,9 @@ class WebIndexer(WebSearcher):
 
 def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
     "Callback to initialize VM and app roots after daemonizing."
-    lucene.initVM(vmargs=vmargs, **kwargs)
+    if vmargs:
+        kwargs['vmargs'] = vmargs
+    lucene.initVM(**kwargs)
     for app in cherrypy.tree.apps.values():
         if isinstance(app.root, WebSearcher):
             app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))

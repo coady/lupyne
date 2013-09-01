@@ -24,10 +24,7 @@ NestedFields could still be used however, as demonstrated on dates below.
 from datetime import date
 import lucene
 lucene.initVM()
-try:
-    from org.apache.lucene import search
-except ImportError:
-    search = lucene
+from org.apache.lucene import search
 from lupyne import engine
 
 docs = [

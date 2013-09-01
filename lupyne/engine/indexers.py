@@ -11,22 +11,12 @@ import contextlib
 import abc, collections
 import warnings
 import lucene
-try:
-    from java.io import File, StringReader
-    from java.lang import Float
-    from java.util import Arrays, HashMap, HashSet
-    from org.apache.lucene import analysis, document, index, search, store, util
-    from org.apache.lucene.analysis import standard, tokenattributes
-    from org.apache.lucene.index import memory
-    from org.apache.lucene.search import spans
-    from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
-    from org.apache.lucene.queryparser import classic as queryParser
-    from org.apache.lucene.queries import mlt as similar
-    from org.apache.pylucene.queryparser.classic import PythonQueryParser
-except ImportError:
-    from lucene import File, StringReader, Float, Arrays, HashMap, HashSet, PythonAnalyzer, PythonTokenFilter, PythonQueryParser
-    analysis = document = index = queryParser = search = store = util = \
-    standard = tokenattributes = memory = similar = spans = lucene
+from java.io import File, StringReader
+from java.lang import Float
+from java.util import Arrays, HashMap, HashSet
+from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
+from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
+from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from .queries import Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, Grouping
 from .spatial import DistanceComparator
@@ -47,7 +37,7 @@ class closing(set):
             obj.close()
     def analyzer(self, analyzer, version=None):
         if analyzer is None:
-            analyzer = standard.StandardAnalyzer(version or util.Version.values()[-1])
+            analyzer = analysis.standard.StandardAnalyzer(version or util.Version.values()[-1])
             self.add(analyzer)
         return analyzer
     def directory(self, directory):
@@ -73,9 +63,8 @@ def copy(commit, dest):
     Optimized to use hard links if the destination is a file system path.
     """
     if isinstance(dest, store.Directory):
-        args = [store.IOContext.DEFAULT] if hasattr(store, 'IOContext') else []
         for filename in commit.fileNames:
-            commit.directory.copy(dest, filename, filename, *args)
+            commit.directory.copy(dest, filename, filename, store.IOContext.DEFAULT)
     else:
         src = IndexSearcher.path.fget(commit)
         os.path.isdir(dest) or os.makedirs(dest)
@@ -89,7 +78,6 @@ def copy(commit, dest):
 
 class TokenStream(analysis.TokenStream):
     "TokenStream mixin with support for iteration and attributes cached as properties."
-    bytes = lucene.VERSION >= '4'
     def __iter__(self):
         return self
     def next(self):
@@ -97,7 +85,7 @@ class TokenStream(analysis.TokenStream):
             return self
         raise StopIteration
     def __getattr__(self, name):
-        cls = getattr(tokenattributes, name + 'Attribute').class_
+        cls = getattr(analysis.tokenattributes, name + 'Attribute').class_
         attr = self.getAttribute(cls) if self.hasAttribute(cls) else self.addAttribute(cls)
         setattr(self, name, attr)
         return attr
@@ -112,11 +100,11 @@ class TokenStream(analysis.TokenStream):
     def payload(self):
         "Payload bytes."
         payload = self.Payload.payload
-        return payload and (payload.utf8ToString() if self.bytes else getattr(payload.data, 'string_', None))
+        return payload and payload.utf8ToString()
     @payload.setter
     def payload(self, data):
         data = lucene.JArray_byte(data.encode('utf8') if isinstance(data, unicode) else data)
-        self.Payload.payload = (util.BytesRef if self.bytes else index.Payload)(data)
+        self.Payload.payload = util.BytesRef(data)
     @property
     def positionIncrement(self):
         "Position relative to the previous token."
@@ -127,14 +115,11 @@ class TokenStream(analysis.TokenStream):
     @property
     def term(self):
         "Term text."
-        return self.CharTerm.toString() if self.bytes else self.Term.term()
+        return self.CharTerm.toString()
     @term.setter
     def term(self, text):
-        if self.bytes:
-            self.CharTerm.setEmpty()
-            self.CharTerm.append(text)
-        else:
-            self.Term.setTermBuffer(text)
+        self.CharTerm.setEmpty()
+        self.CharTerm.append(text)
     @property
     def type(self):
         "Lexical type."
@@ -199,12 +184,12 @@ class Analyzer(PythonAnalyzer):
             args += list(field), self, boosts
         else:
             args += field, self
-        parser = (parser or queryParser.QueryParser if isinstance(field, basestring) else queryParser.MultiFieldQueryParser)(*args)
+        parser = (parser or queryparser.classic.QueryParser if isinstance(field, basestring) else queryparser.classic.MultiFieldQueryParser)(*args)
         if op:
-            parser.defaultOperator = getattr(queryParser.QueryParser.Operator, op.upper())
+            parser.defaultOperator = getattr(queryparser.classic.QueryParser.Operator, op.upper())
         for name, value in attrs.items():
             setattr(parser, name, value)
-        if isinstance(parser, queryParser.MultiFieldQueryParser):
+        if isinstance(parser, queryparser.classic.MultiFieldQueryParser):
             return parser.parse(parser, query)
         try:
             return parser.parse(query)
@@ -222,24 +207,16 @@ class IndexReader(object):
     def __getattr__(self, name):
         if name == 'indexReader':
             raise AttributeError(name)
-        cls = getattr(index, 'DirectoryReader', index.IndexReader)
-        return getattr(cls.cast_(self.indexReader), name)
+        return getattr(index.DirectoryReader.cast_(self.indexReader), name)
     def __len__(self):
         return self.numDocs()
     def __contains__(self, id):
-        if 0 <= id < self.maxDoc():
-            if hasattr(self, 'isDeleted'):
-                return not self.isDeleted(id)
-            bits = index.MultiFields.getLiveDocs(self.indexReader)
-            return bits is None or bits.get(id)
-        return False
+        bits = index.MultiFields.getLiveDocs(self.indexReader)
+        return (0 <= id < self.maxDoc()) and (not bits or bits.get(id))
     def __iter__(self):
         ids = xrange(self.maxDoc())
-        if not self.hasDeletions():
-            return iter(ids)
-        if hasattr(self, 'isDeleted'):
-            return itertools.ifilterfalse(self.isDeleted, ids)
-        return filter(index.MultiFields.getLiveDocs(self.indexReader).get, ids)
+        bits = index.MultiFields.getLiveDocs(self.indexReader)
+        return filter(bits.get, ids) if bits else iter(ids)
     def __getitem__(self, id):
         return Document(self.document(id))
     @property
@@ -253,17 +230,12 @@ class IndexReader(object):
     @property
     def timestamp(self):
         "timestamp of reader's last commit"
-        commit = self.indexCommit
-        try:
-            modified = commit.timestamp
-        except AttributeError:
-            modified = store.FSDirectory.fileModified(store.FSDirectory.cast_(commit.directory).directory, commit.segmentsFileName)
-        return modified * 0.001
+        directory = store.FSDirectory.cast_(self.directory).directory
+        return store.FSDirectory.fileModified(directory, self.indexCommit.segmentsFileName) * 0.001
     @property
     def readers(self):
         "segment readers"
-        readers = (context.reader() for context in self.leaves()) if hasattr(self, 'leaves') else self.sequentialSubReaders
-        return map(index.SegmentReader.cast_, readers)
+        return (index.SegmentReader.cast_(context.reader()) for context in self.leaves())
     @property
     def segments(self):
         "segment filenames with document counts"
@@ -291,56 +263,36 @@ class IndexReader(object):
     def count(self, name, value):
         "Return number of documents with given term."
         return self.docFreq(index.Term(name, value))
-    def names(self, option='all', **attrs):
+    def names(self, **attrs):
         """Return field names, given option description.
         
-        .. versionchanged:: 1.2 lucene 3.6 requires FieldInfo filter attributes instead of option
+        .. versionchanged:: 1.2 lucene requires FieldInfo filter attributes instead of option
         """
-        if hasattr(index.IndexReader, 'getFieldNames'):
-            return list(self.getFieldNames(getattr(self.FieldOption, option.upper())))
-        module = index.MultiFields if hasattr(index, 'MultiFields') else util.ReaderUtil
-        fieldinfos = module.getMergedFieldInfos(self.indexReader).iterator()
+        fieldinfos = index.MultiFields.getMergedFieldInfos(self.indexReader).iterator()
         return [fieldinfo.name for fieldinfo in fieldinfos if all(getattr(fieldinfo, name) == attrs[name] for name in attrs)]
     def terms(self, name, value='', stop=None, counts=False, **fuzzy):
         """Generate a slice of term values, optionally with frequency counts.
         Supports a range of terms, wildcard terms, or fuzzy terms.
         
         :param name: field name
-        :param value: initial term text or wildcard
+        :param value: initial term text, trailing * indicates prefix
         :param stop: optional upper bound for simple terms
         :param counts: include frequency counts
         :param fuzzy: optional keyword arguments for fuzzy terms
         """
         term = index.Term(name, value)
         args = fuzzy.get('minSimilarity', 0.5), fuzzy.get('prefixLength', 0)
-        if hasattr(index, 'MultiFields'):
-            terms = index.MultiFields.getTerms(self.indexReader, name)
-            if terms:
-                if fuzzy:
-                    termenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, args[0], args[1], False)
-                elif value.endswith('*'): 
-                    termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(value.rstrip('*')))
-                else:
-                    termenum = search.TermRangeTermsEnum(terms.iterator(None), util.BytesRef(value), stop and util.BytesRef(stop), True, False)
-                for bytesref in util.BytesRefIterator.cast_(termenum):
-                    text = bytesref.utf8ToString()
-                    yield (text, termenum.docFreq()) if counts else text
-        else:
+        terms = index.MultiFields.getTerms(self.indexReader, name)
+        if terms:
             if fuzzy:
-                termenum = search.FuzzyTermEnum(self.indexReader, term, *args, **fuzzy)
-            elif '*' in value or '?' in value:
-                value = value.rstrip('*')
-                if '*' in value or '?' in value:
-                    warnings.warn('Wildcard term enumeration has been removed from lucene 4; use a prefix instead.', DeprecationWarning)
-                termenum = search.WildcardTermEnum(self.indexReader, term)
+                termenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, args[0], args[1], False)
+            elif value.endswith('*'): 
+                termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(value.rstrip('*')))
             else:
-                termenum = search.TermRangeTermEnum(self.indexReader, name, value, stop, True, False, None)
-            with contextlib.closing(termenum):
-                term = termenum.term()
-                while term:
-                    text = term.text()
-                    yield (text, termenum.docFreq()) if counts else text
-                    term = termenum.next() and termenum.term()
+                termenum = search.TermRangeTermsEnum(terms.iterator(None), util.BytesRef(value), stop and util.BytesRef(stop), True, False)
+            for bytesref in util.BytesRefIterator.cast_(termenum):
+                text = bytesref.utf8ToString()
+                yield (text, termenum.docFreq()) if counts else text
     def numbers(self, name, step=0, type=int, counts=False):
         """Generate decoded numeric term values, optionally with frequency counts.
         
@@ -352,52 +304,27 @@ class IndexReader(object):
         term = index.Term(name, chr(ord(' ') + step))
         decode = util.NumericUtils.prefixCodedToLong
         convert = util.NumericUtils.sortableLongToDouble if issubclass(type, float) else int
-        if hasattr(index, 'MultiFields'):
-            terms = index.MultiFields.getTerms(self.indexReader, name)
-            termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(term.text()))
-            for bytesref in util.BytesRefIterator.cast_(termenum):
-                value = convert(decode(bytesref))
-                yield (value, termenum.docFreq()) if counts else value
-        else:
-            with contextlib.closing(search.PrefixTermEnum(self.indexReader, term)) as termenum:
-                term = termenum.term()
-                while term:
-                    value = convert(decode(term.text()))
-                    yield (value, termenum.docFreq()) if counts else value
-                    term = termenum.next() and termenum.term()
+        terms = index.MultiFields.getTerms(self.indexReader, name)
+        termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(term.text()))
+        for bytesref in util.BytesRefIterator.cast_(termenum):
+            value = convert(decode(bytesref))
+            yield (value, termenum.docFreq()) if counts else value
     def docs(self, name, value, counts=False):
         "Generate doc ids which contain given term, optionally with frequency counts."
-        if hasattr(index, 'MultiFields'):
-            docsenum = index.MultiFields.getTermDocsEnum(self.indexReader, index.MultiFields.getLiveDocs(self.indexReader), name, util.BytesRef(value))
-            if docsenum:
-                for doc in iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS):
-                    yield (doc, docsenum.freq()) if counts else doc
-        else:
-            with contextlib.closing(self.termDocs(index.Term(name, value))) as termdocs:
-                while termdocs.next():
-                    doc = termdocs.doc()
-                    yield (doc, termdocs.freq()) if counts else doc
+        docsenum = index.MultiFields.getTermDocsEnum(self.indexReader, index.MultiFields.getLiveDocs(self.indexReader), name, util.BytesRef(value))
+        if docsenum:
+            for doc in iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS):
+                yield (doc, docsenum.freq()) if counts else doc
     def positions(self, name, value, payloads=False):
         "Generate doc ids and positions which contain given term, optionally only with payloads."
-        if hasattr(index, 'MultiFields'):
-            docsenum = index.MultiFields.getTermPositionsEnum(self.indexReader, index.MultiFields.getLiveDocs(self.indexReader), name, util.BytesRef(value))
-            if docsenum:
-                for doc in iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS):
-                    positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
-                    if payloads:
-                        yield doc, [(position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload]
-                    else:
-                        yield doc, list(positions)
-        else:
-            array = lucene.JArray_byte('')
-            with contextlib.closing(self.termPositions(index.Term(name, value))) as termpositions:
-                while termpositions.next():
-                    doc = termpositions.doc()
-                    positions = (termpositions.nextPosition() for n in xrange(termpositions.freq()))
-                    if payloads:
-                        yield doc, [(position, termpositions.getPayload(array, 0).string_) for position in positions if termpositions.payloadAvailable]
-                    else:
-                        yield doc, list(positions)
+        docsenum = index.MultiFields.getTermPositionsEnum(self.indexReader, index.MultiFields.getLiveDocs(self.indexReader), name, util.BytesRef(value))
+        if docsenum:
+            for doc in iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS):
+                positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
+                if payloads:
+                    yield doc, [(position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload]
+                else:
+                    yield doc, list(positions)
     def comparator(self, name, type='string', parser=None):
         """Return cache of field values suitable for sorting.
         Parsing values into an array is memory optimized.
@@ -417,50 +344,37 @@ class IndexReader(object):
         """
         offset = 0
         for reader in self.readers:
-            spans_ = query.getSpans(reader.context, reader.liveDocs, HashMap()) if hasattr(reader, 'context') else query.getSpans(reader)
-            for doc, spans_ in itertools.groupby(itertools.takewhile(spans.Spans.next, itertools.repeat(spans_)), key=spans.Spans.doc):
+            spans = itertools.repeat(query.getSpans(reader.context, reader.liveDocs, HashMap()))
+            for doc, spans in itertools.groupby(itertools.takewhile(search.spans.Spans.next, spans), key=search.spans.Spans.doc):
                 doc += offset
                 if payloads:
                     yield doc, [(span.start(), span.end(), [lucene.JArray_byte.cast_(data).string_ for data in span.payload]) \
-                        for span in spans_ if span.payloadAvailable]
+                        for span in spans if span.payloadAvailable]
                 elif positions:
-                    yield doc, [(span.start(), span.end()) for span in spans_]
+                    yield doc, [(span.start(), span.end()) for span in spans]
                 else:
-                    yield doc, sum(1 for span in spans_)
+                    yield doc, sum(1 for span in spans)
             offset += reader.maxDoc()
     def termvector(self, id, field, counts=False):
         "Generate terms for given doc id and field, optionally with frequency counts."
-        if hasattr(index.IndexReader, 'getTermFreqVector'):
-            tfv = self.getTermFreqVector(id, field) or search.QueryTermVector([])
-            for item in zip(tfv.terms, tfv.termFrequencies) if counts else tfv.terms:
-                yield item
-        else:
-            terms = self.getTermVector(id, field)
-            if terms:
-                termenum = terms.iterator(None)
-                for bytesref in util.BytesRefIterator.cast_(termenum):
-                    term = bytesref.utf8ToString()
-                    yield (term, termenum.totalTermFreq()) if counts else term
-    def positionvector(self, id, field, offsets=False):
-        "Generate terms and positions for given doc id and field, optionally with character offsets."
-        if hasattr(index.IndexReader, 'getTermFreqVector'):
-            tpv = index.TermPositionVector.cast_(self.getTermFreqVector(id, field))
-            for idx, term in enumerate(tpv.terms):
-                if offsets:
-                    yield term, list(map(operator.attrgetter('startOffset', 'endOffset'), tpv.getOffsets(idx)))
-                else:
-                    yield term, list(tpv.getTermPositions(idx))
-        else:
-            termenum = self.getTermVector(id, field).iterator(None)
+        terms = self.getTermVector(id, field)
+        if terms:
+            termenum = terms.iterator(None)
             for bytesref in util.BytesRefIterator.cast_(termenum):
                 term = bytesref.utf8ToString()
-                docsenum = termenum.docsAndPositions(None, None)
-                assert 0 <= docsenum.nextDoc() < docsenum.NO_MORE_DOCS
-                positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
-                if offsets:
-                    yield term, [(docsenum.startOffset(), docsenum.endOffset()) for position in positions]
-                else:
-                    yield term, list(positions)
+                yield (term, termenum.totalTermFreq()) if counts else term
+    def positionvector(self, id, field, offsets=False):
+        "Generate terms and positions for given doc id and field, optionally with character offsets."
+        termenum = self.getTermVector(id, field).iterator(None)
+        for bytesref in util.BytesRefIterator.cast_(termenum):
+            term = bytesref.utf8ToString()
+            docsenum = termenum.docsAndPositions(None, None)
+            assert 0 <= docsenum.nextDoc() < docsenum.NO_MORE_DOCS
+            positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
+            if offsets:
+                yield term, [(docsenum.startOffset(), docsenum.endOffset()) for position in positions]
+            else:
+                yield term, list(positions)
     def morelikethis(self, doc, *fields, **attrs):
         """Return MoreLikeThis query for document.
         
@@ -468,7 +382,7 @@ class IndexReader(object):
         :param fields: document fields to use, optional for termvectors
         :param attrs: additional attributes to set on the morelikethis object
         """
-        mlt = similar.MoreLikeThis(self.indexReader)
+        mlt = queries.mlt.MoreLikeThis(self.indexReader)
         mlt.fieldNames = fields or None
         for name, value in attrs.items():
             setattr(mlt, name, value)
@@ -491,10 +405,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         "Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."
         ref = closing()
         directory = ref.directory(directory)
-        try:
-            directory = store.RAMDirectory(directory)
-        except lucene.InvalidArgsError:
-            directory = store.RAMDirectory(directory, store.IOContext.DEFAULT)
+        directory = store.RAMDirectory(directory, store.IOContext.DEFAULT)
         self = cls(directory, analyzer)
         self.shared.add(self.directory)
         return self
@@ -509,12 +420,11 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param sorters: refresh cached :attr:`sorters` with associated parsers
         :param spellcheckers: refresh cached :attr:`spellcheckers`
         """
-        cls = getattr(index, 'DirectoryReader', index.IndexReader)
         try:
-            reader = cls.openIfChanged(cls.cast_(self.indexReader))
+            reader = index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
         except TypeError:
-            readers = [cls.openIfChanged(cls.cast_(reader)) for reader in self.sequentialSubReaders]
-            reader = index.MultiReader([new or old for new, old in zip(readers, self.sequentialSubReaders)]) if any(readers) else None
+            readers = list(map(index.DirectoryReader.openIfChanged, self.indexReaders))
+            reader = index.MultiReader([new or old for new, old in zip(readers, self.indexReaders)]) if any(readers) else None
         if reader is None:
             return self
         other = type(self)(reader, self.analyzer)
@@ -539,7 +449,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return Document(self.doc(id))
     def get(self, id, *fields):
         "Return `Document`_ with only selected fields loaded."
-        return Document(self.document(id, getattr(document, 'MapFieldSelector', HashSet)(Arrays.asList(fields))))
+        return Document(self.document(id, HashSet(Arrays.asList(fields))))
     def parse(self, query, spellcheck=False, **kwargs):
         if isinstance(query, search.Query):
             return query
@@ -549,11 +459,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def highlighter(self, query, field, **kwargs):
         "Return `Highlighter`_ or if applicable `FastVectorHighlighter`_ specific to searcher and query."
         query = self.parse(query, field=field)
-        if hasattr(index, 'MultiFields'):
-            fieldinfo = index.MultiFields.getMergedFieldInfos(self.indexReader).fieldInfo(field)
-            vector = fieldinfo and fieldinfo.hasVectors()
-        else:
-            vector = field in self.names('termvector_with_position_offset', storeTermVector=True)
+        fieldinfo = index.MultiFields.getMergedFieldInfos(self.indexReader).fieldInfo(field)
+        vector = fieldinfo and fieldinfo.hasVectors()
         return (FastVectorHighlighter if vector else Highlighter)(self, query, field, **kwargs)
     def count(self, *query, **options):
         """Return number of hits for given query or term.
@@ -687,7 +594,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 yield word
     def match(self, document, *queries):
         "Generate scores for all queries against a given document mapping."
-        searcher = memory.MemoryIndex()
+        searcher = index.memory.MemoryIndex()
         for name, value in document.items():
             if isinstance(value, basestring):
                 value = value, self.analyzer
@@ -711,17 +618,13 @@ class MultiSearcher(IndexSearcher):
         IndexSearcher.__init__(self, reader, analyzer)
         self.shared.update(shared)
         shared.clear()
-        if not hasattr(self, 'sequentialSubReaders'):
-            self.sequentialSubReaders = [context.reader() for context in self.context.children()]
-        self.version = sum(IndexReader(reader).version for reader in self.sequentialSubReaders)
+        self.indexReaders = [index.DirectoryReader.cast_(context.reader()) for context in self.context.children()]
+        self.version = sum(reader.version for reader in self.indexReaders)
     def __getattr__(self, name):
         return getattr(index.MultiReader.cast_(self.indexReader), name)
     @property
-    def readers(self):
-        return itertools.chain.from_iterable(IndexReader(reader).readers for reader in self.sequentialSubReaders)
-    @property
     def timestamp(self):
-        return max(IndexReader(reader).timestamp for reader in self.sequentialSubReaders)
+        return max(IndexReader(reader).timestamp for reader in self.indexReaders)
 
 class IndexWriter(index.IndexWriter):
     """Inherited lucene IndexWriter.

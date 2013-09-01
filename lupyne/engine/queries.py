@@ -8,16 +8,12 @@ import bisect
 import heapq
 import threading
 import lucene
-try:
-    from java.lang import Integer
-    from java.util import Arrays, HashSet
-    from org.apache.lucene import document, index, queries, search, util
-    from org.apache.lucene.search import highlight, spans, vectorhighlight
-    from org.apache.pylucene import search as search_
-    from org.apache.pylucene.queryparser.classic import PythonQueryParser
-except ImportError:
-    from lucene import Integer, Arrays, HashSet, PythonQueryParser
-    document = index = search = util = highlight = queries = spans = vectorhighlight = search_ = lucene
+from java.lang import Integer
+from java.util import Arrays, HashSet
+from org.apache.lucene import document, index, queries, search, util
+from org.apache.lucene.search import highlight, spans, vectorhighlight
+from org.apache.pylucene import search as parsers
+from org.apache.pylucene.queryparser.classic import PythonQueryParser
 
 class Query(object):
     """Inherited lucene Query, with dynamic base class acquisition.
@@ -34,11 +30,7 @@ class Query(object):
         elif isinstance(self, search.TermRangeQuery):
             filter = search.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
         elif isinstance(self, search.TermQuery):
-            if hasattr(queries.TermsFilter, 'addTerm'):
-                filter = queries.TermsFilter()
-                filter.addTerm(self.getTerm())
-            else:
-                filter = queries.TermsFilter([self.getTerm()])
+            filter = queries.TermsFilter([self.getTerm()])
         else:
             filter = search.QueryWrapperFilter(self)
         return search.CachingWrapperFilter(filter) if cache else filter
@@ -98,10 +90,7 @@ class Query(object):
     @classmethod
     def range(cls, name, start, stop, lower=True, upper=False):
         "Return lucene RangeQuery, by default with a half-open interval."
-        try:
-            return cls(search.TermRangeQuery, name, start, stop, lower, upper)
-        except lucene.InvalidArgsError:
-            start, stop = (value if value is None else util.BytesRef(value) for value in (start, stop))
+        start, stop = (value if value is None else util.BytesRef(value) for value in (start, stop))
         return cls(search.TermRangeQuery, name, start, stop, lower, upper)
     @classmethod
     def phrase(cls, name, *values):
@@ -168,12 +157,6 @@ class BooleanQuery(Query):
 
 class SpanQuery(Query):
     "Inherited lucene SpanQuery with additional span constructors."
-    def filter(self, cache=True):
-        "Return lucene CachingSpanFilter, optionally just SpanQueryFilter."
-        if not hasattr(search, 'SpanQueryFilter'):
-            return Query.filter(self, cache)
-        filter = search.SpanQueryFilter(self)
-        return search.CachingSpanFilter(filter) if cache else filter
     def __getitem__(self, slc):
         start, stop, step = slc.indices(Integer.MAX_VALUE)
         assert step == 1, 'slice step is not supported'
@@ -230,21 +213,14 @@ class TermsFilter(search.CachingWrapperFilter):
         "Return lucene TermsFilter, optionally using the FieldCache."
         if cache:
             return search.FieldCacheTermsFilter(self.field, tuple(values))
-        terms = [index.Term(self.field, value) for value in values]
-        if not hasattr(queries.TermsFilter, 'addTerm'):
-            return queries.TermsFilter(terms)
-        filter = queries.TermsFilter()
-        for term in terms:
-            filter.addTerm(term)
-        return filter
+        return queries.TermsFilter(self.field, tuple(map(util.BytesRef, values)))
     def apply(self, filter, op, readers):
         for reader in readers:
             try:
-                args = [reader.context, None] if hasattr(index.IndexReader, 'context') else [reader]
-                bitset = util.FixedBitSet.cast_(self.getDocIdSet(*args))
+                bitset = util.FixedBitSet.cast_(self.getDocIdSet(reader.context, None))
                 if reader not in self.readers:
                     bitset.clear(0, bitset.length())
-                getattr(bitset, op)(filter.getDocIdSet(*args).iterator())
+                getattr(bitset, op)(filter.getDocIdSet(reader.context, None).iterator())
             except lucene.JavaError as exc:
                 assert not reader.refCount, exc
     def update(self, values, op='or', cache=True):
@@ -285,8 +261,6 @@ class Comparator(object):
         idx = bisect.bisect_right(self.offsets, id) - 1
         id -= self.offsets[idx]
         array = self.arrays[idx]
-        if lucene.VERSION < '4':
-            return array[id]
         if not isinstance(array, index.BinaryDocValues):
             return array.get(id)
         br = util.BytesRef()
@@ -306,20 +280,17 @@ class SortField(search.SortField):
         if parser is None:
             parser = getattr(getattr(self, 'Type', self), type.upper())
         elif not search.FieldCache.Parser.instance_(parser):
-            base = getattr(search_, 'Python{0}Parser'.format(type))
+            base = getattr(parsers, 'Python{0}Parser'.format(type))
             namespace = {'parse' + type: staticmethod(parser), 'termsEnum': lambda self, terms: terms.iterator(None)}
             parser = object.__class__(base.__name__, (base,), namespace)()
         search.SortField.__init__(self, name, parser, reverse)
     def array(self, reader):
-        if lucene.VERSION >= '4' and self.typename == 'String':
+        if self.typename == 'String':
             return search.FieldCache.DEFAULT.getTerms(reader, self.field)
-        args = []
         method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
         if self.parser:
-            args.append(self.parser)
-        if lucene.VERSION >= '4':
-            args.append(False)
-        return method(reader, self.field, *args)
+            return method(reader, self.field, self.parser, False)
+        return method(reader, self.field, False)
     def comparator(self, searcher):
         "Return indexed values from default FieldCache using the given searcher."
         return Comparator((self.array(reader), reader.maxDoc()) for reader in searcher.readers)
@@ -330,21 +301,16 @@ class SortField(search.SortField):
     def terms(self, filter, *readers):
         "Generate field cache terms from docs which match filter from all segments."
         for reader in readers:
-            args = [reader.context, reader.liveDocs] if hasattr(reader, 'liveDocs') else [reader]
-            array, docset = self.array(reader), filter.getDocIdSet(*args)
+            array, docset = self.array(reader), filter.getDocIdSet(reader.context, reader.liveDocs)
             ids = iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS)
-            if lucene.VERSION < '4':
+            br = util.BytesRef()
+            if isinstance(array, index.BinaryDocValues):
                 for id in ids:
-                    yield array[id]
+                    array.get(id, br)
+                    yield br.utf8ToString()
             else:
-                br = util.BytesRef()
-                if isinstance(array, index.BinaryDocValues):
-                    for id in ids:
-                        array.get(id, br)
-                        yield br.utf8ToString()
-                else:
-                    for id in ids:
-                        yield array.get(id)
+                for id in ids:
+                    yield array.get(id)
 
 class Highlighter(highlight.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
@@ -364,7 +330,7 @@ class Highlighter(highlight.Highlighter):
         scorer = (highlight.QueryTermScorer if terms else highlight.QueryScorer)(query, *(searcher.indexReader, field) * (not fields))
         highlight.Highlighter.__init__(self, *filter(None, [formatter, encoder, scorer]))
         self.searcher, self.field = searcher, field
-        self.selector = getattr(document, 'MapFieldSelector', HashSet)(Arrays.asList([field]))
+        self.selector = HashSet(Arrays.asList([field]))
     def fragments(self, doc, count=1):
         """Return highlighted text fragments.
         
@@ -372,7 +338,7 @@ class Highlighter(highlight.Highlighter):
         :param count: maximum number of fragments
         """
         if not isinstance(doc, basestring):
-            doc = getattr(search.IndexSearcher, 'document', search.IndexSearcher.doc)(self.searcher, doc, self.selector)[self.field]
+            doc = self.searcher.doc(doc, self.selector)[self.field]
         return doc and list(self.getBestFragments(self.searcher.analyzer, self.field, doc, count))
 
 class FastVectorHighlighter(vectorhighlight.FastVectorHighlighter):

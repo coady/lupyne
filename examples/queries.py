@@ -6,11 +6,8 @@ Operator overloading is used for combining boolean clauses.
 
 import lucene
 lucene.initVM()
-try:
-    from org.apache.lucene import index, search
-    from org.apache.lucene.search import spans
-except ImportError:
-    index = search = spans = lucene
+from org.apache.lucene import index, search
+from org.apache.lucene.search import spans
 from lupyne.engine import Query
 
 ### lucene ###

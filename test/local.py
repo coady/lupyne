@@ -9,21 +9,12 @@ import math
 import bisect
 import contextlib
 import lucene
-try:
-    from java.io import StringReader
-    from org.apache.lucene import analysis, document, search, store, util
-    from org.apache.lucene.analysis import miscellaneous, standard
-    from org.apache.lucene.search import grouping, highlight, vectorhighlight
-    from org.apache.pylucene.search import PythonFilter
-except ImportError:
-    from lucene import StringReader, PythonFilter
-    analysis = document = search = store = util = miscellaneous = standard = grouping = highlight = vectorhighlight = lucene
+from java.io import StringReader
+from org.apache.lucene import analysis, document, search, store, util
+from org.apache.lucene.search import grouping, highlight, vectorhighlight
+from org.apache.pylucene.search import PythonFilter
 from lupyne import engine
 from . import fixture
-if not hasattr(analysis, 'PorterStemFilter'):
-    analysis.PorterStemFilter = analysis.en.PorterStemFilter
-if hasattr(analysis, 'core'):
-    analysis.WhitespaceAnalyzer, analysis.WhitespaceTokenizer = analysis.core.WhitespaceAnalyzer, analysis.core.WhitespaceTokenizer
 
 class typeAsPayload(engine.TokenFilter):
     "Custom implementation of lucene TypeAsPayloadTokenFilter."
@@ -53,11 +44,11 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Indexer and document interfaces."
         self.assertRaises(TypeError, engine.IndexSearcher)
-        analyzer = lambda reader: standard.StandardTokenizer(util.Version.values()[-1], reader)
-        stemmer = engine.Analyzer(analyzer, analysis.PorterStemFilter, typeAsPayload)
+        analyzer = lambda reader: analysis.standard.StandardTokenizer(util.Version.values()[-1], reader)
+        stemmer = engine.Analyzer(analyzer, analysis.en.PorterStemFilter, typeAsPayload)
         for token in stemmer.tokens('hello'):
             assert token.positionIncrement == 1
-            assert engine.TokenFilter(miscellaneous.EmptyTokenStream()).payload is None
+            assert engine.TokenFilter(analysis.miscellaneous.EmptyTokenStream()).payload is None
             assert token.term == 'hello'
             assert token.type == token.payload == '<ALPHANUM>'
             assert token.offset == (0, 5)
@@ -65,14 +56,14 @@ class TestCase(BaseTest):
             token.offset, token.positionIncrement = (0, 0), 0
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
-        indexer = engine.Indexer(analyzer=stemmer, version=util.Version.LUCENE_30, writeLockTimeout=100L)
+        indexer = engine.Indexer(analyzer=stemmer, version=util.Version.LUCENE_43, writeLockTimeout=100L)
         assert indexer.config.writeLockTimeout == 100
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
         indexer.set('name', store=True, index=False)
         indexer.set('tag', store=True, index=True, boost=2.0)
         for field in indexer.fields['tag'].items('sample'):
-            assert isinstance(field, document.Field) and getattr(field, 'getBoost', field.boost)() == 2.0
+            assert isinstance(field, document.Field) and field.boost() == 2.0
         searcher = indexer.indexSearcher
         indexer.commit()
         assert searcher is indexer.indexSearcher
@@ -95,16 +86,8 @@ class TestCase(BaseTest):
         assert not list(indexer.termvector(0, 'tag'))
         assert indexer.count('text', 'hello') == indexer.count('text:hello') == 1
         assert sorted(indexer.names()) == ['name', 'tag', 'text']
-        try:
-            names = indexer.names(indexed=True)
-        except AttributeError:
-            names = indexer.names('indexed', isIndexed=True)
-        assert sorted(names)[-2:] == ['tag', 'text']
-        try:
-            names = indexer.names(indexed=False)
-        except AttributeError:
-            names = indexer.names('unindexed', isIndexed=False)
-        assert 'name' in names
+        assert sorted(indexer.names(indexed=True)) == ['tag', 'text']
+        assert indexer.names(indexed=False) == ['name']
         assert list(indexer.terms('text')) == ['hello', 'world']
         assert list(indexer.terms('text', 'h', 'v')) == ['hello']
         assert dict(indexer.terms('text', 'w', counts=True)) == {'world': 1}
@@ -134,19 +117,14 @@ class TestCase(BaseTest):
         assert str(search.MatchAllDocsQuery() | query) == '*:* text:*'
         assert str(search.MatchAllDocsQuery() - query) == '*:* -text:*'
         query = +query
-        if hasattr(search.FuzzyQuery, 'defaultMaxEdits'):
-            query &= engine.Query.fuzzy('text', 'hello')
-            query |= engine.Query.fuzzy('text', 'hello', 1)
-            assert str(query) == '+text:* +text:hello~2 text:hello~1'
-        else:
-            query &= engine.Query.fuzzy('text', 'hello')
-            query |= engine.Query.fuzzy('text', 'hello', 0.1)
-            assert str(query) == '+text:* +text:hello~0.5 text:hello~0.1'
+        query &= engine.Query.fuzzy('text', 'hello')
+        query |= engine.Query.fuzzy('text', 'hello', 1)
+        assert str(query) == '+text:* +text:hello~2 text:hello~1'
         query = engine.Query.span('text', 'world')
         assert str(query.mask('name')) == 'mask(text:world) as name'
         assert str(query.payload()) == 'spanPayCheck(text:world, payloadRef: )'
-        assert isinstance(query.filter(cache=False), getattr(search, 'SpanQueryFilter', search.QueryWrapperFilter))
-        assert isinstance(query.filter(), getattr(search, 'CachingSpanFilter', search.CachingWrapperFilter))
+        assert isinstance(query.filter(cache=False), search.QueryWrapperFilter)
+        assert isinstance(query.filter(), search.CachingWrapperFilter)
         query = engine.Query.disjunct(0.1, query, name='sample')
         assert str(query) == '(text:world | name:sample)~0.1'
         query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
@@ -182,7 +160,7 @@ class TestCase(BaseTest):
         indexer += temp.directory
         indexer += self.tempdir
         assert len(indexer) == 3
-        indexer.add(text=analysis.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, StringReader('?')), name=lucene.JArray_byte('{}'))
+        indexer.add(text=analysis.core.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, StringReader('?')), name=lucene.JArray_byte('{}'))
         indexer.commit()
         value = indexer[next(indexer.docs('text', '?'))]['name']
         assert value == '{}' or value.utf8ToString() == '{}'
@@ -221,7 +199,7 @@ class TestCase(BaseTest):
         indexer.commit(filters=True, spellcheckers=True)
         assert reader.refCount == 0
         assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
-        tokenizer = lambda reader: analysis.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, reader)
+        tokenizer = lambda reader: analysis.core.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, reader)
         doc['amendment'] = engine.Analyzer(tokenizer).tokens(doc['amendment'])
         doc['date'] = engine.Analyzer(tokenizer).tokens(doc['date']), 2.0
         scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
@@ -245,9 +223,6 @@ class TestCase(BaseTest):
         assert sorted(map(int, indexer.terms('amendment'))) == range(1, 28)
         assert list(itertools.islice(indexer.terms('text', 'right'), 2)) == ['right', 'rights']
         assert list(indexer.terms('text', 'right*')) == ['right', 'rights']
-        if hasattr(search, 'WildcardTermEnum'):
-            with assertWarns(DeprecationWarning):
-                assert list(indexer.terms('text', 'right?')) == ['rights']
         assert list(indexer.terms('text', 'right', minSimilarity=0.5)) == ['eight', 'right', 'rights']
         word, count = next(indexer.terms('text', 'people', counts=True))
         assert word == 'people' and count == 8
@@ -282,7 +257,7 @@ class TestCase(BaseTest):
         assert math.isnan(hits.maxscore)
         hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
         assert hits.maxscore > max(hits.scores)
-        parser = lambda value: int((value.utf8ToString() if hasattr(value, 'utf8ToString') else value) or -1)
+        parser = lambda value: int(value.utf8ToString() or -1)
         comparator = indexer.comparator('amendment', type=int, parser=parser)
         hits = indexer.search('text:people').sorted(comparator.__getitem__)
         assert sorted(hits.ids) == list(hits.ids) and list(hits.ids) != ids
@@ -347,7 +322,7 @@ class TestCase(BaseTest):
         assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
         assert dict(indexer.positionvector(id, 'text'))['persons'] in ([3, 26], [10, 48])
         assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
-        analyzer = analysis.WhitespaceAnalyzer(util.Version.LUCENE_CURRENT)
+        analyzer = analysis.core.WhitespaceAnalyzer(util.Version.LUCENE_CURRENT)
         query = indexer.morelikethis(0, analyzer=analyzer)
         assert str(query) == 'text:united text:states'
         hits = indexer.search(query & engine.Query.prefix('article', ''))
@@ -356,12 +331,7 @@ class TestCase(BaseTest):
         assert str(indexer.morelikethis(0, minDocFreq=3, analyzer=analyzer)) == 'text:establish text:united text:states'
         assert str(indexer.morelikethis('jury', 'text', minDocFreq=4, minTermFreq=1, analyzer=analyzer)) == 'text:jury'
         assert str(indexer.morelikethis('jury', 'article', analyzer=analyzer)) == ''
-        try:
-            query = indexer.morelikethis('jury')
-        except lucene.JavaError:
-            pass
-        else:
-            assert str(query) == ''
+        self.assertRaises(lucene.JavaError, indexer.morelikethis, 'jury')
         assert indexer.suggest('missing', '') == list(indexer.correct('missing', '')) == []
         assert indexer.suggest('text', '')[:8] == ['shall', 'states', 'any', 'have', 'united', 'congress', 'state', 'constitution']
         assert indexer.suggest('text', 'con')[:2] == ['congress', 'constitution']
@@ -407,16 +377,8 @@ class TestCase(BaseTest):
                 location = '.'.join(doc[name] for name in ['state', 'county', 'city'])
                 indexer.add(doc, latitude=lat, longitude=lng, location=location)
         indexer.commit()
-        try:
-            names = indexer.names(indexed=True)
-        except AttributeError:
-            names = indexer.names('indexed', isIndexed=True)
-        assert set(['state', 'zipcode']) < set(names)
-        try:
-            names = indexer.names(indexed=False)
-        except AttributeError:
-            names = indexer.names('unindexed', isIndexed=False)
-        assert set(['latitude', 'longitude', 'county', 'city']) <= set(names)
+        assert sorted(indexer.names(indexed=True)) == ['state', 'state.county', 'state.county.city', 'zipcode']
+        assert sorted(indexer.names(indexed=False)) == ['city', 'county', 'latitude', 'longitude']
         states = list(indexer.terms('state'))
         assert states[0] == 'AK' and states[-1] == 'WY'
         counties = [term.split('.')[-1] for term in indexer.terms('state.county', 'CA', 'CA~')]
@@ -532,12 +494,8 @@ class TestCase(BaseTest):
         self.assertRaises(lucene.JavaError, engine.Field, '', index=False)
         field = engine.Field('', index=True, analyzed=True, omitNorms=True, termvector=True, withPositions=True, withOffsets=True)
         field, = field.items(' ')
-        attrs = 'indexed', 'tokenized', 'termVectorStored', 'storePositionWithTermVector', 'storeOffsetWithTermVector', 'omitNorms'
-        try:
-            assert all(getattr(field, attr) for attr in attrs)
-        except AttributeError:
-            attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
-            assert all(getattr(field.fieldType(), attr)() for attr in attrs)
+        attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
+        assert all(getattr(field.fieldType(), attr)() for attr in attrs)
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.MapField, func='{0:02d}'.format, store=True)
         indexer.set('size', engine.MapField, func='{0:04d}'.format, store=True)
@@ -570,7 +528,7 @@ class TestCase(BaseTest):
         assert list(hits.ids) == ids[:len(hits)]
         query = engine.Query.range('size', None, '1000')
         assert indexer.count(query) == len(sizes) - len(ids)
-        parser = lambda date: int((date.utf8ToString() if lucene.VERSION >= '4' else date).split('-')[0])
+        parser = lambda date: int(date.utf8ToString().split('-')[0])
         indexer.sorters['year'] = engine.SortField('Y-m-d', type=int, parser=parser)
         assert list(indexer.comparator('year'))[:10] == [1791] * 10
         cache = len(search.FieldCache.DEFAULT.cacheEntries)
@@ -627,7 +585,7 @@ class TestCase(BaseTest):
         assert indexer.count(query) == len(sizes) - len(ids)
         self.assertRaises(OverflowError, list, field.items(-2**64))
         nf, = field.items(0.5)
-        assert (nf.numericValue if hasattr(document, 'NumericField') else nf.numericValue()).doubleValue() == 0.5
+        assert nf.numericValue().doubleValue() == 0.5
         assert str(field.range(-2**64, 0)) == 'size:[* TO 0}'
         assert str(field.range(0, 2**64)) == 'size:[0 TO *}'
         assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
@@ -672,7 +630,7 @@ class TestCase(BaseTest):
     
     def testNearRealTime(self):
         "Near real-time index updates."
-        indexer = engine.Indexer(version=util.Version.LUCENE_30, nrt=True)
+        indexer = engine.Indexer(version=util.Version.LUCENE_43, nrt=True)
         indexer.add()
         assert indexer.count() == 0 and not indexer.current
         indexer.refresh(filters=True)

@@ -24,12 +24,8 @@ Custom sorting isn't necessary in the below example of course, just there for de
 
 import lucene
 lucene.initVM()
-try:
-    from org.apache.lucene import search, util
-    from org.apache.pylucene.search import PythonFieldComparator, PythonFieldComparatorSource
-except ImportError:
-    search = util = lucene
-    from lucene import PythonFieldComparator, PythonFieldComparatorSource
+from org.apache.lucene import search, util
+from org.apache.pylucene.search import PythonFieldComparator, PythonFieldComparatorSource
 from lupyne import engine
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
@@ -55,12 +51,9 @@ class ComparatorSource(PythonFieldComparatorSource):
         def setNextReader(self, reader, *args):
             if not args:
                 reader = reader.reader()
-            if hasattr(search.FieldCache, 'getStrings'):
-                self.comparator = search.FieldCache.DEFAULT.getStrings(reader, self.name)
-            else:
-                br = util.BytesRef()
-                comparator = search.FieldCache.DEFAULT.getTerms(reader, self.name)
-                self.comparator = [comparator.get(id, br) or br.utf8ToString() for id in range(reader.maxDoc())]
+            br = util.BytesRef()
+            comparator = search.FieldCache.DEFAULT.getTerms(reader, self.name)
+            self.comparator = [comparator.get(id, br) or br.utf8ToString() for id in range(reader.maxDoc())]
             return self
         def compare(self, slot1, slot2):
             return cmp(self.values[slot1], self.values[slot2])

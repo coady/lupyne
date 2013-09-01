@@ -164,8 +164,8 @@ class TestCase(BaseTest):
         assert resource.get('/docs/0') == resource.get('/docs/name/sample') == {'name': 'sample'}
         assert resource.get('/docs/0', fields='missing') == {'missing': None}
         assert resource.get('/docs/0', fields='', **{'fields.multi': 'missing'}) == {'missing': []}
-        assert resource.get('/terms') == ['name', 'text']
-        assert resource.get('/terms', option='unindexed', isIndexed=False) == []
+        assert resource.get('/terms') == resource.get('/terms', indexed='true') == ['name', 'text']
+        assert resource.get('/terms', indexed='false') == []
         assert resource.get('/terms/text') == ['hello', 'world']
         assert resource.get('/terms/text/world') == 1
         with assertRaises(httplib.HTTPException, httplib.BAD_REQUEST):
@@ -285,10 +285,7 @@ class TestCase(BaseTest):
         filepath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lupyne/server.py')
         assert subprocess.call((sys.executable, filepath, '-c', filepath), stderr=subprocess.PIPE)
         assert cherrypy.tree.mount(None)
-        try:
-            server.init(vmargs=None)
-        except ValueError:
-            pass
+        server.init(vmargs=None)
         self.assertRaises(AttributeError, server.start, config=True)
     
     def testBasic(self):

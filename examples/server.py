@@ -19,7 +19,7 @@ from lupyne import engine, server
 from test import fixture
 
 def parse(date):
-    return int((date.utf8ToString() if hasattr(date, 'utf8ToString') else date).split('-')[0])
+    return int(date.utf8ToString().split('-')[0])
 
 if __name__ == '__main__':
     lucene.initVM(vmargs='-Xrs')

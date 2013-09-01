@@ -6,14 +6,10 @@ from future_builtins import map
 import datetime, calendar
 import operator
 import lucene
-try:
-    from java.lang import Double, Float, Long, Number, Object
-    from java.util import Arrays, HashSet
-    from org.apache.lucene import document, search, util
-    from org.apache.lucene.search import grouping
-except ImportError:
-    from lucene import Double, Float, Long, Number, Object, Arrays, HashSet
-    document = search = util = grouping = lucene
+from java.lang import Double, Float, Long, Number, Object
+from java.util import Arrays, HashSet
+from org.apache.lucene import document, search, util
+from org.apache.lucene.search import grouping
 from .queries import Query
 
 class Field(object):
@@ -109,27 +105,19 @@ class NumericField(Field):
         Field.__init__(self, name, store)
         self.step = step or util.NumericUtils.PRECISION_STEP_DEFAULT
         self.index = index
-        if hasattr(document, 'FieldType'):
-            self.type = document.FieldType()
-            self.type.setNumericPrecisionStep(self.step)
-            self.type.setStored(self.store == document.Field.Store.YES)
-            self.type.setIndexed(index)
+        self.type = document.FieldType()
+        self.type.setNumericPrecisionStep(self.step)
+        self.type.setStored(self.store == document.Field.Store.YES)
+        self.type.setIndexed(index)
     def items(self, *values):
         "Generate lucene NumericFields suitable for adding to a document."
         for value in values:
-            if hasattr(self, 'type'):
-                if isinstance(value, float):
-                    self.type.setNumericType(document.FieldType.NumericType.DOUBLE)
-                    field = document.DoubleField(self.name, value, self.type)
-                else:
-                    self.type.setNumericType(document.FieldType.NumericType.LONG)
-                    field = document.LongField(self.name, long(value), self.type)
+            if isinstance(value, float):
+                self.type.setNumericType(document.FieldType.NumericType.DOUBLE)
+                field = document.DoubleField(self.name, value, self.type)
             else:
-                field = document.NumericField(self.name, self.step, self.store, self.index)
-                if isinstance(value, float):
-                    field.doubleValue = value
-                else:
-                    field.longValue = long(value)
+                self.type.setNumericType(document.FieldType.NumericType.LONG)
+                field = document.LongField(self.name, long(value), self.type)
             yield field
     def numeric(self, cls, start, stop, lower, upper):
         if isinstance(start, float) or isinstance(stop, float):
@@ -200,10 +188,7 @@ class Document(dict):
     "Multimapping of field names to values, but default getters return the first value."
     def __init__(self, doc):
         for field in doc.getFields():
-            try:
-                value = field.binaryValue.string_ if field.binary else field.stringValue()
-            except AttributeError:
-                value = field.stringValue() or field.binaryValue() or field.numericValue().toString()
+            value = field.stringValue() or field.binaryValue() or field.numericValue().toString()
             self.setdefault(field.name(), []).append(value)
     def __getitem__(self, name):
         return dict.__getitem__(self, name)[0]
@@ -224,7 +209,7 @@ class Document(dict):
 
 def convert(value):
     "Return python object from java Object."
-    if hasattr(util, 'BytesRef') and util.BytesRef.instance_(value):
+    if util.BytesRef.instance_(value):
         return util.BytesRef.cast_(value).utf8ToString()
     if not Number.instance_(value):
         return value.toString() if Object.instance_(value) else value
@@ -261,7 +246,7 @@ class Hits(object):
         self.fields = fields
     def select(self, *fields):
         "Only load selected fields."
-        self.fields = getattr(document, 'MapFieldSelector', HashSet)(Arrays.asList(fields))
+        self.fields = HashSet(Arrays.asList(fields))
     def __len__(self):
         return len(self.scoredocs)
     def __getitem__(self, index):
@@ -272,12 +257,7 @@ class Hits(object):
             return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
         scoredoc = self.scoredocs[index]
         keys = search.FieldDoc.cast_(scoredoc).fields if search.FieldDoc.instance_(scoredoc) else ()
-        if self.fields is None:
-            doc = self.searcher.doc(scoredoc.doc)
-        elif hasattr(search.IndexSearcher, 'document'):
-            doc = self.searcher.document(scoredoc.doc, self.fields)
-        else:
-            doc = self.searcher.doc(scoredoc.doc, self.fields)
+        doc = self.searcher.doc(scoredoc.doc, self.fields)
         return Hit(doc, scoredoc.doc, scoredoc.score, keys)
     @property
     def ids(self):
@@ -318,16 +298,15 @@ class Grouping(object):
     :param count: maximum number of groups
     :param sort: lucene Sort to order groups
     """
-    collectors = getattr(grouping, 'term', grouping)
     def __init__(self, searcher, field, query=None, count=None, sort=None):
         self.searcher, self.field = searcher, field
         self.query = query or search.MatchAllDocsQuery()
         self.sort = sort or search.Sort.RELEVANCE
         if count is None:
-            collector = self.collectors.TermAllGroupsCollector(field)
+            collector = grouping.term.TermAllGroupsCollector(field)
             search.IndexSearcher.search(self.searcher, self.query, collector)
             count = collector.groupCount
-        collector = self.collectors.TermFirstPassGroupingCollector(field, self.sort, count)
+        collector = grouping.term.TermFirstPassGroupingCollector(field, self.sort, count)
         search.IndexSearcher.search(self.searcher, self.query, collector)
         self.searchgroups = collector.getTopGroups(0, False).of_(grouping.SearchGroup)
     def __len__(self):
@@ -337,7 +316,7 @@ class Grouping(object):
             yield convert(searchgroup.groupValue)
     def facets(self, filter):
         "Generate field values and counts which match given filter."
-        collector = self.collectors.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, self.sort, 1, False, False, False)
+        collector = grouping.term.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, self.sort, 1, False, False, False)
         search.IndexSearcher.search(self.searcher, self.query, filter, collector)
         for groupdocs in collector.getTopGroups(0).groups:
             yield convert(groupdocs.groupValue), groupdocs.totalHits
@@ -352,7 +331,7 @@ class Grouping(object):
         sort = sort or self.sort
         if sort == search.Sort.RELEVANCE:
             scores = maxscore = True
-        collector = self.collectors.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, True)
+        collector = grouping.term.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, True)
         search.IndexSearcher.search(self.searcher, self.query, collector)
         for groupdocs in collector.getTopGroups(0).groups:
             hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
