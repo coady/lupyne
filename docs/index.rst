@@ -16,7 +16,7 @@ Quickstart
 
   >>> from lupyne import engine                       # don't forget to call lucene.initVM
   >>> indexer = engine.Indexer()                      # create an in-memory index (no filename supplied)
-  >>> indexer.set('name', store=True)                 # create stored 'name' field
+  >>> indexer.set('name', stored=True)                # create stored 'name' field
   >>> indexer.set('text')                             # create indexed 'text' field (the default)
   >>> indexer.add(name='sample', text='hello world')  # add a document to the index
   >>> indexer.commit()                                # commit changes; document is now searchable

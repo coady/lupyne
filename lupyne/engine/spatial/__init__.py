@@ -64,7 +64,7 @@ class PointField(NumericField, Tiler):
     """
     def __init__(self, name, precision=30, **kwargs):
         Tiler.__init__(self)
-        NumericField.__init__(self, name, **kwargs)
+        NumericField.__init__(self, name, type=int, **kwargs)
         self.precision = precision
     def items(self, *points):
         "Generate tiles from points (lng, lat)."

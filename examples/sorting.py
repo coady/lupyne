@@ -30,7 +30,7 @@ from lupyne import engine
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
 indexer = engine.Indexer()
-indexer.set('color', store=True, index=True)
+indexer.set('color', stored=True, tokenized=False)
 for color in colors:
     indexer.add(color=color)
 indexer.commit()

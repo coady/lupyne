@@ -122,6 +122,7 @@ documents
 
 Document
 ^^^^^^^^^^^^^
+.. versionchanged:: 1.4+ stored numeric types returned as numbers
 .. autoclass:: Document
   :show-inheritance:
   :members:
@@ -153,6 +154,7 @@ Grouping
 
 Field
 ^^^^^^^^^^^^^
+.. deprecated:: 1.4+ lucene Field.{Store,Index,TermVector} deprecated in favor of FieldType attributes
 .. autoclass:: Field
   :members:
 
@@ -170,6 +172,8 @@ NestedField
 
 NumericField
 ^^^^^^^^^^^^^
+.. versionchanged:: 1.4+ recommended to specify initial int or float type
+.. deprecated:: 1.4+ custom step deprecated in favor of numericPrecisionStep
 .. autoclass:: NumericField
   :show-inheritance:
   :members:

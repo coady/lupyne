@@ -50,6 +50,7 @@ import collections
 import itertools
 import os, optparse
 import contextlib
+import warnings
 try:
     import simplejson as json
 except ImportError:
@@ -718,7 +719,7 @@ class WebIndexer(WebSearcher):
         elif request.method == 'PUT':
             doc = getattr(request, 'json', {})
             with HTTPError(httplib.CONFLICT, KeyError, AssertionError):
-                assert self.indexer.fields[name].index.indexed, 'unique field must be indexed'
+                assert self.indexer.fields[name].indexed(), 'unique field must be indexed'
             with HTTPError(httplib.BAD_REQUEST, AssertionError):
                 assert doc.setdefault(name, value) == value, 'multiple values for unique field'
             self.indexer.update(name, value, doc)
@@ -748,7 +749,7 @@ class WebIndexer(WebSearcher):
     @cherrypy.tools.allow(paths=[('GET',), ('GET', 'PUT')])
     @cherrypy.tools.validate(on=False)
     def fields(self, name='', **settings):
-        """Return or store a field's parameters.
+        """Return or store a field's settings.
         
         **GET** /fields
             Return known field names.
@@ -756,11 +757,13 @@ class WebIndexer(WebSearcher):
             :return: [*string*,... ]
         
         **GET, PUT** /fields/*chars*
-            Set and return parameters for given field name.
+            Set and return settings for given field name.
             
-            {"store"|"index"|"termvector": *string*\|true|false,... }
+            {"stored"|"indexed"\|...: *string*\|true|false,... }
             
-            :return: {"store": *string*, "index": *string*, "termvector": *string*}
+            .. deprecated:: 1.4+ lucene FieldType attributes used as settings
+            
+            :return: {"stored"|"indexed"\|...: *string*\|true|false,... }
         """
         if not name:
             return sorted(self.indexer.fields)
@@ -768,10 +771,12 @@ class WebIndexer(WebSearcher):
             if name not in self.indexer.fields:
                 cherrypy.response.status = httplib.CREATED
             with HTTPError(httplib.BAD_REQUEST, AttributeError):
-                self.indexer.set(name, **settings)
+                with warnings.catch_warnings(record=True) as messages:
+                    self.indexer.set(name, **settings)
+            for message in messages:
+                cherrypy.response.headers['warning'] = '199 lupyne "{0}"'.format(message.message)
         with HTTPError(httplib.NOT_FOUND, KeyError):
-            field = self.indexer.fields[name]
-        return dict((name, str(getattr(field, name))) for name in ['store', 'index', 'termvector'])
+            return self.indexer.fields[name].settings
 
 def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
     "Callback to initialize VM and app roots after daemonizing."

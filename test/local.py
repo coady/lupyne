@@ -25,8 +25,8 @@ class typeAsPayload(engine.TokenFilter):
 def assertWarns(*categories):
     with warnings.catch_warnings(record=True) as messages:
         yield
-    for message, category in itertools.izip_longest(messages, categories):
-         assert issubclass(message.category, category), message
+    types = [message.category for message in messages]
+    assert types == list(categories), types
 
 class Filter(PythonFilter):
     "Broken filter to test errors are raised."
@@ -60,8 +60,8 @@ class TestCase(BaseTest):
         assert indexer.config.writeLockTimeout == 100
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
-        indexer.set('name', store=True, index=False)
-        indexer.set('tag', store=True, index=True, boost=2.0)
+        indexer.set('name', stored=True, indexed=False)
+        indexer.set('tag', stored=True, tokenized=False, boost=2.0)
         for field in indexer.fields['tag'].items('sample'):
             assert isinstance(field, document.Field) and field.boost() == 2.0
         searcher = indexer.indexSearcher
@@ -160,10 +160,9 @@ class TestCase(BaseTest):
         indexer += temp.directory
         indexer += self.tempdir
         assert len(indexer) == 3
-        indexer.add(text=analysis.core.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, StringReader('?')), name=lucene.JArray_byte('{}'))
+        indexer.add(text=analysis.core.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, StringReader('?')), name=util.BytesRef('{}'))
         indexer.commit()
-        value = indexer[next(indexer.docs('text', '?'))]['name']
-        assert value == '{}' or value.utf8ToString() == '{}'
+        assert indexer[next(indexer.docs('text', '?'))]['name'] == '{}'
         reader = engine.indexers.IndexReader(indexer.indexReader)
         assert reader[0].dict() == {} and reader.count('text', '?') == 1
         assert len(reader.comparator('text')) == 4
@@ -439,8 +438,8 @@ class TestCase(BaseTest):
         for name, params in fixture.zipcodes.fields.items():
             indexer.set(name, **params)
         for name in ('longitude', 'latitude'):
-            indexer.set(name, engine.NumericField, store=True)
-        field = indexer.fields['tile'] = engine.PointField('tile', precision=15, step=2, store=True)
+            indexer.set(name, engine.NumericField, type=float, stored=True)
+        field = indexer.fields['tile'] = engine.PointField('tile', precision=15, numericPrecisionStep=2, stored=True)
         points = []
         for doc in fixture.zipcodes.docs():
             if doc['state'] == 'CA':
@@ -489,17 +488,23 @@ class TestCase(BaseTest):
     
     def testFields(self):
         "Custom fields."
-        self.assertRaises(lucene.JavaError, engine.Field, '', store='invalid')
-        self.assertRaises(AttributeError, engine.Field, '', omit='value')
-        self.assertRaises(lucene.JavaError, engine.Field, '', index=False)
-        field = engine.Field('', index=True, analyzed=True, omitNorms=True, termvector=True, withPositions=True, withOffsets=True)
+        self.assertRaises(lucene.InvalidArgsError, engine.Field, '', stored='invalid')
+        settings = {'indexed': False, 'docValueType': 'NUMERIC', 'indexOptions': 'DOCS_ONLY'}
+        field = engine.Field('', **settings)
+        assert field.settings == engine.Field('', **field.settings).settings == settings
+        with assertWarns(DeprecationWarning):
+            field = engine.NestedField('', store=True)
+        assert field.settings == {'indexed': True, 'tokenized': False, 'stored': True}
+        field = engine.Field('', omitNorms=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
         field, = field.items(' ')
         attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
         assert all(getattr(field.fieldType(), attr)() for attr in attrs)
         indexer = engine.Indexer(self.tempdir)
-        indexer.set('amendment', engine.MapField, func='{0:02d}'.format, store=True)
-        indexer.set('size', engine.MapField, func='{0:04d}'.format, store=True)
-        field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', store=True)
+        indexer.set('', store='yes', termvector='no')
+        assert indexer.fields.pop('').settings == {'indexed': True, 'stored': True}
+        indexer.set('amendment', engine.MapField, func='{0:02d}'.format, stored=True)
+        indexer.set('size', engine.MapField, func='{0:04d}'.format, stored=True)
+        field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', stored=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=doc['date'], size=len(doc['text']))
@@ -549,10 +554,13 @@ class TestCase(BaseTest):
     
     def testNumeric(self):
         "Numeric fields."
+        nf, = engine.NumericField('temp').items(0.5)
+        assert nf.numericValue().doubleValue() == 0.5
         indexer = engine.Indexer(self.tempdir)
-        indexer.set('amendment', engine.NumericField, store=True)
-        indexer.set('date', engine.DateTimeField, store=True)
-        indexer.set('size', engine.NumericField, store=True, step=5)
+        indexer.set('amendment', engine.NumericField, type=int, stored=True)
+        indexer.set('date', engine.DateTimeField, stored=True)
+        with assertWarns(DeprecationWarning):
+            indexer.set('size', engine.NumericField, type=int, stored=True, step=5)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
@@ -567,7 +575,7 @@ class TestCase(BaseTest):
         assert indexer.count(query) == 19
         query = field.range(datetime.date(1919, 1, 1), datetime.date(1921, 12, 31))
         hits = indexer.search(query)
-        assert [hit['amendment'] for hit in hits] == ['18', '19']
+        assert [hit['amendment'] for hit in hits] == [18, 19]
         assert [datetime.datetime.utcfromtimestamp(float(hit['date'])).year for hit in hits] == [1919, 1920]
         assert indexer.count(field.within(seconds=100)) == indexer.count(field.within(weeks=1)) == 0
         query = field.duration([2009], days=-100*365)
@@ -584,23 +592,21 @@ class TestCase(BaseTest):
         query = field.range(None, 1000)
         assert indexer.count(query) == len(sizes) - len(ids)
         self.assertRaises(OverflowError, list, field.items(-2**64))
-        nf, = field.items(0.5)
-        assert nf.numericValue().doubleValue() == 0.5
         assert str(field.range(-2**64, 0)) == 'size:[* TO 0}'
         assert str(field.range(0, 2**64)) == 'size:[0 TO *}'
         assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
-        for step, count in zip(range(0, 20, field.step), (26, 19, 3, 1)):
+        for step, count in zip(range(0, 20, field.numericPrecisionStep()), (26, 19, 3, 1)):
             sizes = list(indexer.numbers('size', step))
             assert len(sizes) == count and all(isinstance(size, int) for size in sizes)
             numbers = dict(indexer.numbers('size', step, type=float, counts=True))
             assert sum(numbers.values()) == len(indexer) and all(isinstance(number, float) for number in numbers)
         hit, = indexer.search(indexer.fields['amendment'].term(1))
-        assert hit['amendment'] == '1'
+        assert hit['amendment'] == 1
     
     def testHighlighting(self):
         "Highlighting text fragments."
         indexer = engine.Indexer()
-        indexer.set('text', store=True, termvector=True, withPositions=True, withOffsets=True)
+        indexer.set('text', stored=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(text=doc['text'])
@@ -644,7 +650,7 @@ class TestCase(BaseTest):
     def testFilters(self):
         "Custom filters."
         indexer = engine.Indexer()
-        indexer.set('name', store=True, index=True)
+        indexer.set('name', stored=True, indexed=True)
         for name in ('alpha', 'bravo', 'charlie'):
             indexer.add(name=name)
         indexer.commit()
@@ -654,7 +660,7 @@ class TestCase(BaseTest):
         filter.discard('bravo', 'charlie')
         assert filter.values == set(['alpha'])
         parallel = engine.ParallelIndexer('name')
-        parallel.set('priority', index=True)
+        parallel.set('priority', tokenized=False)
         for name in ('alpha', 'bravo', 'delta'):
             parallel.update(name, priority='high')
         parallel.commit()

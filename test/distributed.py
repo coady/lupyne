@@ -30,9 +30,9 @@ class TestCase(remote.BaseTest):
             (directory, count), = response().items()
             assert count == 0 and directory.startswith('org.apache.lucene.store.RAMDirectory@')
         responses = resources.broadcast('PUT', '/fields/text')
-        assert all(response() == {'index': 'ANALYZED', 'store': 'NO', 'termvector': 'NO'} for response in responses)
-        responses = resources.broadcast('PUT', '/fields/name', {'store': 'yes', 'index': 'not_analyzed'})
-        assert all(response() == {'index': 'NOT_ANALYZED', 'store': 'YES', 'termvector': 'NO'} for response in responses)
+        assert all(response() == {'indexed': True} for response in responses)
+        responses = resources.broadcast('PUT', '/fields/name', {'stored': True, 'tokenized': False})
+        assert all(response() == {'stored': True, 'indexed': True, 'tokenized': False} for response in responses)
         doc = {'name': 'sample', 'text': 'hello world'}
         responses = resources.broadcast('POST', '/docs', [doc])
         assert all(response() is None for response in responses)
@@ -82,7 +82,7 @@ class TestCase(remote.BaseTest):
             self.start(port)
         keys = range(len(self.hosts))
         shards = client.Shards(zip(self.hosts * 2, heapq.merge(keys, keys)), limit=1)
-        shards.resources.broadcast('PUT', '/fields/zone', {'store': 'yes'})
+        shards.resources.broadcast('PUT', '/fields/zone', {'stored': True})
         for zone in range(len(self.ports)):
             shards.broadcast(zone, 'POST', '/docs', [{'zone': str(zone)}])
         shards.resources.broadcast('POST', '/update')

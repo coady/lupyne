@@ -34,12 +34,12 @@ docs = [
 ]
 
 indexer = engine.Indexer()
-indexer.set('city', store=True, index=False)
-indexer.set('state', store=True, index=False)
+indexer.set('city', stored=True, indexed=False)
+indexer.set('state', stored=True, indexed=False)
 # set method supports custom field types inheriting their default settings
 indexer.set('incorporated', engine.DateTimeField)
 indexer.set('year-month-day', engine.NestedField, sep='-')
-indexer.set('population', engine.NumericField)
+indexer.set('population', engine.NumericField, type=int)
 indexer.set('point', engine.PointField, precision=10)
 # assigned fields can have a different key from their underlying field name
 indexer.fields['location'] = engine.NestedField('state.city')

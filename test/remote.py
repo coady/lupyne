@@ -128,15 +128,16 @@ class TestCase(BaseTest):
             resource.get('/terms/x/y/missing')
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             resource.get('/terms/x/y/docs/missing')
-        defaults = {'index': 'ANALYZED', 'store': 'NO', 'termvector': 'NO'}
+        defaults = {'indexed': True}
         response = resource.call('PUT', '/fields/text')
         assert response.getheader('etag') is None
         assert response.status == httplib.CREATED and response() == defaults
         response = resource.call('PUT', '/fields/text', {})
         assert response.status == httplib.OK and response() == defaults
-        assert resource.put('/fields/name', {'store': True, 'index': 'not_analyzed'})
+        with local.assertWarns(UserWarning):
+            assert resource.put('/fields/name', {'store': True, 'index': 'not_analyzed'})
         assert sorted(resource.get('/fields')) == ['name', 'text']
-        assert resource.get('/fields/text')['index'] == 'ANALYZED'
+        assert resource.get('/fields/text') == {'indexed': True}
         assert not resource.post('/docs', [{'name': 'sample', 'text': 'hello world'}])
         assert not resource.post('/docs')
         (directory, count), = resource.get('/').items()
@@ -236,7 +237,7 @@ class TestCase(BaseTest):
             resource.put('/docs/name/sample', {'name': 'mismatched'})
         with assertRaises(httplib.HTTPException, httplib.CONFLICT):
             resource.put('/docs/missing/sample')
-        assert resource.put('/fields/name', {'store': True, 'index': False, 'omitNorms': True})
+        assert resource.put('/fields/name', {'stored': True, 'indexed': False, 'omitNorms': True})
         with assertRaises(httplib.HTTPException, httplib.CONFLICT):
             resource.put('/docs/name/sample')
         assert not resource.delete('/docs/missing/sample')
@@ -298,7 +299,7 @@ class TestCase(BaseTest):
         fields = resource.get('/fields')
         assert sorted(fields) == ['amendment', 'article', 'date', 'text']
         for field in fields:
-            assert sorted(resource.get('/fields/' + name)) == ['index', 'store', 'termvector']
+            assert resource.get('/fields/' + name)['indexed']
         resource.post('/docs', list(fixture.constitution.docs()))
         assert resource.get('/').values() == [35]
         resource.post('/update', {'spellcheckers': True, 'merge': 1})
@@ -429,7 +430,7 @@ class TestCase(BaseTest):
         writer = engine.IndexWriter(self.tempdir)
         writer.commit()
         self.start(self.ports[0], '-r', self.tempdir, **{'tools.validate.etag': False})
-        writer.set('zipcode', engine.NumericField, store=True)
+        writer.set('zipcode', engine.NumericField, type=int, stored=True)
         writer.fields['location'] = engine.NestedField('county.city')
         for doc in fixture.zipcodes.docs():
             if doc['state'] == 'CA':

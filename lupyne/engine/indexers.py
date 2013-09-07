@@ -103,7 +103,6 @@ class TokenStream(analysis.TokenStream):
         return payload and payload.utf8ToString()
     @payload.setter
     def payload(self, data):
-        data = lucene.JArray_byte(data.encode('utf8') if isinstance(data, unicode) else data)
         self.Payload.payload = util.BytesRef(data)
     @property
     def positionIncrement(self):
@@ -653,14 +652,14 @@ class IndexWriter(index.IndexWriter):
     def __del__(self):
         if hash(self):
             self.close()
-    def set(self, name, cls=Field, **params):
-        """Assign parameters to field name.
+    def set(self, name, cls=Field, **settings):
+        """Assign settings to field name.
         
         :param name: registered name of field
         :param cls: optional `Field`_ constructor
-        :param params: store,index,termvector options compatible with `Field`_
+        :param settings: stored, indexed, etc. options compatible with `Field`_
         """
-        self.fields[name] = cls(name, **params)
+        self.fields[name] = cls(name, **settings)
     def document(self, items=(), **terms):
         "Return lucene Document from mapping of field names to one or multiple values."
         doc = document.Document()
@@ -748,7 +747,7 @@ class ParallelIndexer(Indexer):
     def __init__(self, field, *args, **kwargs):
         Indexer.__init__(self, *args, **kwargs)
         self.field = field
-        self.set(field, index=True, omitNorms=True)
+        self.set(field, tokenized=False, omitNorms=True, indexOptions='docs_only')
         self.termsfilters = {}
     def termsfilter(self, filter, *others):
         "Return `TermsFilter`_ synced to given filter and optionally associated with other indexers."

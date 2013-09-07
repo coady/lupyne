@@ -25,8 +25,8 @@ if __name__ == '__main__':
     lucene.initVM(vmargs='-Xrs')
     root = server.WebIndexer()
     # assign field settings
-    root.indexer.set('amendment', store=True, index=True)
-    root.indexer.set('date', store=True, index=True)
+    root.indexer.set('amendment', stored=True, tokenized=False)
+    root.indexer.set('date', stored=True, tokenized=False)
     root.indexer.set('text')
     # populate index
     for doc in fixture.constitution.docs():

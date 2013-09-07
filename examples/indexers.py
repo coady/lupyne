@@ -42,7 +42,7 @@ directory.close()
 
 # Store the index in memory:
 indexer = engine.Indexer()              # Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults
-indexer.set('fieldname', store=True)    # settings for all documents of indexer; analyzed is the default
+indexer.set('fieldname', stored=True)   # settings for all documents of indexer; indexed and tokenized is the default
 indexer.add(fieldname=text)             # add document
 indexer.commit()                        # commit changes and refresh searcher
 

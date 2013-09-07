@@ -5,50 +5,69 @@ Wrappers for lucene Fields and Documents.
 from future_builtins import map
 import datetime, calendar
 import operator
+import warnings
 import lucene
 from java.lang import Double, Float, Long, Number, Object
 from java.util import Arrays, HashSet
-from org.apache.lucene import document, search, util
+from org.apache.lucene import document, index, search, util
 from org.apache.lucene.search import grouping
 from .queries import Query
 
-class Field(object):
+class Field(document.FieldType):
     """Saved parameters which can generate lucene Fields given values.
     
     :param name: name of field
-    :param store,index,termvector: field parameters, expressed as bools or strs, with lucene defaults
-    :param analyzed,omitNorms: additional index boolean settings
-    :param withPositions,withOffsets: additional termvector boolean settings
     :param boost: boost factor
-    :param attrs: additional attributes to set on the field
+    :param stored, indexed, settings: lucene FieldType attributes
     """
-    def __init__(self, name, store=False, index='analyzed', termvector=False, analyzed=False, omitNorms=False, \
-            withPositions=False, withOffsets=False, boost=1.0, **attrs):
-        self.name, self.boost, self.attrs = name, boost, attrs
-        if isinstance(store, bool):
-            store = 'yes' if store else 'no'
-        self.store = document.Field.Store.valueOf(store.upper())
-        if isinstance(index, bool):
-            self.index = document.Field.Index.toIndex(index, analyzed, omitNorms)
+    attrs = set(name[3].lower() + name[4:] for name in dir(document.FieldType) if name.startswith('set'))
+    def __init__(self, name, stored=False, indexed=True, boost=1.0, **settings):
+        document.FieldType.__init__(self)
+        self.name, self.boost = name, boost
+        if set(['store', 'index', 'termvector']).intersection(settings):
+            warnings.warn('lucene Field.{Store,Index,TermVector} deprecated, use FieldType attibutes', DeprecationWarning)
+            store = settings.get('store', False)
+            if isinstance(store, bool):
+                store = 'yes' if store else 'no'
+            store = document.Field.Store.valueOf(store.upper())
+            index = settings.get('index', 'analyzed')
+            if isinstance(index, bool):
+                index = document.Field.Index.toIndex(index, settings.get('analyzed', False), settings.get('omitNorms', False))
+            else:
+                index = document.Field.Index.valueOf(index.upper())
+            termvector = settings.get('termvector', False)
+            if isinstance(termvector, bool):
+                termvector = document.Field.TermVector.toTermVector(termvector, settings.get('withOffsets', False), settings.get('withPositions', False))
+            else:
+                termvector = document.Field.TermVector.valueOf(termvector.upper())
+            ft = document.Field.translateFieldType(store, index, termvector)
+            self.update(**Field.settings.fget(ft))
         else:
-            self.index = document.Field.Index.valueOf(index.upper())
-        if isinstance(termvector, bool):
-            self.termvector = document.Field.TermVector.toTermVector(termvector, withOffsets, withPositions)
-        else:
-            self.termvector = document.Field.TermVector.valueOf(termvector.upper())
-        next(Field.items(self, ' ')) # validate settings
+            self.update(stored=stored, indexed=indexed, **settings)
+    def update(self, docValueType='', indexOptions='', numericType='', **settings):
+        if docValueType:
+            self.setDocValueType(getattr(index.FieldInfo.DocValuesType, docValueType.upper()))
+        if indexOptions:
+            self.setIndexOptions(getattr(index.FieldInfo.IndexOptions, indexOptions.upper()))
+        if numericType:
+            self.setNumericType(getattr(document.FieldType.NumericType, numericType.upper()))
+        for name in settings:
+            getattr(self, 'set' + name[:1].upper() + name[1:])(settings[name])
+    @property
+    def settings(self):
+        "dict representation of settings"
+        defaults = document.FieldType()
+        result = {'indexed': self.indexed()}
+        for name in Field.attrs:
+            value = getattr(self, name)()
+            if value != getattr(defaults, name)():
+                result[name] = value if isinstance(value, int) else str(value)
+        return result
     def items(self, *values):
         "Generate lucene Fields suitable for adding to a document."
         for value in values:
-            if isinstance(value, basestring):
-                field = document.Field(self.name, value, self.store, self.index, self.termvector)
-            elif isinstance(value, lucene.JArray_byte):
-                field = document.Field(self.name, value)
-            else:
-                field = document.Field(self.name, value, self.termvector)
+            field = document.Field(self.name, value, self)
             field.setBoost(self.boost)
-            for name, value in self.attrs.items():
-                setattr(field, name, value)
             yield field
 
 class MapField(Field):
@@ -69,8 +88,10 @@ class NestedField(Field):
     
     :param sep: field separator used on name and values
     """
-    def __init__(self, name, sep='.', index=True, **kwargs):
-        Field.__init__(self, name, index=index, **kwargs)
+    def __init__(self, name, sep='.', tokenized=False, **kwargs):
+        if set(['store', 'index', 'termvector']).intersection(kwargs):
+            kwargs.setdefault('index', True)
+        Field.__init__(self, name, tokenized=tokenized, **kwargs)
         self.sep = sep
         self.names = tuple(self.values(name))
     def values(self, value):
@@ -80,12 +101,9 @@ class NestedField(Field):
             yield self.sep.join(value[:index])
     def items(self, *values):
         "Generate indexed component fields."
-        if self.store == document.Field.Store.YES:
-            for value in values:
-                yield document.Field(self.name, value, self.store, document.Field.Index.NO)
         for value in values:
             for index, text in enumerate(self.values(value)):
-                yield document.Field(self.names[index], text, document.Field.Store.NO, self.index, self.termvector)
+                yield document.Field(self.names[index], text, self)
     def prefix(self, value):
         "Return prefix query of the closest possible prefixed field."
         index = value.count(self.sep)
@@ -99,35 +117,34 @@ class NumericField(Field):
     """Field which indexes numbers in a prefix tree.
     
     :param name: name of field
-    :param step: precision step
+    :param type: optional int, float, or lucene NumericType string
     """
-    def __init__(self, name, step=None, store=False, index=True):
-        Field.__init__(self, name, store)
-        self.step = step or util.NumericUtils.PRECISION_STEP_DEFAULT
-        self.index = index
-        self.type = document.FieldType()
-        self.type.setNumericPrecisionStep(self.step)
-        self.type.setStored(self.store == document.Field.Store.YES)
-        self.type.setIndexed(index)
+    def __init__(self, name, type=None, step=0, stored=False, tokenized=False, **kwargs):
+        if type:
+            kwargs['numericType'] = {int: 'long', float: 'double'}.get(type, str(type))
+        Field.__init__(self, name, stored=stored, tokenized=tokenized, **kwargs)
+        if step:
+            warnings.warn('step deprecated, use numericPrecisionStep', DeprecationWarning)
+            self.setNumericPrecisionStep(step)
     def items(self, *values):
         "Generate lucene NumericFields suitable for adding to a document."
+        if not self.numericType():
+            cls, = set(map(type, values))
+            self.update(numericType='double' if issubclass(cls, float) else 'long')
         for value in values:
             if isinstance(value, float):
-                self.type.setNumericType(document.FieldType.NumericType.DOUBLE)
-                field = document.DoubleField(self.name, value, self.type)
+                yield document.DoubleField(self.name, value, self)
             else:
-                self.type.setNumericType(document.FieldType.NumericType.LONG)
-                field = document.LongField(self.name, long(value), self.type)
-            yield field
+                yield document.LongField(self.name, long(value), self)
     def numeric(self, cls, start, stop, lower, upper):
         if isinstance(start, float) or isinstance(stop, float):
             start, stop = (value if value is None else Double(value) for value in (start, stop))
-            return cls.newDoubleRange(self.name, self.step, start, stop, lower, upper)
+            return cls.newDoubleRange(self.name, self.numericPrecisionStep(), start, stop, lower, upper)
         if start is not None:
             start = None if start < Long.MIN_VALUE else Long(long(start))
         if stop is not None:
             stop = None if stop > Long.MAX_VALUE else Long(long(stop))
-        return cls.newLongRange(self.name, self.step, start, stop, lower, upper)
+        return cls.newLongRange(self.name, self.numericPrecisionStep(), start, stop, lower, upper)
     def range(self, start, stop, lower=True, upper=False):
         "Return lucene NumericRangeQuery."
         return self.numeric(search.NumericRangeQuery, start, stop, lower, upper)
@@ -142,6 +159,8 @@ class DateTimeField(NumericField):
     """Field which indexes datetimes as a NumericField of timestamps.
     Supports datetimes, dates, and any prefix of time tuples.
     """
+    def __init__(self, name, **kwargs):
+        NumericField.__init__(self, name, type=float, **kwargs)
     def timestamp(self, date):
         "Return utc timestamp from date or time tuple."
         if isinstance(date, datetime.date):
@@ -188,7 +207,7 @@ class Document(dict):
     "Multimapping of field names to values, but default getters return the first value."
     def __init__(self, doc):
         for field in doc.getFields():
-            value = field.stringValue() or field.binaryValue() or field.numericValue().toString()
+            value = convert(field.numericValue() or field.stringValue() or field.binaryValue())
             self.setdefault(field.name(), []).append(value)
     def __getitem__(self, name):
         return dict.__getitem__(self, name)[0]
