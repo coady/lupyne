@@ -743,6 +743,7 @@ class Indexer(IndexWriter):
 class ParallelIndexer(Indexer):
     """Indexer which tracks a unique identifying field.
     Handles atomic updates of rapidly changing fields, managing :attr:`termsfilters`.
+    Assign custom settings or cache custom sorter for primary field if necessary.
     """
     def __init__(self, field, *args, **kwargs):
         Indexer.__init__(self, *args, **kwargs)
@@ -766,7 +767,7 @@ class ParallelIndexer(Indexer):
         sorter, segments = self.sorter(self.field), self.segments
         searcher = self.indexSearcher.reopen(**caches)
         readers = [reader for reader in searcher.readers if reader.segmentName not in segments]
-        terms = list(itertools.chain.from_iterable(IndexReader(reader).terms(self.field) for reader in readers))
+        terms = set(sorter.terms(search.QueryWrapperFilter(search.MatchAllDocsQuery()), *readers))
         for filter, termsfilter in self.termsfilters.items():
             if terms:
                 termsfilter.update(terms, op='andNot', cache=not self.nrt)

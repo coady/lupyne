@@ -248,24 +248,25 @@ class TermsFilter(search.CachingWrapperFilter):
         "Discard a few term values."
         self.update(values, op='andNot', cache=False)
 
-class Comparator(object):
+class Comparator(threading.local):
     "Chained arrays with bisection lookup."
     def __init__(self, items):
         self.arrays, self.offsets = [], [0]
         for array, size in items:
             self.arrays.append(array)
             self.offsets.append(len(self) + size)
+        cls, = set(map(type, self.arrays))
+        self.bytes = util.BytesRef() if issubclass(cls, index.BinaryDocValues) else None
     def __len__(self):
         return self.offsets[-1]
     def __getitem__(self, id):
         idx = bisect.bisect_right(self.offsets, id) - 1
         id -= self.offsets[idx]
         array = self.arrays[idx]
-        if not isinstance(array, index.BinaryDocValues):
+        if self.bytes is None:
             return array.get(id)
-        br = util.BytesRef()
-        array.get(id, br)
-        return br.utf8ToString()
+        array.get(id, self.bytes)
+        return self.bytes.utf8ToString()
 
 class SortField(search.SortField):
     """Inherited lucene SortField used for caching FieldCache parsers.
@@ -288,9 +289,7 @@ class SortField(search.SortField):
         if self.typename == 'String':
             return search.FieldCache.DEFAULT.getTerms(reader, self.field)
         method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
-        if self.parser:
-            return method(reader, self.field, self.parser, False)
-        return method(reader, self.field, False)
+        return method(reader, self.field, self.parser, False)
     def comparator(self, searcher):
         "Return indexed values from default FieldCache using the given searcher."
         return Comparator((self.array(reader), reader.maxDoc()) for reader in searcher.readers)
