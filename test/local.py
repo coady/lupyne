@@ -165,7 +165,6 @@ class TestCase(BaseTest):
         assert indexer[next(indexer.docs('text', '?'))]['name'] == '{}'
         reader = engine.indexers.IndexReader(indexer.indexReader)
         assert reader[0].dict() == {} and reader.count('text', '?') == 1
-        assert len(reader.comparator('text')) == 4
         indexer.delete('text', '?')
         indexer.commit(merge=True)
         assert not indexer.hasDeletions()
@@ -256,6 +255,7 @@ class TestCase(BaseTest):
         assert math.isnan(hits.maxscore)
         hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
         assert hits.maxscore > max(hits.scores)
+        self.assertRaises(AssertionError, indexer.comparator, 'amendment', type=int, multi=True)
         parser = lambda value: int(value.utf8ToString() or -1)
         comparator = indexer.comparator('amendment', type=int, parser=parser)
         hits = indexer.search('text:people').sorted(comparator.__getitem__)

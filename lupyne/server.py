@@ -173,10 +173,10 @@ class params:
     def fields(searcher, fields=None, **options):
         if fields is not None:
             fields = dict.fromkeys(fields)
-        multi = options.get('fields.multi', ())
+        multi = set(options.get('fields.multi', ()))
         indexed = (field.split(':') for field in options.get('fields.indexed', ()))
-        indexed = dict((item[0], searcher.comparator(*item)) for item in indexed)
-        return fields, multi, indexed
+        indexed = dict((item[0], searcher.comparator(*item, multi=item[0] in multi)) for item in indexed)
+        return fields, multi.difference(indexed), indexed
 
 def json_error(version, **body):
     "Transform errors into json format."

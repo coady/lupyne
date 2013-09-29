@@ -256,7 +256,8 @@ class Comparator(threading.local):
             self.arrays.append(array)
             self.offsets.append(len(self) + size)
         cls, = set(map(type, self.arrays))
-        self.bytes = util.BytesRef() if issubclass(cls, index.BinaryDocValues) else None
+        self.multi = issubclass(cls, index.SortedSetDocValues)
+        self.bytes = util.BytesRef() if self.multi or issubclass(cls, index.BinaryDocValues) else None
     def __len__(self):
         return self.offsets[-1]
     def __getitem__(self, id):
@@ -265,6 +266,9 @@ class Comparator(threading.local):
         array = self.arrays[idx]
         if self.bytes is None:
             return array.get(id)
+        if self.multi:
+            array.document = id
+            return tuple(array.lookupOrd(id, self.bytes) or self.bytes.utf8ToString() for id in iter(array.nextOrd, array.NO_MORE_ORDS))
         array.get(id, self.bytes)
         return self.bytes.utf8ToString()
 
@@ -285,14 +289,17 @@ class SortField(search.SortField):
             namespace = {'parse' + type: staticmethod(parser), 'termsEnum': lambda self, terms: terms.iterator(None)}
             parser = object.__class__(base.__name__, (base,), namespace)()
         search.SortField.__init__(self, name, parser, reverse)
-    def array(self, reader):
+    def array(self, reader, multi=False):
+        if multi:
+            return search.FieldCache.DEFAULT.getDocTermOrds(reader, self.field)
         if self.typename == 'String':
-            return search.FieldCache.DEFAULT.getTerms(reader, self.field)
+            return search.FieldCache.DEFAULT.getTermsIndex(reader, self.field)
         method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
         return method(reader, self.field, self.parser, False)
-    def comparator(self, searcher):
+    def comparator(self, searcher, multi=False):
         "Return indexed values from default FieldCache using the given searcher."
-        return Comparator((self.array(reader), reader.maxDoc()) for reader in searcher.readers)
+        assert not multi or self.typename == 'String'
+        return Comparator((self.array(reader, multi), reader.maxDoc()) for reader in searcher.readers)
     def filter(self, start, stop, lower=True, upper=False):
         "Return lucene FieldCacheRangeFilter based on field and type."
         method = getattr(search.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))

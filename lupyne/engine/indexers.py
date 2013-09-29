@@ -324,16 +324,6 @@ class IndexReader(object):
                     yield doc, [(position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload]
                 else:
                     yield doc, list(positions)
-    def comparator(self, name, type='string', parser=None):
-        """Return cache of field values suitable for sorting.
-        Parsing values into an array is memory optimized.
-        Map values into a list for speed optimization.
-        
-        :param name: field name
-        :param type: type object or name compatible with FieldCache
-        :param parser: lucene FieldCache.Parser or callable applied to field values
-        """
-        return SortField(name, type, parser).comparator(self)
     def spans(self, query, positions=False, payloads=False):
         """Generate docs with occurrence counts for a span query.
         
@@ -558,9 +548,17 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         "Return `SortField`_ with cached attributes if available."
         sorter = self.sorters.get(field, SortField(field, type, parser, reverse))
         return sorter if sorter.reverse == reverse else SortField(sorter.field, sorter.typename, sorter.parser, reverse)
-    def comparator(self, field, type='string', parser=None):
-        "Return :meth:`IndexReader.comparator` using a cached `SortField`_ if available."
-        return self.sorter(field, type, parser).comparator(self)
+    def comparator(self, field, type='string', parser=None, multi=False):
+        """Return cache of field values suitable for sorting, using a cached `SortField`_ if available.
+        Parsing values into an array is memory optimized.
+        Map values into a list for speed optimization.
+        
+        :param name: field name
+        :param type: type object or name compatible with FieldCache
+        :param parser: lucene FieldCache.Parser or callable applied to field values
+        :param multi: retrieve multi-valued string terms as a tuple
+        """
+        return self.sorter(field, type, parser).comparator(self, multi)
     def distances(self, lng, lat, lngfield, latfield):
         "Return distance comparator computed from cached lat/lng fields."
         arrays = (self.comparator(field, 'double') for field in (lngfield, latfield))

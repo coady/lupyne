@@ -330,6 +330,8 @@ class TestCase(BaseTest):
         assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
         positions = dict(resource.get('/terms/text/people/docs/positions'))
         assert sorted(positions) == docs and list(map(len, positions.values())) == counts.values()
+        doc = resource.get('/docs/amendment/1', **{'fields.multi': 'text', 'fields.indexed': 'text'})
+        assert doc['text'][:3] == ['abridging', 'assemble', 'congress']
         doc, = resource.get('/search', q='amendment:1', fields='', **{'fields.indexed': 'article,amendment:int'})['docs']
         assert doc['amendment'] == 1 and not doc['article']
         result = resource.get('/search', **{'q.field': 'text', 'q': 'write "hello world"', 'spellcheck': 3})
