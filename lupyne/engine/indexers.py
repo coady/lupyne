@@ -14,7 +14,7 @@ import lucene
 from java.io import File, StringReader
 from java.lang import Float
 from java.util import Arrays, HashMap, HashSet
-from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
+from org.apache.lucene import analysis, codecs, document, index, queries, queryparser, search, store, util
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from .queries import Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
@@ -157,13 +157,11 @@ class Analyzer(PythonAnalyzer):
             tokens = filter(tokens)
         tokens.reset()
         return source, tokens
-    def tokenStream(self, field, reader):
-        return self.components(field, reader)[1]
     def createComponents(self, field, reader):
         return analysis.Analyzer.TokenStreamComponents(*self.components(field, reader))
     def tokens(self, text, field=None):
         "Return lucene TokenStream from text."
-        return self.tokenStream(field, StringReader(text))
+        return self.components(field, StringReader(text))[1]
     def parse(self, query, field='', op='', version='', parser=None, **attrs):
         """Return parsed lucene Query.
         
@@ -344,21 +342,21 @@ class IndexReader(object):
                 else:
                     yield doc, sum(1 for span in spans)
             offset += reader.maxDoc()
-    def termvector(self, id, field, counts=False):
-        "Generate terms for given doc id and field, optionally with frequency counts."
+    def vector(self, id, field):
         terms = self.getTermVector(id, field)
         if terms:
             termenum = terms.iterator(None)
             for bytesref in util.BytesRefIterator.cast_(termenum):
-                term = bytesref.utf8ToString()
-                yield (term, termenum.totalTermFreq()) if counts else term
+                yield bytesref.utf8ToString(), termenum
+    def termvector(self, id, field, counts=False):
+        "Generate terms for given doc id and field, optionally with frequency counts."
+        for term, termenum in self.vector(id, field):
+            yield (term, int(termenum.totalTermFreq())) if counts else term
     def positionvector(self, id, field, offsets=False):
         "Generate terms and positions for given doc id and field, optionally with character offsets."
-        termenum = self.getTermVector(id, field).iterator(None)
-        for bytesref in util.BytesRefIterator.cast_(termenum):
-            term = bytesref.utf8ToString()
+        for term, termenum in self.vector(id, field):
             docsenum = termenum.docsAndPositions(None, None)
-            assert 0 <= docsenum.nextDoc() < docsenum.NO_MORE_DOCS
+            assert docsenum and 0 <= docsenum.nextDoc() < docsenum.NO_MORE_DOCS
             positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
             if offsets:
                 yield term, [(docsenum.startOffset(), docsenum.endOffset()) for position in positions]
@@ -650,6 +648,21 @@ class IndexWriter(index.IndexWriter):
     def __del__(self):
         if hash(self):
             self.close()
+    @classmethod
+    def check(cls, directory, fix=False):
+        "Check and optionally fix unlocked index, returning lucene CheckIndex.Status."
+        ref = closing()
+        directory = ref.directory(directory)
+        checkindex = index.CheckIndex(directory)
+        lock = directory.makeLock(cls.WRITE_LOCK_NAME)
+        assert lock.obtain(), "index must not be opened by any writer"
+        try:
+            status = checkindex.checkIndex()
+            if fix:
+                checkindex.fixIndex(status, codecs.Codec.getDefault())
+        finally:
+            lock.release()
+        return status
     def set(self, name, cls=Field, **settings):
         """Assign settings to field name.
         

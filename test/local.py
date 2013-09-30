@@ -360,9 +360,12 @@ class TestCase(BaseTest):
             os.remove(filepath)
             open(filepath, 'w').close()
             self.assertRaises(OSError, engine.indexers.copy, commit, path)
+        self.assertRaises(AssertionError, indexer.check, self.tempdir)
         del indexer
         assert engine.Indexer(self.tempdir)
         assert not os.path.exists(os.path.join(self.tempdir, commit.segmentsFileName))
+        assert engine.IndexWriter.check(self.tempdir).clean
+        assert not engine.IndexWriter.check(self.tempdir, fix=True).numBadSegments
     
     def testAdvanced(self):
         "Large data set with hierarchical fields."
