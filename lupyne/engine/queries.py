@@ -12,7 +12,7 @@ from java.lang import Integer
 from java.util import Arrays, HashSet
 from org.apache.lucene import document, index, queries, search, util
 from org.apache.lucene.search import highlight, spans, vectorhighlight
-from org.apache.pylucene import search as parsers
+from org.apache.pylucene import search as pysearch
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 
 class Query(object):
@@ -193,6 +193,10 @@ class BooleanFilter(queries.BooleanFilter):
         "Return `BooleanFilter`_ (AND) from filters."
         return cls(search.BooleanClause.Occur.MUST, *filters)
 
+class Filter(pysearch.PythonFilter):
+    def getDocIdSet(self, context, acceptDocs):
+        return util.FixedBitSet(context.reader().maxDoc())
+
 class TermsFilter(search.CachingWrapperFilter):
     """Caching filter based on a unique field and set of matching values.
     Optimized for many terms and docs, with support for incremental updates.
@@ -204,7 +208,7 @@ class TermsFilter(search.CachingWrapperFilter):
     """
     ops = {'or': 'update', 'and': 'intersection_update', 'andNot': 'difference_update'}
     def __init__(self, field, values=()):
-        search.CachingWrapperFilter.__init__(self, search.QueryWrapperFilter(search.MatchAllDocsQuery()))
+        search.CachingWrapperFilter.__init__(self, Filter())
         self.field = field
         self.values = set(values)
         self.readers = set()
@@ -218,8 +222,6 @@ class TermsFilter(search.CachingWrapperFilter):
         for reader in readers:
             try:
                 bitset = util.FixedBitSet.cast_(self.getDocIdSet(reader.context, None))
-                if reader not in self.readers:
-                    bitset.clear(0, bitset.length())
                 getattr(bitset, op)(filter.getDocIdSet(reader.context, None).iterator())
             except lucene.JavaError as exc:
                 assert not reader.refCount, exc
@@ -285,7 +287,7 @@ class SortField(search.SortField):
         if parser is None:
             parser = getattr(getattr(self, 'Type', self), type.upper())
         elif not search.FieldCache.Parser.instance_(parser):
-            base = getattr(parsers, 'Python{0}Parser'.format(type))
+            base = getattr(pysearch, 'Python{0}Parser'.format(type))
             namespace = {'parse' + type: staticmethod(parser), 'termsEnum': lambda self, terms: terms.iterator(None)}
             parser = object.__class__(base.__name__, (base,), namespace)()
         search.SortField.__init__(self, name, parser, reverse)

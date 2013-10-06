@@ -79,6 +79,7 @@ def copy(commit, dest):
 class TokenStream(analysis.TokenStream):
     "TokenStream mixin with support for iteration and attributes cached as properties."
     def __iter__(self):
+        self.reset()
         return self
     def next(self):
         if self.incrementToken():
@@ -155,7 +156,6 @@ class Analyzer(PythonAnalyzer):
         source = tokens = self.tokenizer.tokenStream(field, reader) if isinstance(self.tokenizer, analysis.Analyzer) else self.tokenizer(reader)
         for filter in self.filters:
             tokens = filter(tokens)
-        tokens.reset()
         return source, tokens
     def createComponents(self, field, reader):
         return analysis.Analyzer.TokenStreamComponents(*self.components(field, reader))
@@ -659,7 +659,8 @@ class IndexWriter(index.IndexWriter):
         try:
             status = checkindex.checkIndex()
             if fix:
-                checkindex.fixIndex(status, codecs.Codec.getDefault())
+                args = [codecs.Codec.getDefault()] if lucene.VERSION < '4.5' else []
+                checkindex.fixIndex(status, *args)
         finally:
             lock.release()
         return status
