@@ -508,6 +508,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
+        .. deprecated:: 1.4+ implicit caching of filters is deprecated, in the future a `GroupingSearch`_ will be used instead
+        
         :param query: query string, lucene Query, or lucene Filter
         :param keys: field names, term tuples, or any keys to previously cached filters
         """
@@ -537,7 +539,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                     counts[name][value] = self.count(filter=BooleanFilter.all(query, filters[value]))
         return dict(counts)
     def grouping(self, field, query=None, count=None, sort=None):
-        "Return `Grouping`_ for unique field and lucene search parameters."
         try:
             return self.groupings[field]
         except KeyError:

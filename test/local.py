@@ -402,7 +402,8 @@ class TestCase(BaseTest):
         assert orange == 'CA.Orange' and facets[orange] > 10
         (field, facets), = indexer.facets(query, ('state.county', 'CA.*')).items()
         assert all(value.startswith('CA.') for value in facets) and set(facets) < set(indexer.filters[field])
-        assert set(indexer.grouping('state', count=1)) < set(indexer.grouping('state')) == set(states)
+        with assertWarns(DeprecationWarning):
+            assert set(indexer.grouping('state', count=1)) < set(indexer.grouping('state')) == set(states)
         grouper = indexer.grouping(field, query, sort=search.Sort(indexer.sorter(field)))
         assert len(grouper) == 2 and list(grouper) == [la, orange]
         for value, (name, count) in zip(grouper, grouper.facets(None)):
@@ -417,6 +418,18 @@ class TestCase(BaseTest):
         hits = next(grouper.groups(count=2, sort=search.Sort(indexer.sorter('zipcode')), scores=True))
         assert hits.value == 'CA.Los Angeles' and math.isnan(hits.maxscore) and len(hits) == 2
         assert all(hit.score > 0 and hit['zipcode'] > '90000' and hit['zipcode'] in hit.keys for hit in hits)
+        grouping = engine.documents.GroupingSearch(field)
+        assert all(dict(grouping.facets(indexer.indexSearcher)).values())
+        hits, = grouping.groups(indexer.indexSearcher, engine.Query.term('state', 'CA'), count=1)
+        assert hits.value == 'CA.Los Angeles' and len(hits) == 1 and hits.count > 100
+        grouping = engine.documents.GroupingSearch(field, sort=search.Sort(indexer.sorter(field)), cache=False, allGroups=True)
+        assert all(dict(grouping.facets(indexer.indexSearcher)).values())
+        assert len(grouping) == len(list(grouping)) > 100
+        assert set(grouping) > set(facets)
+        grouping.select()
+        hits, = grouping.groups(indexer.indexSearcher, engine.Query.term('state', 'CA'), count=1)
+        assert hits.value == 'CA.Alameda' and len(hits) == 1 and hits.count > 50
+        assert hits[0] == {}
         for count in (None, len(indexer)):
             hits = indexer.search(query, count=count, timeout=0.01)
             assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)

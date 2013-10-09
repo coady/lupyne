@@ -318,6 +318,7 @@ class Grouping(object):
     :param sort: lucene Sort to order groups
     """
     def __init__(self, searcher, field, query=None, count=None, sort=None):
+        warnings.warn('Grouping deprecated, use GroupingSearch instead', DeprecationWarning)
         self.searcher, self.field = searcher, field
         self.query = query or search.MatchAllDocsQuery()
         self.sort = sort or search.Sort.RELEVANCE
@@ -354,5 +355,43 @@ class Grouping(object):
         search.IndexSearcher.search(self.searcher, self.query, collector)
         for groupdocs in collector.getTopGroups(0).groups:
             hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
+            hits.value = convert(groupdocs.groupValue)
+            yield hits
+
+class GroupingSearch(grouping.GroupingSearch):
+    """Inherited lucene GroupingSearch with optimized faceting.
+    
+    :param field: unique field name to group by
+    :param sort: lucene Sort to order groups and docs
+    :param cache: use unlimited caching
+    :param attrs: additional attributes to set
+    """
+    select = Hits.__dict__['select']
+    def __init__(self, field, sort=None, cache=True, **attrs):
+        grouping.GroupingSearch.__init__(self, field)
+        self.field = field
+        if sort:
+            self.groupSort = self.sortWithinGroup = sort
+            self.fillSortFields = True
+        if cache:
+            self.setCachingInMB(float('inf'), True)
+        for name in attrs:
+            getattr(type(self), name).__set__(self, attrs[name])
+    def __len__(self):
+        return self.allMatchingGroups.size()
+    def __iter__(self):
+        return map(convert, self.allMatchingGroups)
+    def search(self, searcher, query, filter, count):
+        if count is None:
+            count = sum(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field).valueCount for reader in searcher.readers)
+        return grouping.GroupingSearch.search(self, searcher, filter, query, 0, count).groups
+    def facets(self, searcher, filter=None):
+        "Generate field values and counts which match given filter."
+        for groupdocs in self.search(searcher, search.MatchAllDocsQuery(), filter, None):
+            yield convert(groupdocs.groupValue), groupdocs.totalHits
+    def groups(self, searcher, query, filter=None, count=None):
+        "Generate grouped `Hits`_ from search parameters."
+        for groupdocs in self.search(searcher, searcher.parse(query), filter, count):
+            hits = Hits(searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
             hits.value = convert(groupdocs.groupValue)
             yield hits

@@ -59,10 +59,6 @@ IndexSearcher
 
     Mapping of cached filters by field, also used for facet counts.
 
-  .. attribute:: groupings
-
-    Mapping of cached groupings by field, optimized for facet counts of unique fields.
-
   .. attribute:: sorters
 
     Mapping of cached sorters by field and associated parsers.
@@ -144,8 +140,19 @@ Hits
 
 Grouping
 ^^^^^^^^^^^^^
-.. versionadded:: 1.3
+.. deprecated:: 1.4+ use contrib `GroupingSearch`_ instead
 .. autoclass:: Grouping
+  :members:
+
+  .. automethod:: __len__
+
+  .. automethod:: __iter__
+
+GroupingSearch
+^^^^^^^^^^^^^^
+.. versionadded:: 1.4+
+.. note:: This interface is experimental and might change in incompatible ways in the next release.
+.. autoclass:: GroupingSearch
   :members:
 
   .. automethod:: __len__
