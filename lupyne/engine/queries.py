@@ -250,7 +250,7 @@ class TermsFilter(search.CachingWrapperFilter):
         "Discard a few term values."
         self.update(values, op='andNot', cache=False)
 
-class Comparator(threading.local):
+class Comparator(object):
     "Chained arrays with bisection lookup."
     def __init__(self, items):
         self.arrays, self.offsets = [], [0]

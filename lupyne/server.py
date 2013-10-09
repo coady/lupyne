@@ -761,7 +761,7 @@ class WebIndexer(WebSearcher):
             
             {"stored"|"indexed"\|...: *string*\|true|false,... }
             
-            .. deprecated:: 1.4+ lucene FieldType attributes used as settings
+            .. deprecated:: 1.5 lucene FieldType attributes used as settings
             
             :return: {"stored"|"indexed"\|...: *string*\|true|false,... }
         """

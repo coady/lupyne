@@ -52,7 +52,7 @@ class ComparatorSource(PythonFieldComparatorSource):
             if not args:
                 reader = reader.reader()
             br = util.BytesRef()
-            comparator = search.FieldCache.DEFAULT.getTerms(reader, self.name)
+            comparator = search.FieldCache.DEFAULT.getTermsIndex(reader, self.name)
             self.comparator = [comparator.get(id, br) or br.utf8ToString() for id in range(reader.maxDoc())]
             return self
         def compare(self, slot1, slot2):

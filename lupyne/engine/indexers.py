@@ -508,7 +508,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
-        .. deprecated:: 1.4+ implicit caching of filters is deprecated, in the future a `GroupingSearch`_ will be used instead
+        .. deprecated:: 1.5 implicit caching of filters is deprecated, in the future a `GroupingSearch`_ will be used instead
         
         :param query: query string, lucene Query, or lucene Filter
         :param keys: field names, term tuples, or any keys to previously cached filters
@@ -551,6 +551,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """Return cache of field values suitable for sorting, using a cached `SortField`_ if available.
         Parsing values into an array is memory optimized.
         Map values into a list for speed optimization.
+        Comparators are not thread-safe.
         
         :param name: field name
         :param type: type object or name compatible with FieldCache

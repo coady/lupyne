@@ -118,7 +118,7 @@ documents
 
 Document
 ^^^^^^^^^^^^^
-.. versionchanged:: 1.4+ stored numeric types returned as numbers
+.. versionchanged:: 1.5 stored numeric types returned as numbers
 .. autoclass:: Document
   :show-inheritance:
   :members:
@@ -140,7 +140,7 @@ Hits
 
 Grouping
 ^^^^^^^^^^^^^
-.. deprecated:: 1.4+ use contrib `GroupingSearch`_ instead
+.. deprecated:: 1.5 use contrib `GroupingSearch`_ instead
 .. autoclass:: Grouping
   :members:
 
@@ -150,7 +150,7 @@ Grouping
 
 GroupingSearch
 ^^^^^^^^^^^^^^
-.. versionadded:: 1.4+
+.. versionadded:: 1.5
 .. note:: This interface is experimental and might change in incompatible ways in the next release.
 .. autoclass:: GroupingSearch
   :members:
@@ -161,7 +161,7 @@ GroupingSearch
 
 Field
 ^^^^^^^^^^^^^
-.. deprecated:: 1.4+ lucene Field.{Store,Index,TermVector} deprecated in favor of FieldType attributes
+.. deprecated:: 1.5 lucene Field.{Store,Index,TermVector} deprecated in favor of FieldType attributes
 .. autoclass:: Field
   :members:
 
@@ -179,8 +179,8 @@ NestedField
 
 NumericField
 ^^^^^^^^^^^^^
-.. versionchanged:: 1.4+ recommended to specify initial int or float type
-.. deprecated:: 1.4+ custom step deprecated in favor of numericPrecisionStep
+.. versionchanged:: 1.5 recommended to specify initial int or float type
+.. deprecated:: 1.5 custom step deprecated in favor of numericPrecisionStep
 .. autoclass:: NumericField
   :show-inheritance:
   :members:

@@ -22,16 +22,20 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.4
+Changes in 1.4+
 ==================
  * Engine:
    
-   - PyLucene 4.4 supported
-   - PyLucene 3.5 and 3.6 deprecated
+   - PyLucene 4.5 supported
+   - PyLucene 3 dropped
+   - Fields use new FieldType interface
+   - SortField comparators optimized and support multiple values
+   - Check index utility
+   - Grouping contrib improvements
 
  * Server:
    
-   - Document matching against registered queries
+   - Retrieval of multiple indexed values
 """
 
 import os
