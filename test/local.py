@@ -418,9 +418,7 @@ class TestCase(BaseTest):
         hits = next(grouper.groups(count=2, sort=search.Sort(indexer.sorter('zipcode')), scores=True))
         assert hits.value == 'CA.Los Angeles' and math.isnan(hits.maxscore) and len(hits) == 2
         assert all(hit.score > 0 and hit['zipcode'] > '90000' and hit['zipcode'] in hit.keys for hit in hits)
-        grouping = engine.documents.GroupingSearch(field)
-        assert all(dict(grouping.facets(indexer.indexSearcher)).values())
-        hits, = grouping.groups(indexer.indexSearcher, engine.Query.term('state', 'CA'), count=1)
+        hits, = indexer.groupby(field, engine.Query.term('state', 'CA'), count=1)
         assert hits.value == 'CA.Los Angeles' and len(hits) == 1 and hits.count > 100
         grouping = engine.documents.GroupingSearch(field, sort=search.Sort(indexer.sorter(field)), cache=False, allGroups=True)
         assert all(dict(grouping.facets(indexer.indexSearcher)).values())

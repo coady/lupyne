@@ -18,7 +18,7 @@ from org.apache.lucene import analysis, codecs, document, index, queries, queryp
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from .queries import Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
-from .documents import Field, Document, Hits, Grouping
+from .documents import Field, Document, Hits, Grouping, GroupingSearch
 from .spatial import DistanceComparator
 
 class Atomic(object):
@@ -543,6 +543,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             return self.groupings[field]
         except KeyError:
             return Grouping(self, field, query, count, sort)
+    def groupby(self, field, query, filter=None, count=None, **attrs):
+        "Generate `Hits`_ grouped by field using a `GroupingSearch`_."
+        return GroupingSearch(field, **attrs).groups(self, self.parse(query), filter, count)
     def sorter(self, field, type='string', parser=None, reverse=False):
         "Return `SortField`_ with cached attributes if available."
         sorter = self.sorters.get(field, SortField(field, type, parser, reverse))

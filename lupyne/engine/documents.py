@@ -391,7 +391,7 @@ class GroupingSearch(grouping.GroupingSearch):
             yield convert(groupdocs.groupValue), groupdocs.totalHits
     def groups(self, searcher, query, filter=None, count=None):
         "Generate grouped `Hits`_ from search parameters."
-        for groupdocs in self.search(searcher, searcher.parse(query), filter, count):
+        for groupdocs in self.search(searcher, query, filter, count):
             hits = Hits(searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
             hits.value = convert(groupdocs.groupValue)
             yield hits
