@@ -163,13 +163,12 @@ class TestCase(BaseTest):
         indexer.add(text=analysis.core.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, StringReader('?')), name=util.BytesRef('{}'))
         indexer.commit()
         assert indexer[next(indexer.docs('text', '?'))]['name'] == '{}'
-        reader = engine.indexers.IndexReader(indexer.indexReader)
-        assert reader[0].dict() == {} and reader.count('text', '?') == 1
         indexer.delete('text', '?')
         indexer.commit(merge=True)
         assert not indexer.hasDeletions()
         indexer.commit(merge=1)
         assert len(list(indexer.readers)) == 1
+        reader = engine.indexers.IndexReader(indexer.indexReader)
         del reader.indexReader
         self.assertRaises(AttributeError, getattr, reader, 'maxDoc')
         del indexer.indexSearcher
@@ -190,13 +189,13 @@ class TestCase(BaseTest):
         assert indexer.filters == indexer.spellcheckers == {}
         assert indexer.facets(search.MatchAllDocsQuery(), 'amendment')
         assert indexer.suggest('amendment', '')
-        assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
+        assert list(indexer.spellcheckers) == ['amendment']
         indexer.delete('amendment', doc['amendment'])
         indexer.add(doc)
         reader = indexer.indexReader
         indexer.commit(filters=True, spellcheckers=True)
         assert reader.refCount == 0
-        assert list(indexer.filters) == list(indexer.spellcheckers) == ['amendment']
+        assert list(indexer.spellcheckers) == ['amendment']
         tokenizer = lambda reader: analysis.core.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, reader)
         doc['amendment'] = engine.Analyzer(tokenizer).tokens(doc['amendment'])
         doc['date'] = engine.Analyzer(tokenizer).tokens(doc['date']), 2.0
@@ -209,7 +208,8 @@ class TestCase(BaseTest):
         comparator = searcher.comparator('amendment')
         assert set(map(type, comparator)) == set([int])
         assert searcher is searcher.reopen()
-        assert searcher.facets(search.MatchAllDocsQuery(), 'amendment')['amendment'] == dict.fromkeys(map(str, range(1, 28)), 2)
+        facets = searcher.facets(search.MatchAllDocsQuery(), 'amendment')['amendment']
+        assert facets.pop(None) == 16 and facets == dict.fromkeys(map(str, range(1, 28)), 2)
         reader = searcher.indexReader
         del searcher
         assert not reader.refCount
@@ -351,7 +351,7 @@ class TestCase(BaseTest):
         assert str(indexer.parse('vwxyz', field='text', spellcheck=True)) == 'text:vwxyz'
         files = set(os.listdir(self.tempdir))
         path = os.path.join(self.tempdir, 'temp')
-        with indexer.snapshot('backup') as commit:
+        with indexer.snapshot() as commit:
             indexer.commit(merge=1)
             assert indexer.indexCommit.generation > commit.generation
             engine.indexers.copy(commit, path)
@@ -400,24 +400,11 @@ class TestCase(BaseTest):
         la, orange = sorted(filter(facets.get, facets))
         assert la == 'CA.Los Angeles' and facets[la] > 100
         assert orange == 'CA.Orange' and facets[orange] > 10
-        (field, facets), = indexer.facets(query, ('state.county', 'CA.*')).items()
-        assert all(value.startswith('CA.') for value in facets) and set(facets) < set(indexer.filters[field])
-        with assertWarns(DeprecationWarning):
-            assert set(indexer.grouping('state', count=1)) < set(indexer.grouping('state')) == set(states)
-        grouper = indexer.grouping(field, query, sort=search.Sort(indexer.sorter(field)))
-        assert len(grouper) == 2 and list(grouper) == [la, orange]
-        for value, (name, count) in zip(grouper, grouper.facets(None)):
-            assert value == name and count > 0
-        grouper = indexer.groupings[field] = indexer.grouping(field, engine.Query.term('state', 'CA'))
-        assert indexer.facets(query, field)[field] == facets
-        hits = next(grouper.groups())
-        assert hits.value == 'CA.Los Angeles' and hits.count > 100 and len(hits) == 1
-        hit, = hits
-        assert hit.score in hit.keys
-        assert hit['county'] == 'Los Angeles' and hits.maxscore >= hit.score > 0
-        hits = next(grouper.groups(count=2, sort=search.Sort(indexer.sorter('zipcode')), scores=True))
-        assert hits.value == 'CA.Los Angeles' and math.isnan(hits.maxscore) and len(hits) == 2
-        assert all(hit.score > 0 and hit['zipcode'] > '90000' and hit['zipcode'] in hit.keys for hit in hits)
+        indexer.filters[field] = dict((term, engine.Query.term(field, term).filter()) for term in indexer.terms(field, 'CA.*'))
+        (field, facets), = indexer.facets(query, field).items()
+        assert all(value.startswith('CA.') for value in facets) and set(facets) == set(indexer.filters[field])
+        (field, facets), = indexer.facets(query, (field, 'CA.Los Angeles')).items()
+        assert facets == {'CA.Los Angeles': 264}
         hits, = indexer.groupby(field, engine.Query.term('state', 'CA'), count=1)
         assert hits.value == 'CA.Los Angeles' and len(hits) == 1 and hits.count > 100
         grouping = engine.documents.GroupingSearch(field, sort=search.Sort(indexer.sorter(field)), cache=False, allGroups=True)
@@ -506,16 +493,13 @@ class TestCase(BaseTest):
         settings = {'indexed': False, 'docValueType': 'NUMERIC', 'indexOptions': 'DOCS_ONLY'}
         field = engine.Field('', **settings)
         assert field.settings == engine.Field('', **field.settings).settings == settings
-        with assertWarns(DeprecationWarning):
-            field = engine.NestedField('', store=True)
+        field = engine.NestedField('', stored=True)
         assert field.settings == {'indexed': True, 'tokenized': False, 'stored': True}
         field = engine.Field('', omitNorms=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
         field, = field.items(' ')
         attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
         assert all(getattr(field.fieldType(), attr)() for attr in attrs)
         indexer = engine.Indexer(self.tempdir)
-        indexer.set('', store='yes', termvector='no')
-        assert indexer.fields.pop('').settings == {'indexed': True, 'stored': True}
         indexer.set('amendment', engine.MapField, func='{0:02d}'.format, stored=True)
         indexer.set('size', engine.MapField, func='{0:04d}'.format, stored=True)
         field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', stored=True)
@@ -573,8 +557,7 @@ class TestCase(BaseTest):
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.NumericField, type=int, stored=True)
         indexer.set('date', engine.DateTimeField, stored=True)
-        with assertWarns(DeprecationWarning):
-            indexer.set('size', engine.NumericField, type=int, stored=True, step=5)
+        indexer.set('size', engine.NumericField, type=int, stored=True, numericPrecisionStep=5)
         for doc in fixture.constitution.docs():
             if 'amendment' in doc:
                 indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))

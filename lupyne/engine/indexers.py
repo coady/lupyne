@@ -9,7 +9,6 @@ import os
 import itertools, operator
 import contextlib
 import abc, collections
-import warnings
 import lucene
 from java.io import File, StringReader
 from java.lang import Float
@@ -18,7 +17,7 @@ from org.apache.lucene import analysis, codecs, document, index, queries, queryp
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from .queries import Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
-from .documents import Field, Document, Hits, Grouping, GroupingSearch
+from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import DistanceComparator
 
 class Atomic(object):
@@ -214,8 +213,6 @@ class IndexReader(object):
         ids = xrange(self.maxDoc())
         bits = index.MultiFields.getLiveDocs(self.indexReader)
         return filter(bits.get, ids) if bits else iter(ids)
-    def __getitem__(self, id):
-        return Document(self.document(id))
     @property
     def directory(self):
         "reader's lucene Directory"
@@ -257,9 +254,6 @@ class IndexReader(object):
             if merge:
                 writer.forceMerge(merge)
             return len(writer)
-    def count(self, name, value):
-        "Return number of documents with given term."
-        return self.docFreq(index.Term(name, value))
     def names(self, **attrs):
         """Return field names, given option description.
         
@@ -386,7 +380,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         search.IndexSearcher.__init__(self, self.shared.reader(directory))
         self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
-        self.termsfilters, self.groupings = set(), {}
+        self.termsfilters = set()
     @classmethod
     def load(cls, directory, analyzer=None):
         "Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."
@@ -508,7 +502,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
-        .. deprecated:: 1.5 implicit caching of filters is deprecated, in the future a `GroupingSearch`_ will be used instead
+        .. versionchanged:: 1.5+ filters are no longer implicitly cached, a `GroupingSearch`_ is used instead
         
         :param query: query string, lucene Query, or lucene Filter
         :param keys: field names, term tuples, or any keys to previously cached filters
@@ -522,27 +516,17 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             query = search.CachingWrapperFilter(query)
         for key in keys:
             filters = self.filters.get(key)
-            if key in self.groupings:
-                counts[key] = dict(self.groupings[key].facets(query))
-            elif isinstance(filters, search.Filter):
+            if isinstance(filters, search.Filter):
                 counts[key] = self.count(filter=BooleanFilter.all(query, filters))
+            elif isinstance(filters, collections.Mapping):
+                for value in filters:
+                    counts[key][value] = self.count(filter=BooleanFilter.all(query, filters[value]))
+            elif isinstance(key, basestring):
+                counts[key] = dict(GroupingSearch(key).facets(self, query))
             else:
-                name, value = (key, None) if isinstance(key, basestring) else key
-                filters = self.filters.setdefault(name, {})
-                if value is None:
-                    values = filters or self.terms(name)
-                else:
-                    values = [value] if value in filters else self.terms(name, value)
-                for value in values:
-                    if value not in filters:
-                        filters[value] = Query.term(name, value).filter()
-                    counts[name][value] = self.count(filter=BooleanFilter.all(query, filters[value]))
+                name, value = key
+                counts[name][value] = self.count(filter=BooleanFilter.all(query, self.filters[name][value]))
         return dict(counts)
-    def grouping(self, field, query=None, count=None, sort=None):
-        try:
-            return self.groupings[field]
-        except KeyError:
-            return Grouping(self, field, query, count, sort)
     def groupby(self, field, query, filter=None, count=None, **attrs):
         "Generate `Hits`_ grouped by field using a `GroupingSearch`_."
         return GroupingSearch(field, **attrs).groups(self, self.parse(query), filter, count)
@@ -708,16 +692,16 @@ class IndexWriter(index.IndexWriter):
         self.addIndexes([directory if isinstance(directory, store.Directory) else directory.directory])
         return self
     @contextlib.contextmanager
-    def snapshot(self, id=''):
+    def snapshot(self):
         """Return context manager of an index commit snapshot.
         
         .. versionchanged:: 1.4 lucene 4.4 identifies snapshots by commit generation
         """
-        commit = self.policy.snapshot(id) if lucene.VERSION < '4.4' else self.policy.snapshot()
+        commit = self.policy.snapshot()
         try:
             yield commit
         finally:
-            self.policy.release(id if lucene.VERSION < '4.4' else commit)
+            self.policy.release(commit)
 
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.

@@ -43,14 +43,12 @@ CherryPy and Lucene VM integration issues:
 from future_builtins import map, zip
 import re
 import time
-import uuid
 import socket, httplib
 import heapq
 import collections
 import itertools
 import os, optparse
 import contextlib
-import warnings
 try:
     import simplejson as json
 except ImportError:
@@ -243,10 +241,10 @@ class WebSearcher(object):
         "Sync with remote index."
         directory = self.searcher.path
         resource = client.Resource(host)
-        response = resource.call('PUT', '/' + '{0}/update/{1}'.format(path, uuid.uuid1()).lstrip('/'))
+        response = resource.call('PUT', '/{0}/update/snapshot'.format(path.lstrip('/')))
         names = sorted(set(response()).difference(os.listdir(directory)))
+        path = response.getheader('location') + '/'
         try:
-            path = response.getheader('location') + '/'
             for name in names:
                 resource.download(path + name, os.path.join(directory, name))
         finally:
@@ -461,6 +459,8 @@ class WebSearcher(object):
         if facets:
             facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets)
             facets = result['facets'] = searcher.facets(q, *facets)
+            for counts in facets.values():
+                counts.pop(None, None)
             if 'facets.min' in options:
                 for name, counts in facets.items():
                     facets[name] = dict((term, count) for term, count in counts.items() if count >= options['facets.min'])
@@ -651,8 +651,8 @@ class WebIndexer(WebSearcher):
             
             :return: *int*
         
-        **GET, PUT, DELETE** /update/*chars*
-            Verify, create, or release unique snapshot by id of current index commit and return array of referenced filenames.
+        **GET, PUT, DELETE** /update/[snapshot|*int*]
+            Verify, create, or release unique snapshot of current index commit and return array of referenced filenames.
             
             .. versionchanged:: 1.4 lucene 4.4 identifies snapshots by commit generation;  use location header
             
@@ -667,29 +667,18 @@ class WebIndexer(WebSearcher):
             return len(self.indexer)
         method = cherrypy.request.method
         response = cherrypy.serving.response
-        if lucene.VERSION < '4.4':
-            if method == 'DELETE':
-                with HTTPError(httplib.CONFLICT, lucene.JavaError):
-                    return self.indexer.policy.release(id)
-            if method == 'PUT':
-                response.status = httplib.CREATED
-                response.headers['location'] = cherrypy.url(relative='server')
-                with HTTPError(httplib.CONFLICT, lucene.JavaError):
-                    commit = self.indexer.policy.snapshot(id)
-            else:
-                with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
-                    commit = self.indexer.policy.getSnapshot(id)
+        if method == 'PUT':
+            if id != 'snapshot':
+                raise cherrypy.NotFound()
+            commit = self.indexer.policy.snapshot()
+            response.status = httplib.CREATED
+            response.headers['location'] = cherrypy.url('/update/{0:d}'.format(commit.generation), relative='server')
         else:
-            if method == 'PUT':
-                commit = self.indexer.policy.snapshot()
-                response.status = httplib.CREATED
-                response.headers['location'] = cherrypy.url('/update/{0:d}'.format(commit.generation), relative='server')
-            else:
-                with HTTPError(httplib.NOT_FOUND, ValueError, AssertionError):
-                    commit = self.indexer.policy.getIndexCommit(long(id))
-                    assert commit is not None, 'commit not snapshotted'
-                if method == 'DELETE':
-                    self.indexer.policy.release(commit)
+            with HTTPError(httplib.NOT_FOUND, ValueError, AssertionError):
+                commit = self.indexer.policy.getIndexCommit(long(id))
+                assert commit is not None, 'commit not snapshotted'
+            if method == 'DELETE':
+                self.indexer.policy.release(commit)
         if not name:
             return list(commit.fileNames)
         with HTTPError(httplib.NOT_FOUND, TypeError, AssertionError):
@@ -761,7 +750,7 @@ class WebIndexer(WebSearcher):
             
             {"stored"|"indexed"\|...: *string*\|true|false,... }
             
-            .. deprecated:: 1.5 lucene FieldType attributes used as settings
+            .. versionchanged:: 1.5+ lucene FieldType attributes used as settings
             
             :return: {"stored"|"indexed"\|...: *string*\|true|false,... }
         """
@@ -771,10 +760,7 @@ class WebIndexer(WebSearcher):
             if name not in self.indexer.fields:
                 cherrypy.response.status = httplib.CREATED
             with HTTPError(httplib.BAD_REQUEST, AttributeError):
-                with warnings.catch_warnings(record=True) as messages:
-                    self.indexer.set(name, **settings)
-            for message in messages:
-                cherrypy.response.headers['warning'] = '199 lupyne "{0}"'.format(message.message)
+                self.indexer.set(name, **settings)
         with HTTPError(httplib.NOT_FOUND, KeyError):
             return self.indexer.fields[name].settings
 

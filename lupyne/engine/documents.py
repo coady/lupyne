@@ -5,7 +5,6 @@ Wrappers for lucene Fields and Documents.
 from future_builtins import map
 import datetime, calendar
 import operator
-import warnings
 import lucene
 from java.lang import Double, Float, Long, Number, Object
 from java.util import Arrays, HashSet
@@ -24,26 +23,7 @@ class Field(document.FieldType):
     def __init__(self, name, stored=False, indexed=True, boost=1.0, **settings):
         document.FieldType.__init__(self)
         self.name, self.boost = name, boost
-        if set(['store', 'index', 'termvector']).intersection(settings):
-            warnings.warn('lucene Field.{Store,Index,TermVector} deprecated, use FieldType attibutes', DeprecationWarning)
-            store = settings.get('store', False)
-            if isinstance(store, bool):
-                store = 'yes' if store else 'no'
-            store = document.Field.Store.valueOf(store.upper())
-            index = settings.get('index', 'analyzed')
-            if isinstance(index, bool):
-                index = document.Field.Index.toIndex(index, settings.get('analyzed', False), settings.get('omitNorms', False))
-            else:
-                index = document.Field.Index.valueOf(index.upper())
-            termvector = settings.get('termvector', False)
-            if isinstance(termvector, bool):
-                termvector = document.Field.TermVector.toTermVector(termvector, settings.get('withOffsets', False), settings.get('withPositions', False))
-            else:
-                termvector = document.Field.TermVector.valueOf(termvector.upper())
-            ft = document.Field.translateFieldType(store, index, termvector)
-            self.update(**Field.settings.fget(ft))
-        else:
-            self.update(stored=stored, indexed=indexed, **settings)
+        self.update(stored=stored, indexed=indexed, **settings)
     def update(self, docValueType='', indexOptions='', numericType='', **settings):
         if docValueType:
             self.setDocValueType(getattr(index.FieldInfo.DocValuesType, docValueType.upper()))
@@ -89,8 +69,6 @@ class NestedField(Field):
     :param sep: field separator used on name and values
     """
     def __init__(self, name, sep='.', tokenized=False, **kwargs):
-        if set(['store', 'index', 'termvector']).intersection(kwargs):
-            kwargs.setdefault('index', True)
         Field.__init__(self, name, tokenized=tokenized, **kwargs)
         self.sep = sep
         self.names = tuple(self.values(name))
@@ -123,9 +101,6 @@ class NumericField(Field):
         if type:
             kwargs['numericType'] = {int: 'long', float: 'double'}.get(type, str(type))
         Field.__init__(self, name, stored=stored, tokenized=tokenized, **kwargs)
-        if step:
-            warnings.warn('step deprecated, use numericPrecisionStep', DeprecationWarning)
-            self.setNumericPrecisionStep(step)
     def items(self, *values):
         "Generate lucene NumericFields suitable for adding to a document."
         if not self.numericType():
@@ -307,56 +282,6 @@ class Hits(object):
         "Return `Hits`_ sorted by key function applied to doc ids."
         scoredocs = sorted(self.scoredocs, key=lambda scoredoc: key(scoredoc.doc), reverse=reverse)
         return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
-
-class Grouping(object):
-    """Delegated lucene SearchGroups with optimized faceting.
-    
-    :param searcher: `IndexSearcher`_ which can retrieve documents
-    :param field: unique field name to group by
-    :param query: lucene Query to select groups
-    :param count: maximum number of groups
-    :param sort: lucene Sort to order groups
-    """
-    def __init__(self, searcher, field, query=None, count=None, sort=None):
-        warnings.warn('Grouping deprecated, use GroupingSearch instead', DeprecationWarning)
-        self.searcher, self.field = searcher, field
-        self.query = query or search.MatchAllDocsQuery()
-        self.sort = sort or search.Sort.RELEVANCE
-        if count is None:
-            collector = grouping.term.TermAllGroupsCollector(field)
-            search.IndexSearcher.search(self.searcher, self.query, collector)
-            count = collector.groupCount
-        collector = grouping.term.TermFirstPassGroupingCollector(field, self.sort, count)
-        search.IndexSearcher.search(self.searcher, self.query, collector)
-        self.searchgroups = collector.getTopGroups(0, False).of_(grouping.SearchGroup)
-    def __len__(self):
-        return self.searchgroups.size()
-    def __iter__(self):
-        for searchgroup in self.searchgroups:
-            yield convert(searchgroup.groupValue)
-    def facets(self, filter):
-        "Generate field values and counts which match given filter."
-        collector = grouping.term.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, self.sort, 1, False, False, False)
-        search.IndexSearcher.search(self.searcher, self.query, filter, collector)
-        for groupdocs in collector.getTopGroups(0).groups:
-            yield convert(groupdocs.groupValue), groupdocs.totalHits
-    def groups(self, count=1, sort=None, scores=False, maxscore=False):
-        """Generate grouped `Hits`_ from second pass grouping collector.
-        
-        :param count: maximum number of docs per group
-        :param sort: lucene Sort to order docs within group
-        :param scores: compute scores for candidate results
-        :param maxscore: compute maximum score of all results
-        """
-        sort = sort or self.sort
-        if sort == search.Sort.RELEVANCE:
-            scores = maxscore = True
-        collector = grouping.term.TermSecondPassGroupingCollector(self.field, self.searchgroups, self.sort, sort, count, scores, maxscore, True)
-        search.IndexSearcher.search(self.searcher, self.query, collector)
-        for groupdocs in collector.getTopGroups(0).groups:
-            hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
-            hits.value = convert(groupdocs.groupValue)
-            yield hits
 
 class GroupingSearch(grouping.GroupingSearch):
     """Inherited lucene GroupingSearch with optimized faceting.

@@ -39,8 +39,6 @@ IndexReader
 
   .. automethod:: __iter__
 
-  .. automethod:: __getitem__
-
 IndexSearcher
 ^^^^^^^^^^^^^
 .. autoclass:: IndexSearcher
@@ -138,16 +136,6 @@ Hits
 
   .. automethod:: __getitem__
 
-Grouping
-^^^^^^^^^^^^^
-.. deprecated:: 1.5 use contrib `GroupingSearch`_ instead
-.. autoclass:: Grouping
-  :members:
-
-  .. automethod:: __len__
-
-  .. automethod:: __iter__
-
 GroupingSearch
 ^^^^^^^^^^^^^^
 .. versionadded:: 1.5
@@ -161,7 +149,7 @@ GroupingSearch
 
 Field
 ^^^^^^^^^^^^^
-.. deprecated:: 1.5 lucene Field.{Store,Index,TermVector} deprecated in favor of FieldType attributes
+.. versionchanged:: 1.5+ lucene Field.{Store,Index,TermVector} dropped in favor of FieldType attributes
 .. autoclass:: Field
   :members:
 
@@ -180,7 +168,7 @@ NestedField
 NumericField
 ^^^^^^^^^^^^^
 .. versionchanged:: 1.5 recommended to specify initial int or float type
-.. deprecated:: 1.5 custom step deprecated in favor of numericPrecisionStep
+.. versionchanged:: 1.5+ custom step removed in favor of numericPrecisionStep
 .. autoclass:: NumericField
   :show-inheritance:
   :members:

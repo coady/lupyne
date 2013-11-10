@@ -134,8 +134,7 @@ class TestCase(BaseTest):
         assert response.status == httplib.CREATED and response() == defaults
         response = resource.call('PUT', '/fields/text', {})
         assert response.status == httplib.OK and response() == defaults
-        with local.assertWarns(UserWarning):
-            assert resource.put('/fields/name', {'store': True, 'index': 'not_analyzed'})
+        assert resource.put('/fields/name', {'stored': True, 'tokenized': False})
         assert sorted(resource.get('/fields')) == ['name', 'text']
         assert resource.get('/fields/text') == {'indexed': True}
         assert not resource.post('/docs', [{'name': 'sample', 'text': 'hello world'}])
@@ -266,13 +265,8 @@ class TestCase(BaseTest):
             response = resource.call('GET', path + '/' + name)
             assert response and response.getheader('content-type') == 'application/x-download'
             assert len(response.body) == os.path.getsize(os.path.join(self.tempdir, name))
-        assert resource.put('/update/backup') == names
-        if lucene.VERSION < '4.4':
-            with assertRaises(httplib.HTTPException, httplib.CONFLICT):
-                resource.put('/update/snapshot')
-            assert not resource.delete('/update/snapshot')
-            with assertRaises(httplib.HTTPException, httplib.CONFLICT):
-                resource.delete('/update/snapshot')
+        with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
+            assert resource.put('/update/backup') == names
         resource = client.Resource('localhost', self.ports[-1] + 1)
         with assertRaises(socket.error, errno.ECONNREFUSED):
             resource.get('/')
@@ -374,8 +368,8 @@ class TestCase(BaseTest):
         assert result['count'] == sum(sum(facets.values()) for facets in result['facets'].values())
         for name, keys in [('article', ['1', 'Preamble']), ('amendment', ['1', '10', '17', '2', '4', '9'])]:
             assert sorted(key for key, value in result['facets'][name].items() if value) == keys
-        result = resource.get('/search', q='text:president', facets='date:19*')
-        assert all(key.startswith('19') and value in (0, 1) for key, value in result['facets']['date'].items())
+        result = resource.get('/search', q='text:president', facets='date')
+        assert len(result['facets']['date']) == sum(result['facets']['date'].values()) == 7
         result = resource.get('/search', q='text:freedom')
         assert result['count'] == 1
         doc, = result['docs']
@@ -447,9 +441,9 @@ class TestCase(BaseTest):
         result = resource.get('/search', count=0, facets='county')
         facets = result['facets']['county']
         assert result['count'] == sum(facets.values()) and 'Los Angeles' in facets
-        result = resource.get('/search', count=0, facets='county.city:Los Angeles.*')
+        result = resource.get('/search', q='Los Angeles', count=0, facets='county.city', **{'q.type': 'term', 'q.field': 'county'})
         facets = result['facets']['county.city']
-        assert result['count'] > sum(facets.values()) and all(location.startswith('Los Angeles.') for location in facets)
+        assert result['count'] == sum(facets.values()) and all(location.startswith('Los Angeles.') for location in facets)
         result = resource.get('/search', count=0, facets='county', **{'facets.count': 3})
         assert sorted(result['facets']['county']) == ['Los Angeles', 'Orange', 'San Diego']
         result = resource.get('/search', count=0, facets='county', **{'facets.min': 140})
