@@ -50,6 +50,7 @@ setup(
     author='Aric Coady',
     author_email='aric.coady@gmail.com',
     url='https://bitbucket.org/coady/lupyne',
+    license='Apache Software License',
     packages=[dirpath.replace(os.sep, '.') for dirpath, dirnames, filenames in os.walk('lupyne')],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
