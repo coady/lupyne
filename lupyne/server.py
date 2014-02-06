@@ -474,7 +474,7 @@ class WebSearcher(object):
         return result
     @cherrypy.expose
     @cherrypy.tools.params(count=int, step=int, indexed=json.loads)
-    def terms(self, name='', value=':', *path, **options):
+    def terms(self, name='', value='*', *path, **options):
         """Return data about indexed terms.
         
         **GET** /terms?
@@ -489,12 +489,12 @@ class WebSearcher(object):
             
             :return: [*string*,... ]
         
-        **GET** /terms/*chars*/*chars*\[\*\|?\|:*chars*\|~\ *number*\]
-            Return term values (wildcards, slices, or fuzzy terms) for given field name.
+        **GET** /terms/*chars*/*chars*\[\*\|:*chars*\|~[\ *int*\]]
+            Return term values (prefix, slices, or fuzzy terms) for given field name.
             
             :return: [*string*,... ]
         
-        **GET** /terms/*chars*/*chars*\[\*\|~\]?count=\ *int*
+        **GET** /terms/*chars*/*chars*\[\*\|~[\ *int*\]\]?count=\ *int*
             Return spellchecked term values ordered by decreasing document frequency.
             Prefixes (*) are optimized to be suitable for real-time query suggestions; all terms are cached.
             
@@ -529,21 +529,19 @@ class WebSearcher(object):
                 type = getattr(__builtins__, type)
             return list(searcher.numbers(name, step=options.get('step', 0), type=type))
         if ':' in value:
-            with HTTPError(httplib.BAD_REQUEST, ValueError):
-                start, stop = value.split(':')
-            return list(searcher.terms(name, start, stop or None))
-        if 'count' in options:
-            if value.endswith('*'):
-                return searcher.suggest(name, value.rstrip('*'), options['count'])
-            if value.endswith('~'):
-                return list(itertools.islice(searcher.correct(name, value.rstrip('~')), options['count']))
-        if '*' in value or '?' in value:
+            return list(searcher.terms(name, *value.split(':')))
+        if value.endswith('*'):
+            value = value.rstrip('*')
+            if 'count' in options:
+                return searcher.suggest(name, value, options['count'])
             return list(searcher.terms(name, value))
         if '~' in value:
             with HTTPError(httplib.BAD_REQUEST, ValueError):
-                value, similarity = value.split('~')
-                similarity = float(similarity or 0.5)
-            return list(searcher.terms(name, value, minSimilarity=similarity))
+                value, distance = value.split('~')
+                distance = int(distance or 2)
+            if 'count' in options:
+                return list(itertools.islice(searcher.correct(name, value, distance), options['count']))
+            return list(searcher.terms(name, value, distance=distance))
         if not path:
             return searcher.count(name, value)
         if path[0] == 'docs':

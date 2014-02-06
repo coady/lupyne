@@ -11,7 +11,7 @@ import contextlib
 import lucene
 from java.io import StringReader
 from org.apache.lucene import analysis, document, search, store, util
-from org.apache.lucene.search import grouping, highlight, vectorhighlight
+from org.apache.lucene.search import highlight, vectorhighlight
 from org.apache.pylucene.search import PythonFilter
 from lupyne import engine
 from . import fixture
@@ -220,8 +220,9 @@ class TestCase(BaseTest):
         assert sorted(map(int, articles)) == range(1, 8)
         assert sorted(map(int, indexer.terms('amendment'))) == range(1, 28)
         assert list(itertools.islice(indexer.terms('text', 'right'), 2)) == ['right', 'rights']
-        assert list(indexer.terms('text', 'right*')) == ['right', 'rights']
-        assert list(indexer.terms('text', 'right', minSimilarity=0.5)) == ['eight', 'right', 'rights']
+        assert list(indexer.terms('text', 'right')) == ['right', 'rights']
+        assert list(indexer.terms('text', 'right', distance=1)) == ['eight', 'right', 'rights']
+        assert list(indexer.terms('text', 'senite', distance=2)) == ['senate', 'sent']
         word, count = next(indexer.terms('text', 'people', counts=True))
         assert word == 'people' and count == 8
         docs = dict(indexer.docs('text', 'people', counts=True))
@@ -336,14 +337,10 @@ class TestCase(BaseTest):
         assert indexer.suggest('text', 'con')[:2] == ['congress', 'constitution']
         assert indexer.suggest('text', 'congress') == ['congress']
         assert indexer.suggest('text', 'congresses') == []
-        assert list(indexer.correct('text', 'writ', distance=0, minSimilarity=None)) == ['writ']
-        assert list(indexer.correct('text', 'write', distance=0, minSimilarity=None)) == []
-        assert list(indexer.correct('text', 'write', distance=0)) == ['crime', 'writs', 'written', 'writ']
-        assert list(indexer.correct('text', 'write', distance=0, minSimilarity=0.7)) == ['writs', 'writ']
-        assert list(indexer.correct('text', 'write', distance=1, minSimilarity=None)) == ['writs', 'writ']
-        assert list(indexer.correct('text', 'write', distance=1)) == ['writs', 'writ', 'crime', 'written']
-        assert list(indexer.correct('text', 'write', distance=1, minSimilarity=0.7)) == ['writs', 'writ']
-        assert list(indexer.correct('text', 'write', minSimilarity=0.9)) == ['writs', 'writ', 'crime', 'written']
+        assert list(indexer.correct('text', 'writ', distance=0)) == ['writ']
+        assert list(indexer.correct('text', 'write', distance=0)) == []
+        assert list(indexer.correct('text', 'write', distance=1)) == ['writs', 'writ']
+        assert list(indexer.correct('text', 'write')) == ['writs', 'writ', 'crime', 'written']
         query = indexer.parse('text:write', spellcheck=True)
         assert search.TermQuery.instance_(query) and str(query) == 'text:writs'
         query = indexer.parse('"hello world"', field='text', spellcheck=True)
@@ -400,7 +397,7 @@ class TestCase(BaseTest):
         la, orange = sorted(filter(facets.get, facets))
         assert la == 'CA.Los Angeles' and facets[la] > 100
         assert orange == 'CA.Orange' and facets[orange] > 10
-        indexer.filters[field] = dict((term, engine.Query.term(field, term).filter()) for term in indexer.terms(field, 'CA.*'))
+        indexer.filters[field] = dict((term, engine.Query.term(field, term).filter()) for term in indexer.terms(field, 'CA.'))
         (field, facets), = indexer.facets(query, field).items()
         assert all(value.startswith('CA.') for value in facets) and set(facets) == set(indexer.filters[field])
         (field, facets), = indexer.facets(query, (field, 'CA.Los Angeles')).items()

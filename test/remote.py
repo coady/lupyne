@@ -308,13 +308,13 @@ class TestCase(BaseTest):
         assert sorted(map(int, articles)) == range(1, 8)
         assert sorted(map(int, resource.get('/terms/amendment'))) == range(1, 28)
         assert resource.get('/terms/text/:0') == []
-        assert resource.get('/terms/text/z:') == []
         assert resource.get('/terms/text/right:right~') == resource.get('/terms/text/right*') == ['right', 'rights']
         assert resource.get('/terms/text/writ*') == ['writ', 'writing', 'writings', 'writs', 'written']
         assert resource.get('/terms/text/*?count=0') == []
         assert resource.get('/terms/text/writ*?count=10') == ['writs', 'writ', 'writing', 'writings', 'written']
         assert resource.get('/terms/text/writ*?count=3') == ['writs', 'writ', 'writing']
-        assert resource.get('/terms/text/right~') == resource.get('/terms/text/right~0.5') == ['eight', 'right', 'rights']
+        assert resource.get('/terms/text/right~1') == ['eight', 'right', 'rights']
+        assert resource.get('/terms/text/right~') == ['eight', 'high', 'right', 'rights']
         assert resource.get('/terms/text/right~?count=3') == ['right', 'eight', 'rights']
         assert resource.get('/terms/text/right~?count=5') == ['right', 'eight', 'rights', 'high']
         assert resource.get('/terms/text/write~?count=5') == ['writs', 'writ', 'crime', 'written']

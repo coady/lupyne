@@ -6,7 +6,7 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 
 from future_builtins import filter, map, zip
 import os
-import itertools, operator
+import itertools
 import contextlib
 import abc, collections
 import lucene
@@ -261,27 +261,25 @@ class IndexReader(object):
         """
         fieldinfos = index.MultiFields.getMergedFieldInfos(self.indexReader).iterator()
         return [fieldinfo.name for fieldinfo in fieldinfos if all(getattr(fieldinfo, name) == attrs[name] for name in attrs)]
-    def terms(self, name, value='', stop=None, counts=False, **fuzzy):
+    def terms(self, name, value='', stop=None, counts=False, distance=0):
         """Generate a slice of term values, optionally with frequency counts.
         Supports a range of terms, wildcard terms, or fuzzy terms.
         
         :param name: field name
-        :param value: initial term text, trailing * indicates prefix
-        :param stop: optional upper bound for simple terms
+        :param value: term prefix or lower bound for range terms
+        :param stop: optional upper bound for range terms
         :param counts: include frequency counts
-        :param fuzzy: optional keyword arguments for fuzzy terms
+        :param distance: maximum edit distance for fuzzy terms
         """
-        term = index.Term(name, value)
-        args = fuzzy.get('minSimilarity', 0.5), fuzzy.get('prefixLength', 0)
         terms = index.MultiFields.getTerms(self.indexReader, name)
         if terms:
-            if fuzzy:
-                termenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, args[0], args[1], False)
-            elif value.endswith('*'): 
-                termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(value.rstrip('*')))
+            if distance:
+                termenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), index.Term(name, value), float(distance), 0, False)
+            elif stop is not None:
+                termenum = search.TermRangeTermsEnum(terms.iterator(None), util.BytesRef(value), util.BytesRef(stop), True, False)
             else:
-                termenum = search.TermRangeTermsEnum(terms.iterator(None), util.BytesRef(value), stop and util.BytesRef(stop), True, False)
-            for bytesref in util.BytesRefIterator.cast_(termenum):
+                termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(value))
+            for bytesref in termenum:
                 text = bytesref.utf8ToString()
                 yield (text, termenum.docFreq()) if counts else text
     def numbers(self, name, step=0, type=int, counts=False):
@@ -292,12 +290,11 @@ class IndexReader(object):
         :param type: int or float
         :param counts: include frequency counts
         """
-        term = index.Term(name, chr(ord(' ') + step))
         decode = util.NumericUtils.prefixCodedToLong
         convert = util.NumericUtils.sortableLongToDouble if issubclass(type, float) else int
         terms = index.MultiFields.getTerms(self.indexReader, name)
-        termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(term.text()))
-        for bytesref in util.BytesRefIterator.cast_(termenum):
+        termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(chr(ord(' ') + step)))
+        for bytesref in termenum:
             value = convert(decode(bytesref))
             yield (value, termenum.docFreq()) if counts else value
     def docs(self, name, value, counts=False):
@@ -559,23 +556,13 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def suggest(self, field, prefix, count=None):
         "Return ordered suggested words for prefix."
         return self.spellchecker(field).suggest(prefix, count)
-    def correct(self, field, text, distance=2, minSimilarity=0.5):
+    def correct(self, field, text, distance=2):
         """Generate potential words ordered by increasing edit distance and decreasing frequency.
         For optimal performance only iterate the required slice size of corrections.
         
         :param distance: the maximum edit distance to consider for enumeration
-        :param minSimilarity: threshold for additional fuzzy terms after edits have been exhausted
         """
-        spellchecker = self.spellchecker(field)
-        corrections = set()
-        for words in itertools.islice(spellchecker.correct(text), distance + 1):
-            for word in words:
-                yield word
-            corrections.update(words)
-        if minSimilarity:
-            words = set(self.terms(field, text, minSimilarity=minSimilarity)) - corrections
-            for word in sorted(words, key=spellchecker.__getitem__, reverse=True):
-                yield word
+        return itertools.chain.from_iterable(itertools.islice(self.spellchecker(field).correct(text), distance + 1))
     def match(self, document, *queries):
         "Generate scores for all queries against a given document mapping."
         searcher = index.memory.MemoryIndex()

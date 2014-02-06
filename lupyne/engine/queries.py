@@ -10,7 +10,7 @@ import threading
 import lucene
 from java.lang import Integer
 from java.util import Arrays, HashSet
-from org.apache.lucene import document, index, queries, search, util
+from org.apache.lucene import index, queries, search, util
 from org.apache.lucene.search import highlight, spans, vectorhighlight
 from org.apache.pylucene import search as pysearch
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
@@ -115,11 +115,9 @@ class Query(object):
         "Return lucene WildcardQuery."
         return cls(search.WildcardQuery, index.Term(name, value))
     @classmethod
-    def fuzzy(cls, name, value, minimumSimilarity=None, prefixLength=0):
+    def fuzzy(cls, name, value, *args):
         "Return lucene FuzzyQuery."
-        if minimumSimilarity is None:
-            minimumSimilarity = getattr(search.FuzzyQuery, 'defaultMaxEdits', 0.5)
-        return cls(search.FuzzyQuery, index.Term(name, value), minimumSimilarity, prefixLength)
+        return cls(search.FuzzyQuery, index.Term(name, value), *args)
     def __pos__(self):
         return Query.all(self)
     def __neg__(self):
