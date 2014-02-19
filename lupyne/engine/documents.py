@@ -91,16 +91,30 @@ class NestedField(Field):
         index = max(value.count(self.sep) for value in (start, stop) if value is not None)
         return Query.range(self.names[index], start, stop, lower, upper)
 
+class DocValuesField(Field):
+    """Field which stores a per-document values, used for efficient sorting.
+    
+    :param name: name of field
+    :param type: lucene DocValuesType string
+    """
+    def __init__(self, name, type):
+        Field.__init__(self, name, indexed=False, docValueType=type)
+        self.cls = getattr(document, type.title().replace('_', '') + 'DocValuesField')
+    def items(self, *values):
+        "Generate lucene DocValuesFields suitable for adding to a document."
+        for value in values:
+            yield self.cls(self.name, long(value) if isinstance(value, int) else util.BytesRef(value))
+
 class NumericField(Field):
     """Field which indexes numbers in a prefix tree.
     
     :param name: name of field
     :param type: optional int, float, or lucene NumericType string
     """
-    def __init__(self, name, type=None, step=0, stored=False, tokenized=False, **kwargs):
+    def __init__(self, name, type=None, tokenized=False, **kwargs):
         if type:
             kwargs['numericType'] = {int: 'long', float: 'double'}.get(type, str(type))
-        Field.__init__(self, name, stored=stored, tokenized=tokenized, **kwargs)
+        Field.__init__(self, name, tokenized=tokenized, **kwargs)
     def items(self, *values):
         "Generate lucene NumericFields suitable for adding to a document."
         if not self.numericType():

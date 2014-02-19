@@ -165,6 +165,13 @@ NestedField
   :show-inheritance:
   :members:
 
+DocValuesField
+^^^^^^^^^^^^^^
+.. versionadded:: 1.5+
+.. autoclass:: DocValuesField
+  :show-inheritance:
+  :members:
+
 NumericField
 ^^^^^^^^^^^^^
 .. versionchanged:: 1.5 recommended to specify initial int or float type
