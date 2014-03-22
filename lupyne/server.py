@@ -122,7 +122,7 @@ def validate(etag=True, last_modified=False, max_age=None, expires=None):
     root = cherrypy.request.app.root
     headers = cherrypy.response.headers
     if etag:
-        headers['etag'] = 'W/"{0}"'.format(root.searcher.version)
+        headers['etag'] = root.etag
         cherrypy.lib.cptools.validate_etags()
     if last_modified:
         headers['last-modified'] = cherrypy.lib.httputil.HTTPDate(root.searcher.timestamp)
@@ -237,11 +237,17 @@ class WebSearcher(object):
         return self
     def close(self):
         self.searcher.close()
+    @property
+    def etag(self):
+        return 'W/"{0}"'.format(self.searcher.version)
     def sync(self, host, path=''):
         "Sync with remote index."
         directory = self.searcher.path
         resource = client.Resource(host)
+        resource.headers = dict(resource.headers, **{'if-none-match': self.etag})
         response = resource.call('PUT', '/{0}/update/snapshot'.format(path.lstrip('/')))
+        if response.status == httplib.PRECONDITION_FAILED:
+            return []
         names = sorted(set(response()).difference(os.listdir(directory)))
         path = response.getheader('location') + '/'
         try:
@@ -656,7 +662,7 @@ class WebIndexer(WebSearcher):
             
             :return: [*string*,... ]
         
-        **GET** /update/*chars*/*chars*
+        **GET** /update/*int*/*chars*
             Download index file corresponding to snapshot id and filename.
         """
         if not id:
