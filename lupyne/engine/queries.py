@@ -118,6 +118,16 @@ class Query(object):
     def fuzzy(cls, name, value, *args):
         "Return lucene FuzzyQuery."
         return cls(search.FuzzyQuery, index.Term(name, value), *args)
+    @classmethod
+    def alldocs(cls):
+        return cls(search.MatchAllDocsQuery)
+    @classmethod
+    def regexp(cls, name, value, *args):
+        "Return lucene RegexpQuery."
+        return cls(search.RegexpQuery, index.Term(name, value), *args)
+    def constant(self):
+        "Return lucene ConstantScoreQuery."
+        return search.ConstantScoreQuery(self)
     def __pos__(self):
         return Query.all(self)
     def __neg__(self):

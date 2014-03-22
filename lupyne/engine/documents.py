@@ -326,7 +326,7 @@ class GroupingSearch(grouping.GroupingSearch):
         return grouping.GroupingSearch.search(self, searcher, filter, query, 0, count).groups
     def facets(self, searcher, filter=None):
         "Generate field values and counts which match given filter."
-        for groupdocs in self.search(searcher, search.MatchAllDocsQuery(), filter, None):
+        for groupdocs in self.search(searcher, Query.alldocs(), filter, None):
             yield convert(groupdocs.groupValue), groupdocs.totalHits
     def groups(self, searcher, query, filter=None, count=None):
         "Generate grouped `Hits`_ from search parameters."

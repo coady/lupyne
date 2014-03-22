@@ -54,7 +54,6 @@ try:
 except ImportError:
     import json
 import lucene
-from org.apache.lucene import search
 import cherrypy
 try:
     from . import engine, client
@@ -461,7 +460,7 @@ class WebSearcher(object):
             result['groups'].append({'docs': [], 'count': len(hits), 'value': hits.value})
         if not group:
             result['docs'] = result.pop('groups')[0]['docs']
-        q = q or search.MatchAllDocsQuery()
+        q = q or engine.Query.alldocs()
         if facets:
             facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets)
             facets = result['facets'] = searcher.facets(q, *facets)

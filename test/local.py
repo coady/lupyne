@@ -120,6 +120,9 @@ class TestCase(BaseTest):
         query &= engine.Query.fuzzy('text', 'hello')
         query |= engine.Query.fuzzy('text', 'hello', 1)
         assert str(query) == '+text:* +text:hello~2 text:hello~1'
+        query = engine.Query.regexp('text', '.*')
+        assert str(query) == 'text:/.*/'
+        assert str(query.constant()) == 'ConstantScore(text:/.*/)'
         query = engine.Query.span('text', 'world')
         assert str(query.mask('name')) == 'mask(text:world) as name'
         assert str(query.payload()) == 'spanPayCheck(text:world, payloadRef: )'
@@ -187,7 +190,7 @@ class TestCase(BaseTest):
         engine.IndexSearcher.load(searcher.directory) # ensure directory isn't closed
         assert len(indexer) == len(searcher) and store.RAMDirectory.instance_(searcher.directory)
         assert indexer.filters == indexer.spellcheckers == {}
-        assert indexer.facets(search.MatchAllDocsQuery(), 'amendment')
+        assert indexer.facets(engine.Query.alldocs(), 'amendment')
         assert indexer.suggest('amendment', '')
         assert list(indexer.spellcheckers) == ['amendment']
         indexer.delete('amendment', doc['amendment'])
@@ -208,7 +211,7 @@ class TestCase(BaseTest):
         comparator = searcher.comparator('amendment')
         assert set(map(type, comparator)) == set([int])
         assert searcher is searcher.reopen()
-        facets = searcher.facets(search.MatchAllDocsQuery(), 'amendment')['amendment']
+        facets = searcher.facets(engine.Query.alldocs(), 'amendment')['amendment']
         assert facets.pop(None) == 16 and facets == dict.fromkeys(map(str, range(1, 28)), 2)
         reader = searcher.indexReader
         del searcher

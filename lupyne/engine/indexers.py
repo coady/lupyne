@@ -246,7 +246,7 @@ class IndexReader(object):
         copy(self.indexCommit, dest)
         with contextlib.closing(IndexWriter(dest)) as writer:
             if query:
-                writer.delete(Query(search.MatchAllDocsQuery) - query)
+                writer.delete(Query.alldocs() - query)
             if exclude:
                 writer.delete(exclude)
             writer.commit()
@@ -448,7 +448,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """
         if len(query) > 1:
             return self.docFreq(index.Term(*query))
-        query = self.parse(*query, **options) if query else search.MatchAllDocsQuery()
+        query = self.parse(*query, **options) if query else Query.alldocs()
         collector = search.TotalHitCountCollector()
         search.IndexSearcher.search(self, query, options.get('filter'), collector)
         return collector.totalHits
@@ -479,7 +479,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param timeout: stop search after elapsed number of seconds
         :param parser: :meth:`Analyzer.parse` options
         """
-        query = search.MatchAllDocsQuery() if query is None else self.parse(query, **parser)
+        query = Query.alldocs() if query is None else self.parse(query, **parser)
         cache = collector = self.collector(query, count, sort, reverse, scores, maxscore)
         counter = search.TimeLimitingCollector.getGlobalCounter()
         results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, long(timeout * 1000))
@@ -755,7 +755,7 @@ class ParallelIndexer(Indexer):
         sorter, segments = self.sorter(self.field), self.segments
         searcher = self.indexSearcher.reopen(**caches)
         readers = [reader for reader in searcher.readers if reader.segmentName not in segments]
-        terms = set(sorter.terms(search.QueryWrapperFilter(search.MatchAllDocsQuery()), *readers))
+        terms = set(sorter.terms(Query.alldocs().filter(cache=False), *readers))
         for filter, termsfilter in self.termsfilters.items():
             if terms:
                 termsfilter.update(terms, op='andNot', cache=not self.nrt)
