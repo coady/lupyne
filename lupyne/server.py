@@ -347,7 +347,7 @@ class WebSearcher(object):
         return result
     @cherrypy.expose
     @cherrypy.tools.params(count=int, start=int, fields=multi, sort=multi, facets=multi, hl=multi, mlt=int, spellcheck=int, timeout=float,
-        **{'fields.multi': multi, 'fields.indexed': multi, 'facets.count': int, 'facets.min': int, 'group.count': int, 'group.limit': int, 'hl.count': int, 'mlt.fields': multi})
+        **{'fields.multi': multi, 'fields.indexed': multi, 'facets.count': int, 'facets.min': int, 'group.count': int, 'hl.count': int, 'mlt.fields': multi})
     def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
         
@@ -375,9 +375,10 @@ class WebSearcher(object):
                 | include facet counts for given field names; facets filters are cached
                 | optional maximum number of most populated facet values per field, and minimum count to return
             
-            &group=\ *chars*\ [:*chars*]&group.count=1&group.limit=\ *int*
+            &group=\ *chars*\ [:*chars*]&group.count=1
                 | group documents by field value with optional type, up to given maximum count
-                | limit number of groups which return docs
+            
+            .. versionchanged:: 1.5+ grouping searches use count and start options
             
             &hl=\ *chars*,... &hl.count=1&hl.tag=strong&hl.enable=[fields|terms]
                 | stored fields to return highlighted
@@ -431,9 +432,20 @@ class WebSearcher(object):
         if count == 0:
             start = count = 1
         scores = options.get('sort.scores')
+        gcount = options.get('group.count', 1)
         scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
-        hits = searcher.search(q, filter=qfilter, count=count, sort=sort, timeout=timeout, **scores)[start:]
-        result = {'query': q and unicode(q), 'count': hits.count, 'maxscore': hits.maxscore}
+        if ':' in group:
+            hits = searcher.search(q, filter=qfilter, sort=sort, timeout=timeout, **scores)
+            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+                groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__, count=count, docs=gcount)
+            groups.groupdocs = groups.groupdocs[start:]
+        elif group:
+            scores = {'includeScores': scores['scores'], 'includeMaxScore': scores['maxscore']}
+            groups = searcher.groupby(group, q, qfilter, count, start, sort=sort, groupDocsLimit=gcount, **scores)
+        else:
+            hits = searcher.search(q, filter=qfilter, sort=sort, count=count, timeout=timeout, **scores)
+            groups = engine.documents.Groups(searcher, [hits[start:]], hits.count, hits.maxscore)
+        result = {'query': q and unicode(q), 'count': groups.count, 'maxscore': groups.maxscore}
         tag, enable = options.get('hl.tag', 'strong'), options.get('hl.enable', '')
         hlcount = options.get('hl.count', 1)
         if hl:
@@ -442,22 +454,18 @@ class WebSearcher(object):
         if fields is None:
             fields = {}
         else:
-            hits.select(*itertools.chain(fields, multi))
-        with HTTPError(httplib.BAD_REQUEST, AttributeError):
-            groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__) if group else [hits]
-        result['groups'], limit = [], options.get('group.limit', len(groups))
-        for hits in groups[:limit]:
+            groups.select(*itertools.chain(fields, multi))
+        result['groups'] = []
+        for hits in groups:
             docs = []
-            for hit in hits[:options.get('group.count', 1) if group else None]:
+            for hit in hits:
                 doc = hit.dict(*multi, **fields)
                 doc.update((name, indexed[name][hit.id]) for name in indexed)
                 fragments = (hl[name].fragments(hit.id, hlcount) for name in hl)
                 if hl:
                     doc['__highlights__'] = dict((name, value) for name, value in zip(hl, fragments) if value is not None)
                 docs.append(doc)
-            result['groups'].append({'docs': docs, 'count': len(hits), 'value': getattr(hits, 'value', None)})
-        for hits in groups[limit:]:
-            result['groups'].append({'docs': [], 'count': len(hits), 'value': hits.value})
+            result['groups'].append({'docs': docs, 'count': hits.count, 'value': getattr(hits, 'value', None)})
         if not group:
             result['docs'] = result.pop('groups')[0]['docs']
         q = q or engine.Query.alldocs()

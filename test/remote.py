@@ -406,13 +406,13 @@ class TestCase(BaseTest):
         assert result['count'] == 8 and set(doc['__score__'] for doc in result['docs']) == set([1.0])
         result = resource.get('/search', q='text:right', filter='text:people')
         assert result['count'] == 4 and 0 < result['maxscore'] < 1.0
-        result = resource.get('/search', q='text:right', group='date', **{'group.count': 2, 'group.limit': 2})
-        assert 'docs' not in result and len(result['groups']) == 9
-        assert sum(map(operator.itemgetter('count'), result['groups'])) == result['count'] == 13
+        result = resource.get('/search', q='text:right', group='date', count=2, **{'group.count': 2})
+        assert 'docs' not in result and len(result['groups']) == 2
+        assert sum(map(operator.itemgetter('count'), result['groups'])) < result['count'] == 13
         assert all(min(group['count'], 2) >= len(group['docs']) for group in result['groups'])
         assert all(doc.get('date') == group['value'] for group in result['groups'] for doc in group['docs'])
         group = result['groups'][0]
-        assert group['value'] == '1791-12-15' and not result['groups'][-1]['value']
+        assert group['value'] == '1791-12-15'
         assert sorted(group) == ['count', 'docs', 'value'] and group['count'] == 5
         assert len(group['docs']) == 2 and group['docs'][0]['amendment'] == '2'
         assert len(result['groups'][1]['docs']) == 1 and all(group['docs'] == [] for group in result['groups'][2:])
@@ -448,7 +448,7 @@ class TestCase(BaseTest):
         assert sorted(result['facets']['county']) == ['Los Angeles', 'Orange', 'San Diego']
         result = resource.get('/search', count=0, facets='county', **{'facets.min': 140})
         assert sorted(result['facets']['county']) == ['Los Angeles', 'Orange', 'San Diego']
-        result = resource.get('/search', q='Los Angeles', group='county.city', **{'group.count': 0, 'q.field': 'county', 'q.type': 'prefix'})
+        result = resource.get('/search', q='Los Angeles', group='county.city', **{'group.count': 2, 'q.field': 'county', 'q.type': 'prefix'})
         assert all(group['value'].startswith('Los Angeles') for group in result['groups'])
         assert sum(map(operator.itemgetter('count'), result['groups'])) == sum(facets.values()) == result['count']
         assert resource.get('/queries') == []

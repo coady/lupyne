@@ -136,6 +136,17 @@ Hits
 
   .. automethod:: __getitem__
 
+Groups
+^^^^^^^^^^^^^
+.. versionadded:: 1.5+
+.. note:: This interface is experimental and might change in incompatible ways in the next release.
+.. autoclass:: Groups
+  :members:
+
+  .. automethod:: __len__
+
+  .. automethod:: __getitem__
+
 GroupingSearch
 ^^^^^^^^^^^^^^
 .. versionadded:: 1.5

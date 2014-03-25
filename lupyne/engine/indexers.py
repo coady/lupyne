@@ -519,14 +519,14 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 for value in filters:
                     counts[key][value] = self.count(filter=BooleanFilter.all(query, filters[value]))
             elif isinstance(key, basestring):
-                counts[key] = dict(GroupingSearch(key).facets(self, query))
+                counts[key] = self.groupby(key, Query.alldocs(), filter=query).facets
             else:
                 name, value = key
                 counts[name][value] = self.count(filter=BooleanFilter.all(query, self.filters[name][value]))
         return dict(counts)
-    def groupby(self, field, query, filter=None, count=None, **attrs):
-        "Generate `Hits`_ grouped by field using a `GroupingSearch`_."
-        return GroupingSearch(field, **attrs).groups(self, self.parse(query), filter, count)
+    def groupby(self, field, query, filter=None, count=None, start=0, **attrs):
+        "Return `Hits`_ grouped by field using a `GroupingSearch`_."
+        return GroupingSearch(field, **attrs).search(self, self.parse(query), filter, count, start)
     def sorter(self, field, type='string', parser=None, reverse=False):
         "Return `SortField`_ with cached attributes if available."
         sorter = self.sorters.get(field, SortField(field, type, parser, reverse))

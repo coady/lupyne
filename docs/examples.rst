@@ -18,6 +18,10 @@ sorting
 ---------
 .. literalinclude:: ../examples/sorting.py
 
+grouping
+---------
+.. literalinclude:: ../examples/grouping.py
+
 server
 ---------
 .. literalinclude:: ../examples/server.py

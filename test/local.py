@@ -405,16 +405,14 @@ class TestCase(BaseTest):
         assert all(value.startswith('CA.') for value in facets) and set(facets) == set(indexer.filters[field])
         (field, facets), = indexer.facets(query, (field, 'CA.Los Angeles')).items()
         assert facets == {'CA.Los Angeles': 264}
-        hits, = indexer.groupby(field, engine.Query.term('state', 'CA'), count=1)
+        groups = indexer.groupby(field, engine.Query.term('state', 'CA'), count=1)
+        assert len(groups) == 1 < groups.count
+        hits, = groups
         assert hits.value == 'CA.Los Angeles' and len(hits) == 1 and hits.count > 100
         grouping = engine.documents.GroupingSearch(field, sort=search.Sort(indexer.sorter(field)), cache=False, allGroups=True)
-        assert all(dict(grouping.facets(indexer.indexSearcher)).values())
+        assert all(grouping.search(indexer.indexSearcher, engine.Query.alldocs()).facets.values())
         assert len(grouping) == len(list(grouping)) > 100
         assert set(grouping) > set(facets)
-        grouping.select()
-        hits, = grouping.groups(indexer.indexSearcher, engine.Query.term('state', 'CA'), count=1)
-        assert hits.value == 'CA.Alameda' and len(hits) == 1 and hits.count > 50
-        assert hits[0] == {}
         for count in (None, len(indexer)):
             hits = indexer.search(query, count=count, timeout=0.01)
             assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)

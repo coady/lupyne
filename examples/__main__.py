@@ -1,3 +1,3 @@
 import lucene
 lucene.initVM(vmargs='-Djava.awt.headless=true')
-from . import indexers, queries, searching, server, sorting
+from . import grouping, indexers, queries, searching, server, sorting

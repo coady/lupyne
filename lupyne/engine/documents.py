@@ -276,8 +276,9 @@ class Hits(object):
     def items(self):
         "Generate zipped ids and scores."
         return map(operator.attrgetter('doc', 'score'), self.scoredocs)
-    def groupby(self, func):
-        "Return ordered list of `Hits`_ grouped by value of function applied to doc ids."
+    def groupby(self, func, count=None, docs=None):
+        """Return ordered list of `Hits`_ grouped by value of function applied to doc ids.
+        Optionally limit the number of groups and docs per group."""
         groups = {}
         for scoredoc in self.scoredocs:
             value = func(scoredoc.doc)
@@ -287,7 +288,11 @@ class Hits(object):
                 group = groups[value] = type(self)(self.searcher, [], fields=self.fields)
                 group.index, group.value = len(groups), value
             group.scoredocs.append(scoredoc)
-        return sorted(groups.values(), key=lambda group: group.__dict__.pop('index'))
+        groups = sorted(groups.values(), key=lambda group: group.__dict__.pop('index'))
+        for group in groups:
+            group.count, group.maxscore = len(group), max(group.scores)
+            group.scoredocs = group.scoredocs[:docs]
+        return Groups(self.searcher, groups[:count], len(groups), self.maxscore, self.fields)
     def filter(self, func):
         "Return `Hits`_ filtered by function applied to doc ids."
         scoredocs = [scoredoc for scoredoc in self.scoredocs if func(scoredoc.doc)]
@@ -297,6 +302,27 @@ class Hits(object):
         scoredocs = sorted(self.scoredocs, key=lambda scoredoc: key(scoredoc.doc), reverse=reverse)
         return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
 
+class Groups(object):
+    "Sequence of grouped `Hits`_."
+    select = Hits.__dict__['select']
+    def __init__(self, searcher, groupdocs, count=None, maxscore=None, fields=None):
+        self.searcher, self.groupdocs = searcher, groupdocs
+        self.count, self.maxscore = count, maxscore
+        self.fields = fields
+    def __len__(self):
+        return len(self.groupdocs)
+    def __getitem__(self, index):
+        hits = groupdocs = self.groupdocs[index]
+        if isinstance(groupdocs, grouping.GroupDocs):
+            hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore)
+            hits.value = convert(groupdocs.groupValue)
+        hits.fields = self.fields
+        return hits
+    @property
+    def facets(self):
+        "mapping of field values and counts"
+        return dict((hits.value, hits.count) for hits in self)
+
 class GroupingSearch(grouping.GroupingSearch):
     """Inherited lucene GroupingSearch with optimized faceting.
     
@@ -305,7 +331,6 @@ class GroupingSearch(grouping.GroupingSearch):
     :param cache: use unlimited caching
     :param attrs: additional attributes to set
     """
-    select = Hits.__dict__['select']
     def __init__(self, field, sort=None, cache=True, **attrs):
         grouping.GroupingSearch.__init__(self, field)
         self.field = field
@@ -320,17 +345,9 @@ class GroupingSearch(grouping.GroupingSearch):
         return self.allMatchingGroups.size()
     def __iter__(self):
         return map(convert, self.allMatchingGroups)
-    def search(self, searcher, query, filter, count):
+    def search(self, searcher, query, filter=None, count=None, start=0):
+        "Run query and return `Groups`_."
         if count is None:
             count = sum(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field).valueCount for reader in searcher.readers)
-        return grouping.GroupingSearch.search(self, searcher, filter, query, 0, count).groups
-    def facets(self, searcher, filter=None):
-        "Generate field values and counts which match given filter."
-        for groupdocs in self.search(searcher, Query.alldocs(), filter, None):
-            yield convert(groupdocs.groupValue), groupdocs.totalHits
-    def groups(self, searcher, query, filter=None, count=None):
-        "Generate grouped `Hits`_ from search parameters."
-        for groupdocs in self.search(searcher, query, filter, count):
-            hits = Hits(searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore, getattr(self, 'fields', None))
-            hits.value = convert(groupdocs.groupValue)
-            yield hits
+        topgroups = grouping.GroupingSearch.search(self, searcher, filter, query, start, count - start)
+        return Groups(searcher, topgroups.groups, topgroups.totalHitCount, topgroups.maxScore)
