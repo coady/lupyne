@@ -15,5 +15,5 @@ from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, Index
 from .spatial import PointField, PolygonField
 
 assert lucene.VERSION >= '4.4'
-if lucene.VERSION < '4.5':
-    warnings.warn('Support for lucene 4.4 will be removed in the next release.', DeprecationWarning)
+if lucene.VERSION < '4.6':
+    warnings.warn('Support for lucene 4.4 and 4.5 will be removed in the next release.', DeprecationWarning)

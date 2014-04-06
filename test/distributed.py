@@ -28,7 +28,7 @@ class TestCase(remote.BaseTest):
         assert len(responses) == len(resources)
         for response in responses:
             (directory, count), = response().items()
-            assert count == 0 and directory.startswith('org.apache.lucene.store.RAMDirectory@')
+            assert count == 0 and 'RAMDirectory@' in directory
         responses = resources.broadcast('PUT', '/fields/text')
         assert all(response() == {'indexed': True} for response in responses)
         responses = resources.broadcast('PUT', '/fields/name', {'stored': True, 'tokenized': False})

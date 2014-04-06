@@ -224,8 +224,7 @@ class IndexReader(object):
     @property
     def timestamp(self):
         "timestamp of reader's last commit"
-        directory = store.FSDirectory.cast_(self.directory).directory
-        return store.FSDirectory.fileModified(directory, self.indexCommit.segmentsFileName) * 0.001
+        return os.path.getmtime(os.path.join(self.path, self.indexCommit.segmentsFileName))
     @property
     def readers(self):
         "segment readers"
@@ -638,7 +637,7 @@ class IndexWriter(index.IndexWriter):
                 args = [codecs.Codec.getDefault()] if lucene.VERSION < '4.5' else []
                 checkindex.fixIndex(status, *args)
         finally:
-            lock.release()
+            lock.close() if hasattr(lock, 'close') else lock.release()
         return status
     def set(self, name, cls=Field, **settings):
         """Assign settings to field name.

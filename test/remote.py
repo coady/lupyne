@@ -1,6 +1,7 @@
 from future_builtins import map
 import unittest
 import os, sys
+import tempfile, shutil
 import signal, subprocess
 import operator
 import httplib
@@ -246,7 +247,10 @@ class TestCase(BaseTest):
         assert not resource.delete('/search')
         responses = list(resource.multicall(('POST', '/docs', [{}]), ('POST', '/update'), ('GET', '/docs')))
         assert responses[0].status == httplib.ACCEPTED and responses[1]() == len(responses[2]()) == 1
-        assert resource.post('/', [self.tempdir]).values() == [2]
+        tempdir = tempfile.mkdtemp(dir=os.path.dirname(__file__))
+        engine.IndexWriter(tempdir).add()
+        assert resource.post('/', [tempdir]).values() == [2]
+        shutil.rmtree(tempdir)
         with local.assertWarns(DeprecationWarning, UserWarning):
             assert Resource(resource.host, resource.port).call('GET', '/missing', redirect=True)()
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):

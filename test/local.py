@@ -156,12 +156,10 @@ class TestCase(BaseTest):
         assert [indexer[id].dict() for id in indexer] == [{'name': 'new'}]
         indexer.deleteAll()
         indexer.commit()
-        temp = engine.Indexer(self.tempdir)
-        temp.add()
-        temp.commit()
-        indexer += temp
-        indexer += temp.directory
-        indexer += self.tempdir
+        with contextlib.closing(engine.Indexer(self.tempdir)) as temp:
+            temp.add()
+        for other in (temp, temp.directory, self.tempdir):
+            indexer += other
         assert len(indexer) == 3
         indexer.add(text=analysis.core.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, StringReader('?')), name=util.BytesRef('{}'))
         indexer.commit()
