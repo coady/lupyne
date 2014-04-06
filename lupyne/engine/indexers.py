@@ -498,7 +498,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
-        .. versionchanged:: 1.5+ filters are no longer implicitly cached, a `GroupingSearch`_ is used instead
+        .. versionchanged:: 1.6 filters are no longer implicitly cached, a `GroupingSearch`_ is used instead
         
         :param query: query string, lucene Query, or lucene Filter
         :param keys: field names, term tuples, or any keys to previously cached filters

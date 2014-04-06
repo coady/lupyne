@@ -2,7 +2,7 @@
 Restful json `CherryPy <http://cherrypy.org/>`_ server.
 
 The server script mounts a `WebSearcher`_ (read_only) or `WebIndexer`_ root.
-Standard `CherryPy configuration <http://docs.cherrypy.org/stable/concepts/config.html>`_ applies,
+Standard `CherryPy configuration <http://docs.cherrypy.org/en/latest/tutorial/config.html>`_ applies,
 and the provided `custom tools <#tools>`_ are also configurable.
 All request and response bodies are `application/json values <http://tools.ietf.org/html/rfc4627.html#section-2.1>`_.
 
@@ -378,7 +378,7 @@ class WebSearcher(object):
             &group=\ *chars*\ [:*chars*]&group.count=1
                 | group documents by field value with optional type, up to given maximum count
             
-            .. versionchanged:: 1.5+ grouping searches use count and start options
+            .. versionchanged:: 1.6 grouping searches use count and start options
             
             &hl=\ *chars*,... &hl.count=1&hl.tag=strong&hl.enable=[fields|terms]
                 | stored fields to return highlighted
@@ -761,7 +761,7 @@ class WebIndexer(WebSearcher):
             
             {"stored"|"indexed"\|...: *string*\|true|false,... }
             
-            .. versionchanged:: 1.5+ lucene FieldType attributes used as settings
+            .. versionchanged:: 1.6 lucene FieldType attributes used as settings
             
             :return: {"stored"|"indexed"\|...: *string*\|true|false,... }
         """

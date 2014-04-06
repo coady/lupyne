@@ -66,4 +66,4 @@ Replicas
   :show-inheritance:
   :members:
 
-.. _thread pool: http://docs.cherrypy.org/stable/refman/_cpserver.html#cherrypy._cpserver.Server.thread_pool
+.. _thread pool: http://docs.cherrypy.org/en/latest/refman/_cpserver.html#cherrypy._cpserver.Server.thread_pool

@@ -26,8 +26,16 @@ Changes in 1.5+
 ==================
  * Engine:
    
-   - PyLucene 4.6 supported
+   - PyLucene 4.6 and 4.7 supported
    - PyLucene 4.3 dropped
+   - Fuzzy queries and terms updated
+   - Additional query constructors
+   - DocValuesFields supported
+
+ * Server:
+   
+   - Replication uses cache validation
+   - Grouping optimized
 """
 
 import os

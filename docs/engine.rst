@@ -138,7 +138,7 @@ Hits
 
 Groups
 ^^^^^^^^^^^^^
-.. versionadded:: 1.5+
+.. versionadded:: 1.6
 .. note:: This interface is experimental and might change in incompatible ways in the next release.
 .. autoclass:: Groups
   :members:
@@ -160,7 +160,7 @@ GroupingSearch
 
 Field
 ^^^^^^^^^^^^^
-.. versionchanged:: 1.5+ lucene Field.{Store,Index,TermVector} dropped in favor of FieldType attributes
+.. versionchanged:: 1.6 lucene Field.{Store,Index,TermVector} dropped in favor of FieldType attributes
 .. autoclass:: Field
   :members:
 
@@ -178,7 +178,7 @@ NestedField
 
 DocValuesField
 ^^^^^^^^^^^^^^
-.. versionadded:: 1.5+
+.. versionadded:: 1.6
 .. autoclass:: DocValuesField
   :show-inheritance:
   :members:
@@ -186,7 +186,7 @@ DocValuesField
 NumericField
 ^^^^^^^^^^^^^
 .. versionchanged:: 1.5 recommended to specify initial int or float type
-.. versionchanged:: 1.5+ custom step removed in favor of numericPrecisionStep
+.. versionchanged:: 1.6 custom step removed in favor of numericPrecisionStep
 .. autoclass:: NumericField
   :show-inheritance:
   :members:
