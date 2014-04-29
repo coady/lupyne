@@ -22,7 +22,7 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.5+
+Changes in 1.6
 ==================
  * Engine:
    

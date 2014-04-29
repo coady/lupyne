@@ -18,7 +18,7 @@ Lupyne should run anywhere PyLucene does, though its primary testing is on the p
 
  * Python 2.6.6+, 2.7
  * PyLucene 4.4, 4.5, 4.6, 4.7
- * CherryPy 3.2 (only required for server)
+ * CherryPy 3.2, 3.3 (only required for server)
 
 Usage
 ==================
