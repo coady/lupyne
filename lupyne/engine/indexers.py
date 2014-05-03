@@ -13,7 +13,7 @@ import lucene
 from java.io import File, StringReader
 from java.lang import Float
 from java.util import Arrays, HashMap, HashSet
-from org.apache.lucene import analysis, codecs, document, index, queries, queryparser, search, store, util
+from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from .queries import Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
@@ -616,9 +616,8 @@ class IndexWriter(index.IndexWriter):
         config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
         for name, value in attrs.items():
             setattr(config, name, value)
-        config.indexDeletionPolicy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
+        self.policy = config.indexDeletionPolicy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
         index.IndexWriter.__init__(self, self.shared.directory(directory), config)
-        self.policy = index.SnapshotDeletionPolicy.cast_(self.config.indexDeletionPolicy)
         self.fields = {}
     def __del__(self):
         if hash(self):
@@ -634,8 +633,7 @@ class IndexWriter(index.IndexWriter):
         try:
             status = checkindex.checkIndex()
             if fix:
-                args = [codecs.Codec.getDefault()] if lucene.VERSION < '4.5' else []
-                checkindex.fixIndex(status, *args)
+                checkindex.fixIndex(status)
         finally:
             lock.close() if hasattr(lock, 'close') else lock.release()
         return status

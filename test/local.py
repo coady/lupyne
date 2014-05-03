@@ -56,7 +56,7 @@ class TestCase(BaseTest):
             token.offset, token.positionIncrement = (0, 0), 0
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
-        indexer = engine.Indexer(analyzer=stemmer, version=util.Version.LUCENE_43, writeLockTimeout=100L)
+        indexer = engine.Indexer(analyzer=stemmer, version=util.Version.LUCENE_46, writeLockTimeout=100L)
         assert indexer.config.writeLockTimeout == 100
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
@@ -633,7 +633,7 @@ class TestCase(BaseTest):
     
     def testNearRealTime(self):
         "Near real-time index updates."
-        indexer = engine.Indexer(version=util.Version.LUCENE_43, nrt=True)
+        indexer = engine.Indexer(version=util.Version.LUCENE_46, nrt=True)
         indexer.add()
         assert indexer.count() == 0 and not indexer.current
         indexer.refresh(filters=True)

@@ -226,7 +226,7 @@ class Replicas(Resources):
         if not pool.failure:
             return -len(pool)
     def discard(self, host):
-        "Remove host from availablity."
+        "Remove host from availability."
         try:
             self.hosts.remove(host)
         except ValueError:
