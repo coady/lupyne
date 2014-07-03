@@ -57,6 +57,11 @@ class closing(set):
         else:
             reader = index.MultiReader(list(map(self.reader, reader)))
         return reader
+    @classmethod
+    @contextlib.contextmanager
+    def store(cls, directory):
+        self = cls()
+        yield self.directory(directory)
 
 def copy(commit, dest):
     """Copy the index commit to the destination directory.
@@ -382,9 +387,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     @classmethod
     def load(cls, directory, analyzer=None):
         "Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."
-        ref = closing()
-        directory = ref.directory(directory)
-        directory = store.RAMDirectory(directory, store.IOContext.DEFAULT)
+        with closing.store(directory) as directory:
+            directory = store.RAMDirectory(directory, store.IOContext.DEFAULT)
         self = cls(directory, analyzer)
         self.shared.add(self.directory)
         return self
@@ -623,17 +627,16 @@ class IndexWriter(index.IndexWriter):
     @classmethod
     def check(cls, directory, fix=False):
         "Check and optionally fix unlocked index, returning lucene CheckIndex.Status."
-        ref = closing()
-        directory = ref.directory(directory)
-        checkindex = index.CheckIndex(directory)
-        lock = directory.makeLock(cls.WRITE_LOCK_NAME)
-        assert lock.obtain(), "index must not be opened by any writer"
-        try:
-            status = checkindex.checkIndex()
-            if fix:
-                checkindex.fixIndex(status)
-        finally:
-            lock.close() if hasattr(lock, 'close') else lock.release()
+        with closing.store(directory) as directory:
+            checkindex = index.CheckIndex(directory)
+            lock = directory.makeLock(cls.WRITE_LOCK_NAME)
+            assert lock.obtain(), "index must not be opened by any writer"
+            try:
+                status = checkindex.checkIndex()
+                if fix:
+                    checkindex.fixIndex(status)
+            finally:
+                lock.close() if hasattr(lock, 'close') else lock.release()
         return status
     def set(self, name, cls=Field, **settings):
         """Assign settings to field name.
@@ -669,9 +672,8 @@ class IndexWriter(index.IndexWriter):
         self.deleteDocuments(parse(*query, **options))
     def __iadd__(self, directory):
         "Add directory (or reader, searcher, writer) to index."
-        ref = closing()
-        directory = ref.directory(directory)
-        self.addIndexes([directory if isinstance(directory, store.Directory) else directory.directory])
+        with closing.store(getattr(directory, 'directory', directory)) as directory:
+            self.addIndexes([directory])
         return self
     @contextlib.contextmanager
     def snapshot(self):
