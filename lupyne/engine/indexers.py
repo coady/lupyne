@@ -48,13 +48,14 @@ class closing(set):
             self.add(directory)
         return directory
     def reader(self, reader):
-        reader = self.directory(reader)
         if isinstance(reader, index.IndexReader):
             reader.incRef()
         elif isinstance(reader, index.IndexWriter):
             reader = index.IndexReader.open(reader, True)
+        elif isinstance(reader, Atomic):
+            reader = index.IndexReader.open(self.directory(reader))
         else:
-            reader = index.IndexReader.open(reader)
+            reader = index.MultiReader(list(map(self.reader, reader)))
         return reader
 
 def copy(commit, dest):
@@ -224,7 +225,8 @@ class IndexReader(object):
     @property
     def timestamp(self):
         "timestamp of reader's last commit"
-        return os.path.getmtime(os.path.join(self.path, self.indexCommit.segmentsFileName))
+        directory = store.FSDirectory.cast_(self.directory).directory
+        return File(directory, self.indexCommit.segmentsFileName).lastModified() * 0.001
     @property
     def readers(self):
         "segment readers"
@@ -389,6 +391,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def __del__(self):
         if hash(self):
             self.decRef()
+    def openIfChanged(self):
+        return index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
     def reopen(self, filters=False, sorters=False, spellcheckers=False):
         """Return current `IndexSearcher`_, only creating a new one if necessary.
         Any registered :attr:`termsfilters` are also refreshed.
@@ -397,11 +401,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param sorters: refresh cached :attr:`sorters` with associated parsers
         :param spellcheckers: refresh cached :attr:`spellcheckers`
         """
-        try:
-            reader = index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
-        except TypeError:
-            readers = list(map(index.DirectoryReader.openIfChanged, self.indexReaders))
-            reader = index.MultiReader([new or old for new, old in zip(readers, self.indexReaders)]) if any(readers) else None
+        reader = self.openIfChanged()
         if reader is None:
             return self
         other = type(self)(reader, self.analyzer)
@@ -581,17 +581,15 @@ class MultiSearcher(IndexSearcher):
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
     def __init__(self, reader, analyzer=None):
-        shared = closing()
-        if not index.MultiReader.instance_(reader):
-            reader = index.MultiReader(list(map(shared.reader, reader)))
-            ref = closing([reader])
         IndexSearcher.__init__(self, reader, analyzer)
-        self.shared.update(shared)
-        shared.clear()
         self.indexReaders = [index.DirectoryReader.cast_(context.reader()) for context in self.context.children()]
         self.version = sum(reader.version for reader in self.indexReaders)
     def __getattr__(self, name):
         return getattr(index.MultiReader.cast_(self.indexReader), name)
+    def openIfChanged(self):
+        readers = list(map(index.DirectoryReader.openIfChanged, self.indexReaders))
+        if any(readers):
+            return index.MultiReader([new or old.incRef() or old for new, old in zip(readers, self.indexReaders)])
     @property
     def timestamp(self):
         return max(IndexReader(reader).timestamp for reader in self.indexReaders)

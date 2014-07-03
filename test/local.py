@@ -202,18 +202,6 @@ class TestCase(BaseTest):
         doc['date'] = engine.Analyzer(tokenizer).tokens(doc['date']), 2.0
         scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
         assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
-        searcher = engine.MultiSearcher([indexer.indexReader, self.tempdir])
-        assert searcher.refCount == 1 and searcher.timestamp
-        assert searcher.count() == len(searcher) == 2 * len(indexer)
-        searcher.sorters['amendment'] = engine.SortField('amenmdment', int)
-        comparator = searcher.comparator('amendment')
-        assert set(map(type, comparator)) == set([int])
-        assert searcher is searcher.reopen()
-        facets = searcher.facets(engine.Query.alldocs(), 'amendment')['amendment']
-        assert facets.pop(None) == 16 and facets == dict.fromkeys(map(str, range(1, 28)), 2)
-        reader = searcher.indexReader
-        del searcher
-        assert not reader.refCount
         assert len(indexer) == len(indexer.search()) == 35
         assert sorted(indexer.names()) == ['amendment', 'article', 'date', 'text']
         articles = list(indexer.terms('article'))
@@ -675,6 +663,23 @@ class TestCase(BaseTest):
         parallel.commit()
         filter.refresh(indexer)
         assert filter.readers == set(indexer.readers)
+    
+    def testMulti(self):
+        "MultiSearchers."
+        indexers = engine.Indexer(self.tempdir), engine.Indexer()
+        searcher = engine.MultiSearcher([indexers[0].indexReader, indexers[1].directory])
+        self.assertRaises(TypeError, getattr, searcher, 'timestamp')
+        assert engine.MultiSearcher(indexers[:1]).timestamp
+        assert [reader.refCount for reader in searcher.indexReaders] == [2, 1]
+        assert searcher.reopen() is searcher
+        indexers[0].add()
+        indexers[0].commit()
+        assert [reader.refCount for reader in searcher.indexReaders] == [1, 1]
+        searcher, previous = searcher.reopen(), searcher
+        assert searcher.version > previous.version
+        assert [reader.refCount for reader in searcher.indexReaders] == [1, 2]
+        del previous
+        assert [reader.refCount for reader in searcher.indexReaders] == [1, 1]
 
 if __name__ == '__main__':
     lucene.initVM()
