@@ -483,10 +483,6 @@ class TestCase(BaseTest):
         field, = field.items(' ')
         attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
         assert all(getattr(field.fieldType(), attr)() for attr in attrs)
-        field, = engine.DocValuesField('', 'sorted').items('')
-        assert str(field.fieldType().docValueType()) == 'SORTED' and field.binaryValue().utf8ToString() == ''
-        field, = engine.DocValuesField('', 'numeric').items(0)
-        assert str(field.fieldType().docValueType()) == 'NUMERIC' and field.numericValue().longValue() == 0
         indexer = engine.Indexer(self.tempdir)
         indexer.set('amendment', engine.MapField, func='{0:02d}'.format, stored=True)
         indexer.set('size', engine.MapField, func='{0:04d}'.format, stored=True)
@@ -680,6 +676,31 @@ class TestCase(BaseTest):
         assert [reader.refCount for reader in searcher.indexReaders] == [1, 2]
         del previous
         assert [reader.refCount for reader in searcher.indexReaders] == [1, 1]
+    
+    def testDocValues(self):
+        "DocValues and updates."
+        indexer = engine.Indexer()
+        indexer.set('id')
+        indexer.set('votes', engine.DocValuesField, type='numeric')
+        indexer.set('tag', engine.DocValuesField, type='binary')
+        indexer.add(id='0', votes=1, tag='low')
+        indexer.commit()
+        segments = indexer.segments
+        indexer.update('id', id='0', votes=2, tag='medium')
+        indexer.commit()
+        assert indexer.segments != segments
+        segments = indexer.segments
+        assert list(indexer.comparator('votes', type=int)) == [2]
+        assert list(indexer.comparator('tag', type='bytes')) == ['medium']
+        indexer.update('id', '0', votes=3)
+        indexer.commit()
+        assert indexer.segments == segments
+        assert list(indexer.comparator('votes', type=int)) == [3]
+        if lucene.VERSION >= '4.8':
+            indexer.update('id', '0', tag='high')
+            indexer.commit()
+            assert indexer.segments == segments
+            assert list(indexer.comparator('tag', type='bytes')) == ['high']
 
 if __name__ == '__main__':
     lucene.initVM()

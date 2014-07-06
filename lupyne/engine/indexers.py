@@ -659,9 +659,20 @@ class IndexWriter(index.IndexWriter):
         "Add :meth:`document` to index with optional boost."
         self.addDocument(self.document(document, **terms))
     def update(self, name, value='', document=(), **terms):
-        "Atomically delete documents which match given term and add the new :meth:`document` with optional boost."
-        doc = self.document(document, **terms)
-        self.updateDocument(index.Term(name, *[value] if value else doc.getValues(name)), doc)
+        """Atomically delete documents which match given term and add the new :meth:`document`.
+        
+        .. versionchanged:: 1.6+ update in-place if only DocValues are given; lucene >= 4.8 required for binary values
+        """
+        document = dict(document, **terms)
+        term = index.Term(name, value or document[name])
+        if all(self.fields[name].docValueType() for name in document):
+            for name, value in document.items():
+                if isinstance(value, int):
+                    self.updateNumericDocValue(term, name, long(value))
+                else:
+                    self.updateBinaryDocValue(term, name, util.BytesRef(value))
+        else:
+            self.updateDocument(term, self.document(document))
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
         

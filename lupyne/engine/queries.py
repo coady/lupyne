@@ -304,6 +304,8 @@ class SortField(search.SortField):
             return search.FieldCache.DEFAULT.getDocTermOrds(reader, self.field)
         if self.typename == 'String':
             return search.FieldCache.DEFAULT.getTermsIndex(reader, self.field)
+        if self.typename == 'Bytes':
+            return search.FieldCache.DEFAULT.getTerms(reader, self.field, True)
         method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
         return method(reader, self.field, self.parser, False)
     def comparator(self, searcher, multi=False):
