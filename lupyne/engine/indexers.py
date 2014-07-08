@@ -16,7 +16,7 @@ from java.util import Arrays, HashMap, HashSet
 from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
-from .queries import Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
+from .queries import suppress, Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import DistanceComparator
 
@@ -486,18 +486,16 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         cache = collector = self.collector(query, count, sort, reverse, scores, maxscore)
         counter = search.TimeLimitingCollector.getGlobalCounter()
         results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, long(timeout * 1000))
-        try:
+        with suppress(search.TimeLimitingCollector.TimeExceededException):
             search.IndexSearcher.search(self, query, filter, results)
-        except lucene.JavaError as timeout:
-            if not search.TimeLimitingCollector.TimeExceededException.instance_(timeout.getJavaException()):
-                raise
+            timeout = None
         if isinstance(cache, search.CachingCollector):
             collector = search.TotalHitCountCollector()
             cache.replay(collector)
             collector = self.collector(query, collector.totalHits or 1, sort, reverse, scores, maxscore)
             cache.replay(collector)
         topdocs = collector.topDocs()
-        stats = (topdocs.totalHits, topdocs.maxScore) * (not isinstance(timeout, lucene.JavaError))
+        stats = (topdocs.totalHits, topdocs.maxScore) * (timeout is None)
         return Hits(self, topdocs.scoreDocs, *stats)
     def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.

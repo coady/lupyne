@@ -7,10 +7,11 @@ import itertools
 import bisect
 import heapq
 import threading
+import contextlib
 import lucene
 from java.lang import Integer
 from java.util import Arrays, HashSet
-from org.apache.lucene import index, queries, search, util
+from org.apache.lucene import index, queries, search, store, util
 from org.apache.lucene.search import highlight, spans, vectorhighlight
 from org.apache.pylucene import search as pysearch
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
@@ -205,6 +206,15 @@ class Filter(pysearch.PythonFilter):
     def getDocIdSet(self, context, acceptDocs):
         return util.FixedBitSet(context.reader().maxDoc())
 
+@contextlib.contextmanager
+def suppress(exception):
+    "Suppress specific lucene exception."
+    try:
+        yield
+    except lucene.JavaError as exc:
+        if not exception.instance_(exc.getJavaException()):
+            raise
+
 class TermsFilter(search.CachingWrapperFilter):
     """Caching filter based on a unique field and set of matching values.
     Optimized for many terms and docs, with support for incremental updates.
@@ -228,11 +238,9 @@ class TermsFilter(search.CachingWrapperFilter):
         return queries.TermsFilter(self.field, tuple(map(util.BytesRef, values)))
     def apply(self, filter, op, readers):
         for reader in readers:
-            try:
+            with suppress(store.AlreadyClosedException):
                 bitset = util.FixedBitSet.cast_(self.getDocIdSet(reader.context, None))
                 getattr(bitset, op)(filter.getDocIdSet(reader.context, None).iterator())
-            except lucene.JavaError as exc:
-                assert not reader.refCount, exc
     def update(self, values, op='or', cache=True):
         """Update allowed values and corresponding cached bitsets.
         

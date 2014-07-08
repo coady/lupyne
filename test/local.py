@@ -399,11 +399,10 @@ class TestCase(BaseTest):
         assert all(grouping.search(indexer.indexSearcher, engine.Query.alldocs()).facets.values())
         assert len(grouping) == len(list(grouping)) > 100
         assert set(grouping) > set(facets)
-        for count in (None, len(indexer)):
-            hits = indexer.search(query, count=count, timeout=0.01)
-            assert 0 <= len(hits) <= indexer.count(query) and hits.count in (None, len(hits)) and hits.maxscore in (None, 1.0)
-            hits = indexer.search(query, count=count, timeout=-1)
-            assert len(hits) == 0 and hits.count is hits.maxscore is None
+        hits = indexer.search(query, timeout=-1)
+        assert not hits and (hits.count is hits.maxscore is None)
+        hits = indexer.search(query, timeout=10)
+        assert len(hits) == hits.count == indexer.count(query) and hits.maxscore == 1.0
         self.assertRaises(lucene.JavaError, indexer.search, filter=Filter())
         directory = store.RAMDirectory()
         query = engine.Query.term('state', 'CA')
