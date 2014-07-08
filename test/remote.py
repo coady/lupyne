@@ -440,8 +440,8 @@ class TestCase(BaseTest):
         assert resource.post('/update') == resource.get('/').popitem()[1] == len(writer)
         terms = resource.get('/terms/zipcode:int')
         assert len(terms) == len(writer) and terms[0] == 90001
-        terms = resource.get('/terms/zipcode:int?step=4')
-        assert len(terms) < len(writer) and terms[0] == 90000
+        terms = resource.get('/terms/zipcode:int?step=16')
+        assert terms == [65536]
         result = resource.get('/search', count=0, facets='county')
         facets = result['facets']['county']
         assert result['count'] == sum(facets.values()) and 'Los Angeles' in facets

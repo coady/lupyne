@@ -51,9 +51,12 @@ class ComparatorSource(PythonFieldComparatorSource):
         def setNextReader(self, reader, *args):
             if not args:
                 reader = reader.reader()
-            br = util.BytesRef()
             comparator = search.FieldCache.DEFAULT.getTermsIndex(reader, self.name)
-            self.comparator = [comparator.get(id, br) or br.utf8ToString() for id in range(reader.maxDoc())]
+            if lucene.VERSION < '4.9':
+                br = util.BytesRef()
+                self.comparator = [comparator.get(id, br) or br.utf8ToString() for id in range(reader.maxDoc())]
+            else:
+                self.comparator = [comparator.get(id).utf8ToString() for id in range(reader.maxDoc())]
             return self
         def compare(self, slot1, slot2):
             return cmp(self.values[slot1], self.values[slot2])

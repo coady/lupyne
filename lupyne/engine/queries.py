@@ -267,20 +267,25 @@ class Comparator(object):
             self.offsets.append(len(self) + size)
         cls, = set(map(type, self.arrays))
         self.multi = issubclass(cls, index.SortedSetDocValues)
-        self.bytes = util.BytesRef() if self.multi or issubclass(cls, index.BinaryDocValues) else None
+        self.text = self.multi or issubclass(cls, index.BinaryDocValues)
+        self.bytes = util.BytesRef() if (self.text and lucene.VERSION < '4.9') else None
     def __len__(self):
         return self.offsets[-1]
     def __getitem__(self, id):
         idx = bisect.bisect_right(self.offsets, id) - 1
         id -= self.offsets[idx]
         array = self.arrays[idx]
-        if self.bytes is None:
-            return array.get(id)
         if self.multi:
             array.document = id
-            return tuple(array.lookupOrd(id, self.bytes) or self.bytes.utf8ToString() for id in iter(array.nextOrd, array.NO_MORE_ORDS))
-        array.get(id, self.bytes)
-        return self.bytes.utf8ToString()
+            ids = iter(array.nextOrd, array.NO_MORE_ORDS)
+            if self.bytes:
+                return tuple(array.lookupOrd(id, self.bytes) or self.bytes.utf8ToString() for id in ids)
+            return tuple(array.lookupOrd(id).utf8ToString() for id in ids)
+        if self.bytes:
+            array.get(id, self.bytes)
+            return self.bytes.utf8ToString()
+        value = array.get(id)
+        return value.utf8ToString() if self.text else value
 
 class SortField(search.SortField):
     """Inherited lucene SortField used for caching FieldCache parsers.
@@ -321,14 +326,16 @@ class SortField(search.SortField):
         for reader in readers:
             array, docset = self.array(reader), filter.getDocIdSet(reader.context, reader.liveDocs)
             ids = iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS)
-            br = util.BytesRef()
-            if isinstance(array, index.BinaryDocValues):
+            text = isinstance(array, index.BinaryDocValues)
+            if text and lucene.VERSION < '4.9':
+                br = util.BytesRef()
                 for id in ids:
                     array.get(id, br)
                     yield br.utf8ToString()
             else:
                 for id in ids:
-                    yield array.get(id)
+                    value = array.get(id)
+                    yield value.utf8ToString() if text else value
 
 class Highlighter(highlight.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
