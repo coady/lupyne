@@ -43,4 +43,4 @@ start
 .. autofunction:: mount
 .. autofunction:: start
 
-.. _CherryPy tools: http://docs.cherrypy.org/stable/progguide/extending/customtools.html
+.. _CherryPy tools: http://docs.cherrypy.org/en/latest/extend.html#tools

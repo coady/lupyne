@@ -22,20 +22,13 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.6
+Changes in 1.7
 ==================
  * Engine:
    
-   - PyLucene 4.6 and 4.7 supported
-   - PyLucene 4.3 dropped
-   - Fuzzy queries and terms updated
-   - Additional query constructors
-   - DocValuesFields supported
-
- * Server:
-   
-   - Replication uses cache validation
-   - Grouping optimized
+   - PyLucene 4.8 and 4.9 supported
+   - PyLucene 4.4 and 4.5 dropped
+   - DocValues may be updated in-place
 """
 
 import os

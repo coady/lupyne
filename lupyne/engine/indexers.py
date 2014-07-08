@@ -659,7 +659,7 @@ class IndexWriter(index.IndexWriter):
     def update(self, name, value='', document=(), **terms):
         """Atomically delete documents which match given term and add the new :meth:`document`.
         
-        .. versionchanged:: 1.6+ update in-place if only DocValues are given; lucene >= 4.8 required for binary values
+        .. versionchanged:: 1.7 update in-place if only DocValues are given; lucene >= 4.8 required for binary values
         """
         document = dict(document, **terms)
         term = index.Term(name, value or document[name])
