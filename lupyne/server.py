@@ -821,7 +821,7 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
     if autoreload:
         Autoreloader(cherrypy.engine, autoreload).subscribe()
     if callback:
-        priority = (cherrypy.process.plugins.Daemonizer.start.priority + cherrypy.server.start.priority) // 2
+        priority = (cherrypy.process.plugins.Daemonizer.start.priority + cherrypy.process.plugins.Monitor.start.priority) // 2
         cherrypy.engine.subscribe('start', callback, priority)
     if root is not None:
         mount(root, path, config, autoupdate)
