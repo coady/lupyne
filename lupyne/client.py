@@ -21,13 +21,23 @@ import random
 import time
 import itertools
 import collections
+import contextlib
 import io, gzip, shutil
 import httplib, urllib, urlparse
-import socket, errno
+import errno
 try:
     import simplejson as json
 except ImportError:
     import json
+
+@contextlib.contextmanager
+def suppress(*exceptions, **attrs):
+    "Suppress specific exceptions with matching attributes."
+    try:
+        yield
+    except exceptions as exc:
+        if any(getattr(exc, name, value) != value for name, value in attrs.items()):
+            raise
 
 class Response(httplib.HTTPResponse):
     "A completed response which handles json and caches its body."
@@ -129,13 +139,8 @@ class Pool(collections.deque):
             resource = self.resource_class(self.host)
         resource.request(method, path, body)
         response = yield resource
-        try:
+        with suppress(httplib.BadStatusLine, IOError, errno=errno.ECONNRESET):
             response = resource.getresponse()
-        except httplib.BadStatusLine:
-            pass
-        except socket.error as exc:
-            if exc.errno != errno.ECONNRESET:
-                raise
         if response is None or response.status == httplib.REQUEST_TIMEOUT or (response.status == httplib.BAD_REQUEST and response.body == 'Illegal end of headers.'):
             resource.close()
             resource.request(method, path, body)
@@ -225,12 +230,6 @@ class Replicas(Resources):
         pool = self[host]
         if not pool.failure:
             return -len(pool)
-    def discard(self, host):
-        "Remove host from availability."
-        try:
-            self.hosts.remove(host)
-        except ValueError:
-            pass
     def call(self, method, path, body=None, params=(), retry=False):
         """Send request and return completed `response`_, even if hosts are unreachable.
         
@@ -241,9 +240,10 @@ class Replicas(Resources):
         host = self.choice(self) if method == 'GET' else self.hosts[0]
         try:
             response = self[host].call(method, path, body)
-        except socket.error:
+        except IOError:
             self[host].failure = time.time()
             if method != 'GET':
-                self.discard(host)
+                with suppress(ValueError):
+                    self.hosts.remove(host)
             return self.call(method, path, body, retry=retry)
         return response if (response or not retry) else self.call(method, path, body, retry=retry-1)

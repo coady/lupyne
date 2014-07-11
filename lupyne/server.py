@@ -43,22 +43,19 @@ CherryPy and Lucene VM integration issues:
 from future_builtins import map, zip
 import re
 import time
-import socket, httplib
+import httplib
 import heapq
 import collections
 import itertools
 import os, optparse
 import contextlib
-try:
-    import simplejson as json
-except ImportError:
-    import json
 import lucene
 import cherrypy
 try:
     from . import engine, client
 except ValueError:
     import engine, client
+json = client.json
 
 def tool(hook):
     "Return decorator to register tool at given hook point."
@@ -296,8 +293,9 @@ class WebSearcher(object):
             try:
                 names = self.sync(*host.split('/'))
                 break
-            except socket.error:
-                client.Replicas.discard.__func__(self, host)
+            except IOError:
+                with client.suppress(ValueError):
+                    self.hosts.remove(host)
             except httplib.HTTPException as exc:
                 assert exc[0] == httplib.METHOD_NOT_ALLOWED, exc
                 break

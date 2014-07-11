@@ -8,7 +8,7 @@ import httplib
 import math
 import json
 import time, calendar
-import socket, errno
+import errno
 import contextlib
 from email.utils import parsedate
 import lucene
@@ -272,7 +272,7 @@ class TestCase(BaseTest):
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
             assert resource.put('/update/backup') == names
         resource = client.Resource('localhost', self.ports[-1] + 1)
-        with assertRaises(socket.error, errno.ECONNREFUSED):
+        with assertRaises(IOError, errno.ECONNREFUSED):
             resource.get('/')
         port = self.ports[0]
         self.stop(port)

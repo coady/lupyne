@@ -4,7 +4,7 @@ import os
 import sys, subprocess
 import heapq
 import time
-import socket, httplib
+import httplib
 import lucene, cherrypy
 from lupyne import client, server
 from . import remote
@@ -49,7 +49,7 @@ class TestCase(remote.BaseTest):
         assert len(docs) == len(resources) + 1
         assert len(set(doc['__id__'] for doc in docs)) == 2
         self.stop(self.ports[0])
-        self.assertRaises(socket.error, resources.broadcast, 'GET', '/')
+        self.assertRaises(IOError, resources.broadcast, 'GET', '/')
         assert resources.unicast('GET', '/')()
         del resources[self.hosts[0]]
         assert all(resources.broadcast('GET', '/'))
@@ -63,8 +63,8 @@ class TestCase(remote.BaseTest):
         host = self.hosts[1]
         stream = resources[host].stream('GET', '/')
         resource = next(stream)
-        resource.getresponse = lambda: getresponse(socket.error)
-        self.assertRaises(socket.error, next, stream)
+        resource.getresponse = lambda: getresponse(IOError)
+        self.assertRaises(IOError, next, stream)
         stream = resources[host].stream('GET', '/')
         resource = next(stream)
         resource.getresponse = lambda: getresponse(httplib.BadStatusLine)
@@ -102,7 +102,7 @@ class TestCase(remote.BaseTest):
             zones.update(doc['zone'] for doc in docs)
         assert zones == set('012')
         self.stop(self.ports[0])
-        self.assertRaises(socket.error, shards.broadcast, 0, 'GET', '/')
+        self.assertRaises(IOError, shards.broadcast, 0, 'GET', '/')
         responses = shards.multicast([0, 1, 2], 'GET', '/')
         assert len(responses) == 2 and all(response() for response in responses)
         shards.resources.priority = lambda hosts: None
@@ -118,7 +118,6 @@ class TestCase(remote.BaseTest):
         for args in [('-r', self.tempdir), (update, self.tempdir), (update, self.tempdir, self.tempdir)]:
             assert subprocess.call((sys.executable, '-m', 'lupyne.server', sync) + args, stderr=subprocess.PIPE)
         replicas = client.Replicas(self.hosts[:2], limit=1)
-        replicas.discard(None)
         replicas.post('/docs', [{}])
         assert replicas.post('/update') == 1
         resource = client.Resource(self.hosts[2])
