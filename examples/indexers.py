@@ -14,7 +14,7 @@ analyzer = analysis.standard.StandardAnalyzer(util.Version.LUCENE_CURRENT)
 # Store the index in memory:
 directory = store.RAMDirectory()
 # To store an index on disk, use this instead:
-#Directory directory = FSDirectory.open(File("/tmp/testindex"))
+# Directory directory = FSDirectory.open(File("/tmp/testindex"))
 config = index.IndexWriterConfig(util.Version.LUCENE_CURRENT, analyzer)
 iwriter = index.IndexWriter(directory, config)
 doc = document.Document()

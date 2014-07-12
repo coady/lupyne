@@ -1,7 +1,8 @@
 from future_builtins import map, zip
 import unittest
 import os
-import tempfile, shutil
+import tempfile
+import shutil
 import itertools
 import warnings
 import datetime
@@ -16,10 +17,12 @@ from org.apache.pylucene.search import PythonFilter
 from lupyne import engine
 from . import fixture
 
+
 class typeAsPayload(engine.TokenFilter):
     "Custom implementation of lucene TypeAsPayloadTokenFilter."
     def setattrs(self):
         self.payload = self.type
+
 
 @contextlib.contextmanager
 def assertWarns(*categories):
@@ -28,10 +31,12 @@ def assertWarns(*categories):
     types = [message.category for message in messages]
     assert types == list(categories), types
 
+
 class Filter(PythonFilter):
     "Broken filter to test errors are raised."
     def getDocIdSet(self, *args):
         assert False
+
 
 class BaseTest(unittest.TestCase):
     def setUp(self):
@@ -39,8 +44,9 @@ class BaseTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tempdir)
 
+
 class TestCase(BaseTest):
-    
+
     def testInterface(self):
         "Indexer and document interfaces."
         self.assertRaises(TypeError, engine.IndexSearcher)
@@ -174,7 +180,7 @@ class TestCase(BaseTest):
         self.assertRaises(AttributeError, getattr, reader, 'maxDoc')
         del indexer.indexSearcher
         self.assertRaises(AttributeError, getattr, indexer, 'search')
-    
+
     def testBasic(self):
         "Text fields and simple searches."
         self.assertRaises(lucene.JavaError, engine.Indexer, self.tempdir, 'r')
@@ -185,7 +191,7 @@ class TestCase(BaseTest):
             indexer.add(doc)
         indexer.commit()
         searcher = engine.IndexSearcher.load(self.tempdir)
-        engine.IndexSearcher.load(searcher.directory) # ensure directory isn't closed
+        engine.IndexSearcher.load(searcher.directory)  # ensure directory isn't closed
         assert len(indexer) == len(searcher) and store.RAMDirectory.instance_(searcher.directory)
         assert indexer.filters == indexer.spellcheckers == {}
         assert indexer.facets(engine.Query.alldocs(), 'amendment')
@@ -238,9 +244,9 @@ class TestCase(BaseTest):
         sort = engine.SortField('amendment', type=int)
         hits = indexer.search('text:people', count=5, sort=sort)
         assert [hit.get('amendment') for hit in hits] == [None, None, '1', '2', '4']
-        assert [key for hit in hits for key in hit.keys]== [0, 0, 1, 2, 4]
+        assert [key for hit in hits for key in hit.keys] == [0, 0, 1, 2, 4]
         assert all(map(math.isnan, hits.scores))
-        hits = indexer.search('text:right', count=10**7, sort=sort, scores=True)
+        hits = indexer.search('text:right', count=10 ** 7, sort=sort, scores=True)
         assert not any(map(math.isnan, hits.scores)) and sorted(hits.scores, reverse=True) != hits.scores
         assert math.isnan(hits.maxscore)
         hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
@@ -352,7 +358,7 @@ class TestCase(BaseTest):
         assert not os.path.exists(os.path.join(self.tempdir, commit.segmentsFileName))
         assert engine.IndexWriter.check(self.tempdir).clean
         assert not engine.IndexWriter.check(self.tempdir, fix=True).numBadSegments
-    
+
     def testAdvanced(self):
         "Large data set with hierarchical fields."
         indexer = engine.Indexer(self.tempdir)
@@ -415,7 +421,7 @@ class TestCase(BaseTest):
         searcher = engine.IndexSearcher(path)
         assert len(searcher.segments) == 1 and 'CA' not in searcher.terms('state')
         directory.close()
-    
+
     def testSpatial(self):
         "Spatial tiles."
         indexer = engine.Indexer(self.tempdir, 'w')
@@ -448,28 +454,28 @@ class TestCase(BaseTest):
         hits = indexer.search(field.near(x, y, precision=10))
         cities = set(hit['city'] for hit in hits)
         assert city in cities and len(cities) > 10
-        query = field.within(x, y, 10**4)
+        query = field.within(x, y, 10 ** 4)
         assert len(query) < 3
         distances = indexer.distances(x, y, 'longitude', 'latitude')
         hits = indexer.search(query).sorted(distances.__getitem__)
         assert hits[0]['zipcode'] == zipcode and distances[hits[0].id] < 10
         cities = set(hit['city'] for hit in hits)
         assert city in cities and 100 > len(cities) > 50
-        hits = indexer.search(field.within(x, y, 10**5, limit=100))
+        hits = indexer.search(field.within(x, y, 10 ** 5, limit=100))
         cities = set(hit['city'] for hit in hits)
         assert city in cities and len(cities) > 100
-        ranges = 10**2, 10**5
+        ranges = 10 ** 2, 10 ** 5
         groups = hits.groupby(lambda id: bisect.bisect_left(ranges, distances[id]))
         counts = dict((hits.value, len(hits)) for hits in groups)
         assert 1 == counts[0] < counts[2] < counts[1]
-        assert len(field.within(x, y, 10**8)) == 1
+        assert len(field.within(x, y, 10 ** 8)) == 1
         self.assertRaises(NameError, list, field.radiate(y, x, 1, 0))
-        hits = hits.filter(lambda id: distances[id] < 10**4)
+        hits = hits.filter(lambda id: distances[id] < 10 ** 4)
         assert 0 < len(hits) < sum(counts.values())
         hits = hits.sorted(distances.__getitem__, reverse=True)
         ids = list(hits.ids)
-        assert 0 == distances[ids[-1]] < distances[ids[0]] < 10**4
-    
+        assert 0 == distances[ids[-1]] < distances[ids[0]] < 10 ** 4
+
     def testFields(self):
         "Custom fields."
         self.assertRaises(lucene.InvalidArgsError, engine.Field, '', stored='invalid')
@@ -532,7 +538,7 @@ class TestCase(BaseTest):
         assert list(indexer.comparator('year'))[-1] == 0
         assert cache == len(search.FieldCache.DEFAULT.cacheEntries)
         self.assertRaises(AttributeError, indexer.comparator, 'size', type='score')
-    
+
     def testNumeric(self):
         "Numeric fields."
         nf, = engine.NumericField('temp').items(0.5)
@@ -558,7 +564,7 @@ class TestCase(BaseTest):
         assert [hit['amendment'] for hit in hits] == [18, 19]
         assert [datetime.datetime.utcfromtimestamp(float(hit['date'])).year for hit in hits] == [1919, 1920]
         assert indexer.count(field.within(seconds=100)) == indexer.count(field.within(weeks=1)) == 0
-        query = field.duration([2009], days=-100*365)
+        query = field.duration([2009], days=-100 * 365)
         assert indexer.count(query) == 12
         field = indexer.fields['size']
         assert len(list(indexer.terms('size'))) > len(indexer)
@@ -571,9 +577,9 @@ class TestCase(BaseTest):
         assert list(hits.ids) == ids[:len(hits)]
         query = field.range(None, 1000)
         assert indexer.count(query) == len(sizes) - len(ids)
-        self.assertRaises(OverflowError, list, field.items(-2**64))
-        assert str(field.range(-2**64, 0)) == 'size:[* TO 0}'
-        assert str(field.range(0, 2**64)) == 'size:[0 TO *}'
+        self.assertRaises(OverflowError, list, field.items(-2 ** 64))
+        assert str(field.range(-2 ** 64, 0)) == 'size:[* TO 0}'
+        assert str(field.range(0, 2 ** 64)) == 'size:[0 TO *}'
         assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
         for step, count in zip(range(0, 20, field.numericPrecisionStep()), (26, 19, 3, 1)):
             sizes = list(indexer.numbers('size', step))
@@ -582,7 +588,7 @@ class TestCase(BaseTest):
             assert sum(numbers.values()) == len(indexer) and all(isinstance(number, float) for number in numbers)
         hit, = indexer.search(indexer.fields['amendment'].term(1))
         assert hit['amendment'] == 1
-    
+
     def testHighlighting(self):
         "Highlighting text fragments."
         indexer = engine.Indexer()
@@ -601,7 +607,7 @@ class TestCase(BaseTest):
         query = '"persons, houses, papers"'
         highlighter = indexer.highlighter(query, '', terms=True, fields=True, formatter=highlight.SimpleHTMLFormatter('*', '*'))
         fragments = highlighter.fragments(text, count=3)
-        assert len(fragments) == 2 and fragments[0].count('*') == 2*3 and '*persons*' in fragments[1]
+        assert len(fragments) == 2 and fragments[0].count('*') == 2 * 3 and '*persons*' in fragments[1]
         highlighter = indexer.highlighter(query, '', terms=True)
         highlighter.textFragmenter = highlight.SimpleFragmenter(200)
         fragment, = highlighter.fragments(text, count=3)
@@ -613,7 +619,7 @@ class TestCase(BaseTest):
         highlighter = indexer.highlighter(query, 'text', fragListBuilder=vectorhighlight.SingleFragListBuilder())
         text, = highlighter.fragments(id)
         assert fragment in text and len(text) > len(fragment)
-    
+
     def testNearRealTime(self):
         "Near real-time index updates."
         indexer = engine.Indexer(version=util.Version.LUCENE_46, nrt=True)
@@ -626,7 +632,7 @@ class TestCase(BaseTest):
         indexer.add()
         indexer.commit()
         assert indexer.count() == engine.IndexSearcher(indexer.directory).count() == 2
-    
+
     def testFilters(self):
         "Custom filters."
         indexer = engine.Indexer()
@@ -658,7 +664,7 @@ class TestCase(BaseTest):
         parallel.commit()
         filter.refresh(indexer)
         assert filter.readers == set(indexer.readers)
-    
+
     def testMulti(self):
         "MultiSearchers."
         indexers = engine.Indexer(self.tempdir), engine.Indexer()
@@ -675,7 +681,7 @@ class TestCase(BaseTest):
         assert [reader.refCount for reader in searcher.indexReaders] == [1, 2]
         del previous
         assert [reader.refCount for reader in searcher.indexReaders] == [1, 1]
-    
+
     def testDocValues(self):
         "DocValues and updates."
         indexer = engine.Indexer()

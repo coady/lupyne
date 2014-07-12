@@ -47,15 +47,18 @@ import httplib
 import heapq
 import collections
 import itertools
-import os, optparse
+import os
+import optparse
 import contextlib
 import lucene
 import cherrypy
 try:
     from . import engine, client
 except ValueError:
-    import engine, client
+    import engine
+    import client
 json = client.json
+
 
 def tool(hook):
     "Return decorator to register tool at given hook point."
@@ -63,6 +66,7 @@ def tool(hook):
         setattr(cherrypy.tools, func.__name__, cherrypy.Tool(hook, func))
         return func
     return decorator
+
 
 @tool('before_request_body')
 def json_in(process_body=None, **kwargs):
@@ -79,6 +83,7 @@ def json_in(process_body=None, **kwargs):
                 request.params.update(process_body(request.json))
     cherrypy.lib.jsontools.json_in(force='content-type' in request.headers, processor=processor, **kwargs)
 
+
 @tool('before_handler')
 def json_out(content_type='application/json', indent=None, **kwargs):
     """Handle responses in json format.
@@ -91,6 +96,7 @@ def json_out(content_type='application/json', indent=None, **kwargs):
         return json.dumps(body, indent=indent) if cherrypy.response.headers['content-type'] == content_type else body
     cherrypy.lib.jsontools.json_out(content_type, handler=handler, **kwargs)
 
+
 @tool('on_start_resource')
 def allow(methods=None, paths=(), **kwargs):
     "Only allow specified methods."
@@ -100,11 +106,13 @@ def allow(methods=None, paths=(), **kwargs):
             methods = paths[len(handler.args)]
     cherrypy.lib.cptools.allow(methods, **kwargs)
 
+
 @tool('before_finalize')
 def timer():
     "Return response time in headers."
     response = cherrypy.serving.response
     response.headers['x-response-time'] = time.time() - response.time
+
 
 @tool('on_start_resource')
 def validate(etag=True, last_modified=False, max_age=None, expires=None):
@@ -129,6 +137,7 @@ def validate(etag=True, last_modified=False, max_age=None, expires=None):
     if expires is not None:
         headers['expires'] = cherrypy.lib.httputil.HTTPDate(expires + root.updated)
 
+
 @tool('before_handler')
 def params(**types):
     "Convert specified request params."
@@ -137,8 +146,10 @@ def params(**types):
         for key in set(types).intersection(params):
             params[key] = types[key](params[key])
 
+
 def multi(value):
     return value and value.split(',')
+
 
 class params:
     "Parameter parsing."
@@ -163,6 +174,7 @@ class params:
         if q is not None:
             with HTTPError(httplib.BAD_REQUEST, lucene.JavaError):
                 return searcher.parse(q, field=field, **options)
+
     @staticmethod
     def fields(searcher, fields=None, **options):
         if fields is not None:
@@ -172,21 +184,25 @@ class params:
         indexed = dict((item[0], searcher.comparator(*item, multi=item[0] in multi)) for item in indexed)
         return fields, multi.difference(indexed), indexed
 
+
 def json_error(version, **body):
     "Transform errors into json format."
     tool = cherrypy.request.toolmaps['tools'].get('json_out', {})
     cherrypy.response.headers['content-type'] = tool.get('content_type', 'application/json')
     return json.dumps(body, indent=tool.get('indent'))
 
+
 def attach_thread(id=None):
     "Attach current cherrypy worker thread to lucene VM."
     lucene.getVMEnv().attachCurrentThread()
+
 
 class Autoreloader(cherrypy.process.plugins.Autoreloader):
     "Autoreload monitor compatible with lucene VM."
     def run(self):
         attach_thread()
         cherrypy.process.plugins.Autoreloader.run(self)
+
 
 class AttachedMonitor(cherrypy.process.plugins.Monitor):
     "Periodically run a callback function in an attached thread."
@@ -195,13 +211,16 @@ class AttachedMonitor(cherrypy.process.plugins.Monitor):
             attach_thread()
             callback()
         cherrypy.process.plugins.Monitor.__init__(self, bus, run, frequency)
+
     def subscribe(self):
         cherrypy.process.plugins.Monitor.subscribe(self)
         if cherrypy.engine.state == cherrypy.engine.states.STARTED:
             self.start()
+
     def unsubscribe(self):
         cherrypy.process.plugins.Monitor.unsubscribe(self)
         self.thread.cancel()
+
 
 @contextlib.contextmanager
 def HTTPError(status, *exceptions):
@@ -211,13 +230,20 @@ def HTTPError(status, *exceptions):
     except exceptions as exc:
         raise cherrypy.HTTPError(status, str(exc))
 
+
 class WebSearcher(object):
     """Dispatch root with a delegated Searcher.
     
     :param hosts: ordered hosts to synchronize with
     """
-    _cp_config = dict.fromkeys(map('tools.{0}.on'.format, ['gzip', 'accept', 'json_in', 'json_out', 'allow', 'timer', 'validate']), True)
-    _cp_config.update({'error_page.default': json_error, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json'], 'tools.accept.media': 'application/json'})
+    _cp_config = {
+        'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json'],
+        'tools.accept.on': True, 'tools.accept.media': 'application/json',
+        'tools.json_in.on': True, 'tools.json_out.on': True,
+        'tools.allow.on': True, 'tools.timer.on': True,
+        'tools.validate.on': True, 'error_page.default': json_error,
+    }
+
     def __init__(self, *directories, **kwargs):
         self.hosts = collections.deque(kwargs.pop('hosts', ()))
         if self.hosts:
@@ -225,17 +251,21 @@ class WebSearcher(object):
         self.searcher = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
         self.updated = time.time()
         self.query_map = {}
+
     @classmethod
     def new(cls, *args, **kwargs):
         "Return new uninitialized root which can be mounted on dispatch tree before VM initialization."
         self = object.__new__(cls)
         self.args, self.kwargs = args, kwargs
         return self
+
     def close(self):
         self.searcher.close()
+
     @property
     def etag(self):
         return 'W/"{0}"'.format(self.searcher.version)
+
     def sync(self, host, path=''):
         "Sync with remote index."
         directory = self.searcher.path
@@ -252,6 +282,7 @@ class WebSearcher(object):
         finally:
             resource.delete(path)
         return names
+
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(methods=['GET', 'POST'])
@@ -272,6 +303,7 @@ class WebSearcher(object):
         if isinstance(self.searcher, engine.MultiSearcher):
             return dict((reader.directory().toString(), reader.numDocs()) for reader in self.searcher.indexReaders)
         return {self.searcher.directory.toString(): len(self.searcher)}
+
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(methods=['POST'])
@@ -309,6 +341,7 @@ class WebSearcher(object):
             app, = (app for app in cherrypy.tree.apps.values() if app.root is self)
             mount(other, app=app, autoupdate=getattr(self, 'autoupdate', 0))
         return len(self.searcher)
+
     @cherrypy.expose
     @cherrypy.tools.params(**dict.fromkeys(['fields', 'fields.multi', 'fields.indexed', 'fields.vector', 'fields.vector.counts'], multi))
     def docs(self, name=None, value='', **options):
@@ -343,9 +376,12 @@ class WebSearcher(object):
         result.update((field, list(searcher.termvector(id, field))) for field in options.get('fields.vector', ()))
         result.update((field, dict(searcher.termvector(id, field, counts=True))) for field in options.get('fields.vector.counts', ()))
         return result
+
     @cherrypy.expose
-    @cherrypy.tools.params(count=int, start=int, fields=multi, sort=multi, facets=multi, hl=multi, mlt=int, spellcheck=int, timeout=float,
-        **{'fields.multi': multi, 'fields.indexed': multi, 'facets.count': int, 'facets.min': int, 'group.count': int, 'hl.count': int, 'mlt.fields': multi})
+    @cherrypy.tools.params(count=int, start=int, fields=multi, sort=multi, facets=multi, hl=multi, mlt=int, spellcheck=int, timeout=float, **{
+                           'fields.multi': multi, 'fields.indexed': multi, 'facets.count': int, 'facets.min': int,
+                           'group.count': int, 'hl.count': int, 'mlt.fields': multi,
+                           })
     def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
         
@@ -420,7 +456,7 @@ class WebSearcher(object):
         qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
             if q is not None:
-                mlt, = searcher.search(q, count=mlt+1, sort=sort)[mlt:].ids
+                mlt, = searcher.search(q, count=mlt + 1, sort=sort)[mlt:].ids
             mltfields = options.pop('mlt.fields', ())
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))
@@ -483,6 +519,7 @@ class WebSearcher(object):
             for name, value in engine.Query.__dict__['terms'](q):
                 terms[name][value] = list(itertools.islice(searcher.correct(name, value), spellcheck))
         return result
+
     @cherrypy.expose
     @cherrypy.tools.params(count=int, step=int, indexed=json.loads)
     def terms(self, name='', value='*', *path, **options):
@@ -563,6 +600,7 @@ class WebSearcher(object):
             if path[1:] == ('positions',):
                 return list(searcher.positions(name, value))
         raise cherrypy.NotFound()
+
     @cherrypy.expose
     @cherrypy.tools.allow(paths=[('GET',), ('GET', 'POST'), ('GET', 'PUT', 'DELETE')])
     def queries(self, name='', value=''):
@@ -611,24 +649,29 @@ class WebSearcher(object):
         with HTTPError(httplib.NOT_FOUND, KeyError):
             return str(self.query_map[name][value])
 
+
 class WebIndexer(WebSearcher):
     "Dispatch root with a delegated Indexer, exposing write methods."
     def __init__(self, *args, **kwargs):
         self.indexer = engine.Indexer(*args, **kwargs)
         self.updated = time.time()
         self.query_map = {}
+
     @property
     def searcher(self):
         return self.indexer.indexSearcher
+
     def close(self):
         self.indexer.close()
         WebSearcher.close(self)
+
     def refresh(self):
         if self.indexer.nrt:
             self.indexer.refresh()
             self.updated = time.time()
         else:
             cherrypy.response.status = httplib.ACCEPTED
+
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'POST'])
     def index(self):
@@ -645,6 +688,7 @@ class WebIndexer(WebSearcher):
                 self.indexer += directory
             self.refresh()
         return {unicode(self.indexer.directory): len(self.indexer)}
+
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(paths=[('POST',), ('GET', 'PUT', 'DELETE'), ('GET',)])
@@ -694,6 +738,7 @@ class WebIndexer(WebSearcher):
             directory = self.searcher.path
             assert name in commit.fileNames, 'file not referenced in commit'
         return cherrypy.lib.static.serve_download(os.path.join(directory, name))
+
     @cherrypy.expose
     @cherrypy.tools.allow(paths=[('GET', 'POST'), ('GET',), ('GET', 'PUT', 'DELETE')])
     def docs(self, name=None, value='', **options):
@@ -726,6 +771,7 @@ class WebIndexer(WebSearcher):
                 self.indexer.add(doc)
         self.refresh()
     docs._cp_config.update(WebSearcher.docs._cp_config)
+
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'DELETE'])
     def search(self, q=None, **options):
@@ -742,6 +788,7 @@ class WebIndexer(WebSearcher):
             self.indexer.delete(params.q(self.searcher, q, **options))
         self.refresh()
     search._cp_config.update(WebSearcher.search._cp_config)
+
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(paths=[('GET',), ('GET', 'PUT')])
@@ -773,6 +820,7 @@ class WebIndexer(WebSearcher):
         with HTTPError(httplib.NOT_FOUND, KeyError):
             return self.indexer.fields[name].settings
 
+
 def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
     "Callback to initialize VM and app roots after daemonizing."
     if vmargs:
@@ -781,6 +829,7 @@ def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
     for app in cherrypy.tree.apps.values():
         if isinstance(app.root, WebSearcher):
             app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))
+
 
 def mount(root, path='', config=None, autoupdate=0, app=None):
     """Attach root and subscribe to plugins.
@@ -801,6 +850,7 @@ def mount(root, path='', config=None, autoupdate=0, app=None):
         root.monitor = AttachedMonitor(cherrypy.engine, root.update, autoupdate)
         root.monitor.subscribe()
     return app
+
 
 def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, callback=None):
     """Attach root, subscribe to plugins, and start server.

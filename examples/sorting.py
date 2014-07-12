@@ -42,12 +42,14 @@ sorttype = getattr(search.SortField, 'Type', search.SortField).STRING
 topdocs = searcher.search(search.MatchAllDocsQuery(), None, 10, search.Sort(search.SortField('color', sorttype)))
 assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] == sorted(colors)
 
+
 class ComparatorSource(PythonFieldComparatorSource):
     class newComparator(PythonFieldComparator):
         def __init__(self, name, numHits, sortPos, reversed):
             PythonFieldComparator.__init__(self)
             self.name = name
             self.values = [None] * numHits
+
         def setNextReader(self, reader, *args):
             if not args:
                 reader = reader.reader()
@@ -58,14 +60,19 @@ class ComparatorSource(PythonFieldComparatorSource):
             else:
                 self.comparator = [comparator.get(id).utf8ToString() for id in range(reader.maxDoc())]
             return self
+
         def compare(self, slot1, slot2):
             return cmp(self.values[slot1], self.values[slot2])
+
         def setBottom(self, slot):
             self._bottom = self.values[slot]
+
         def compareBottom(self, doc):
             return cmp(self._bottom, self.comparator[doc])
+
         def copy(self, slot, doc):
             self.values[slot] = self.comparator[doc]
+
         def value(self, slot):
             pass
 

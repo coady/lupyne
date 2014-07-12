@@ -7,6 +7,7 @@ from .local import TestCase as local
 from .remote import TestCase as remote
 from .distributed import TestCase as distributed
 
+
 class TestRunner(unittest.TextTestRunner):
     def run(self, test):
         if self.verbosity > 1:

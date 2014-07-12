@@ -1,22 +1,26 @@
 from future_builtins import map
 import unittest
 import os
-import sys, subprocess
+import sys
+import subprocess
 import heapq
 import time
 import httplib
-import lucene, cherrypy
+import lucene
+import cherrypy
 from lupyne import client, server
 from . import remote
+
 
 def getresponse(error):
     "Test error handling in resources."
     raise error(0)
 
+
 class TestCase(remote.BaseTest):
     ports = 8080, 8081, 8082
     hosts = list(map('localhost:{0:d}'.format, ports))
-    
+
     def testInterface(self):
         "Distributed reading and writing."
         for port in self.ports:
@@ -75,7 +79,7 @@ class TestCase(remote.BaseTest):
             client.Pool.resource_class = client.SResource
             self.assertRaises(httplib.ssl.SSLError, client.Pool(self.hosts[-1]).call, 'GET', '/')
         client.Pool.resource_class = client.Resource
-    
+
     def testSharding(self):
         "Sharding of indices across servers."
         for port in self.ports:
@@ -107,7 +111,7 @@ class TestCase(remote.BaseTest):
         assert len(responses) == 2 and all(response() for response in responses)
         shards.resources.priority = lambda hosts: None
         self.assertRaises(ValueError, shards.choice, [[0]])
-    
+
     def testReplication(self):
         "Replication from indexer to searcher."
         directory = os.path.join(self.tempdir, 'backup')
@@ -153,7 +157,7 @@ class TestCase(remote.BaseTest):
         root.fields, root.autoupdate = {}, 0.1
         cherrypy.config['log.screen'] = self.config['log.screen']
         cherrypy.engine.state = cherrypy.engine.states.STARTED
-        root.monitor.start() # simulate engine starting
+        root.monitor.start()  # simulate engine starting
         time.sleep(0.2)
         app.root.indexer.add()
         time.sleep(0.2)

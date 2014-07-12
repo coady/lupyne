@@ -18,6 +18,7 @@ import lucene
 from lupyne import engine, server
 from test import fixture
 
+
 def parse(date):
     return int(date.utf8ToString().split('-')[0])
 

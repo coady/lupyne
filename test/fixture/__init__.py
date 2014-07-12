@@ -5,9 +5,11 @@ import csv
 import itertools
 from datetime import datetime
 
+
 class constitution(object):
     fields = dict.fromkeys(['article', 'amendment', 'date'], {'stored': True, 'tokenized': False})
     fields['text'] = {'storeTermVectors': True, 'storeTermVectorPositions': True, 'storeTermVectorOffsets': True}
+
     @classmethod
     def docs(cls):
         file = open(os.path.join(os.path.dirname(__file__), 'constitution.txt'))
@@ -22,9 +24,11 @@ class constitution(object):
                 fields.update({header.lower(): num, 'date': str(date)})
             yield fields
 
+
 class zipcodes(object):
     fields = dict.fromkeys(['city', 'county', 'state', 'latitude', 'longitude'], {'stored': True, 'indexed': False})
     fields['zipcode'] = {'stored': True, 'tokenized': False}
+
     @classmethod
     def docs(cls):
         file = open(os.path.join(os.path.dirname(__file__), 'zipcodes.txt'))

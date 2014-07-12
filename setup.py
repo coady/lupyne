@@ -7,8 +7,9 @@ So although PyLucene transforms Java idioms to Python idioms where possible, the
 See examples for comparisons with the Lucene API.
 
 A RESTful JSON search server, based on CherryPy.
-Many python applications which require better search capabilities are migrating from using conventional client-server databases, whereas Lucene is an embedded search library.
-Solr is a popular option for remote searching and other advanced features, but then any customization or embedded use is coupled to Java and XML.
+Many python applications which require better search capabilities are migrating from using conventional client-server databases,
+whereas Lucene is an embedded search library.  Solr and Elasticsearch are popular options for remote searching and advanced features,
+but then any customization beyond the REST API is difficult and coupled to Java.
 Using a python web framework instead can provide the best of both worlds, e.g., batch indexing offline and remote searching live.
 
 A simple client to make interacting with the server as convenient as an RPC interface.

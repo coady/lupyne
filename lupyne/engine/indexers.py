@@ -8,7 +8,8 @@ from future_builtins import filter, map, zip
 import os
 import itertools
 import contextlib
-import abc, collections
+import abc
+import collections
 import lucene
 from java.io import File, StringReader
 from java.lang import Float
@@ -20,25 +21,31 @@ from .queries import suppress, Query, BooleanFilter, TermsFilter, SortField, Hig
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import DistanceComparator
 
+
 class Atomic(object):
     "Abstract base class to distinguish singleton values from other iterables."
     __metaclass__ = abc.ABCMeta
+
     @classmethod
     def __subclasshook__(cls, other):
         return not issubclass(other, collections.Iterable) or NotImplemented
+
 for cls in (basestring, analysis.TokenStream, lucene.JArray_byte):
     Atomic.register(cls)
+
 
 class closing(set):
     "Manage lifespan of registered objects, similar to contextlib.closing."
     def __del__(self):
         for obj in self:
             obj.close()
+
     def analyzer(self, analyzer, version=None):
         if analyzer is None:
             analyzer = analysis.standard.StandardAnalyzer(version or util.Version.values()[-1])
             self.add(analyzer)
         return analyzer
+
     def directory(self, directory):
         if directory is None:
             directory = store.RAMDirectory()
@@ -47,6 +54,7 @@ class closing(set):
             directory = store.FSDirectory.open(File(directory))
             self.add(directory)
         return directory
+
     def reader(self, reader):
         if isinstance(reader, index.IndexReader):
             reader.incRef()
@@ -57,11 +65,13 @@ class closing(set):
         else:
             reader = index.MultiReader(list(map(self.reader, reader)))
         return reader
+
     @classmethod
     @contextlib.contextmanager
     def store(cls, directory):
         self = cls()
         yield self.directory(directory)
+
 
 def copy(commit, dest):
     """Copy the index commit to the destination directory.
@@ -81,20 +91,24 @@ def copy(commit, dest):
                 if not os.path.samefile(*paths):
                     raise
 
+
 class TokenStream(analysis.TokenStream):
     "TokenStream mixin with support for iteration and attributes cached as properties."
     def __iter__(self):
         self.reset()
         return self
+
     def next(self):
         if self.incrementToken():
             return self
         raise StopIteration
+
     def __getattr__(self, name):
         cls = getattr(analysis.tokenattributes, name + 'Attribute').class_
         attr = self.getAttribute(cls) if self.hasAttribute(cls) else self.addAttribute(cls)
         setattr(self, name, attr)
         return attr
+
     @property
     def offset(self):
         "Start and stop character offset."
@@ -102,6 +116,7 @@ class TokenStream(analysis.TokenStream):
     @offset.setter
     def offset(self, item):
         self.Offset.setOffset(*item)
+
     @property
     def payload(self):
         "Payload bytes."
@@ -110,6 +125,7 @@ class TokenStream(analysis.TokenStream):
     @payload.setter
     def payload(self, data):
         self.Payload.payload = util.BytesRef(data)
+
     @property
     def positionIncrement(self):
         "Position relative to the previous token."
@@ -117,6 +133,7 @@ class TokenStream(analysis.TokenStream):
     @positionIncrement.setter
     def positionIncrement(self, index):
         self.PositionIncrement.positionIncrement = index
+
     @property
     def term(self):
         "Term text."
@@ -125,6 +142,7 @@ class TokenStream(analysis.TokenStream):
     def term(self, text):
         self.CharTerm.setEmpty()
         self.CharTerm.append(text)
+
     @property
     def type(self):
         "Lexical type."
@@ -133,6 +151,7 @@ class TokenStream(analysis.TokenStream):
     def type(self, text):
         self.Type.setType(text)
 
+
 class TokenFilter(PythonTokenFilter, TokenStream):
     """Create an iterable lucene TokenFilter from a TokenStream.
     Subclass and override :meth:`incrementToken` or :meth:`setattrs`.
@@ -140,13 +159,16 @@ class TokenFilter(PythonTokenFilter, TokenStream):
     def __init__(self, input):
         PythonTokenFilter.__init__(self, input)
         self.input = input
+
     def incrementToken(self):
         "Advance to next token and return whether the stream is not empty."
         result = self.input.incrementToken()
         self.setattrs()
         return result
+
     def setattrs(self):
         "Customize current token."
+
 
 class Analyzer(PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
@@ -157,16 +179,20 @@ class Analyzer(PythonAnalyzer):
     def __init__(self, tokenizer, *filters):
         PythonAnalyzer.__init__(self)
         self.tokenizer, self.filters = tokenizer, filters
+
     def components(self, field, reader):
         source = tokens = self.tokenizer.tokenStream(field, reader) if isinstance(self.tokenizer, analysis.Analyzer) else self.tokenizer(reader)
         for filter in self.filters:
             tokens = filter(tokens)
         return source, tokens
+
     def createComponents(self, field, reader):
         return analysis.Analyzer.TokenStreamComponents(*self.components(field, reader))
+
     def tokens(self, text, field=None):
         "Return lucene TokenStream from text."
         return self.components(field, StringReader(text))[1]
+
     def parse(self, query, field='', op='', version='', parser=None, **attrs):
         """Return parsed lucene Query.
         
@@ -199,6 +225,7 @@ class Analyzer(PythonAnalyzer):
             if isinstance(parser, PythonQueryParser):
                 parser.finalize()
 
+
 class IndexReader(object):
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
     
@@ -206,40 +233,50 @@ class IndexReader(object):
     """
     def __init__(self, reader):
         self.indexReader = reader
+
     def __getattr__(self, name):
         if name == 'indexReader':
             raise AttributeError(name)
         return getattr(index.DirectoryReader.cast_(self.indexReader), name)
+
     def __len__(self):
         return self.numDocs()
+
     def __contains__(self, id):
         bits = index.MultiFields.getLiveDocs(self.indexReader)
         return (0 <= id < self.maxDoc()) and (not bits or bits.get(id))
+
     def __iter__(self):
         ids = xrange(self.maxDoc())
         bits = index.MultiFields.getLiveDocs(self.indexReader)
         return filter(bits.get, ids) if bits else iter(ids)
+
     @property
     def directory(self):
         "reader's lucene Directory"
         return self.__getattr__('directory')()
+
     @property
     def path(self):
         "FSDirectory path"
         return store.FSDirectory.cast_(self.directory).directory.path
+
     @property
     def timestamp(self):
         "timestamp of reader's last commit"
         directory = store.FSDirectory.cast_(self.directory).directory
         return File(directory, self.indexCommit.segmentsFileName).lastModified() * 0.001
+
     @property
     def readers(self):
         "segment readers"
         return (index.SegmentReader.cast_(context.reader()) for context in self.leaves())
+
     @property
     def segments(self):
         "segment filenames with document counts"
         return dict((reader.segmentName, reader.numDocs()) for reader in self.readers)
+
     def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.
         Optimized to use hard links if the destination is a file system path.
@@ -260,6 +297,7 @@ class IndexReader(object):
             if merge:
                 writer.forceMerge(merge)
             return len(writer)
+
     def names(self, **attrs):
         """Return field names, given option description.
         
@@ -267,6 +305,7 @@ class IndexReader(object):
         """
         fieldinfos = index.MultiFields.getMergedFieldInfos(self.indexReader).iterator()
         return [fieldinfo.name for fieldinfo in fieldinfos if all(getattr(fieldinfo, name) == attrs[name] for name in attrs)]
+
     def terms(self, name, value='', stop=None, counts=False, distance=0):
         """Generate a slice of term values, optionally with frequency counts.
         Supports a range of terms, wildcard terms, or fuzzy terms.
@@ -288,6 +327,7 @@ class IndexReader(object):
             for bytesref in termenum:
                 text = bytesref.utf8ToString()
                 yield (text, termenum.docFreq()) if counts else text
+
     def numbers(self, name, step=0, type=int, counts=False):
         """Generate decoded numeric term values, optionally with frequency counts.
         
@@ -303,12 +343,14 @@ class IndexReader(object):
         for bytesref in termenum:
             value = convert(decode(bytesref))
             yield (value, termenum.docFreq()) if counts else value
+
     def docs(self, name, value, counts=False):
         "Generate doc ids which contain given term, optionally with frequency counts."
         docsenum = index.MultiFields.getTermDocsEnum(self.indexReader, index.MultiFields.getLiveDocs(self.indexReader), name, util.BytesRef(value))
         if docsenum:
             for doc in iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS):
                 yield (doc, docsenum.freq()) if counts else doc
+
     def positions(self, name, value, payloads=False):
         "Generate doc ids and positions which contain given term, optionally only with payloads."
         docsenum = index.MultiFields.getTermPositionsEnum(self.indexReader, index.MultiFields.getLiveDocs(self.indexReader), name, util.BytesRef(value))
@@ -319,6 +361,7 @@ class IndexReader(object):
                     yield doc, [(position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload]
                 else:
                     yield doc, list(positions)
+
     def spans(self, query, positions=False, payloads=False):
         """Generate docs with occurrence counts for a span query.
         
@@ -332,23 +375,26 @@ class IndexReader(object):
             for doc, spans in itertools.groupby(itertools.takewhile(search.spans.Spans.next, spans), key=search.spans.Spans.doc):
                 doc += offset
                 if payloads:
-                    yield doc, [(span.start(), span.end(), [lucene.JArray_byte.cast_(data).string_ for data in span.payload]) \
-                        for span in spans if span.payloadAvailable]
+                    yield doc, [(span.start(), span.end(), [lucene.JArray_byte.cast_(data).string_ for data in span.payload])
+                                for span in spans if span.payloadAvailable]
                 elif positions:
                     yield doc, [(span.start(), span.end()) for span in spans]
                 else:
                     yield doc, sum(1 for span in spans)
             offset += reader.maxDoc()
+
     def vector(self, id, field):
         terms = self.getTermVector(id, field)
         if terms:
             termenum = terms.iterator(None)
             for bytesref in util.BytesRefIterator.cast_(termenum):
                 yield bytesref.utf8ToString(), termenum
+
     def termvector(self, id, field, counts=False):
         "Generate terms for given doc id and field, optionally with frequency counts."
         for term, termenum in self.vector(id, field):
             yield (term, int(termenum.totalTermFreq())) if counts else term
+
     def positionvector(self, id, field, offsets=False):
         "Generate terms and positions for given doc id and field, optionally with character offsets."
         for term, termenum in self.vector(id, field):
@@ -359,6 +405,7 @@ class IndexReader(object):
                 yield term, [(docsenum.startOffset(), docsenum.endOffset()) for position in positions]
             else:
                 yield term, list(positions)
+
     def morelikethis(self, doc, *fields, **attrs):
         """Return MoreLikeThis query for document.
         
@@ -372,6 +419,7 @@ class IndexReader(object):
             setattr(mlt, name, value)
         return mlt.like(StringReader(doc), '') if isinstance(doc, basestring) else mlt.like(doc)
 
+
 class IndexSearcher(search.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
     
@@ -384,6 +432,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
         self.termsfilters = set()
+
     @classmethod
     def load(cls, directory, analyzer=None):
         "Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."
@@ -392,11 +441,14 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         self = cls(directory, analyzer)
         self.shared.add(self.directory)
         return self
+
     def __del__(self):
         if hash(self):
             self.decRef()
+
     def openIfChanged(self):
         return index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
+
     def reopen(self, filters=False, sorters=False, spellcheckers=False):
         """Return current `IndexSearcher`_, only creating a new one if necessary.
         Any registered :attr:`termsfilters` are also refreshed.
@@ -426,23 +478,28 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         else:
             other.spellcheckers = dict(self.spellcheckers)
         return other
+
     def __getitem__(self, id):
         return Document(self.doc(id))
+
     def get(self, id, *fields):
         "Return `Document`_ with only selected fields loaded."
         return Document(self.document(id, HashSet(Arrays.asList(fields))))
+
     def parse(self, query, spellcheck=False, **kwargs):
         if isinstance(query, search.Query):
             return query
         if spellcheck:
             kwargs['parser'], kwargs['searcher'] = SpellParser, self
         return Analyzer.__dict__['parse'](self.analyzer, query, **kwargs)
+
     def highlighter(self, query, field, **kwargs):
         "Return `Highlighter`_ or if applicable `FastVectorHighlighter`_ specific to searcher and query."
         query = self.parse(query, field=field)
         fieldinfo = index.MultiFields.getMergedFieldInfos(self.indexReader).fieldInfo(field)
         vector = fieldinfo and fieldinfo.hasVectors()
         return (FastVectorHighlighter if vector else Highlighter)(self, query, field, **kwargs)
+
     def count(self, *query, **options):
         """Return number of hits for given query or term.
         
@@ -455,6 +512,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         collector = search.TotalHitCountCollector()
         search.IndexSearcher.search(self, query, options.get('filter'), collector)
         return collector.totalHits
+
     def collector(self, query, count=None, sort=None, reverse=False, scores=False, maxscore=False):
         inorder = not self.createNormalizedWeight(query).scoresDocsOutOfOrder()
         if count is None:
@@ -467,6 +525,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
         return search.TopFieldCollector.create(sort, count, True, scores, maxscore, inorder)
+
     def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
         
@@ -497,6 +556,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         topdocs = collector.topDocs()
         stats = (topdocs.totalHits, topdocs.maxScore) * (timeout is None)
         return Hits(self, topdocs.scoreDocs, *stats)
+
     def facets(self, query, *keys):
         """Return mapping of document counts for the intersection with each facet.
         
@@ -525,13 +585,16 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 name, value = key
                 counts[name][value] = self.count(filter=BooleanFilter.all(query, self.filters[name][value]))
         return dict(counts)
+
     def groupby(self, field, query, filter=None, count=None, start=0, **attrs):
         "Return `Hits`_ grouped by field using a `GroupingSearch`_."
         return GroupingSearch(field, **attrs).search(self, self.parse(query), filter, count, start)
+
     def sorter(self, field, type='string', parser=None, reverse=False):
         "Return `SortField`_ with cached attributes if available."
         sorter = self.sorters.get(field, SortField(field, type, parser, reverse))
         return sorter if sorter.reverse == reverse else SortField(sorter.field, sorter.typename, sorter.parser, reverse)
+
     def comparator(self, field, type='string', parser=None, multi=False):
         """Return cache of field values suitable for sorting, using a cached `SortField`_ if available.
         Parsing values into an array is memory optimized.
@@ -544,19 +607,23 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param multi: retrieve multi-valued string terms as a tuple
         """
         return self.sorter(field, type, parser).comparator(self, multi)
+
     def distances(self, lng, lat, lngfield, latfield):
         "Return distance comparator computed from cached lat/lng fields."
         arrays = (self.comparator(field, 'double') for field in (lngfield, latfield))
         return DistanceComparator(lng, lat, *arrays)
+
     def spellchecker(self, field):
         "Return and cache spellchecker for given field."
         try:
             return self.spellcheckers[field]
         except KeyError:
             return self.spellcheckers.setdefault(field, SpellChecker(self.terms(field, counts=True)))
+
     def suggest(self, field, prefix, count=None):
         "Return ordered suggested words for prefix."
         return self.spellchecker(field).suggest(prefix, count)
+
     def correct(self, field, text, distance=2):
         """Generate potential words ordered by increasing edit distance and decreasing frequency.
         For optimal performance only iterate the required slice size of corrections.
@@ -564,6 +631,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param distance: the maximum edit distance to consider for enumeration
         """
         return itertools.chain.from_iterable(itertools.islice(self.spellchecker(field).correct(text), distance + 1))
+
     def match(self, document, *queries):
         "Generate scores for all queries against a given document mapping."
         searcher = index.memory.MemoryIndex()
@@ -576,6 +644,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         for query in queries:
             yield searcher.search(self.parse(query))
 
+
 class MultiSearcher(IndexSearcher):
     """IndexSearcher with underlying lucene MultiReader.
     
@@ -586,15 +655,19 @@ class MultiSearcher(IndexSearcher):
         IndexSearcher.__init__(self, reader, analyzer)
         self.indexReaders = [index.DirectoryReader.cast_(context.reader()) for context in self.context.children()]
         self.version = sum(reader.version for reader in self.indexReaders)
+
     def __getattr__(self, name):
         return getattr(index.MultiReader.cast_(self.indexReader), name)
+
     def openIfChanged(self):
         readers = list(map(index.DirectoryReader.openIfChanged, self.indexReaders))
         if any(readers):
             return index.MultiReader([new or old.incRef() or old for new, old in zip(readers, self.indexReaders)])
+
     @property
     def timestamp(self):
         return max(IndexReader(reader).timestamp for reader in self.indexReaders)
+
 
 class IndexWriter(index.IndexWriter):
     """Inherited lucene IndexWriter.
@@ -608,6 +681,7 @@ class IndexWriter(index.IndexWriter):
     """
     __len__ = index.IndexWriter.numDocs
     parse = IndexSearcher.__dict__['parse']
+
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
         if version is None:
@@ -619,9 +693,11 @@ class IndexWriter(index.IndexWriter):
         self.policy = config.indexDeletionPolicy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
         index.IndexWriter.__init__(self, self.shared.directory(directory), config)
         self.fields = {}
+
     def __del__(self):
         if hash(self):
             self.close()
+
     @classmethod
     def check(cls, directory, fix=False):
         "Check and optionally fix unlocked index, returning lucene CheckIndex.Status."
@@ -636,6 +712,7 @@ class IndexWriter(index.IndexWriter):
             finally:
                 lock.close() if hasattr(lock, 'close') else lock.release()
         return status
+
     def set(self, name, cls=Field, **settings):
         """Assign settings to field name.
         
@@ -644,6 +721,7 @@ class IndexWriter(index.IndexWriter):
         :param settings: stored, indexed, etc. options compatible with `Field`_
         """
         self.fields[name] = cls(name, **settings)
+
     def document(self, items=(), **terms):
         "Return lucene Document from mapping of field names to one or multiple values."
         doc = document.Document()
@@ -653,9 +731,11 @@ class IndexWriter(index.IndexWriter):
             for field in self.fields[name].items(*values):
                 doc.add(field)
         return doc
+
     def add(self, document=(), **terms):
         "Add :meth:`document` to index with optional boost."
         self.addDocument(self.document(document, **terms))
+
     def update(self, name, value='', document=(), **terms):
         """Atomically delete documents which match given term and add the new :meth:`document`.
         
@@ -671,6 +751,7 @@ class IndexWriter(index.IndexWriter):
                     self.updateBinaryDocValue(term, name, util.BytesRef(value))
         else:
             self.updateDocument(term, self.document(document))
+
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
         
@@ -679,11 +760,13 @@ class IndexWriter(index.IndexWriter):
         """
         parse = self.parse if len(query) == 1 else index.Term
         self.deleteDocuments(parse(*query, **options))
+
     def __iadd__(self, directory):
         "Add directory (or reader, searcher, writer) to index."
         with closing.store(getattr(directory, 'directory', directory)) as directory:
             self.addIndexes([directory])
         return self
+
     @contextlib.contextmanager
     def snapshot(self):
         """Return context manager of an index commit snapshot.
@@ -696,6 +779,7 @@ class IndexWriter(index.IndexWriter):
         finally:
             self.policy.release(commit)
 
+
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.
     Creates an `IndexWriter`_ with a delegated `IndexSearcher`_.
@@ -707,19 +791,25 @@ class Indexer(IndexWriter):
         IndexWriter.commit(self)
         self.nrt = nrt
         self.indexSearcher = IndexSearcher(self if nrt else self.directory, self.analyzer)
+
     def __getattr__(self, name):
         if name == 'indexSearcher':
             raise AttributeError(name)
         return getattr(self.indexSearcher, name)
+
     def __contains__(self, id):
         return id in self.indexSearcher
+
     def __iter__(self):
         return iter(self.indexSearcher)
+
     def __getitem__(self, id):
         return self.indexSearcher[id]
+
     def refresh(self, **caches):
         "Store refreshed searcher with :meth:`IndexSearcher.reopen` caches."
         self.indexSearcher = self.indexSearcher.reopen(**caches)
+
     def commit(self, merge=False, **caches):
         """Commit writes and :meth:`refresh` searcher.
         
@@ -734,6 +824,7 @@ class Indexer(IndexWriter):
             IndexWriter.commit(self)
         self.refresh(**caches)
 
+
 class ParallelIndexer(Indexer):
     """Indexer which tracks a unique identifying field.
     Handles atomic updates of rapidly changing fields, managing :attr:`termsfilters`.
@@ -744,6 +835,7 @@ class ParallelIndexer(Indexer):
         self.field = field
         self.set(field, tokenized=False, omitNorms=True, indexOptions='docs_only')
         self.termsfilters = {}
+
     def termsfilter(self, filter, *others):
         "Return `TermsFilter`_ synced to given filter and optionally associated with other indexers."
         terms = self.sorter(self.field).terms(filter, *self.readers)
@@ -752,10 +844,12 @@ class ParallelIndexer(Indexer):
             termsfilter.refresh(other)
             other.termsfilters.add(termsfilter)
         return termsfilter
+
     def update(self, value, document=(), **terms):
         "Atomically update document based on unique field."
         terms[self.field] = value
         self.updateDocument(index.Term(self.field, value), self.document(document, **terms))
+
     def refresh(self, **caches):
         "Store refreshed searcher and synchronize :attr:`termsfilters`."
         sorter, segments = self.sorter(self.field), self.segments

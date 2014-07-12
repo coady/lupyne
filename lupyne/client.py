@@ -22,13 +22,18 @@ import time
 import itertools
 import collections
 import contextlib
-import io, gzip, shutil
-import httplib, urllib, urlparse
+import io
+import gzip
+import shutil
+import httplib
+import urllib
+import urlparse
 import errno
 try:
     import simplejson as json
 except ImportError:
     import json
+
 
 @contextlib.contextmanager
 def suppress(*exceptions, **attrs):
@@ -39,17 +44,21 @@ def suppress(*exceptions, **attrs):
         if any(getattr(exc, name, value) != value for name, value in attrs.items()):
             raise
 
+
 class Response(httplib.HTTPResponse):
     "A completed response which handles json and caches its body."
     content_type = 'application/json'
+
     def end(self):
         self.body = self.read()
         self.time = float(self.getheader('x-response-time', 'nan'))
         if 'gzip' in self.getheader('content-encoding', ''):
             self.body = gzip.GzipFile(fileobj=io.BytesIO(self.body)).read()
+
     def __nonzero__(self):
         "Return whether status is successful."
         return httplib.OK <= self.status < httplib.MULTIPLE_CHOICES
+
     def __call__(self):
         "Return evaluated response body or raise exception."
         body = self.body
@@ -62,10 +71,12 @@ class Response(httplib.HTTPResponse):
             return body
         raise httplib.HTTPException(self.status, self.reason, body)
 
+
 class Resource(httplib.HTTPConnection):
     "Synchronous connection which handles json responses."
     response_class = Response
     headers = {'accept-encoding': 'compress, gzip', 'content-length': '0'}
+
     def request(self, method, path, body=None):
         "Send request after handling body and headers."
         headers = dict(self.headers)
@@ -73,6 +84,7 @@ class Resource(httplib.HTTPConnection):
             body = json.dumps(body)
             headers.update({'content-length': str(len(body)), 'content-type': self.response_class.content_type})
         httplib.HTTPConnection.request(self, method, path, body, headers)
+
     def getresponse(self, filename=''):
         "Return completed response, optionally write response body to a file."
         response = httplib.HTTPConnection.getresponse(self)
@@ -81,6 +93,7 @@ class Resource(httplib.HTTPConnection):
                 shutil.copyfileobj(response, output)
         response.end()
         return response
+
     def call(self, method, path, body=None, params=(), redirect=False):
         "Send request and return completed `response`_."
         if params:
@@ -91,12 +104,14 @@ class Resource(httplib.HTTPConnection):
             url = urlparse.urlparse(response.getheader('location'))
             assert url.netloc.startswith(self.host)
             warnings.warn('{0}: {1}'.format(response.reason, url.path), DeprecationWarning)
-            return self.call(method, url.path, body, params, redirect-1)
+            return self.call(method, url.path, body, params, redirect - 1)
         return response
+
     def download(self, path, filename):
         "Download response body from GET request to a file."
         self.request('GET', path)
         return self.getresponse(filename)()
+
     def multicall(self, *requests):
         "Pipeline requests (method, path[, body]) and generate completed responses."
         responses = []
@@ -108,6 +123,7 @@ class Resource(httplib.HTTPConnection):
             response.begin()
             response.end()
             yield response
+
     def get(self, path, **params):
         "Return response body from GET request."
         return self.call('GET', path, params=params)()
@@ -125,12 +141,15 @@ if hasattr(httplib, 'HTTPSConnection'):
     class SResource(Resource, httplib.HTTPSConnection, object):
         pass
 
+
 class Pool(collections.deque):
     "Thread-safe resource pool for one host."
     resource_class = Resource
+
     def __init__(self, host, limit=0):
         collections.deque.__init__(self, maxlen=limit)
         self.host = host
+
     def stream(self, method, path, body=None):
         "Generate resource, initial response, and final response while handling timeouts."
         try:
@@ -141,7 +160,8 @@ class Pool(collections.deque):
         response = yield resource
         with suppress(httplib.BadStatusLine, IOError, errno=errno.ECONNRESET):
             response = resource.getresponse()
-        if response is None or response.status == httplib.REQUEST_TIMEOUT or (response.status == httplib.BAD_REQUEST and response.body == 'Illegal end of headers.'):
+            timeout = response.status == httplib.BAD_REQUEST and response.body == 'Illegal end of headers.'
+        if response is None or response.status == httplib.REQUEST_TIMEOUT or timeout:
             resource.close()
             resource.request(method, path, body)
             yield response
@@ -150,9 +170,11 @@ class Pool(collections.deque):
             self.append(resource)
             yield response
             yield response
+
     def call(self, method, path, body=None):
         "Send request and return completed `response`_."
         return list(self.stream(method, path, body))[-1]
+
 
 class Resources(dict):
     """Thread-safe mapping of hosts to resource pools.
@@ -162,9 +184,11 @@ class Resources(dict):
     """
     def __init__(self, hosts, limit=0):
         self.update((host, Pool(host, limit)) for host in hosts)
+
     def priority(self, host):
         "Return priority for host.  None may be used to eliminate from consideration."
         return -len(self[host])
+
     def choice(self, hosts):
         "Return chosen host according to priority."
         priorities = collections.defaultdict(list)
@@ -172,15 +196,18 @@ class Resources(dict):
             priorities[self.priority(host)].append(host)
         priorities.pop(None, None)
         return random.choice(priorities[min(priorities)])
+
     def unicast(self, method, path, body=None, hosts=()):
         "Send request and return `response`_ from any host, optionally from given subset."
         host = self.choice(tuple(hosts) or self)
         return self[host].call(method, path, body)
+
     def broadcast(self, method, path, body=None, hosts=()):
         "Send requests and return responses from all hosts, optionally from given subset."
         hosts = tuple(hosts) or self
         streams = [self[host].stream(method, path, body) for host in hosts]
         return list(zip(*streams))[-1]
+
 
 class Shards(dict):
     """Mapping of keys to host clusters, with associated `resources`_.
@@ -190,22 +217,27 @@ class Shards(dict):
     :param multimap: mapping of hosts to multiple keys
     """
     choice = Resources.__dict__['choice']
+
     def __init__(self, items=(), limit=0, **multimap):
         pairs = ((host, key) for host in multimap for key in multimap[host])
         for host, key in itertools.chain(items, pairs):
             self.setdefault(key, set()).add(host)
         self.resources = Resources(itertools.chain(*self.values()), limit)
+
     def priority(self, hosts):
         "Return combined priority for hosts."
         priorities = list(map(self.resources.priority, hosts))
         if None not in priorities:
             return len(priorities), sum(priorities)
+
     def unicast(self, key, method, path, body=None):
         "Send request and return `response`_ from any host for corresponding key."
         return self.resources.unicast(method, path, body, self[key])
+
     def broadcast(self, key, method, path, body=None):
         "Send requests and return responses from all hosts for corresponding key."
         return self.resources.broadcast(method, path, body, self[key])
+
     def multicast(self, keys, method, path, body=None):
         """Send requests and return responses from a minimal subset of hosts which cover all corresponding keys.
         Response overlap is possible depending on partitioning.
@@ -215,21 +247,25 @@ class Shards(dict):
             shards = set(hosts.union([host]) for hosts, host in itertools.product(shards, self[key]))
         return self.resources.broadcast(method, path, body, self.choice(shards))
 
+
 class Replicas(Resources):
     """Resources which failover assuming the hosts are being automatically synchronized.
     Writes are dispatched to the first host and sequentially failover.
     Reads are balanced among all remaining hosts.
     """
     get, post, put, delete = map(Resource.__dict__.__getitem__, ['get', 'post', 'put', 'delete'])
+
     def __init__(self, hosts, limit=0):
         self.hosts = collections.deque(hosts)
         Resources.__init__(self, self.hosts, limit)
         for pool in self.values():
             pool.failure = 0
+
     def priority(self, host):
         pool = self[host]
         if not pool.failure:
             return -len(pool)
+
     def call(self, method, path, body=None, params=(), retry=False):
         """Send request and return completed `response`_, even if hosts are unreachable.
         
@@ -246,4 +282,4 @@ class Replicas(Resources):
                 with suppress(ValueError):
                     self.hosts.remove(host)
             return self.call(method, path, body, retry=retry)
-        return response if (response or not retry) else self.call(method, path, body, retry=retry-1)
+        return response if (response or not retry) else self.call(method, path, body, retry=retry - 1)

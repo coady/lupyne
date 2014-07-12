@@ -1,13 +1,17 @@
 from future_builtins import map
 import unittest
-import os, sys
-import tempfile, shutil
-import signal, subprocess
+import os
+import sys
+import tempfile
+import shutil
+import signal
+import subprocess
 import operator
 import httplib
 import math
 import json
-import time, calendar
+import time
+import calendar
 import errno
 import contextlib
 from email.utils import parsedate
@@ -15,6 +19,7 @@ import lucene
 import cherrypy
 from lupyne import client, engine, server
 from . import fixture, local
+
 
 @contextlib.contextmanager
 def assertRaises(exception, code):
@@ -26,6 +31,7 @@ def assertRaises(exception, code):
     else:
         raise AssertionError(exception.__name__ + ' not raised')
 
+
 class Resource(client.Resource):
     "Modify status and inject headers to test warning framework."
     def getresponse(self):
@@ -36,12 +42,15 @@ class Resource(client.Resource):
             response.msg.addheader('location', 'http://{0}:{1}'.format(self.host, self.port))
         return response
 
+
 class BaseTest(local.BaseTest):
     ports = 8080, 8081
     config = {'server.socket_timeout': 2, 'server.shutdown_timeout': 1}
+
     def run(self, result):
         self.config['log.screen'] = result.showAll
         local.BaseTest.run(self, result)
+
     def setUp(self):
         local.BaseTest.setUp(self)
         self.servers = {}
@@ -49,6 +58,7 @@ class BaseTest(local.BaseTest):
         for port in list(self.servers):
             self.stop(port)
         local.BaseTest.tearDown(self)
+
     def start(self, port, *args, **config):
         "Start server in separate process on given port."
         config.update(self.config)
@@ -63,13 +73,14 @@ class BaseTest(local.BaseTest):
         server.terminate()
         assert server.wait() == 0
 
+
 class TestCase(BaseTest):
-    
+
     def testInterface(self):
         "Remote reading and writing."
         config = {'tools.json_out.indent': 2, 'tools.validate.last_modified': True, 'tools.validate.expires': 0, 'tools.validate.max_age': 0}
         self.start(self.ports[0], self.tempdir, '--autoreload=1', **config),
-        self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2.0'), # concurrent searchers
+        self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2.0'),  # concurrent searchers
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
         response = resource.call('GET', '/')
@@ -200,7 +211,7 @@ class TestCase(BaseTest):
         assert 0 < result['maxscore'] < 1
         doc, = result['docs']
         assert sorted(doc) == ['__id__', '__score__', 'name']
-        assert doc['__id__'] == 0 and doc['__score__'] > 0 and doc['name'] == 'sample' 
+        assert doc['__id__'] == 0 and doc['__score__'] > 0 and doc['name'] == 'sample'
         hit, = resource.get('/search', q='hello world', **{'q.field': ['text', 'body']})['docs']
         assert hit['__id__'] == doc['__id__'] and hit['__score__'] < doc['__score__']
         hit, = resource.get('/search', q='hello world', **{'q.field': 'text', 'q.op': 'and'})['docs']
@@ -286,7 +297,7 @@ class TestCase(BaseTest):
         assert cherrypy.tree.mount(None)
         server.init(vmargs=None)
         self.assertRaises(AttributeError, server.start, config=True)
-    
+
     def testBasic(self):
         "Remote text indexing and searching."
         self.start(self.ports[0], self.tempdir)
@@ -424,7 +435,7 @@ class TestCase(BaseTest):
         assert set(map(operator.itemgetter('count'), result['groups'])) == set([1])
         assert all(int(doc.get('amendment', 0)) == group['value'] for group in result['groups'] for doc in group['docs'])
         assert result['groups'][0]['value'] == 2 and result['groups'][-1]['value'] == 0
-    
+
     def testAdvanced(self):
         "Nested and numeric fields."
         writer = engine.IndexWriter(self.tempdir)
@@ -472,7 +483,7 @@ class TestCase(BaseTest):
         assert resource.delete('/queries/default/alpha') == 'name:alpha'
         assert resource.delete('/queries/default/alpha') is None
         assert resource.get('/queries/default') == {'bravo': 0.0}
-    
+
     def testRealTime(self):
         "Real Time updating and searching."
         for args in [('-r',), ('--real-time', 'index0', 'index1'), ('-r', '--real-time', 'index')]:
