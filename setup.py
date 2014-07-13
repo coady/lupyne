@@ -30,6 +30,7 @@ Changes in 1.7
    - PyLucene 4.8 and 4.9 supported
    - PyLucene 4.4 and 4.5 dropped
    - DocValues may be updated in-place
+   - Parallel indexing improvements
 """
 
 import os

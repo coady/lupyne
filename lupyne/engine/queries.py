@@ -283,7 +283,9 @@ class TermsFilter(search.CachingWrapperFilter):
         for reader in readers:
             with suppress(store.AlreadyClosedException):
                 bitset = util.FixedBitSet.cast_(self.getDocIdSet(reader.context, None))
-                getattr(bitset, op)(filter.getDocIdSet(reader.context, None).iterator())
+                docset = filter.getDocIdSet(reader.context, None)
+                if docset:
+                    getattr(bitset, op)(docset.iterator())
 
     def update(self, values, op='or', cache=True):
         """Update allowed values and corresponding cached bitsets.
@@ -295,8 +297,8 @@ class TermsFilter(search.CachingWrapperFilter):
         values = tuple(values)
         filter = self.filter(values, cache)
         with self.lock:
-            getattr(self.values, self.ops[op])(values)
             self.apply(filter, op, self.readers)
+            getattr(self.values, self.ops[op])(values)
 
     def refresh(self, searcher):
         "Refresh cached bitsets of current values for new segments of searcher."
@@ -388,7 +390,7 @@ class SortField(search.SortField):
         "Generate field cache terms from docs which match filter from all segments."
         for reader in readers:
             array, docset = self.array(reader), filter.getDocIdSet(reader.context, reader.liveDocs)
-            ids = iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS)
+            ids = iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS) if docset else ()
             text = isinstance(array, index.BinaryDocValues)
             if text and lucene.VERSION < '4.9':
                 br = util.BytesRef()

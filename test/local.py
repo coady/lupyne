@@ -636,22 +636,28 @@ class TestCase(BaseTest):
     def testFilters(self):
         "Custom filters."
         indexer = engine.Indexer()
-        indexer.set('name', stored=True, indexed=True)
-        for name in ('alpha', 'bravo', 'charlie'):
+        indexer.set('name', stored=True, tokenized=False)
+        for name in ('alpha', 'bravo'):
             indexer.add(name=name)
         indexer.commit()
-        filter = engine.TermsFilter('name')
-        assert len(filter.readers) == 0
+        filter = indexer.termsfilter('name')
+        assert filter.readers
+        indexer.add(name='charlie')
+        indexer.commit()
         filter.add('alpha', 'bravo')
         filter.discard('bravo', 'charlie')
         assert filter.values == set(['alpha'])
+        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha']
+        indexer.update('name', document={'name': 'alpha'})
+        indexer.commit()
+        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha']
         parallel = engine.ParallelIndexer('name')
         parallel.set('priority', tokenized=False)
         for name in ('alpha', 'bravo', 'delta'):
             parallel.update(name, priority='high')
         parallel.commit()
         filter = parallel.termsfilter(engine.Query.term('priority', 'high').filter(), indexer)
-        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha', 'bravo']
+        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['bravo', 'alpha']
         indexer.add(name='delta')
         indexer.delete('name', 'alpha')
         indexer.commit()
@@ -664,6 +670,9 @@ class TestCase(BaseTest):
         parallel.commit()
         filter.refresh(indexer)
         assert filter.readers == set(indexer.readers)
+        parallel.update('charlie', priority='low')
+        parallel.commit()
+        assert [hit['name'] for hit in indexer.search(filter=filter)] == ['delta']
 
     def testMulti(self):
         "MultiSearchers."

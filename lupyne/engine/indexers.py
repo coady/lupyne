@@ -464,6 +464,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         other.decRef()
         other.shared = self.shared
         other.filters.update((key, value if isinstance(value, search.Filter) else dict(value)) for key, value in self.filters.items())
+        other.termsfilters.update(self.termsfilters)
         for termsfilter in self.termsfilters:
             termsfilter.refresh(other)
         if filters:
@@ -643,6 +644,17 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             searcher.addField(name, *value)
         for query in queries:
             yield searcher.search(self.parse(query))
+
+    def termsfilter(self, field, values=()):
+        """Return registered `TermsFilter`_, which will be refreshed whenever the searcher is reopened.
+        
+        .. versionadded:: 1.7
+        .. note:: This interface is experimental and might change in incompatible ways in the next release.
+        """
+        termsfilter = TermsFilter(field, values)
+        termsfilter.refresh(self)
+        self.termsfilters.add(termsfilter)
+        return termsfilter
 
 
 class MultiSearcher(IndexSearcher):
