@@ -468,7 +468,7 @@ class WebSearcher(object):
         scores = options.get('sort.scores')
         gcount = options.get('group.count', 1)
         scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
-        if ':' in group:
+        if ':' in group or group in searcher.sorters:
             hits = searcher.search(q, filter=qfilter, sort=sort, timeout=timeout, **scores)
             with HTTPError(httplib.BAD_REQUEST, AttributeError):
                 groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__, count=count, docs=gcount)
@@ -608,7 +608,6 @@ class WebSearcher(object):
         Queries are cached by a unique name and value, suitable for document indexing.
         
         .. versionadded:: 1.4
-        .. note:: This interface is experimental and might change in incompatible ways in the next release.
         
         **GET** /queries
             Return query set names.

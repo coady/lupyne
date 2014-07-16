@@ -3,7 +3,7 @@ engine
 .. automodule:: lupyne.engine
 
   * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_, `ParallelIndexer`_
-  * `Document`_, `Field`_, `MapField`_, `NestedField`_, `NumericField`_, `DateTimeField`_
+  * `Document`_, `Field`_, `MapField`_, `NestedField`_, `DocValuesField`_, `NumericField`_, `DateTimeField`_
   * `Query`_, `SortField`_, `TermsFilter`_
   * `PointField`_, `PolygonField`_
 

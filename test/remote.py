@@ -44,6 +44,7 @@ class Resource(client.Resource):
 
 
 class BaseTest(local.BaseTest):
+    module = 'lupyne.server'
     ports = 8080, 8081
     config = {'server.socket_timeout': 2, 'server.shutdown_timeout': 1}
 
@@ -64,7 +65,7 @@ class BaseTest(local.BaseTest):
         config.update(self.config)
         config['server.socket_port'] = port
         cherrypy.process.servers.wait_for_free_port('localhost', port)
-        server = self.servers[port] = subprocess.Popen((sys.executable, '-m', 'lupyne.server', '-c', json.dumps(config)) + args)
+        server = self.servers[port] = subprocess.Popen((sys.executable, '-m', self.module, '-c', json.dumps(config)) + args)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
         assert not server.poll()
     def stop(self, port):
@@ -509,6 +510,23 @@ class TestCase(BaseTest):
         resource.post('/update')
         response = resource.call('GET', '/docs')
         assert response and version != response.getheader('etag')
+
+    def example(self):
+        "Custom server example (only run explicitly)."
+        self.module = 'examples.server'
+        port = self.ports[0]
+        self.start(port)
+        resource = client.Resource('localhost', port)
+        result = resource.get('/search', q='date:17*', group='year')
+        assert dict(map(operator.itemgetter('value', 'count'), result['groups'])) == {1795: 1, 1791: 10}
+        result = resource.get('/search', q='date:17*', group='year', sort='-year')
+        assert list(map(operator.itemgetter('value'), result['groups'])) == [1795, 1791]
+        result = resource.get('/search', count=0, facets='year')
+        facets = result['facets']['year']
+        assert not result['docs'] and facets['1791'] == 10 and sum(facets.values()) == result['count']
+        result = resource.get('/search', q='text:right', facets='year')
+        facets = result['facets']['year']
+        assert len(result['docs']) == result['count'] == sum(facets.values())
 
 if __name__ == '__main__':
     lucene.initVM()
