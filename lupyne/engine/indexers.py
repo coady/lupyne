@@ -783,7 +783,7 @@ class IndexWriter(index.IndexWriter):
     def snapshot(self):
         """Return context manager of an index commit snapshot.
         
-        .. versionchanged:: 1.4 lucene 4.4 identifies snapshots by commit generation
+        .. versionchanged:: 1.4 lucene identifies snapshots by commit generation
         """
         commit = self.policy.snapshot()
         try:

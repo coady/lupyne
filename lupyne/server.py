@@ -703,10 +703,10 @@ class WebIndexer(WebSearcher):
             
             :return: *int*
         
-        **GET, PUT, DELETE** /update/[snapshot|*int*]
+        **GET, PUT, DELETE** /update/[snapshot|\ *int*]
             Verify, create, or release unique snapshot of current index commit and return array of referenced filenames.
             
-            .. versionchanged:: 1.4 lucene 4.4 identifies snapshots by commit generation;  use location header
+            .. versionchanged:: 1.4 lucene identifies snapshots by commit generation;  use location header
             
             :return: [*string*,... ]
         
