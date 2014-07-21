@@ -697,6 +697,7 @@ class TestCase(BaseTest):
         indexer.set('id')
         indexer.set('votes', engine.DocValuesField, type='numeric')
         indexer.set('tag', engine.DocValuesField, type='binary')
+        assert not indexer.comparator('tag')
         indexer.add(id='0', votes=1, tag='low')
         indexer.commit()
         segments = indexer.segments

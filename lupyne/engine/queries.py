@@ -316,36 +316,55 @@ class TermsFilter(search.CachingWrapperFilter):
         self.update(values, op='andNot', cache=False)
 
 
+class Array(object):
+    def __init__(self, array, size):
+        self.array, self.size = array, size
+
+    def __iter__(self):
+        return map(self.__getitem__, xrange(self.size))
+
+    def __getitem__(self, id):
+        return self.array.get(id)
+
+
+class TextArray(Array):
+    def __init__(self, array, size):
+        Array.__init__(self, array, size)
+        self.bytes = util.BytesRef() if lucene.VERSION < '4.9' else None
+
+    def __getitem__(self, id):
+        if self.bytes is not None:
+            self.array.get(id, self.bytes)
+            return self.bytes.utf8ToString()
+        return self.array.get(id).utf8ToString()
+
+
+class MultiArray(TextArray):
+    def __getitem__(self, id):
+        self.array.document = id
+        ids = iter(self.array.nextOrd, self.array.NO_MORE_ORDS)
+        if self.bytes is not None:
+            return tuple(self.array.lookupOrd(id, self.bytes) or self.bytes.utf8ToString() for id in ids)
+        return tuple(self.array.lookupOrd(id).utf8ToString() for id in ids)
+
+
 class Comparator(object):
     "Chained arrays with bisection lookup."
-    def __init__(self, items):
+    def __init__(self, arrays):
         self.arrays, self.offsets = [], [0]
-        for array, size in items:
+        for array in arrays:
             self.arrays.append(array)
-            self.offsets.append(len(self) + size)
-        cls, = set(map(type, self.arrays))
-        self.multi = issubclass(cls, index.SortedSetDocValues)
-        self.text = self.multi or issubclass(cls, index.BinaryDocValues)
-        self.bytes = util.BytesRef() if (self.text and lucene.VERSION < '4.9') else None
+            self.offsets.append(len(self) + array.size)
+
+    def __iter__(self):
+        return itertools.chain.from_iterable(self.arrays)
 
     def __len__(self):
         return self.offsets[-1]
 
     def __getitem__(self, id):
-        idx = bisect.bisect_right(self.offsets, id) - 1
-        id -= self.offsets[idx]
-        array = self.arrays[idx]
-        if self.multi:
-            array.document = id
-            ids = iter(array.nextOrd, array.NO_MORE_ORDS)
-            if self.bytes:
-                return tuple(array.lookupOrd(id, self.bytes) or self.bytes.utf8ToString() for id in ids)
-            return tuple(array.lookupOrd(id).utf8ToString() for id in ids)
-        if self.bytes:
-            array.get(id, self.bytes)
-            return self.bytes.utf8ToString()
-        value = array.get(id)
-        return value.utf8ToString() if self.text else value
+        index = bisect.bisect_right(self.offsets, id) - 1
+        return self.arrays[index][id - self.offsets[index]]
 
 
 class SortField(search.SortField):
@@ -367,19 +386,20 @@ class SortField(search.SortField):
         search.SortField.__init__(self, name, parser, reverse)
 
     def array(self, reader, multi=False):
+        size = reader.maxDoc()
         if multi:
-            return search.FieldCache.DEFAULT.getDocTermOrds(reader, self.field)
+            return MultiArray(search.FieldCache.DEFAULT.getDocTermOrds(reader, self.field), size)
         if self.typename == 'String':
-            return search.FieldCache.DEFAULT.getTermsIndex(reader, self.field)
+            return TextArray(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field), size)
         if self.typename == 'Bytes':
-            return search.FieldCache.DEFAULT.getTerms(reader, self.field, True)
+            return TextArray(search.FieldCache.DEFAULT.getTerms(reader, self.field, True), size)
         method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
-        return method(reader, self.field, self.parser, False)
+        return Array(method(reader, self.field, self.parser, False), size)
 
     def comparator(self, searcher, multi=False):
         "Return indexed values from default FieldCache using the given searcher."
         assert not multi or self.typename == 'String'
-        return Comparator((self.array(reader, multi), reader.maxDoc()) for reader in searcher.readers)
+        return Comparator(self.array(reader, multi) for reader in searcher.readers)
 
     def filter(self, start, stop, lower=True, upper=False):
         "Return lucene FieldCacheRangeFilter based on field and type."
@@ -390,17 +410,9 @@ class SortField(search.SortField):
         "Generate field cache terms from docs which match filter from all segments."
         for reader in readers:
             array, docset = self.array(reader), filter.getDocIdSet(reader.context, reader.liveDocs)
-            ids = iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS) if docset else ()
-            text = isinstance(array, index.BinaryDocValues)
-            if text and lucene.VERSION < '4.9':
-                br = util.BytesRef()
-                for id in ids:
-                    array.get(id, br)
-                    yield br.utf8ToString()
-            else:
-                for id in ids:
-                    value = array.get(id)
-                    yield value.utf8ToString() if text else value
+            if docset:
+                for id in iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS):
+                    yield array[id]
 
 
 class Highlighter(highlight.Highlighter):
