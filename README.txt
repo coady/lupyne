@@ -17,7 +17,7 @@ Dependencies
 Lupyne should run anywhere PyLucene does, though its primary testing is on the popular unix variants.
 
  * Python 2.6.6+, 2.7
- * PyLucene 4.6, 4.7, 4.8, 4.9
+ * PyLucene 4.8, 4.9
  * CherryPy 3.2 - 3.5 (only required for server)
 
 Usage

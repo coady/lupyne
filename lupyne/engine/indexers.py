@@ -717,12 +717,10 @@ class IndexWriter(index.IndexWriter):
             checkindex = index.CheckIndex(directory)
             lock = directory.makeLock(cls.WRITE_LOCK_NAME)
             assert lock.obtain(), "index must not be opened by any writer"
-            try:
+            with contextlib.closing(lock):
                 status = checkindex.checkIndex()
                 if fix:
                     checkindex.fixIndex(status)
-            finally:
-                lock.close() if hasattr(lock, 'close') else lock.release()
         return status
 
     def set(self, name, cls=Field, **settings):
@@ -751,7 +749,7 @@ class IndexWriter(index.IndexWriter):
     def update(self, name, value='', document=(), **terms):
         """Atomically delete documents which match given term and add the new :meth:`document`.
         
-        .. versionchanged:: 1.7 update in-place if only DocValues are given; lucene >= 4.8 required for binary values
+        .. versionchanged:: 1.7 update in-place if only DocValues are given
         """
         document = dict(document, **terms)
         term = index.Term(name, value or document[name])

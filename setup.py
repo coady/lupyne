@@ -23,14 +23,11 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.7
+Changes in 1.7+
 ==================
  * Engine:
    
-   - PyLucene 4.8 and 4.9 supported
-   - PyLucene 4.4 and 4.5 dropped
-   - DocValues may be updated in-place
-   - Parallel indexing improvements
+   - PyLucene 4.6 and 4.7 dropped
 """
 
 import os
