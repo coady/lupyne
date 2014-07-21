@@ -403,6 +403,8 @@ class SortField(search.SortField):
 
     def filter(self, start, stop, lower=True, upper=False):
         "Return lucene FieldCacheRangeFilter based on field and type."
+        if self.typename in ('String', 'Bytes'):
+            return search.FieldCacheRangeFilter.newStringRange(self.field, start, stop, lower, upper)
         method = getattr(search.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))
         return method(self.field, self.parser, start, stop, lower, upper)
 

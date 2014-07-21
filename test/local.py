@@ -673,6 +673,7 @@ class TestCase(BaseTest):
         parallel.update('charlie', priority='low')
         parallel.commit()
         assert [hit['name'] for hit in indexer.search(filter=filter)] == ['delta']
+        assert indexer.count(filter=indexer.sorter('name').filter('a', 'c'))
 
     def testMulti(self):
         "MultiSearchers."
@@ -712,6 +713,7 @@ class TestCase(BaseTest):
         assert indexer.segments == segments
         assert list(indexer.comparator('votes', type=int)) == [3]
         assert list(indexer.comparator('tag', type='bytes')) == ['high']
+        assert indexer.count(filter=indexer.sorter('votes', int).filter(3, 4))
 
 if __name__ == '__main__':
     lucene.initVM()
