@@ -67,10 +67,12 @@ class BaseTest(local.BaseTest):
         cherrypy.process.servers.wait_for_free_port('localhost', port)
         server = self.servers[port] = subprocess.Popen((sys.executable, '-m', self.module, '-c', json.dumps(config)) + args)
         cherrypy.process.servers.wait_for_occupied_port('localhost', port)
+        server.started = time.time()
         assert not server.poll()
     def stop(self, port):
         "Terminate server on given port."
         server = self.servers.pop(port)
+        time.sleep(max(0, server.started + 0.1 - time.time()))
         server.terminate()
         assert server.wait() == 0
 
