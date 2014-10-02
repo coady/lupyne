@@ -42,7 +42,7 @@ class closing(set):
 
     def analyzer(self, analyzer, version=None):
         if analyzer is None:
-            analyzer = analysis.standard.StandardAnalyzer(version or util.Version.values()[-1])
+            analyzer = analysis.standard.StandardAnalyzer(version or util.Version.LUCENE_CURRENT)
             self.add(analyzer)
         return analyzer
 
@@ -193,26 +193,25 @@ class Analyzer(PythonAnalyzer):
         "Return lucene TokenStream from text."
         return self.components(field, StringReader(text))[1]
 
-    def parse(self, query, field='', op='', version='', parser=None, **attrs):
+    def parse(self, query, field='', op='', version=None, parser=None, **attrs):
         """Return parsed lucene Query.
         
         :param query: query string
         :param field: default query field name, sequence of names, or boost mapping
         :param op: default query operator ('or', 'and')
-        :param version: lucene Version string
+        :param version: lucene Version
         :param parser: custom PythonQueryParser class
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        args = [util.Version.valueOf('LUCENE_' + version.replace('.', '')) if version else util.Version.values()[-1]]
+        cls = queryparser.classic.QueryParser if isinstance(field, basestring) else queryparser.classic.MultiFieldQueryParser
+        args = field, self
         if isinstance(field, collections.Mapping):
             boosts = HashMap()
             for key in field:
                 boosts.put(key, Float(field[key]))
-            args += list(field), self, boosts
-        else:
-            args += field, self
-        parser = (parser or queryparser.classic.QueryParser if isinstance(field, basestring) else queryparser.classic.MultiFieldQueryParser)(*args)
+            args = list(field), self, boosts
+        parser = (parser or cls)(version or util.Version.LUCENE_CURRENT, *args)
         if op:
             parser.defaultOperator = getattr(queryparser.classic.QueryParser.Operator, op.upper())
         for name, value in attrs.items():
@@ -697,7 +696,7 @@ class IndexWriter(index.IndexWriter):
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
         if version is None:
-            version = util.Version.values()[-1]
+            version = util.Version.LUCENE_CURRENT
         config = index.IndexWriterConfig(version, self.shared.analyzer(analyzer, version))
         config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
         for name, value in attrs.items():

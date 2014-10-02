@@ -38,8 +38,8 @@ indexer.commit()
 ### lucene ###
 
 searcher = search.IndexSearcher(indexer.indexReader)
-sorttype = getattr(search.SortField, 'Type', search.SortField).STRING
-topdocs = searcher.search(search.MatchAllDocsQuery(), None, 10, search.Sort(search.SortField('color', sorttype)))
+sorter = search.Sort(search.SortField('color', search.SortField.Type.STRING))
+topdocs = searcher.search(search.MatchAllDocsQuery(), None, 10, sorter)
 assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] == sorted(colors)
 
 
@@ -54,7 +54,7 @@ class ComparatorSource(PythonFieldComparatorSource):
             if not args:
                 reader = reader.reader()
             comparator = search.FieldCache.DEFAULT.getTermsIndex(reader, self.name)
-            if lucene.VERSION < '4.9':
+            if lucene.VERSION.startswith('4.8'):
                 br = util.BytesRef()
                 self.comparator = [comparator.get(id, br) or br.utf8ToString() for id in range(reader.maxDoc())]
             else:

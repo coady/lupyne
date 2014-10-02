@@ -80,8 +80,8 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Remote reading and writing."
         config = {'tools.json_out.indent': 2, 'tools.validate.last_modified': True, 'tools.validate.expires': 0, 'tools.validate.max_age': 0}
-        self.start(self.ports[0], self.tempdir, '--autoreload=1', **config),
-        self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2.0'),  # concurrent searchers
+        self.start(self.ports[0], self.tempdir, '--autoreload=1', **config)
+        self.start(self.ports[1], self.tempdir, self.tempdir, '--autoupdate=2.0')  # concurrent searchers
         resource = client.Resource('localhost', self.ports[0])
         assert resource.get('/favicon.ico')
         response = resource.call('GET', '/')
@@ -409,10 +409,10 @@ class TestCase(BaseTest):
         highlight, = [highlight['article'] for highlight in highlights if highlight.get('article')]
         assert highlight == ['<strong>1</strong>']
         result = resource.get('/search', mlt=0)
-        assert result['count'] == 25 and result['query'] == 'text:united text:states'
+        assert result['count'] == 25 and set(result['query'].split()) == set(['text:united', 'text:states'])
         assert [doc['amendment'] for doc in result['docs'][:4]] == ['10', '11', '15', '19']
         result = resource.get('/search', q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})
-        assert result['count'] == 11 and result['query'] == 'text:necessary text:people'
+        assert result['count'] == 11 and set(result['query'].split()) == set(['text:necessary', 'text:people'])
         assert [doc['amendment'] for doc in result['docs'][:4]] == ['2', '9', '10', '1']
         result = resource.get('/search', q='text:people', count=1, timeout=-1)
         assert result == {'query': 'text:people', 'count': None, 'maxscore': None, 'docs': []}

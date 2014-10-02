@@ -14,6 +14,7 @@ from .documents import Document, Field, MapField, NestedField, DocValuesField, N
 from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, IndexWriter, Indexer, ParallelIndexer
 from .spatial import PointField, PolygonField
 
-assert lucene.VERSION >= '4.8'
-if lucene.VERSION < '4.9':
-    warnings.warn('Support for lucene 4.8 will be removed in the next release.', DeprecationWarning)
+version = tuple(map(int, lucene.VERSION.split('.')))
+assert version >= (4, 8)
+if version < (4, 10):
+    warnings.warn('Support for lucene 4.8 and 4.9 will be removed in the next release.', DeprecationWarning)

@@ -27,6 +27,7 @@ Changes in 1.7+
 ==================
  * Engine:
    
+   - PyLucene 4.10 supported
    - PyLucene 4.6 and 4.7 dropped
 """
 

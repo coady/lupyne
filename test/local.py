@@ -50,7 +50,7 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Indexer and document interfaces."
         self.assertRaises(TypeError, engine.IndexSearcher)
-        analyzer = lambda reader: analysis.standard.StandardTokenizer(util.Version.values()[-1], reader)
+        analyzer = lambda reader: analysis.standard.StandardTokenizer(util.Version.LUCENE_CURRENT, reader)
         stemmer = engine.Analyzer(analyzer, analysis.en.PorterStemFilter, typeAsPayload)
         for token in stemmer.tokens('hello'):
             assert token.positionIncrement == 1
@@ -319,11 +319,12 @@ class TestCase(BaseTest):
         assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
         analyzer = analysis.core.WhitespaceAnalyzer(util.Version.LUCENE_CURRENT)
         query = indexer.morelikethis(0, analyzer=analyzer)
-        assert str(query) == 'text:united text:states'
+        assert set(str(query).split()) == set(['text:united', 'text:states'])
         hits = indexer.search(query & engine.Query.prefix('article', ''))
         assert len(hits) == 8 and hits[0]['article'] == 'Preamble'
         assert str(indexer.morelikethis(0, 'article', analyzer=analyzer)) == ''
-        assert str(indexer.morelikethis(0, minDocFreq=3, analyzer=analyzer)) == 'text:establish text:united text:states'
+        query = indexer.morelikethis(0, minDocFreq=3, analyzer=analyzer)
+        assert set(str(query).split()) == set(['text:establish', 'text:united', 'text:states'])
         assert str(indexer.morelikethis('jury', 'text', minDocFreq=4, minTermFreq=1, analyzer=analyzer)) == 'text:jury'
         assert str(indexer.morelikethis('jury', 'article', analyzer=analyzer)) == ''
         self.assertRaises(lucene.JavaError, indexer.morelikethis, 'jury')
@@ -680,7 +681,7 @@ class TestCase(BaseTest):
         indexers = engine.Indexer(self.tempdir), engine.Indexer()
         searcher = engine.MultiSearcher([indexers[0].indexReader, indexers[1].directory])
         self.assertRaises(TypeError, getattr, searcher, 'timestamp')
-        assert engine.MultiSearcher(indexers[:1]).timestamp
+        assert engine.MultiSearcher([indexers[0].directory]).timestamp
         assert [reader.refCount for reader in searcher.indexReaders] == [2, 1]
         assert searcher.reopen() is searcher
         indexers[0].add()

@@ -330,7 +330,7 @@ class Array(object):
 class TextArray(Array):
     def __init__(self, array, size):
         Array.__init__(self, array, size)
-        self.bytes = util.BytesRef() if lucene.VERSION < '4.9' else None
+        self.bytes = util.BytesRef() if lucene.VERSION.startswith('4.8') else None
 
     def __getitem__(self, id):
         if self.bytes is not None:
@@ -351,9 +351,8 @@ class MultiArray(TextArray):
 class Comparator(object):
     "Chained arrays with bisection lookup."
     def __init__(self, arrays):
-        self.arrays, self.offsets = [], [0]
-        for array in arrays:
-            self.arrays.append(array)
+        self.arrays, self.offsets = list(arrays), [0]
+        for array in self.arrays:
             self.offsets.append(len(self) + array.size)
 
     def __iter__(self):
@@ -378,7 +377,7 @@ class SortField(search.SortField):
     def __init__(self, name, type='string', parser=None, reverse=False):
         type = self.typename = getattr(type, '__name__', type).capitalize()
         if parser is None:
-            parser = getattr(getattr(self, 'Type', self), type.upper())
+            parser = getattr(self.Type, type.upper())
         elif not search.FieldCache.Parser.instance_(parser):
             base = getattr(pysearch, 'Python{0}Parser'.format(type))
             namespace = {'parse' + type: staticmethod(parser), 'termsEnum': lambda self, terms: terms.iterator(None)}
