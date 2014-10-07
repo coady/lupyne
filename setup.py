@@ -23,12 +23,14 @@ Advanced search features:
  * Spellchecking.
  * Near real-time indexing.
 
-Changes in 1.7+
+Changes in 1.8
 ==================
  * Engine:
    
    - PyLucene 4.10 supported
    - PyLucene 4.6 and 4.7 dropped
+   - Comparator iteration optimized
+   - Support for string based FieldCacheRangeFilters
 """
 
 import os
