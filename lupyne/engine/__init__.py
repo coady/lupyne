@@ -15,6 +15,4 @@ from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, Index
 from .spatial import PointField, PolygonField
 
 version = tuple(map(int, lucene.VERSION.split('.')))
-assert version >= (4, 8)
-if version < (4, 10):
-    warnings.warn('Support for lucene 4.8 and 4.9 will be removed in the next release.', DeprecationWarning)
+assert version >= (4, 10)

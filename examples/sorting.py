@@ -24,7 +24,7 @@ Custom sorting isn't necessary in the below example of course, just there for de
 
 import lucene
 lucene.initVM()
-from org.apache.lucene import search, util
+from org.apache.lucene import search
 from org.apache.pylucene.search import PythonFieldComparator, PythonFieldComparatorSource
 from lupyne import engine
 
@@ -54,11 +54,7 @@ class ComparatorSource(PythonFieldComparatorSource):
             if not args:
                 reader = reader.reader()
             comparator = search.FieldCache.DEFAULT.getTermsIndex(reader, self.name)
-            if lucene.VERSION.startswith('4.8'):
-                br = util.BytesRef()
-                self.comparator = [comparator.get(id, br) or br.utf8ToString() for id in range(reader.maxDoc())]
-            else:
-                self.comparator = [comparator.get(id).utf8ToString() for id in range(reader.maxDoc())]
+            self.comparator = [comparator.get(id).utf8ToString() for id in range(reader.maxDoc())]
             return self
 
         def compare(self, slot1, slot2):

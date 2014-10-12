@@ -328,24 +328,14 @@ class Array(object):
 
 
 class TextArray(Array):
-    def __init__(self, array, size):
-        Array.__init__(self, array, size)
-        self.bytes = util.BytesRef() if lucene.VERSION.startswith('4.8') else None
-
     def __getitem__(self, id):
-        if self.bytes is not None:
-            self.array.get(id, self.bytes)
-            return self.bytes.utf8ToString()
         return self.array.get(id).utf8ToString()
 
 
 class MultiArray(TextArray):
     def __getitem__(self, id):
         self.array.document = id
-        ids = iter(self.array.nextOrd, self.array.NO_MORE_ORDS)
-        if self.bytes is not None:
-            return tuple(self.array.lookupOrd(id, self.bytes) or self.bytes.utf8ToString() for id in ids)
-        return tuple(self.array.lookupOrd(id).utf8ToString() for id in ids)
+        return tuple(self.array.lookupOrd(id).utf8ToString() for id in iter(self.array.nextOrd, self.array.NO_MORE_ORDS))
 
 
 class Comparator(object):

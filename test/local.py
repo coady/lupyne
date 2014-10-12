@@ -50,7 +50,7 @@ class TestCase(BaseTest):
     def testInterface(self):
         "Indexer and document interfaces."
         self.assertRaises(TypeError, engine.IndexSearcher)
-        analyzer = lambda reader: analysis.standard.StandardTokenizer(util.Version.LUCENE_CURRENT, reader)
+        analyzer = lambda reader: analysis.standard.StandardTokenizer(util.Version.LATEST, reader)
         stemmer = engine.Analyzer(analyzer, analysis.en.PorterStemFilter, typeAsPayload)
         for token in stemmer.tokens('hello'):
             assert token.positionIncrement == 1
@@ -62,7 +62,7 @@ class TestCase(BaseTest):
             token.offset, token.positionIncrement = (0, 0), 0
         assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
         assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
-        indexer = engine.Indexer(analyzer=stemmer, version=util.Version.LUCENE_48, writeLockTimeout=100L)
+        indexer = engine.Indexer(analyzer=stemmer, version=util.Version.LUCENE_4_10_0, writeLockTimeout=100L)
         assert indexer.config.writeLockTimeout == 100
         self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
         indexer.set('text')
@@ -167,7 +167,7 @@ class TestCase(BaseTest):
         for other in (temp, temp.directory, self.tempdir):
             indexer += other
         assert len(indexer) == 3
-        indexer.add(text=analysis.core.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, StringReader('?')), name=util.BytesRef('{}'))
+        indexer.add(text=analysis.core.WhitespaceTokenizer(util.Version.LATEST, StringReader('?')), name=util.BytesRef('{}'))
         indexer.commit()
         assert indexer[next(indexer.docs('text', '?'))]['name'] == '{}'
         indexer.delete('text', '?')
@@ -203,7 +203,7 @@ class TestCase(BaseTest):
         indexer.commit(filters=True, spellcheckers=True)
         assert reader.refCount == 0
         assert list(indexer.spellcheckers) == ['amendment']
-        tokenizer = lambda reader: analysis.core.WhitespaceTokenizer(util.Version.LUCENE_CURRENT, reader)
+        tokenizer = lambda reader: analysis.core.WhitespaceTokenizer(util.Version.LATEST, reader)
         doc['amendment'] = engine.Analyzer(tokenizer).tokens(doc['amendment'])
         doc['date'] = engine.Analyzer(tokenizer).tokens(doc['date']), 2.0
         scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
@@ -317,7 +317,7 @@ class TestCase(BaseTest):
         assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
         assert dict(indexer.positionvector(id, 'text'))['persons'] in ([3, 26], [10, 48])
         assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
-        analyzer = analysis.core.WhitespaceAnalyzer(util.Version.LUCENE_CURRENT)
+        analyzer = analysis.core.WhitespaceAnalyzer(util.Version.LATEST)
         query = indexer.morelikethis(0, analyzer=analyzer)
         assert set(str(query).split()) == set(['text:united', 'text:states'])
         hits = indexer.search(query & engine.Query.prefix('article', ''))
@@ -623,7 +623,7 @@ class TestCase(BaseTest):
 
     def testNearRealTime(self):
         "Near real-time index updates."
-        indexer = engine.Indexer(version=util.Version.LUCENE_48, nrt=True)
+        indexer = engine.Indexer(version=util.Version.LUCENE_4_10_0, nrt=True)
         indexer.add()
         assert indexer.count() == 0 and not indexer.current
         indexer.refresh(filters=True)

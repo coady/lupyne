@@ -42,7 +42,7 @@ class closing(set):
 
     def analyzer(self, analyzer, version=None):
         if analyzer is None:
-            analyzer = analysis.standard.StandardAnalyzer(version or util.Version.LUCENE_CURRENT)
+            analyzer = analysis.standard.StandardAnalyzer(version or util.Version.LATEST)
             self.add(analyzer)
         return analyzer
 
@@ -211,7 +211,7 @@ class Analyzer(PythonAnalyzer):
             for key in field:
                 boosts.put(key, Float(field[key]))
             args = list(field), self, boosts
-        parser = (parser or cls)(version or util.Version.LUCENE_CURRENT, *args)
+        parser = (parser or cls)(version or util.Version.LATEST, *args)
         if op:
             parser.defaultOperator = getattr(queryparser.classic.QueryParser.Operator, op.upper())
         for name, value in attrs.items():
@@ -696,7 +696,7 @@ class IndexWriter(index.IndexWriter):
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
         if version is None:
-            version = util.Version.LUCENE_CURRENT
+            version = util.Version.LATEST
         config = index.IndexWriterConfig(version, self.shared.analyzer(analyzer, version))
         config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
         for name, value in attrs.items():
