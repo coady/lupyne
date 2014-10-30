@@ -750,16 +750,12 @@ class IndexWriter(index.IndexWriter):
         
         .. versionchanged:: 1.7 update in-place if only DocValues are given
         """
-        document = dict(document, **terms)
-        term = index.Term(name, value or document[name])
-        if all(self.fields[name].docValueType() for name in document):
-            for name, value in document.items():
-                if isinstance(value, int):
-                    self.updateNumericDocValue(term, name, long(value))
-                else:
-                    self.updateBinaryDocValue(term, name, util.BytesRef(value))
+        doc = self.document(document, **terms)
+        term = index.Term(name, *[value] if value else doc.getValues(name))
+        if all(field.fieldType().docValueType() for field in doc.iterator()):
+            self.updateDocValues(term, *doc.iterator())
         else:
-            self.updateDocument(term, self.document(document))
+            self.updateDocument(term, doc)
 
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
