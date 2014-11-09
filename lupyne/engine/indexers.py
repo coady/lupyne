@@ -286,7 +286,7 @@ class IndexReader(object):
         :param merge: optionally merge into maximum number of segments
         """
         copy(self.indexCommit, dest)
-        with contextlib.closing(IndexWriter(dest)) as writer:
+        with IndexWriter(dest) as writer:
             if query:
                 writer.delete(Query.alldocs() - query)
             if exclude:
@@ -784,6 +784,16 @@ class IndexWriter(index.IndexWriter):
             yield commit
         finally:
             self.policy.release(commit)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        if any(args):
+            self.rollback()
+        else:
+            self.commit()
+        self.close()
 
 
 class Indexer(IndexWriter):

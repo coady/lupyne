@@ -162,8 +162,14 @@ class TestCase(BaseTest):
         assert [indexer[id].dict() for id in indexer] == [{'name': 'new'}]
         indexer.deleteAll()
         indexer.commit()
-        with contextlib.closing(engine.Indexer(self.tempdir)) as temp:
+        with engine.Indexer(self.tempdir) as temp:
             temp.add()
+        try:
+            with engine.Indexer(self.tempdir) as temp:
+                temp.add()
+                temp.add(missing='')
+        except KeyError:
+            pass
         for other in (temp, temp.directory, self.tempdir):
             indexer += other
         assert len(indexer) == 3
