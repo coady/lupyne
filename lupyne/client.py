@@ -136,6 +136,9 @@ class Resource(httplib.HTTPConnection):
     def delete(self, path, **params):
         "Return response body from DELETE request."
         return self.call('DELETE', path, params=params)()
+    def patch(self, path, body=None, **kwargs):
+        "Return response body from PATCH request."
+        return self.call('PATCH', path, body, **kwargs)()
 
 if hasattr(httplib, 'HTTPSConnection'):
     class SResource(Resource, httplib.HTTPSConnection, object):

@@ -710,6 +710,7 @@ class TestCase(BaseTest):
         assert list(indexer.comparator('votes', type=int)) == [2]
         assert list(indexer.comparator('tag', type='bytes')) == ['medium']
         indexer.update('id', '0', votes=3, tag='high')
+        indexer.update('id', '0')
         indexer.commit()
         assert indexer.segments == segments
         assert list(indexer.comparator('votes', type=int)) == [3]

@@ -739,7 +739,7 @@ class WebIndexer(WebSearcher):
         return cherrypy.lib.static.serve_download(os.path.join(directory, name))
 
     @cherrypy.expose
-    @cherrypy.tools.allow(paths=[('GET', 'POST'), ('GET',), ('GET', 'PUT', 'DELETE')])
+    @cherrypy.tools.allow(paths=[('GET', 'POST'), ('GET',), ('GET', 'PUT', 'DELETE', 'PATCH')])
     def docs(self, name=None, value='', **options):
         """Add or return documents.  See :meth:`WebSearcher.docs` for GET method.
         
@@ -758,18 +758,23 @@ class WebIndexer(WebSearcher):
             return WebSearcher.docs(self, name, value, **options)
         if request.method == 'DELETE':
             self.indexer.delete(name, value)
-        elif request.method == 'PUT':
+        elif request.method == 'POST':
+            for doc in getattr(request, 'json', ()):
+                self.indexer.add(doc)
+        else:
             doc = getattr(request, 'json', {})
             with HTTPError(httplib.CONFLICT, KeyError, AssertionError):
                 assert self.indexer.fields[name].indexed(), 'unique field must be indexed'
-            with HTTPError(httplib.BAD_REQUEST, AssertionError):
-                assert doc.setdefault(name, value) == value, 'multiple values for unique field'
+            if request.method == 'PUT':
+                with HTTPError(httplib.BAD_REQUEST, AssertionError):
+                    assert doc.setdefault(name, value) == value, 'multiple values for unique field'
+            else:
+                with HTTPError(httplib.CONFLICT, KeyError, AssertionError):
+                    assert all(self.indexer.fields[name].docValueType() for name in doc)
             self.indexer.update(name, value, doc)
-        else:
-            for doc in getattr(request, 'json', ()):
-                self.indexer.add(doc)
         self.refresh()
     docs._cp_config.update(WebSearcher.docs._cp_config)
+    docs._cp_config['request.methods_with_bodies'] = ('POST', 'PUT', 'PATCH')
 
     @cherrypy.expose
     @cherrypy.tools.allow(methods=['GET', 'DELETE'])

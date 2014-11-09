@@ -319,6 +319,9 @@ class TestCase(BaseTest):
         doc = resource.get('/docs/0', **{'fields.vector': 'text,missing'})
         assert doc['missing'] == [] and doc['text'].index('states') < doc['text'].index('united')
         doc = resource.get('/docs/0', **{'fields.vector.counts': 'text'})
+        with assertRaises(httplib.HTTPException, httplib.CONFLICT):
+            resource.patch('/docs/amendment/1', {'amendment': '1'})
+        assert not resource.patch('/docs/amendment/1')
         assert sorted(term for term, count in doc['text'].items() if count > 1) == ['establish', 'states', 'united']
         assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
         articles = resource.get('/terms/article')

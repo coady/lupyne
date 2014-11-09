@@ -752,10 +752,11 @@ class IndexWriter(index.IndexWriter):
         """
         doc = self.document(document, **terms)
         term = index.Term(name, *[value] if value else doc.getValues(name))
-        if all(field.fieldType().docValueType() for field in doc.iterator()):
-            self.updateDocValues(term, *doc.iterator())
-        else:
+        fields = list(doc.iterator())
+        if not all(field.fieldType().docValueType() for field in fields):
             self.updateDocument(term, doc)
+        elif fields:
+            self.updateDocValues(term, *fields)
 
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
