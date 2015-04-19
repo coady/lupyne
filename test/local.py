@@ -45,13 +45,16 @@ class BaseTest(unittest.TestCase):
         shutil.rmtree(self.tempdir)
 
 
+def tokenizer(reader):
+    return analysis.standard.StandardTokenizer(util.Version.LATEST, reader)
+
+
 class TestCase(BaseTest):
 
     def testInterface(self):
         "Indexer and document interfaces."
         self.assertRaises(TypeError, engine.IndexSearcher)
-        analyzer = lambda reader: analysis.standard.StandardTokenizer(util.Version.LATEST, reader)
-        stemmer = engine.Analyzer(analyzer, analysis.en.PorterStemFilter, typeAsPayload)
+        stemmer = engine.Analyzer(tokenizer, analysis.en.PorterStemFilter, typeAsPayload)
         for token in stemmer.tokens('hello'):
             assert token.positionIncrement == 1
             assert engine.TokenFilter(analysis.miscellaneous.EmptyTokenStream()).payload is None
@@ -209,7 +212,6 @@ class TestCase(BaseTest):
         indexer.commit(filters=True, spellcheckers=True)
         assert reader.refCount == 0
         assert list(indexer.spellcheckers) == ['amendment']
-        tokenizer = lambda reader: analysis.core.WhitespaceTokenizer(util.Version.LATEST, reader)
         doc['amendment'] = engine.Analyzer(tokenizer).tokens(doc['amendment'])
         doc['date'] = engine.Analyzer(tokenizer).tokens(doc['date']), 2.0
         scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
@@ -258,8 +260,7 @@ class TestCase(BaseTest):
         hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
         assert hits.maxscore > max(hits.scores)
         self.assertRaises(AssertionError, indexer.comparator, 'amendment', type=int, multi=True)
-        parser = lambda value: int(value.utf8ToString() or -1)
-        comparator = indexer.comparator('amendment', type=int, parser=parser)
+        comparator = indexer.comparator('amendment', type=int, parser=lambda value: int(value.utf8ToString() or -1))
         hits = indexer.search('text:people').sorted(comparator.__getitem__)
         assert sorted(hits.ids) == list(hits.ids) and list(hits.ids) != ids
         comparator = list(zip(*map(indexer.comparator, ['article', 'amendment'])))
@@ -527,8 +528,7 @@ class TestCase(BaseTest):
         assert list(hits.ids) == ids[:len(hits)]
         query = engine.Query.range('size', None, '1000')
         assert indexer.count(query) == len(sizes) - len(ids)
-        parser = lambda date: int(date.utf8ToString().split('-')[0])
-        indexer.sorters['year'] = engine.SortField('Y-m-d', type=int, parser=parser)
+        indexer.sorters['year'] = engine.SortField('Y-m-d', type=int, parser=lambda date: int(date.utf8ToString().split('-')[0]))
         assert list(indexer.comparator('year'))[:10] == [1791] * 10
         cache = len(search.FieldCache.DEFAULT.cacheEntries)
         hits = indexer.search(count=3, sort='year')

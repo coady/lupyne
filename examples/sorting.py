@@ -35,7 +35,7 @@ for color in colors:
     indexer.add(color=color)
 indexer.commit()
 
-### lucene ###
+# # # lucene # # #
 
 searcher = search.IndexSearcher(indexer.indexReader)
 sorter = search.Sort(search.SortField('color', search.SortField.Type.STRING))
@@ -77,7 +77,7 @@ sorter = search.Sort(search.SortField('color', ComparatorSource()))
 topdocs = searcher.search(search.MatchAllDocsQuery(), None, 10, sorter)
 assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] == sorted(colors)
 
-### lupyne ###
+# # # lupyne # # #
 
 hits = indexer.search(sort='color')
 assert [hit['color'] for hit in hits] == sorted(colors)

@@ -10,7 +10,7 @@ from org.apache.lucene import index, search
 from org.apache.lucene.search import spans
 from lupyne.engine import Query
 
-### lucene ###
+# # # lucene # # #
 
 q1 = search.TermQuery(index.Term('text', 'lucene'))
 q2 = search.PhraseQuery()
@@ -28,7 +28,7 @@ q4 = spans.SpanNearQuery([q1, q2], 0, True)
 q5 = spans.SpanNotQuery(q3, q4)
 assert str(q5).startswith('spanNot(spanPosRange(text:hello, 0, 10), spanNear([text:hello, text:world], 0, true)')
 
-### lupyne ###
+# # # lupyne # # #
 
 q = Query.term('text', 'lucene') & Query.phrase('text', 'search', 'engine')
 assert isinstance(q, search.BooleanQuery)

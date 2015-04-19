@@ -7,7 +7,7 @@ lucene.initVM()
 from org.apache.lucene import analysis, document, index, queryparser, search, store, util
 from lupyne import engine
 
-### lucene ###
+# # # lucene # # #
 
 analyzer = analysis.standard.StandardAnalyzer(util.Version.LUCENE_CURRENT)
 
@@ -38,7 +38,7 @@ for hit in hits:
 ireader.close()
 directory.close()
 
-### lupyne ###
+# # # lupyne # # #
 
 # Store the index in memory:
 indexer = engine.Indexer()              # Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults

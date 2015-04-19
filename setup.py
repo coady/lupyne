@@ -28,6 +28,11 @@ Changes in 1.8+
  * Engine:
    
    - PyLucene 4.8 and 4.9 dropped
+   - IndexWriter implements context manager
+
+ * Server:
+   
+   - DocValues updated via patch method
 """
 
 import os
