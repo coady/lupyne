@@ -53,7 +53,8 @@ class TestCase(BaseTest):
 
     def testInterface(self):
         "Indexer and document interfaces."
-        self.assertRaises(TypeError, engine.IndexSearcher)
+        with self.assertRaises(TypeError):
+            engine.IndexSearcher()
         stemmer = engine.Analyzer(tokenizer, analysis.en.PorterStemFilter, typeAsPayload)
         for token in stemmer.tokens('hello'):
             assert token.positionIncrement == 1
@@ -67,7 +68,8 @@ class TestCase(BaseTest):
         assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
         indexer = engine.Indexer(analyzer=stemmer, version=util.Version.LUCENE_4_10_0, writeLockTimeout=100L)
         assert indexer.config.writeLockTimeout == 100
-        self.assertRaises(lucene.JavaError, engine.Indexer, indexer.directory)
+        with self.assertRaises(lucene.JavaError):
+            engine.Indexer(indexer.directory)
         indexer.set('text')
         indexer.set('name', stored=True, indexed=False)
         indexer.set('tag', stored=True, tokenized=False, boost=2.0)
@@ -89,7 +91,8 @@ class TestCase(BaseTest):
         assert doc['name'] == 'sample' and doc['tag'] == 'python'
         assert doc.dict('tag') == {'name': 'sample', 'tag': ['python', 'search']}
         assert doc.dict(name=None, missing=True) == {'name': 'sample', 'missing': True}
-        self.assertRaises(KeyError, doc.__getitem__, 'key')
+        with self.assertRaises(KeyError):
+            doc['key']
         assert doc.getlist('name') == ['sample'] and doc.getlist('key') == []
         assert indexer.get(0, 'name').dict() == {'name': 'sample'}
         assert not list(indexer.termvector(0, 'tag'))
@@ -108,7 +111,8 @@ class TestCase(BaseTest):
         assert list(indexer.positions('text', 'world', payloads=True)) == [(0, [(1, '<ALPHANUM>')])]
         hits = indexer.search('text:hello')
         assert len(hits) == hits.count == 1
-        self.assertRaises(AssertionError, hits.__getitem__, slice(None, None, 2))
+        with self.assertRaises(AssertionError):
+            hits[slice(None, None, 2)]
         assert hits.scoredocs is hits[:1].scoredocs and not hits[1:]
         assert list(hits.ids) == [0]
         score, = hits.scores
@@ -186,13 +190,16 @@ class TestCase(BaseTest):
         assert len(list(indexer.readers)) == 1
         reader = engine.indexers.IndexReader(indexer.indexReader)
         del reader.indexReader
-        self.assertRaises(AttributeError, getattr, reader, 'maxDoc')
+        with self.assertRaises(AttributeError):
+            reader.maxDoc
         del indexer.indexSearcher
-        self.assertRaises(AttributeError, getattr, indexer, 'search')
+        with self.assertRaises(AttributeError):
+            indexer.search
 
     def testBasic(self):
         "Text fields and simple searches."
-        self.assertRaises(lucene.JavaError, engine.Indexer, self.tempdir, 'r')
+        with self.assertRaises(lucene.JavaError):
+            engine.Indexer(self.tempdir, 'r')
         indexer = engine.Indexer(self.tempdir)
         for name, params in fixture.constitution.fields.items():
             indexer.set(name, **params)
@@ -239,7 +246,7 @@ class TestCase(BaseTest):
         hits = indexer.search('people', field='text')
         assert 'Preamble' in (hit.get('article') for hit in hits)
         assert len(hits) == hits.count == 8
-        assert set(map(type, hits.ids)) == set([int]) and set(map(type, hits.scores)) == set([float])
+        assert set(map(type, hits.ids)) == {int} and set(map(type, hits.scores)) == {float}
         assert hits.maxscore == max(hits.scores)
         ids = list(hits.ids)
         hits = indexer.search('people', count=5, field='text')
@@ -259,7 +266,8 @@ class TestCase(BaseTest):
         assert math.isnan(hits.maxscore)
         hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
         assert hits.maxscore > max(hits.scores)
-        self.assertRaises(AssertionError, indexer.comparator, 'amendment', type=int, multi=True)
+        with self.assertRaises(AssertionError):
+            indexer.comparator('amendment', type=int, multi=True)
         comparator = indexer.comparator('amendment', type=int, parser=lambda value: int(value.utf8ToString() or -1))
         hits = indexer.search('text:people').sorted(comparator.__getitem__)
         assert sorted(hits.ids) == list(hits.ids) and list(hits.ids) != ids
@@ -288,7 +296,7 @@ class TestCase(BaseTest):
         hits = indexer.search(filter=query.filter())
         assert sorted(hit['amendment'] for hit in hits) == amendments
         hits = indexer.search(query | engine.Query.term('text', 'vote'))
-        assert set(hit.get('amendment') for hit in hits) > set(amendments)
+        assert {hit.get('amendment') for hit in hits} > set(amendments)
         hit, = indexer.search(query & engine.Query.term('text', 'vote'))
         assert hit['amendment'] == '19'
         hit, = indexer.search(query - engine.Query.all(text='vote'))
@@ -326,15 +334,16 @@ class TestCase(BaseTest):
         assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
         analyzer = analysis.core.WhitespaceAnalyzer(util.Version.LATEST)
         query = indexer.morelikethis(0, analyzer=analyzer)
-        assert set(str(query).split()) == set(['text:united', 'text:states'])
+        assert set(str(query).split()) == {'text:united', 'text:states'}
         hits = indexer.search(query & engine.Query.prefix('article', ''))
         assert len(hits) == 8 and hits[0]['article'] == 'Preamble'
         assert str(indexer.morelikethis(0, 'article', analyzer=analyzer)) == ''
         query = indexer.morelikethis(0, minDocFreq=3, analyzer=analyzer)
-        assert set(str(query).split()) == set(['text:establish', 'text:united', 'text:states'])
+        assert set(str(query).split()) == {'text:establish', 'text:united', 'text:states'}
         assert str(indexer.morelikethis('jury', 'text', minDocFreq=4, minTermFreq=1, analyzer=analyzer)) == 'text:jury'
         assert str(indexer.morelikethis('jury', 'article', analyzer=analyzer)) == ''
-        self.assertRaises(lucene.JavaError, indexer.morelikethis, 'jury')
+        with self.assertRaises(lucene.JavaError):
+            indexer.morelikethis('jury')
         assert indexer.suggest('missing', '') == list(indexer.correct('missing', '')) == []
         assert indexer.suggest('text', '')[:8] == ['shall', 'states', 'any', 'have', 'united', 'congress', 'state', 'constitution']
         assert indexer.suggest('text', 'con')[:2] == ['congress', 'constitution']
@@ -359,8 +368,10 @@ class TestCase(BaseTest):
             filepath = os.path.join(path, commit.segmentsFileName)
             os.remove(filepath)
             open(filepath, 'w').close()
-            self.assertRaises(OSError, engine.indexers.copy, commit, path)
-        self.assertRaises(AssertionError, indexer.check, self.tempdir)
+            with self.assertRaises(OSError):
+                engine.indexers.copy(commit, path)
+        with self.assertRaises(AssertionError):
+            indexer.check(self.tempdir)
         del indexer
         assert engine.Indexer(self.tempdir)
         assert not os.path.exists(os.path.join(self.tempdir, commit.segmentsFileName))
@@ -386,11 +397,11 @@ class TestCase(BaseTest):
         counties = [term.split('.')[-1] for term in indexer.terms('state.county', 'CA', 'CA~')]
         field = indexer.fields['location']
         hits = indexer.search(field.prefix('CA'))
-        assert sorted(set(hit['county'] for hit in hits)) == counties
+        assert sorted({hit['county'] for hit in hits}) == counties
         assert counties[0] == 'Alameda' and counties[-1] == 'Yuba'
         cities = [term.split('.')[-1] for term in indexer.terms('state.county.city', 'CA.Los Angeles', 'CA.Los Angeles~')]
         hits = indexer.search(field.prefix('CA.Los Angeles'))
-        assert sorted(set(hit['city'] for hit in hits)) == cities
+        assert sorted({hit['city'] for hit in hits}) == cities
         assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
         hit, = indexer.search('zipcode:90210')
         assert hit['state'] == 'CA' and hit['county'] == 'Los Angeles' and hit['city'] == 'Beverly Hills' and hit['longitude'] == '-118.406'
@@ -400,7 +411,7 @@ class TestCase(BaseTest):
         la, orange = sorted(filter(facets.get, facets))
         assert la == 'CA.Los Angeles' and facets[la] > 100
         assert orange == 'CA.Orange' and facets[orange] > 10
-        indexer.filters[field] = dict((term, engine.Query.term(field, term).filter()) for term in indexer.terms(field, 'CA.'))
+        indexer.filters[field] = {term: engine.Query.term(field, term).filter() for term in indexer.terms(field, 'CA.')}
         (field, facets), = indexer.facets(query, field).items()
         assert all(value.startswith('CA.') for value in facets) and set(facets) == set(indexer.filters[field])
         (field, facets), = indexer.facets(query, (field, 'CA.Los Angeles')).items()
@@ -417,7 +428,8 @@ class TestCase(BaseTest):
         assert not hits and (hits.count is hits.maxscore is None)
         hits = indexer.search(query, timeout=10)
         assert len(hits) == hits.count == indexer.count(query) and hits.maxscore == 1.0
-        self.assertRaises(lucene.JavaError, indexer.search, filter=Filter())
+        with self.assertRaises(lucene.JavaError):
+            indexer.search(filter=Filter())
         directory = store.RAMDirectory()
         query = engine.Query.term('state', 'CA')
         size = indexer.copy(directory, query)
@@ -457,27 +469,28 @@ class TestCase(BaseTest):
         bottom, left, top, right = field.decode(tile)
         assert left < x < right and bottom < y < top
         hits = indexer.search(field.near(x, y))
-        cities = set(hit['city'] for hit in hits)
-        assert set([city]) == cities
+        cities = {hit['city'] for hit in hits}
+        assert {city} == cities
         hits = indexer.search(field.near(x, y, precision=10))
-        cities = set(hit['city'] for hit in hits)
+        cities = {hit['city'] for hit in hits}
         assert city in cities and len(cities) > 10
         query = field.within(x, y, 10 ** 4)
         assert len(query) < 3
         distances = indexer.distances(x, y, 'longitude', 'latitude')
         hits = indexer.search(query).sorted(distances.__getitem__)
         assert hits[0]['zipcode'] == zipcode and distances[hits[0].id] < 10
-        cities = set(hit['city'] for hit in hits)
+        cities = {hit['city'] for hit in hits}
         assert city in cities and 100 > len(cities) > 50
         hits = indexer.search(field.within(x, y, 10 ** 5, limit=100))
-        cities = set(hit['city'] for hit in hits)
+        cities = {hit['city'] for hit in hits}
         assert city in cities and len(cities) > 100
         ranges = 10 ** 2, 10 ** 5
         groups = hits.groupby(lambda id: bisect.bisect_left(ranges, distances[id]))
-        counts = dict((hits.value, len(hits)) for hits in groups)
+        counts = {hits.value: len(hits) for hits in groups}
         assert 1 == counts[0] < counts[2] < counts[1]
         assert len(field.within(x, y, 10 ** 8)) == 1
-        self.assertRaises(NameError, list, field.radiate(y, x, 1, 0))
+        with self.assertRaises(NameError):
+            list(field.radiate(y, x, 1, 0))
         hits = hits.filter(lambda id: distances[id] < 10 ** 4)
         assert 0 < len(hits) < sum(counts.values())
         hits = hits.sorted(distances.__getitem__, reverse=True)
@@ -486,7 +499,8 @@ class TestCase(BaseTest):
 
     def testFields(self):
         "Custom fields."
-        self.assertRaises(lucene.InvalidArgsError, engine.Field, '', stored='invalid')
+        with self.assertRaises(lucene.InvalidArgsError):
+            engine.Field('', stored='invalid')
         settings = {'indexed': False, 'docValueType': 'NUMERIC', 'indexOptions': 'DOCS_ONLY'}
         field = engine.Field('', **settings)
         assert field.settings == engine.Field('', **field.settings).settings == settings
@@ -519,7 +533,7 @@ class TestCase(BaseTest):
         assert [hit['amendment'] for hit in hits] == ['18', '19']
         assert [hit['Y-m-d'].split('-')[0] for hit in hits] == ['1919', '1920']
         field = indexer.fields['size']
-        sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
+        sizes = {id: int(indexer[id]['size']) for id in indexer}
         ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
         query = engine.Query.range('size', '1000', None)
         hits = indexer.search(query).sorted(sizes.get)
@@ -537,14 +551,15 @@ class TestCase(BaseTest):
         assert [int(hit['amendment']) for hit in hits] == [27, 26, 25]
         filter = indexer.sorters['year'].filter(None, 1792)
         assert indexer.count(filter=filter) == 10
-        assert set(indexer.sorters['year'].terms(filter, *indexer.readers)) == set([1791])
+        assert set(indexer.sorters['year'].terms(filter, *indexer.readers)) == {1791}
         assert cache == len(search.FieldCache.DEFAULT.cacheEntries)
         indexer.add()
         indexer.commit(sorters=True)
         cache = len(search.FieldCache.DEFAULT.cacheEntries)
         assert list(indexer.comparator('year'))[-1] == 0
         assert cache == len(search.FieldCache.DEFAULT.cacheEntries)
-        self.assertRaises(AttributeError, indexer.comparator, 'size', type='score')
+        with self.assertRaises(AttributeError):
+            indexer.comparator('size', type='score')
 
     def testNumeric(self):
         "Numeric fields."
@@ -575,7 +590,7 @@ class TestCase(BaseTest):
         assert indexer.count(query) == 12
         field = indexer.fields['size']
         assert len(list(indexer.terms('size'))) > len(indexer)
-        sizes = dict((id, int(indexer[id]['size'])) for id in indexer)
+        sizes = {id: int(indexer[id]['size']) for id in indexer}
         ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
         query = field.range(1000, None)
         hits = indexer.search(query).sorted(sizes.get)
@@ -584,7 +599,8 @@ class TestCase(BaseTest):
         assert list(hits.ids) == ids[:len(hits)]
         query = field.range(None, 1000)
         assert indexer.count(query) == len(sizes) - len(ids)
-        self.assertRaises(OverflowError, list, field.items(-2 ** 64))
+        with self.assertRaises(OverflowError):
+            list(field.items(-2 ** 64))
         assert str(field.range(-2 ** 64, 0)) == 'size:[* TO 0}'
         assert str(field.range(0, 2 ** 64)) == 'size:[0 TO *}'
         assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
@@ -653,7 +669,7 @@ class TestCase(BaseTest):
         indexer.commit()
         filter.add('alpha', 'bravo')
         filter.discard('bravo', 'charlie')
-        assert filter.values == set(['alpha'])
+        assert filter.values == {'alpha'}
         assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha']
         indexer.update('name', document={'name': 'alpha'})
         indexer.commit()

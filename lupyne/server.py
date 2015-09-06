@@ -48,15 +48,11 @@ import heapq
 import collections
 import itertools
 import os
-import optparse
+import argparse
 import contextlib
 import lucene
 import cherrypy
-try:
-    from . import engine, client
-except ValueError:
-    import engine
-    import client
+from . import engine, client
 json = client.json
 
 
@@ -133,7 +129,7 @@ def validate(etag=True, last_modified=False, max_age=None, expires=None):
         cherrypy.lib.cptools.validate_since()
     if max_age is not None:
         headers['age'] = int(time.time() - root.updated)
-        headers['cache-control'] = 'max-age={0}'.format(max_age)
+        headers['cache-control'] = 'max-age={}'.format(max_age)
     if expires is not None:
         headers['expires'] = cherrypy.lib.httputil.HTTPDate(expires + root.updated)
 
@@ -155,12 +151,12 @@ class params:
     "Parameter parsing."
     @staticmethod
     def q(searcher, q, **options):
-        options = dict((key.partition('.')[-1], options[key]) for key in options if key.startswith('q.'))
+        options = {key.partition('.')[-1]: options[key] for key in options if key.startswith('q.')}
         field = options.pop('field', [])
         fields = [field] if isinstance(field, basestring) else field
         fields = [name.partition('^')[::2] for name in fields]
         if any(boost for name, boost in fields):
-            field = dict((name, float(boost or 1.0)) for name, boost in fields)
+            field = {name: float(boost or 1.0) for name, boost in fields}
         elif isinstance(field, basestring):
             (field, boost), = fields
         else:
@@ -168,7 +164,7 @@ class params:
         if 'type' in options:
             with HTTPError(httplib.BAD_REQUEST, AttributeError):
                 return getattr(engine.Query, options['type'])(field, q)
-        for key in set(options) - set(['op', 'version']):
+        for key in set(options) - {'op', 'version'}:
             with HTTPError(httplib.BAD_REQUEST, ValueError):
                 options[key] = json.loads(options[key])
         if q is not None:
@@ -181,7 +177,7 @@ class params:
             fields = dict.fromkeys(fields)
         multi = set(options.get('fields.multi', ()))
         indexed = (field.split(':') for field in options.get('fields.indexed', ()))
-        indexed = dict((item[0], searcher.comparator(*item, multi=item[0] in multi)) for item in indexed)
+        indexed = {item[0]: searcher.comparator(*item, multi=item[0] in multi) for item in indexed}
         return fields, multi.difference(indexed), indexed
 
 
@@ -264,14 +260,14 @@ class WebSearcher(object):
 
     @property
     def etag(self):
-        return 'W/"{0}"'.format(self.searcher.version)
+        return 'W/"{}"'.format(self.searcher.version)
 
     def sync(self, host, path=''):
         "Sync with remote index."
         directory = self.searcher.path
         resource = client.Resource(host)
         resource.headers = dict(resource.headers, **{'if-none-match': self.etag})
-        response = resource.call('PUT', '/{0}/update/snapshot'.format(path.lstrip('/')))
+        response = resource.call('PUT', '/{}/update/snapshot'.format(path.lstrip('/')))
         if response.status == httplib.PRECONDITION_FAILED:
             return []
         names = sorted(set(response()).difference(os.listdir(directory)))
@@ -301,7 +297,7 @@ class WebSearcher(object):
             self.sync(host, path)
             cherrypy.response.status = httplib.ACCEPTED
         if isinstance(self.searcher, engine.MultiSearcher):
-            return dict((reader.directory().toString(), reader.numDocs()) for reader in self.searcher.indexReaders)
+            return {reader.directory().toString(): reader.numDocs() for reader in self.searcher.indexReaders}
         return {self.searcher.directory.toString(): len(self.searcher)}
 
     @cherrypy.expose
@@ -459,7 +455,7 @@ class WebSearcher(object):
                 mlt, = searcher.search(q, count=mlt + 1, sort=sort)[mlt:].ids
             mltfields = options.pop('mlt.fields', ())
             with HTTPError(httplib.BAD_REQUEST, ValueError):
-                attrs = dict((key.partition('.')[-1], json.loads(options[key])) for key in options if key.startswith('mlt.'))
+                attrs = {key.partition('.')[-1]: json.loads(options[key]) for key in options if key.startswith('mlt.')}
             q = searcher.morelikethis(mlt, *mltfields, analyzer=searcher.analyzer, **attrs)
         if count is not None:
             count += start
@@ -483,7 +479,7 @@ class WebSearcher(object):
         tag, enable = options.get('hl.tag', 'strong'), options.get('hl.enable', '')
         hlcount = options.get('hl.count', 1)
         if hl:
-            hl = dict((name, searcher.highlighter(q, name, terms='terms' in enable, fields='fields' in enable, tag=tag)) for name in hl)
+            hl = {name: searcher.highlighter(q, name, terms='terms' in enable, fields='fields' in enable, tag=tag) for name in hl}
         fields, multi, indexed = params.fields(searcher, fields, **options)
         if fields is None:
             fields = {}
@@ -497,7 +493,7 @@ class WebSearcher(object):
                 doc.update((name, indexed[name][hit.id]) for name in indexed)
                 fragments = (hl[name].fragments(hit.id, hlcount) for name in hl)
                 if hl:
-                    doc['__highlights__'] = dict((name, value) for name, value in zip(hl, fragments) if value is not None)
+                    doc['__highlights__'] = {name: value for name, value in zip(hl, fragments) if value is not None}
                 docs.append(doc)
             result['groups'].append({'docs': docs, 'count': hits.count, 'value': getattr(hits, 'value', None)})
         if not group:
@@ -510,10 +506,10 @@ class WebSearcher(object):
                 counts.pop(None, None)
             if 'facets.min' in options:
                 for name, counts in facets.items():
-                    facets[name] = dict((term, count) for term, count in counts.items() if count >= options['facets.min'])
+                    facets[name] = {term: count for term, count in counts.items() if count >= options['facets.min']}
             if 'facets.count' in options:
                 for name, counts in facets.items():
-                    facets[name] = dict((term, counts[term]) for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__))
+                    facets[name] = {term: counts[term] for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__)}
         if spellcheck:
             terms = result['spellcheck'] = collections.defaultdict(dict)
             for name, value in engine.Query.__dict__['terms'](q):
@@ -879,29 +875,30 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
         mount(root, path, config, autoupdate)
     cherrypy.quickstart(cherrypy.tree.apps.get(path), path, config)
 
-parser = optparse.OptionParser(usage='python -m lupyne.server [index_directory ...]')
-parser.add_option('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
-parser.add_option('-c', '--config', help='optional configuration file or json object of global params')
-parser.add_option('-p', '--pidfile', metavar='FILE', help='store the process id in the given file')
-parser.add_option('-d', '--daemonize', action='store_true', help='run the server as a daemon')
-parser.add_option('--autoreload', type=float, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
-parser.add_option('--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes')
-parser.add_option('--autosync', metavar='HOST[:PORT][/PATH],...', help='automatically synchronize searcher with remote hosts and update')
-parser.add_option('--real-time', action='store_true', help='search in real-time without committing')
+parser = argparse.ArgumentParser(description='Restful json cherrypy server.', prog='lupyne.server')
+parser.add_argument('directories', nargs='*', metavar='directory', help='index directories')
+parser.add_argument('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
+parser.add_argument('-c', '--config', help='optional configuration file or json object of global params')
+parser.add_argument('-p', '--pidfile', metavar='FILE', help='store the process id in the given file')
+parser.add_argument('-d', '--daemonize', action='store_true', help='run the server as a daemon')
+parser.add_argument('--autoreload', type=float, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
+parser.add_argument('--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes')
+parser.add_argument('--autosync', metavar='HOST{:PORT}{/PATH},...', help='automatically synchronize searcher with remote hosts and update')
+parser.add_argument('--real-time', action='store_true', help='search in real-time without committing')
 
 if __name__ == '__main__':
-    options, args = parser.parse_args()
-    read_only = options.read_only or options.autosync or len(args) > 1
-    kwargs = {'nrt': True} if options.real_time else {}
-    if read_only and (options.real_time or not args):
+    args = parser.parse_args()
+    read_only = args.read_only or args.autosync or len(args.directories) > 1
+    kwargs = {'nrt': True} if args.real_time else {}
+    if read_only and (args.real_time or not args.directories):
         parser.error('incompatible read/write options')
-    if options.autosync:
-        kwargs['hosts'] = options.autosync.split(',')
-        if not (options.autoupdate and len(args) == 1):
+    if args.autosync:
+        kwargs['hosts'] = args.autosync.split(',')
+        if not (args.autoupdate and len(args.directories) == 1):
             parser.error('autosync requires autoupdate and a single directory')
-    if options.config and not os.path.exists(options.config):
-        options.config = {'global': json.loads(options.config)}
+    if args.config and not os.path.exists(args.config):
+        args.config = {'global': json.loads(args.config)}
     cls = WebSearcher if read_only else WebIndexer
-    root = cls.new(*map(os.path.abspath, args), **kwargs)
-    del options.read_only, options.autosync, options.real_time
-    start(root, callback=init, **options.__dict__)
+    root = cls.new(*map(os.path.abspath, args.directories), **kwargs)
+    del args.directories, args.read_only, args.autosync, args.real_time
+    start(root, callback=init, **args.__dict__)

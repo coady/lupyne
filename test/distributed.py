@@ -51,9 +51,10 @@ class TestCase(remote.BaseTest):
             assert result['count'] >= 1
             docs += result['docs']
         assert len(docs) == len(resources) + 1
-        assert len(set(doc['__id__'] for doc in docs)) == 2
+        assert len({doc['__id__'] for doc in docs}) == 2
         self.stop(self.ports[0])
-        self.assertRaises(IOError, resources.broadcast, 'GET', '/')
+        with self.assertRaises(IOError):
+            resources.broadcast('GET', '/')
         assert resources.unicast('GET', '/')()
         del resources[self.hosts[0]]
         assert all(resources.broadcast('GET', '/'))
@@ -61,23 +62,26 @@ class TestCase(remote.BaseTest):
         time.sleep(self.config['server.socket_timeout'] + 1)
         assert resources.unicast('GET', '/')
         counts = list(map(len, resources.values()))
-        assert set(counts) == set([0, 1])
+        assert set(counts) == {0, 1}
         assert resources.broadcast('GET', '/')
         assert list(map(len, resources.values())) == counts[::-1]
         host = self.hosts[1]
         stream = resources[host].stream('GET', '/')
         resource = next(stream)
         resource.getresponse = lambda: getresponse(IOError)
-        self.assertRaises(IOError, next, stream)
+        with self.assertRaises(IOError):
+            next(stream)
         stream = resources[host].stream('GET', '/')
         resource = next(stream)
         resource.getresponse = lambda: getresponse(httplib.BadStatusLine)
         assert next(stream) is None
         resources.clear()
-        self.assertRaises(ValueError, resources.unicast, 'GET', '/')
+        with self.assertRaises(ValueError):
+            resources.unicast('GET', '/')
         if hasattr(client, 'SResource'):
             client.Pool.resource_class = client.SResource
-            self.assertRaises(httplib.ssl.SSLError, client.Pool(self.hosts[-1]).call, 'GET', '/')
+            with self.assertRaises(httplib.ssl.SSLError):
+                client.Pool(self.hosts[-1]).call('GET', '/')
         client.Pool.resource_class = client.Resource
 
     def testSharding(self):
@@ -94,9 +98,9 @@ class TestCase(remote.BaseTest):
         assert result['count'] == len(result['docs']) == 1
         assert all(response() == result for response in shards.broadcast(0, 'GET', '/search?q=zone:0'))
         response, = shards.multicast([0], 'GET', '/search')
-        assert set(doc['zone'] for doc in response()['docs']) > set('0')
+        assert {doc['zone'] for doc in response()['docs']} > {'0'}
         response, = shards.multicast([0, 1], 'GET', '/search')
-        assert set(doc['zone'] for doc in response()['docs']) == set('01')
+        assert {doc['zone'] for doc in response()['docs']} == set('01')
         zones = set()
         responses = shards.multicast([0, 1, 2], 'GET', '/search')
         assert len(responses) == 2
@@ -106,11 +110,13 @@ class TestCase(remote.BaseTest):
             zones.update(doc['zone'] for doc in docs)
         assert zones == set('012')
         self.stop(self.ports[0])
-        self.assertRaises(IOError, shards.broadcast, 0, 'GET', '/')
+        with self.assertRaises(IOError):
+            shards.broadcast(0, 'GET', '/')
         responses = shards.multicast([0, 1, 2], 'GET', '/')
         assert len(responses) == 2 and all(response() for response in responses)
         shards.resources.priority = lambda hosts: None
-        self.assertRaises(ValueError, shards.choice, [[0]])
+        with self.assertRaises(ValueError):
+            shards.choice([[0]])
 
     def testReplication(self):
         "Replication from indexer to searcher."

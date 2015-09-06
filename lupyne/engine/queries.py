@@ -305,7 +305,7 @@ class TermsFilter(search.CachingWrapperFilter):
         readers = set(searcher.readers)
         with self.lock:
             self.apply(self.filter(self.values), 'or', readers - self.readers)
-            self.readers = set(reader for reader in readers | self.readers if reader.refCount)
+            self.readers = {reader for reader in readers | self.readers if reader.refCount}
 
     def add(self, *values):
         "Add a few term values."
@@ -369,7 +369,7 @@ class SortField(search.SortField):
         if parser is None:
             parser = getattr(self.Type, type.upper())
         elif not search.FieldCache.Parser.instance_(parser):
-            base = getattr(pysearch, 'Python{0}Parser'.format(type))
+            base = getattr(pysearch, 'Python{}Parser'.format(type))
             namespace = {'parse' + type: staticmethod(parser), 'termsEnum': lambda self, terms: terms.iterator(None)}
             parser = object.__class__(base.__name__, (base,), namespace)()
         search.SortField.__init__(self, name, parser, reverse)
@@ -382,7 +382,7 @@ class SortField(search.SortField):
             return TextArray(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field), size)
         if self.typename == 'Bytes':
             return TextArray(search.FieldCache.DEFAULT.getTerms(reader, self.field, True), size)
-        method = getattr(search.FieldCache.DEFAULT, 'get{0}s'.format(self.typename))
+        method = getattr(search.FieldCache.DEFAULT, 'get{}s'.format(self.typename))
         return Array(method(reader, self.field, self.parser, False), size)
 
     def comparator(self, searcher, multi=False):
@@ -394,7 +394,7 @@ class SortField(search.SortField):
         "Return lucene FieldCacheRangeFilter based on field and type."
         if self.typename in ('String', 'Bytes'):
             return search.FieldCacheRangeFilter.newStringRange(self.field, start, stop, lower, upper)
-        method = getattr(search.FieldCacheRangeFilter, 'new{0}Range'.format(self.typename))
+        method = getattr(search.FieldCacheRangeFilter, 'new{}Range'.format(self.typename))
         return method(self.field, self.parser, start, stop, lower, upper)
 
     def terms(self, filter, *readers):
@@ -420,7 +420,7 @@ class Highlighter(highlight.Highlighter):
     """
     def __init__(self, searcher, query, field, terms=False, fields=False, tag='', formatter=None, encoder=None):
         if tag:
-            formatter = highlight.SimpleHTMLFormatter('<{0}>'.format(tag), '</{0}>'.format(tag))
+            formatter = highlight.SimpleHTMLFormatter('<{}>'.format(tag), '</{}>'.format(tag))
         scorer = (highlight.QueryTermScorer if terms else highlight.QueryScorer)(query, *(searcher.indexReader, field) * (not fields))
         highlight.Highlighter.__init__(self, *filter(None, [formatter, encoder, scorer]))
         self.searcher, self.field = searcher, field
@@ -452,7 +452,7 @@ class FastVectorHighlighter(vectorhighlight.FastVectorHighlighter):
     """
     def __init__(self, searcher, query, field, terms=False, fields=False, tag='', fragListBuilder=None, fragmentsBuilder=None):
         if tag:
-            fragmentsBuilder = vectorhighlight.SimpleFragmentsBuilder(['<{0}>'.format(tag)], ['</{0}>'.format(tag)])
+            fragmentsBuilder = vectorhighlight.SimpleFragmentsBuilder(['<{}>'.format(tag)], ['</{}>'.format(tag)])
         args = fragListBuilder or vectorhighlight.SimpleFragListBuilder(), fragmentsBuilder or vectorhighlight.SimpleFragmentsBuilder()
         vectorhighlight.FastVectorHighlighter.__init__(self, not terms, not fields, *args)
         self.searcher, self.field = searcher, field
@@ -477,7 +477,7 @@ class SpellChecker(dict):
         self.words = sorted(self)
         self.alphabet = sorted(set(itertools.chain.from_iterable(self.words)))
         self.suffix = self.alphabet[-1] * max(map(len, self.words)) if self.alphabet else ''
-        self.prefixes = set(word[:stop] for word in self.words for stop in range(len(word) + 1))
+        self.prefixes = {word[:stop] for word in self.words for stop in range(len(word) + 1)}
 
     def suggest(self, prefix, count=None):
         "Return ordered suggested words for prefix."
@@ -511,7 +511,7 @@ class SpellChecker(dict):
             yield sorted(filter(self.__contains__, edits), key=self.__getitem__, reverse=True)
             previous.update(edits)
             groups = map(self.edits, edits, edits.values())
-            edits = dict((edit, group[edit]) for group in groups for edit in group if edit not in previous)
+            edits = {edit: group[edit] for group in groups for edit in group if edit not in previous}
 
 
 class SpellParser(PythonQueryParser):

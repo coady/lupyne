@@ -274,7 +274,7 @@ class IndexReader(object):
     @property
     def segments(self):
         "segment filenames with document counts"
-        return dict((reader.segmentName, reader.numDocs()) for reader in self.readers)
+        return {reader.segmentName: reader.numDocs() for reader in self.readers}
 
     def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.
@@ -468,7 +468,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             termsfilter.refresh(other)
         if filters:
             other.facets(Query.any(), *other.filters)
-        other.sorters = dict((name, SortField(sorter.field, sorter.typename, sorter.parser)) for name, sorter in self.sorters.items())
+        other.sorters = {name: SortField(sorter.field, sorter.typename, sorter.parser) for name, sorter in self.sorters.items()}
         if sorters:
             for field in self.sorters:
                 other.comparator(field)

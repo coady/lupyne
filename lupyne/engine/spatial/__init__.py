@@ -76,7 +76,7 @@ class PointField(NumericField, Tiler):
 
     def items(self, *points):
         "Generate tiles from points (lng, lat)."
-        tiles = set(self.encode(lat, lng, self.precision) for lng, lat in points)
+        tiles = {self.encode(lat, lng, self.precision) for lng, lat in points}
         return NumericField.items(self, *(int(tile, self.base) for tile in tiles))
 
     def ranges(self, tiles):

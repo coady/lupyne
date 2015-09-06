@@ -16,7 +16,7 @@ Dependencies
 ==================
 Lupyne should run anywhere PyLucene does, though its primary testing is on the popular unix variants.
 
- * Python 2.6.6+, 2.7
+ * Python 2.7
  * PyLucene 4.10
  * CherryPy 3.2 - 3.6 (only required for server)
 
@@ -34,7 +34,6 @@ Run full coverage tests.
 ::
 
   python -m test
-  python2.6 -m test.__main__
 
 .. _PyLucene: http://lucene.apache.org/pylucene/
 .. _CherryPy: http://cherrypy.org

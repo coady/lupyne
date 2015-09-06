@@ -36,7 +36,7 @@ if __name__ == '__main__':
     root.update()
     # assign custom filter and sorter based on year
     root.searcher.sorters['year'] = engine.SortField('date', int, parse)
-    years = set(date.split('-')[0] for date in root.searcher.terms('date'))
-    root.searcher.filters['year'] = dict((year, engine.Query.prefix('date', year).filter()) for year in years)
+    years = {date.split('-')[0] for date in root.searcher.terms('date')}
+    root.searcher.filters['year'] = {year: engine.Query.prefix('date', year).filter() for year in years}
     # start with pretty-printing
     server.start(root, config={'global': {'tools.json_out.indent': 2}})

@@ -103,7 +103,7 @@ class Resource(httplib.HTTPConnection):
         if redirect and httplib.MULTIPLE_CHOICES <= response.status < httplib.NOT_MODIFIED:
             url = urlparse.urlparse(response.getheader('location'))
             assert url.netloc.startswith(self.host)
-            warnings.warn('{0}: {1}'.format(response.reason, url.path), DeprecationWarning)
+            warnings.warn('{}: {}'.format(response.reason, url.path), DeprecationWarning)
             return self.call(method, url.path, body, params, redirect - 1)
         return response
 
@@ -247,7 +247,7 @@ class Shards(dict):
         """
         shards = frozenset(),
         for key in keys:
-            shards = set(hosts.union([host]) for hosts, host in itertools.product(shards, self[key]))
+            shards = {hosts.union([host]) for hosts, host in itertools.product(shards, self[key])}
         return self.resources.broadcast(method, path, body, self.choice(shards))
 
 

@@ -21,7 +21,7 @@ class Field(document.FieldType):
     :param boost: boost factor
     :param stored, indexed, settings: lucene FieldType attributes
     """
-    attrs = set(name[3].lower() + name[4:] for name in dir(document.FieldType) if name.startswith('set'))
+    attrs = {name[3].lower() + name[4:] for name in dir(document.FieldType) if name.startswith('set')}
 
     def __init__(self, name, stored=False, indexed=True, boost=1.0, **settings):
         document.FieldType.__init__(self)
@@ -372,7 +372,7 @@ class Groups(object):
     @property
     def facets(self):
         "mapping of field values and counts"
-        return dict((hits.value, hits.count) for hits in self)
+        return {hits.value: hits.count for hits in self}
 
 
 class GroupingSearch(grouping.GroupingSearch):

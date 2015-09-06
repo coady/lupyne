@@ -39,7 +39,7 @@ class Resource(client.Resource):
         response.msg.addheader('warning', '199 lupyne "test warning"')
         if response.status == httplib.NOT_FOUND:
             response.status = httplib.MOVED_PERMANENTLY
-            response.msg.addheader('location', 'http://{0}:{1}'.format(self.host, self.port))
+            response.msg.addheader('location', 'http://{}:{}'.format(self.host, self.port))
         return response
 
 
@@ -227,7 +227,7 @@ class TestCase(BaseTest):
         result = resource.get('/search', facets='name', spellcheck=1)
         assert result['facets'] == {'name': {'sample': 1}} and result['spellcheck'] == {}
         resource = client.Resource('localhost', self.ports[-1])
-        assert set(resource.get('/').values()) < set([0, 1])
+        assert set(resource.get('/').values()) < {0, 1}
         assert resource.post('/update', {'filters': True, 'sorters': True}) == 2
         assert resource.get('/docs') == [0, 1]
         with assertRaises(httplib.HTTPException, httplib.NOT_FOUND):
@@ -299,7 +299,8 @@ class TestCase(BaseTest):
         assert subprocess.call((sys.executable, filepath, '-c', filepath), stderr=subprocess.PIPE)
         assert cherrypy.tree.mount(None)
         server.init(vmargs=None)
-        self.assertRaises(AttributeError, server.start, config=True)
+        with self.assertRaises(AttributeError):
+            server.start(config=True)
 
     def testBasic(self):
         "Remote text indexing and searching."
@@ -414,17 +415,17 @@ class TestCase(BaseTest):
         highlight, = [highlight['article'] for highlight in highlights if highlight.get('article')]
         assert highlight == ['<strong>1</strong>']
         result = resource.get('/search', mlt=0)
-        assert result['count'] == 25 and set(result['query'].split()) == set(['text:united', 'text:states'])
+        assert result['count'] == 25 and set(result['query'].split()) == {'text:united', 'text:states'}
         assert [doc['amendment'] for doc in result['docs'][:4]] == ['10', '11', '15', '19']
         result = resource.get('/search', q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})
-        assert result['count'] == 11 and set(result['query'].split()) == set(['text:necessary', 'text:people'])
+        assert result['count'] == 11 and set(result['query'].split()) == {'text:necessary', 'text:people'}
         assert [doc['amendment'] for doc in result['docs'][:4]] == ['2', '9', '10', '1']
         result = resource.get('/search', q='text:people', count=1, timeout=-1)
         assert result == {'query': 'text:people', 'count': None, 'maxscore': None, 'docs': []}
         result = resource.get('/search', q='text:people', timeout=0.01)
         assert result['count'] in (None, 8) and result['maxscore'] in (None, maxscore)
         result = resource.get('/search', filter='text:people')
-        assert result['count'] == 8 and set(doc['__score__'] for doc in result['docs']) == set([1.0])
+        assert result['count'] == 8 and {doc['__score__'] for doc in result['docs']} == {1.0}
         result = resource.get('/search', q='text:right', filter='text:people')
         assert result['count'] == 4 and 0 < result['maxscore'] < 1.0
         result = resource.get('/search', q='text:right', group='date', count=2, **{'group.count': 2})
@@ -438,7 +439,7 @@ class TestCase(BaseTest):
         assert len(group['docs']) == 2 and group['docs'][0]['amendment'] == '2'
         assert len(result['groups'][1]['docs']) == 1 and all(group['docs'] == [] for group in result['groups'][2:])
         result = resource.get('/search', q='text:right', group='amendment:int')
-        assert set(map(operator.itemgetter('count'), result['groups'])) == set([1])
+        assert set(map(operator.itemgetter('count'), result['groups'])) == {1}
         assert all(int(doc.get('amendment', 0)) == group['value'] for group in result['groups'] for doc in group['docs'])
         assert result['groups'][0]['value'] == 2 and result['groups'][-1]['value'] == 0
 
@@ -451,7 +452,7 @@ class TestCase(BaseTest):
         writer.fields['location'] = engine.NestedField('county.city')
         for doc in fixture.zipcodes.docs():
             if doc['state'] == 'CA':
-                writer.add(zipcode=doc['zipcode'], location='{0}.{1}'.format(doc['county'], doc['city']))
+                writer.add(zipcode=doc['zipcode'], location='{}.{}'.format(doc['county'], doc['city']))
         writer.commit()
         resource = client.Resource('localhost', self.ports[0])
         assert resource.post('/update') == resource.get('/').popitem()[1] == len(writer)
