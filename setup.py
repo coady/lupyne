@@ -10,7 +10,7 @@ setup(
     author_email='aric.coady@gmail.com',
     url='https://bitbucket.org/coady/lupyne',
     license='Apache Software License',
-    packages=['lupyne', 'lupyne.engine', 'lupyne.engine.spatial'],
+    packages=['lupyne', 'lupyne.engine'],
     extras_require={'server': ['cherrypy']},
     classifiers=[
         'Development Status :: 6 - Mature',

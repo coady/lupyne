@@ -461,13 +461,11 @@ class TestCase(BaseTest):
         indexer.commit()
         city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
         hit, = indexer.search('zipcode:' + zipcode)
-        assert (hit['tile'] == tile or int(hit['tile']) == int(tile, 4)) and hit['city'] == city
+        assert hit['tile'] == int(tile, 4) and hit['city'] == city
         hit, = indexer.search(field.prefix(tile))
         assert hit['zipcode'] == zipcode and hit['city'] == city
         x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
-        assert field.coords(tile[:4]) == (2, 9)
-        bottom, left, top, right = field.decode(tile)
-        assert left < x < right and bottom < y < top
+        assert engine.spatial.Tile(2, 9, 4) == tile[:4]
         hits = indexer.search(field.near(x, y))
         cities = {hit['city'] for hit in hits}
         assert {city} == cities
@@ -475,12 +473,12 @@ class TestCase(BaseTest):
         cities = {hit['city'] for hit in hits}
         assert city in cities and len(cities) > 10
         query = field.within(x, y, 10 ** 4)
-        assert len(query) < 3
+        assert len(query) == 3
         distances = indexer.distances(x, y, 'longitude', 'latitude')
         hits = indexer.search(query).sorted(distances.__getitem__)
         assert hits[0]['zipcode'] == zipcode and distances[hits[0].id] < 10
         cities = {hit['city'] for hit in hits}
-        assert city in cities and 100 > len(cities) > 50
+        assert city in cities and len(cities) == 37
         hits = indexer.search(field.within(x, y, 10 ** 5, limit=100))
         cities = {hit['city'] for hit in hits}
         assert city in cities and len(cities) > 100
@@ -489,8 +487,6 @@ class TestCase(BaseTest):
         counts = {hits.value: len(hits) for hits in groups}
         assert 1 == counts[0] < counts[2] < counts[1]
         assert len(field.within(x, y, 10 ** 8)) == 1
-        with self.assertRaises(NameError):
-            list(field.radiate(y, x, 1, 0))
         hits = hits.filter(lambda id: distances[id] < 10 ** 4)
         assert 0 < len(hits) < sum(counts.values())
         hits = hits.sorted(distances.__getitem__, reverse=True)
