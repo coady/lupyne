@@ -306,9 +306,16 @@ spatial
 ---------
 .. automodule:: lupyne.engine.spatial
 
-Tiler
+Point
 ^^^^^^^^^^^^^
-.. autoclass:: Tiler
+.. autoclass:: Point
+  :show-inheritance:
+  :members:
+
+Tile
+^^^^^^^^^^^^^
+.. autoclass:: Tile
+  :show-inheritance:
   :members:
 
 PointField

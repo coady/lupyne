@@ -1,5 +1,4 @@
-.. Lupyne documentation master file, created by
-   sphinx-quickstart on Wed Sep 28 15:41:40 2011.
+.. Lupyne documentation master file, created by sphinx-quickstart.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -54,7 +53,7 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-.. _Lupyne: https://bitbucket.org/coady/lupyne
+.. _Lupyne: https://pypi.python.org/pypi/lupyne
 .. _PyLucene: http://lucene.apache.org/pylucene/
 .. _RESTful: http://en.wikipedia.org/wiki/Representational_State_Transfer
 .. _JSON: http://json.org/
