@@ -16,7 +16,7 @@ Example queries:
 
 import lucene
 from lupyne import engine, server
-from test import fixture
+from tests import fixtures
 
 
 def parse(date):
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     root.indexer.set('date', stored=True, tokenized=False)
     root.indexer.set('text')
     # populate index
-    for doc in fixture.constitution.docs():
+    for doc in fixtures.constitution():
         if 'amendment' in doc:
             root.indexer.add(doc)
     root.update()

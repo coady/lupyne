@@ -43,14 +43,16 @@ Tests
 ==================
 100% branch coverage. ::
 
-   $ python -m test
+   $ py.test [--cov]
 
 Changes
 ==================
 1.9
+   * Python 2.6 dropped
    * PyLucene 4.8 and 4.9 dropped
    * IndexWriter implements context manager
    * Server DocValues updated via patch method
+   * Spatial tile search optimized
 
 1.8
    * PyLucene 4.10 supported

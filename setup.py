@@ -12,6 +12,7 @@ setup(
     license='Apache Software License',
     packages=['lupyne', 'lupyne.engine'],
     extras_require={'server': ['cherrypy']},
+    tests_require=['pytest-cov'],
     classifiers=[
         'Development Status :: 6 - Mature',
         'Framework :: CherryPy',

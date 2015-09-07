@@ -166,9 +166,6 @@ class TokenFilter(PythonTokenFilter, TokenStream):
         self.setattrs()
         return result
 
-    def setattrs(self):
-        "Customize current token."
-
 
 class Analyzer(PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
@@ -379,7 +376,7 @@ class IndexReader(object):
                 elif positions:
                     yield doc, [(span.start(), span.end()) for span in spans]
                 else:
-                    yield doc, sum(1 for span in spans)
+                    yield doc, sum(1 for span in spans)  # pragma: no branch
             offset += reader.maxDoc()
 
     def vector(self, id, field):
