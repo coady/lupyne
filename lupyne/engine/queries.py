@@ -21,10 +21,13 @@ class Query(object):
     """Inherited lucene Query, with dynamic base class acquisition.
     Uses class methods and operator overloading for convenient query construction.
     """
-    def __new__(cls, base, *args):
+    def __new__(cls, base, *args, **attrs):
         return base.__new__(type(base.__name__, (cls, base), {}))
-    def __init__(self, base, *args):
+
+    def __init__(self, base, *args, **attrs):
         base.__init__(self, *args)
+        for name in attrs:
+            setattr(self, name, attrs[name])
 
     def filter(self, cache=True):
         "Return lucene CachingWrapperFilter, optionally just QueryWrapperFilter."
@@ -42,15 +45,12 @@ class Query(object):
         "Generate set of query term items."
         terms = HashSet().of_(index.Term)
         self.extractTerms(terms)
-        for term in terms:
-            yield term.field(), term.text()
+        return ((term.field(), term.text()) for term in terms)
 
     @classmethod
-    def term(cls, name, value, boost=1.0):
+    def term(cls, name, value, **attrs):
         "Return lucene TermQuery."
-        self = cls(search.TermQuery, index.Term(name, value))
-        self.boost = boost
-        return self
+        return cls(search.TermQuery, index.Term(name, value), **attrs)
 
     @classmethod
     def boolean(cls, occur, *queries, **terms):
@@ -107,9 +107,9 @@ class Query(object):
         return cls(search.TermRangeQuery, name, start, stop, lower, upper)
 
     @classmethod
-    def phrase(cls, name, *values):
+    def phrase(cls, name, *values, **attrs):
         "Return lucene PhraseQuery.  None may be used as a placeholder."
-        self = cls(search.PhraseQuery)
+        self = cls(search.PhraseQuery, **attrs)
         for idx, value in enumerate(values):
             if value is not None:
                 self.add(index.Term(name, value), idx)

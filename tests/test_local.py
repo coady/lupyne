@@ -284,7 +284,7 @@ def test_basic(tempdir, constitution):
     assert hit['amendment'] == '18'
     hit, = indexer.search(engine.Query.all(text=['persons', 'papers']))
     assert hit['amendment'] == '4'
-    hit, = indexer.search(engine.Query.phrase('text', 'persons', None, 'papers'))
+    hit, = indexer.search(engine.Query.phrase('text', 'persons', None, 'papers', slop=1))
     assert hit['amendment'] == '4'
     hit, = indexer.search(engine.Query.multiphrase('text', 'persons', ['houses', 'papers']))
     assert hit['amendment'] == '4'
