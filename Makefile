@@ -16,5 +16,6 @@ dist: html
 check:
 	python setup.py $@ -mrs
 	pep8
+	python -m examples
 	py.test --cov --cov-fail-under=100
 	py.test -vk example

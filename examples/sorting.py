@@ -49,12 +49,10 @@ class ComparatorSource(PythonFieldComparatorSource):
             PythonFieldComparator.__init__(self)
             self.name = name
             self.values = [None] * numHits
+            self.value = self.values.__getitem__
 
-        def setNextReader(self, reader, *args):
-            if not args:
-                reader = reader.reader()
-            comparator = search.FieldCache.DEFAULT.getTermsIndex(reader, self.name)
-            self.comparator = [comparator.get(id).utf8ToString() for id in range(reader.maxDoc())]
+        def setNextReader(self, context):
+            self.comparator = search.FieldCache.DEFAULT.getTermsIndex(context.reader(), self.name)
             return self
 
         def compare(self, slot1, slot2):
@@ -64,13 +62,10 @@ class ComparatorSource(PythonFieldComparatorSource):
             self._bottom = self.values[slot]
 
         def compareBottom(self, doc):
-            return cmp(self._bottom, self.comparator[doc])
+            return cmp(self._bottom, self.comparator.get(doc).utf8ToString())
 
         def copy(self, slot, doc):
-            self.values[slot] = self.comparator[doc]
-
-        def value(self, slot):
-            pass
+            self.values[slot] = self.comparator.get(doc).utf8ToString()
 
 sorter = search.Sort(search.SortField('color', ComparatorSource()))
 # still must supply excessive doc count to use the sorter

@@ -26,7 +26,7 @@ q2 = spans.SpanTermQuery(index.Term('text', 'world'))
 q3 = spans.SpanPositionRangeQuery(q1, 0, 10)
 q4 = spans.SpanNearQuery([q1, q2], 0, True)
 q5 = spans.SpanNotQuery(q3, q4)
-assert str(q5).startswith('spanNot(spanPosRange(text:hello, 0, 10), spanNear([text:hello, text:world], 0, true)')
+assert str(q5) == 'spanNot(spanPosRange(text:hello, 0, 10), spanNear([text:hello, text:world], 0, true), 0, 0)'
 
 # # # lupyne # # #
 
@@ -36,4 +36,4 @@ assert str(q) == '+text:lucene +text:"search engine"'
 
 q = Query.span('text', 'hello')[:10] - Query.near('text', 'hello', 'world')
 assert isinstance(q, spans.SpanQuery)
-assert str(q).startswith('spanNot(spanPosRange(text:hello, 0, 10), spanNear([text:hello, text:world], 0, true)')
+assert str(q) == 'spanNot(spanPosRange(text:hello, 0, 10), spanNear([text:hello, text:world], 0, true), 0, 0)'

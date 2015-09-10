@@ -17,7 +17,7 @@ There are trade-offs to each approach:
  * NumericFields only support numbers, and result in unreadable values in the index.
  * NestedFields support any searchable values, but pollute the field namespace.
 
-Lupyne PointFields and DateTimeFields are now implemented as NumericFields since both are easily encoded as numbers.
+Lupyne PointFields and DateTimeFields are implemented as NumericFields since both are easily encoded as numbers.
 NestedFields could still be used however, as demonstrated on dates below.
 """
 
