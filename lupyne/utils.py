@@ -30,3 +30,9 @@ class Atomic(object):
         return not issubclass(other, collections.Iterable) or NotImplemented
 
 Atomic.register(basestring)
+
+
+class method(staticmethod):
+    "From Python 3: return functions instead of unbound methods when accessed through the class."
+    def __get__(self, instance, owner):
+        return self.__func__ if instance is None else self.__func__.__get__(instance, owner)

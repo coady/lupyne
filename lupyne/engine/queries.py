@@ -15,6 +15,7 @@ from org.apache.lucene import index, queries, search, store, util
 from org.apache.lucene.search import highlight, spans, vectorhighlight
 from org.apache.pylucene import search as pysearch
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
+from ..utils import method
 
 
 class Query(object):
@@ -29,8 +30,9 @@ class Query(object):
         for name in attrs:
             setattr(self, name, attrs[name])
 
+    @method
     def filter(self, cache=True):
-        "Return lucene CachingWrapperFilter, optionally just QueryWrapperFilter."
+        "Return query as a filter, as specifically matching as possible, but defaulting to QueryWrapperFilter."
         if isinstance(self, search.PrefixQuery):
             filter = search.PrefixFilter(self.getPrefix())
         elif isinstance(self, search.TermRangeQuery):
@@ -41,6 +43,7 @@ class Query(object):
             filter = search.QueryWrapperFilter(self)
         return search.CachingWrapperFilter(filter) if cache else filter
 
+    @method
     def terms(self):
         "Generate set of query term items."
         terms = HashSet().of_(index.Term)

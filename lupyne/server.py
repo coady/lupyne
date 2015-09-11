@@ -448,7 +448,7 @@ class WebSearcher(object):
         q = params.q(searcher, q, **options)
         qfilter = options.pop('filter', None)
         if qfilter is not None and qfilter not in searcher.filters:
-            searcher.filters[qfilter] = engine.Query.__dict__['filter'](params.q(searcher, qfilter, **options))
+            searcher.filters[qfilter] = engine.Query.filter(params.q(searcher, qfilter, **options))
         qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
             if q is not None:
@@ -512,7 +512,7 @@ class WebSearcher(object):
                     facets[name] = {term: counts[term] for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__)}
         if spellcheck:
             terms = result['spellcheck'] = collections.defaultdict(dict)
-            for name, value in engine.Query.__dict__['terms'](q):
+            for name, value in engine.Query.terms(q):
                 terms[name][value] = list(itertools.islice(searcher.correct(name, value), spellcheck))
         return result
 

@@ -19,7 +19,7 @@ from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from .queries import suppress, Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import DistanceComparator
-from ..utils import Atomic
+from ..utils import Atomic, method
 
 for cls in (analysis.TokenStream, lucene.JArray_byte):
     Atomic.register(cls)
@@ -181,6 +181,7 @@ class Analyzer(PythonAnalyzer):
         "Return lucene TokenStream from text."
         return self.components(field, StringReader(text))[1]
 
+    @method
     def parse(self, query, field='', op='', version=None, parser=None, **attrs):
         """Return parsed lucene Query.
         
@@ -479,7 +480,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             return query
         if spellcheck:
             kwargs['parser'], kwargs['searcher'] = SpellParser, self
-        return Analyzer.__dict__['parse'](self.analyzer, query, **kwargs)
+        return Analyzer.parse(self.analyzer, query, **kwargs)
 
     def highlighter(self, query, field, **kwargs):
         "Return `Highlighter`_ or if applicable `FastVectorHighlighter`_ specific to searcher and query."
