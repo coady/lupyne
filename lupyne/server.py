@@ -53,7 +53,7 @@ import contextlib
 import lucene
 import cherrypy
 from . import engine, client
-json = client.json
+from .utils import json, suppress
 
 
 def tool(hook):
@@ -322,7 +322,7 @@ class WebSearcher(object):
                 names = self.sync(*host.split('/'))
                 break
             except IOError:
-                with client.suppress(ValueError):
+                with suppress(ValueError):
                     self.hosts.remove(host)
             except httplib.HTTPException as exc:
                 assert exc[0] == httplib.METHOD_NOT_ALLOWED, exc

@@ -21,7 +21,6 @@ import random
 import time
 import itertools
 import collections
-import contextlib
 import io
 import gzip
 import shutil
@@ -29,20 +28,7 @@ import httplib
 import urllib
 import urlparse
 import errno
-try:
-    import simplejson as json
-except ImportError:
-    import json
-
-
-@contextlib.contextmanager
-def suppress(*exceptions, **attrs):
-    "Suppress specific exceptions with matching attributes."
-    try:
-        yield
-    except exceptions as exc:
-        if any(getattr(exc, name, value) != value for name, value in attrs.items()):
-            raise
+from .utils import json, suppress
 
 
 class Response(httplib.HTTPResponse):

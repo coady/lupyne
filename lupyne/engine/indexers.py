@@ -8,7 +8,6 @@ from future_builtins import filter, map, zip
 import os
 import itertools
 import contextlib
-import abc
 import collections
 import lucene
 from java.io import File, StringReader
@@ -20,17 +19,9 @@ from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from .queries import suppress, Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import DistanceComparator
+from ..utils import Atomic
 
-
-class Atomic(object):
-    "Abstract base class to distinguish singleton values from other iterables."
-    __metaclass__ = abc.ABCMeta
-
-    @classmethod
-    def __subclasshook__(cls, other):
-        return not issubclass(other, collections.Iterable) or NotImplemented
-
-for cls in (basestring, analysis.TokenStream, lucene.JArray_byte):
+for cls in (analysis.TokenStream, lucene.JArray_byte):
     Atomic.register(cls)
 
 
