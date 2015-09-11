@@ -12,7 +12,7 @@ from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
 from org.apache.pylucene.search import PythonFilter
 from lupyne import engine
-from .fixtures import tempdir, constitution, zipcodes
+from .fixtures import warns, tempdir, constitution, zipcodes
 
 
 class typeAsPayload(engine.TokenFilter):
@@ -365,7 +365,7 @@ def test_advanced(tempdir, zipcodes):
     indexer = engine.Indexer(tempdir)
     for name, params in zipcodes.fields.items():
         indexer.set(name, **params)
-    indexer.fields['location'] = engine.NestedField('state.county.city')
+    field = indexer.fields['location'] = engine.NestedField('state.county.city')
     for doc in zipcodes:
         if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
             lat, lng = ('{0:08.3f}'.format(doc.pop(l)) for l in ['latitude', 'longitude'])
@@ -377,7 +377,6 @@ def test_advanced(tempdir, zipcodes):
     states = list(indexer.terms('state'))
     assert states[0] == 'AK' and states[-1] == 'WY'
     counties = [term.split('.')[-1] for term in indexer.terms('state.county', 'CA', 'CA~')]
-    field = indexer.fields['location']
     hits = indexer.search(field.prefix('CA'))
     assert sorted({hit['county'] for hit in hits}) == counties
     assert counties[0] == 'Alameda' and counties[-1] == 'Yuba'
@@ -434,7 +433,7 @@ def test_spatial(tempdir, zipcodes):
         indexer.set(name, **params)
     for name in ('longitude', 'latitude'):
         indexer.set(name, engine.NumericField, type=float, stored=True)
-    field = indexer.fields['tile'] = engine.PointField('tile', precision=15, numericPrecisionStep=2, stored=True)
+    field = indexer.set('tile', engine.PointField, precision=15, numericPrecisionStep=2, stored=True)
     points = []
     for doc in zipcodes:
         if doc['state'] == 'CA':
@@ -514,7 +513,6 @@ def test_fields(tempdir, constitution):
     hits = indexer.search(query)
     assert [hit['amendment'] for hit in hits] == ['18', '19']
     assert [hit['Y-m-d'].split('-')[0] for hit in hits] == ['1919', '1920']
-    field = indexer.fields['size']
     sizes = {id: int(indexer[id]['size']) for id in indexer}
     ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
     query = engine.Query.range('size', '1000', None)
@@ -550,14 +548,15 @@ def test_numeric(tempdir, constitution):
     assert nf.numericValue().doubleValue() == 0.5
     indexer = engine.Indexer(tempdir)
     indexer.set('amendment', engine.NumericField, type=int, stored=True)
-    indexer.set('date', engine.DateTimeField, stored=True)
+    field = indexer.set('date', engine.DateTimeField, stored=True)
     indexer.set('size', engine.NumericField, type=int, stored=True, numericPrecisionStep=5)
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
     indexer.commit()
-    assert indexer.count(filter=indexer.fields['amendment'].filter(None, 10)) == 9
-    field = indexer.fields['date']
+    with warns(DeprecationWarning):
+        filter = indexer.fields['amendment'].filter(None, 10)
+    assert isinstance(filter, search.NumericRangeFilter) and indexer.count(filter=filter) == 9
     query = field.prefix((1791, 12))
     assert indexer.count(query) == 10
     query = field.prefix(datetime.date(1791, 12, 15))

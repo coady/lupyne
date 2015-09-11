@@ -13,13 +13,12 @@ import time
 import calendar
 import errno
 import contextlib
-import warnings
 from email.utils import parsedate
 import pytest
 import lucene
 import cherrypy
 from lupyne import client, engine, server
-from .fixtures import tempdir, constitution, zipcodes
+from .fixtures import warns, tempdir, constitution, zipcodes
 
 
 class Servers(dict):
@@ -53,15 +52,6 @@ def servers(request):
     yield servers
     for port in list(servers):
         servers.stop(port)
-
-
-@contextlib.contextmanager
-def warns(*categories):
-    with warnings.catch_warnings(record=True) as messages:
-        yield messages
-    assert tuple(message.category for message in messages) == categories
-
-warnings.simplefilter('default', DeprecationWarning)
 
 
 @contextlib.contextmanager

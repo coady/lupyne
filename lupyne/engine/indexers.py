@@ -712,13 +712,14 @@ class IndexWriter(index.IndexWriter):
         return status
 
     def set(self, name, cls=Field, **settings):
-        """Assign settings to field name.
+        """Assign settings to field name and return the field.
         
         :param name: registered name of field
         :param cls: optional `Field`_ constructor
         :param settings: stored, indexed, etc. options compatible with `Field`_
         """
-        self.fields[name] = cls(name, **settings)
+        field = self.fields[name] = cls(name, **settings)
+        return field
 
     def document(self, items=(), **terms):
         "Return lucene Document from mapping of field names to one or multiple values."

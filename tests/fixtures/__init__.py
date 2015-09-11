@@ -3,8 +3,19 @@ import csv
 import itertools
 import shutil
 import tempfile
+import warnings
+import contextlib
 from datetime import datetime
 import pytest
+
+
+@contextlib.contextmanager
+def warns(*categories):
+    with warnings.catch_warnings(record=True) as messages:
+        yield messages
+    assert tuple(message.category for message in messages) == categories
+
+warnings.simplefilter('default', DeprecationWarning)
 
 
 def fixture(cls):

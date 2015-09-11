@@ -6,6 +6,7 @@ from future_builtins import map
 import datetime
 import calendar
 import operator
+import warnings
 import lucene
 from java.lang import Double, Float, Long, Number, Object
 from java.util import Arrays, HashSet
@@ -143,27 +144,26 @@ class NumericField(Field):
             else:
                 yield document.LongField(self.name, long(value), self)
 
-    def numeric(self, cls, start, stop, lower, upper):
+    def range(self, start, stop, lower=True, upper=False):
+        "Return lucene NumericRangeQuery."
+        step = self.numericPrecisionStep()
         if isinstance(start, float) or isinstance(stop, float):
             start, stop = (value if value is None else Double(value) for value in (start, stop))
-            return cls.newDoubleRange(self.name, self.numericPrecisionStep(), start, stop, lower, upper)
+            return search.NumericRangeQuery.newDoubleRange(self.name, step, start, stop, lower, upper)
         if start is not None:
             start = None if start < Long.MIN_VALUE else Long(long(start))
         if stop is not None:
             stop = None if stop > Long.MAX_VALUE else Long(long(stop))
-        return cls.newLongRange(self.name, self.numericPrecisionStep(), start, stop, lower, upper)
-
-    def range(self, start, stop, lower=True, upper=False):
-        "Return lucene NumericRangeQuery."
-        return self.numeric(search.NumericRangeQuery, start, stop, lower, upper)
+        return search.NumericRangeQuery.newLongRange(self.name, step, start, stop, lower, upper)
 
     def term(self, value):
         "Return range query to match single term."
         return self.range(value, value, upper=True)
 
-    def filter(self, start, stop, lower=True, upper=False):
-        "Return lucene NumericRangeFilter."
-        return self.numeric(search.NumericRangeFilter, start, stop, lower, upper)
+    def filter(self, *args, **kwargs):
+        ".. deprecated:: 1.9 convert NumericRangeQuery with `Query`_.filter instead"
+        warnings.warn(NumericField.filter.__doc__, DeprecationWarning)
+        return Query.filter(self.range(*args, **kwargs), cache=False)
 
 
 class DateTimeField(NumericField):
@@ -173,7 +173,8 @@ class DateTimeField(NumericField):
     def __init__(self, name, **kwargs):
         NumericField.__init__(self, name, type=float, **kwargs)
 
-    def timestamp(self, date):
+    @classmethod
+    def timestamp(cls, date):
         "Return utc timestamp from date or time tuple."
         if isinstance(date, datetime.date):
             return calendar.timegm(date.timetuple()) + getattr(date, 'microsecond', 0) * 1e-6
@@ -224,7 +225,7 @@ class DateTimeField(NumericField):
 class Document(dict):
     "Multimapping of field names to values, but default getters return the first value."
     def __init__(self, doc):
-        for field in doc.getFields():
+        for field in doc.iterator():
             value = convert(field.numericValue() or field.stringValue() or field.binaryValue())
             self.setdefault(field.name(), []).append(value)
 

@@ -38,14 +38,14 @@ primary.commit()
 
 # setup parallel index with matching unique field and additional volatile field
 secondary = engine.ParallelIndexer('name')
-secondary.set('votes', engine.NumericField)
+field = secondary.set('votes', engine.NumericField)
 secondary.add(name='alpha', votes=1)
 secondary.add(name='bravo', votes=0)
 secondary.add(name='charlie', votes=1)
 secondary.commit()
 
 # automatically create and register TermsFilter, which matches positive votes
-real_filter = secondary.fields['votes'].filter(1, None)
+real_filter = engine.Query.filter(field.range(1, None), cache=False)
 assert str(real_filter) == "votes:[1 TO *}"
 auto_filter = secondary.termsfilter(real_filter, primary)
 

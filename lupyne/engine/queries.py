@@ -39,6 +39,9 @@ class Query(object):
             filter = search.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
         elif isinstance(self, search.TermQuery):
             filter = queries.TermsFilter([self.getTerm()])
+        elif isinstance(self, search.NumericRangeQuery):
+            method = getattr(search.NumericRangeFilter, 'new{0}Range'.format(self.parameters_[0].__name__))
+            filter = method(self.field, self.precisionStep, self.min, self.max, self.includesMin(), self.includesMax())
         else:
             filter = search.QueryWrapperFilter(self)
         return search.CachingWrapperFilter(filter) if cache else filter
