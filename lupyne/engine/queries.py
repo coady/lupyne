@@ -407,9 +407,9 @@ class SortField(search.SortField):
         "Generate field cache terms from docs which match filter from all segments."
         for reader in readers:
             array, docset = self.array(reader), filter.getDocIdSet(reader.context, reader.liveDocs)
-            if docset:
-                for id in iter(docset.iterator().nextDoc, search.DocIdSetIterator.NO_MORE_DOCS):
-                    yield array[id]
+            docsetit = docset.iterator() if docset else search.DocIdSetIterator.empty()
+            for id in iter(docsetit.nextDoc, search.DocIdSetIterator.NO_MORE_DOCS):
+                yield array[id]
 
 
 class Highlighter(highlight.Highlighter):

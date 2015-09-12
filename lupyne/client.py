@@ -105,10 +105,7 @@ class Resource(httplib.HTTPConnection):
             self.request(*request)
             responses.append(self.response_class(self.sock, self.debuglevel, self.strict, self._method))
             self._HTTPConnection__state = 'Idle'
-        for response in responses:
-            response.begin()
-            response.end()
-            yield response
+        return (response.begin() or response.end() or response for response in responses)
 
     def get(self, path, **params):
         "Return response body from GET request."

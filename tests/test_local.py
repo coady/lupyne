@@ -89,6 +89,7 @@ def test_interface(tempdir):
     assert list(indexer.docs('text', 'world', counts=True)) == [(0, 1)]
     assert list(indexer.positions('text', 'world')) == [(0, [1])]
     assert list(indexer.positions('text', 'world', payloads=True)) == [(0, [(1, '<ALPHANUM>')])]
+    assert list(indexer.positions('text', 'world', offsets=True)) == [(0, [(-1, -1)])]
     hits = indexer.search('text:hello')
     assert len(hits) == hits.count == 1
     with pytest.raises(AssertionError):

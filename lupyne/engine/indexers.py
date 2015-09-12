@@ -7,6 +7,7 @@ The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 from future_builtins import filter, map, zip
 import os
 import itertools
+import operator
 import contextlib
 import collections
 import lucene
@@ -231,13 +232,17 @@ class IndexReader(object):
         return self.numDocs()
 
     def __contains__(self, id):
-        bits = index.MultiFields.getLiveDocs(self.indexReader)
+        bits = self.bits
         return (0 <= id < self.maxDoc()) and (not bits or bits.get(id))
 
     def __iter__(self):
         ids = xrange(self.maxDoc())
-        bits = index.MultiFields.getLiveDocs(self.indexReader)
+        bits = self.bits
         return filter(bits.get, ids) if bits else iter(ids)
+
+    @property
+    def bits(self):
+        return index.MultiFields.getLiveDocs(self.indexReader)
 
     @property
     def directory(self):
@@ -305,16 +310,15 @@ class IndexReader(object):
         :param distance: maximum edit distance for fuzzy terms
         """
         terms = index.MultiFields.getTerms(self.indexReader, name)
-        if terms:
-            if distance:
-                termenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), index.Term(name, value), float(distance), 0, False)
-            elif stop is not None:
-                termenum = search.TermRangeTermsEnum(terms.iterator(None), util.BytesRef(value), util.BytesRef(stop), True, False)
-            else:
-                termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(value))
-            for bytesref in termenum:
-                text = bytesref.utf8ToString()
-                yield (text, termenum.docFreq()) if counts else text
+        termsenum = terms.iterator(None) if terms else index.TermsEnum.EMPTY
+        if terms and distance:
+            termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), index.Term(name, value), float(distance), 0, False)
+        elif stop is not None:
+            termsenum = search.TermRangeTermsEnum(termsenum, util.BytesRef(value), util.BytesRef(stop), True, False)
+        else:
+            termsenum = search.PrefixTermsEnum(termsenum, util.BytesRef(value))
+        terms = map(operator.methodcaller('utf8ToString'), termsenum)
+        return ((term, termsenum.docFreq()) for term in terms) if counts else terms
 
     def numbers(self, name, step=0, type=int, counts=False):
         """Generate decoded numeric term values, optionally with frequency counts.
@@ -324,31 +328,28 @@ class IndexReader(object):
         :param type: int or float
         :param counts: include frequency counts
         """
-        decode = util.NumericUtils.prefixCodedToLong
         convert = util.NumericUtils.sortableLongToDouble if issubclass(type, float) else int
-        terms = index.MultiFields.getTerms(self.indexReader, name)
-        termenum = search.PrefixTermsEnum(terms.iterator(None), util.BytesRef(chr(ord(' ') + step)))
-        for bytesref in termenum:
-            value = convert(decode(bytesref))
-            yield (value, termenum.docFreq()) if counts else value
+        termsenum = index.MultiFields.getTerms(self.indexReader, name).iterator(None)
+        termsenum = search.PrefixTermsEnum(termsenum, util.BytesRef(chr(ord(' ') + step)))
+        values = map(convert, map(util.NumericUtils.prefixCodedToLong, termsenum))
+        return ((value, termsenum.docFreq()) for value in values) if counts else values
 
     def docs(self, name, value, counts=False):
         "Generate doc ids which contain given term, optionally with frequency counts."
-        docsenum = index.MultiFields.getTermDocsEnum(self.indexReader, index.MultiFields.getLiveDocs(self.indexReader), name, util.BytesRef(value))
-        if docsenum:
-            for doc in iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS):
-                yield (doc, docsenum.freq()) if counts else doc
+        docsenum = index.MultiFields.getTermDocsEnum(self.indexReader, self.bits, name, util.BytesRef(value))
+        docs = iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS) if docsenum else ()
+        return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)
 
-    def positions(self, name, value, payloads=False):
-        "Generate doc ids and positions which contain given term, optionally only with payloads."
-        docsenum = index.MultiFields.getTermPositionsEnum(self.indexReader, index.MultiFields.getLiveDocs(self.indexReader), name, util.BytesRef(value))
-        if docsenum:
-            for doc in iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS):
-                positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
-                if payloads:
-                    yield doc, [(position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload]
-                else:
-                    yield doc, list(positions)
+    def positions(self, name, value, payloads=False, offsets=False):
+        "Generate doc ids and positions which contain given term, optionally with offsets, or only ones with payloads."
+        docsenum = index.MultiFields.getTermPositionsEnum(self.indexReader, self.bits, name, util.BytesRef(value))
+        for doc in (iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS) if docsenum else ()):
+            positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
+            if payloads:
+                positions = ((position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload)
+            elif offsets:
+                positions = ((docsenum.startOffset(), docsenum.endOffset()) for position in positions)
+            yield doc, list(positions)
 
     def spans(self, query, positions=False, payloads=False):
         """Generate docs with occurrence counts for a span query.
@@ -361,38 +362,36 @@ class IndexReader(object):
         for reader in self.readers:
             spans = itertools.repeat(query.getSpans(reader.context, reader.liveDocs, HashMap()))
             for doc, spans in itertools.groupby(itertools.takewhile(search.spans.Spans.next, spans), key=search.spans.Spans.doc):
-                doc += offset
                 if payloads:
-                    yield doc, [(span.start(), span.end(), [lucene.JArray_byte.cast_(data).string_ for data in span.payload])
-                                for span in spans if span.payloadAvailable]
+                    values = [(span.start(), span.end(), [lucene.JArray_byte.cast_(data).string_ for data in span.payload])
+                              for span in spans if span.payloadAvailable]
                 elif positions:
-                    yield doc, [(span.start(), span.end()) for span in spans]
+                    values = [(span.start(), span.end()) for span in spans]
                 else:
-                    yield doc, sum(1 for span in spans)  # pragma: no branch
+                    values = sum(1 for span in spans)
+                yield (doc + offset), values
             offset += reader.maxDoc()
 
     def vector(self, id, field):
         terms = self.getTermVector(id, field)
-        if terms:
-            termenum = terms.iterator(None)
-            for bytesref in util.BytesRefIterator.cast_(termenum):
-                yield bytesref.utf8ToString(), termenum
+        termsenum = terms.iterator(None) if terms else index.TermsEnum.EMPTY
+        return termsenum, map(operator.methodcaller('utf8ToString'), util.BytesRefIterator.cast_(termsenum))
 
     def termvector(self, id, field, counts=False):
         "Generate terms for given doc id and field, optionally with frequency counts."
-        for term, termenum in self.vector(id, field):
-            yield (term, int(termenum.totalTermFreq())) if counts else term
+        termsenum, terms = self.vector(id, field)
+        return ((term, int(termsenum.totalTermFreq())) for term in terms) if counts else terms
 
     def positionvector(self, id, field, offsets=False):
         "Generate terms and positions for given doc id and field, optionally with character offsets."
-        for term, termenum in self.vector(id, field):
-            docsenum = termenum.docsAndPositions(None, None)
-            assert docsenum and 0 <= docsenum.nextDoc() < docsenum.NO_MORE_DOCS
+        termsenum, terms = self.vector(id, field)
+        for term in terms:
+            docsenum = termsenum.docsAndPositions(None, None)
+            assert 0 <= docsenum.nextDoc() < docsenum.NO_MORE_DOCS
             positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
             if offsets:
-                yield term, [(docsenum.startOffset(), docsenum.endOffset()) for position in positions]
-            else:
-                yield term, list(positions)
+                positions = ((docsenum.startOffset(), docsenum.endOffset()) for position in positions)
+            yield term, list(positions)
 
     def morelikethis(self, doc, *fields, **attrs):
         """Return MoreLikeThis query for document.
@@ -630,8 +629,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             elif isinstance(value, analysis.TokenStream):
                 value = value,
             searcher.addField(name, *value)
-        for query in queries:
-            yield searcher.search(self.parse(query))
+        return (searcher.search(self.parse(query)) for query in queries)
 
     def termsfilter(self, field, values=()):
         """Return registered `TermsFilter`_, which will be refreshed whenever the searcher is reopened.
