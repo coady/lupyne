@@ -1,5 +1,12 @@
 About Lupyne
 ==================
+.. image:: https://img.shields.io/pypi/v/lupyne.svg
+   :target: https://pypi.python.org/pypi/lupyne/
+.. image:: https://img.shields.io/pypi/pyversions/lupyne.svg
+.. image:: https://img.shields.io/pypi/status/lupyne.svg
+.. note::
+   Although lupyne is maintained, its dependency `PyLucene is dormant`_ for lack of interest.
+
 The core engine is a high level interface to `PyLucene`_, which is a Python extension for accessing the popular Java Lucene search engine.
 Lucene has a reputation for being a relatively low-level toolkit, and the goal of PyLucene is to wrap it through automatic code generation.
 So although PyLucene transforms Java idioms to Python idioms where possible, the resulting interface is far from Pythonic.
@@ -60,6 +67,7 @@ Changes
    * Comparator iteration optimized
    * Support for string based FieldCacheRangeFilters
 
+.. _PyLucene is dormant: http://mail-archives.apache.org/mod_mbox/lucene-pylucene-dev/201506.mbox/%3calpine.OSX.2.01.1506010952020.53725@yuzu.local%3e
 .. _PyLucene: http://lucene.apache.org/pylucene/
 .. _CherryPy: http://cherrypy.org
 .. _documentation: http://pythonhosted.org/lupyne/
