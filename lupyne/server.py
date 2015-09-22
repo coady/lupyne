@@ -491,7 +491,7 @@ class WebSearcher(object):
             for hit in hits:
                 doc = hit.dict(*multi, **fields)
                 doc.update((name, indexed[name][hit.id]) for name in indexed)
-                fragments = (hl[name].fragments(hit.id, hlcount) for name in hl)
+                fragments = (hl[name].fragments(hit.id, hlcount) for name in hl)  # pragma: no branch
                 if hl:
                     doc['__highlights__'] = {name: value for name, value in zip(hl, fragments) if value is not None}
                 docs.append(doc)
