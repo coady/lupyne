@@ -8,6 +8,7 @@ clean:
 html:
 	make -C docs $@ SPHINXOPTS=-W
 	rst2$@.py README.rst docs/_build/README.$@
+	python -m examples.spatial > docs/_build/spatial.kml
 
 dist: html
 	python setup.py sdist
