@@ -25,8 +25,8 @@ keeping the registered TermsFilters updated with every commit.
 """
 
 import lucene
-lucene.initVM()
 from lupyne import engine
+lucene.initVM()
 
 # setup main index with unique name field
 primary = engine.Indexer()

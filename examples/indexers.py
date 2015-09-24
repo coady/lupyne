@@ -3,9 +3,9 @@ Basic indexing and searching example adapted from http://lucene.apache.org/core/
 """
 
 import lucene
-lucene.initVM()
 from org.apache.lucene import analysis, document, index, queryparser, search, store, util
 from lupyne import engine
+lucene.initVM()
 
 # # # lucene # # #
 

@@ -5,10 +5,10 @@ Operator overloading is used for combining boolean clauses.
 """
 
 import lucene
-lucene.initVM()
 from org.apache.lucene import index, search
 from org.apache.lucene.search import spans
 from lupyne.engine import Query
+lucene.initVM()
 
 # # # lucene # # #
 

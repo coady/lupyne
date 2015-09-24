@@ -147,7 +147,7 @@ def multi(value):
     return value and value.split(',')
 
 
-class params:
+class parse:
     "Parameter parsing."
     @staticmethod
     def q(searcher, q, **options):
@@ -364,7 +364,7 @@ class WebSearcher(object):
             return list(searcher)
         with HTTPError(httplib.NOT_FOUND, ValueError):
             id, = searcher.docs(name, value) if value else [int(name)]
-        fields, multi, indexed = params.fields(searcher, **options)
+        fields, multi, indexed = parse.fields(searcher, **options)
         with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
             doc = searcher[id] if fields is None else searcher.get(id, *itertools.chain(fields, multi))
         result = doc.dict(*multi, **(fields or {}))
@@ -445,10 +445,10 @@ class WebSearcher(object):
             sort = [(name, (type or 'string'), (reverse == '-')) for reverse, name, type in sort]
             with HTTPError(httplib.BAD_REQUEST, AttributeError):
                 sort = [searcher.sorter(name, type, reverse=reverse) for name, type, reverse in sort]
-        q = params.q(searcher, q, **options)
+        q = parse.q(searcher, q, **options)
         qfilter = options.pop('filter', None)
         if qfilter is not None and qfilter not in searcher.filters:
-            searcher.filters[qfilter] = engine.Query.filter(params.q(searcher, qfilter, **options))
+            searcher.filters[qfilter] = engine.Query.filter(parse.q(searcher, qfilter, **options))
         qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
             if q is not None:
@@ -480,7 +480,7 @@ class WebSearcher(object):
         hlcount = options.get('hl.count', 1)
         if hl:
             hl = {name: searcher.highlighter(q, name, terms='terms' in enable, fields='fields' in enable, tag=tag) for name in hl}
-        fields, multi, indexed = params.fields(searcher, fields, **options)
+        fields, multi, indexed = parse.fields(searcher, fields, **options)
         if fields is None:
             fields = {}
         else:
@@ -785,7 +785,7 @@ class WebIndexer(WebSearcher):
         if q is None:
             self.indexer.deleteAll()
         else:
-            self.indexer.delete(params.q(self.searcher, q, **options))
+            self.indexer.delete(parse.q(self.searcher, q, **options))
         self.refresh()
     search._cp_config.update(WebSearcher.search._cp_config)
 

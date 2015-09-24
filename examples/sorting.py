@@ -23,10 +23,10 @@ Custom sorting isn't necessary in the below example of course, just there for de
 """
 
 import lucene
-lucene.initVM()
 from org.apache.lucene import search
 from org.apache.pylucene.search import PythonFieldComparator, PythonFieldComparatorSource
 from lupyne import engine
+lucene.initVM()
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
 indexer = engine.Indexer()

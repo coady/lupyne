@@ -7,7 +7,7 @@ import datetime
 import calendar
 import operator
 import warnings
-import lucene
+import lucene  # noqa
 from java.lang import Double, Float, Long, Number, Object
 from java.util import Arrays, HashSet
 from org.apache.lucene import document, index, search, util

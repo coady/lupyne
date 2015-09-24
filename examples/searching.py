@@ -23,9 +23,9 @@ NestedFields could still be used however, as demonstrated on dates below.
 
 from datetime import date
 import lucene
-lucene.initVM()
 from org.apache.lucene import search
 from lupyne import engine
+lucene.initVM()
 
 docs = [
     {'city': 'San Francisco', 'state': 'CA', 'incorporated': '1850-04-15', 'population': 808976, 'longitude': -122.4192, 'latitude': 37.7752},
