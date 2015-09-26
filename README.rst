@@ -4,8 +4,8 @@ About Lupyne
    :target: https://pypi.python.org/pypi/lupyne/
 .. image:: https://img.shields.io/pypi/pyversions/lupyne.svg
 .. image:: https://img.shields.io/pypi/status/lupyne.svg
-.. note::
-   Although lupyne is maintained, its dependency `PyLucene is dormant`_ for lack of interest.
+
+:Note: Although lupyne is maintained, its dependency `PyLucene is dormant`_ for lack of interest.
 
 The core engine is a high level interface to `PyLucene`_, which is a Python extension for accessing the popular Java Lucene search engine.
 Lucene has a reputation for being a relatively low-level toolkit, and the goal of PyLucene is to wrap it through automatic code generation.
