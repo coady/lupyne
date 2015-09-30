@@ -6,6 +6,8 @@ About Lupyne
 .. image:: https://img.shields.io/pypi/status/lupyne.svg
 .. image:: https://img.shields.io/shippable/56059e3e1895ca4474182ec3.svg
    :target: https://app.shippable.com/projects/56059e3e1895ca4474182ec3
+.. image:: https://img.shields.io/codecov/c/github/coady/lupyne.svg
+   :target: https://codecov.io/github/coady/lupyne
 
 :Note: Although lupyne is maintained, its dependency `PyLucene is dormant`_ for lack of interest.
 
