@@ -48,7 +48,7 @@ Lupyne should run anywhere PyLucene does, though its primary testing is on the p
 
    * Python 2.7
    * PyLucene 4.10      (installed separately)
-   * CherryPy 3.2+      (optional)
+   * CherryPy 3.8+      (optional)
 
 Tests
 ==================

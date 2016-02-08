@@ -57,12 +57,10 @@ def servers(request):
 @contextlib.contextmanager
 def raises(exception, code):
     "Assert an exception is raised with specific code."
-    try:
+    with pytest.raises(exception) as context:
         yield
-    except exception as exc:
-        assert exc[0] == code
-    else:
-        raise AssertionError(exception.__name__ + ' not raised')
+    assert context.value[0] == code
+    del context  # release exception before exiting block
 
 
 class Resource(client.Resource):
@@ -82,7 +80,6 @@ def test_interface(tempdir, servers):
     servers.start(servers.ports[0], tempdir, '--autoreload=1', **config)
     servers.start(servers.ports[1], tempdir, tempdir, '--autoupdate=2.0')  # concurrent searchers
     resource = client.Resource('localhost', servers.ports[0])
-    assert resource.get('/favicon.ico')
     response = resource.call('GET', '/')
     assert response.status == httplib.OK and response.reason == 'OK' and response.time > 0 and '\n' in response.body
     assert response.getheader('content-encoding') == 'gzip' and response.getheader('content-type').startswith('application/json')
