@@ -6,10 +6,9 @@ import heapq
 import time
 import httplib
 import pytest
-import lucene
 import cherrypy
 from lupyne import client, server
-from .test_remote import tempdir, servers
+from .test_remote import servers
 
 
 def getresponse(error):

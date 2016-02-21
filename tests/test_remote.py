@@ -15,10 +15,9 @@ import errno
 import contextlib
 from email.utils import parsedate
 import pytest
-import lucene
 import cherrypy
 from lupyne import client, engine, server
-from .fixtures import warns, tempdir, constitution, zipcodes
+from .fixtures import warns
 
 
 class Servers(dict):

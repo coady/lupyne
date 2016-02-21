@@ -1,4 +1,5 @@
 import lucene
+from .fixtures import tempdir, constitution, zipcodes
 
 
 def pytest_report_header(config):

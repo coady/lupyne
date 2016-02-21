@@ -15,8 +15,6 @@ def warns(*categories):
         yield messages
     assert tuple(message.category for message in messages) == categories
 
-warnings.simplefilter('default', DeprecationWarning)
-
 
 def fixture(cls):
     return pytest.fixture(lambda: cls())

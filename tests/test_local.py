@@ -4,7 +4,6 @@ import itertools
 import datetime
 import math
 import bisect
-import contextlib
 import pytest
 import lucene
 from java.io import StringReader
@@ -12,7 +11,7 @@ from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
 from org.apache.pylucene.search import PythonFilter
 from lupyne import engine
-from .fixtures import warns, tempdir, constitution, zipcodes
+from .fixtures import warns
 
 
 class typeAsPayload(engine.TokenFilter):
