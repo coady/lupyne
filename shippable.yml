@@ -1,10 +1,13 @@
 language: python
 
-python:
-  - "2.7"
-
-install:
-  - pip install cherrypy pytest-cov
-
-script:
-  - PYTHONPATH=/usr/local/lib/python2.7/dist-packages py.test -v --cov --cov-fail-under=100
+build:
+    pre_ci_boot:
+        image_name: coady/pylucene
+        image_tag: latest
+        pull: true
+        env:
+        options:
+    ci:
+        apt-get install -y pip
+        pip install cherrypy pytest-cov
+        py.test -v --cov --cov-fail-under=100
