@@ -5,7 +5,7 @@ Provides high-level interfaces to indexes and documents,
 abstracting away java lucene primitives.
 """
 
-import lucene
+import lucene  # flake8: noqa
 from .queries import Query, SortField, TermsFilter
 from .documents import Document, Field, MapField, NestedField, DocValuesField, NumericField, DateTimeField
 from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, IndexWriter, Indexer, ParallelIndexer

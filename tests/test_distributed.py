@@ -8,7 +8,7 @@ import httplib
 import pytest
 import cherrypy
 from lupyne import client, server
-from .test_remote import servers
+from .test_remote import servers  # noqa
 
 
 def getresponse(error):
@@ -16,7 +16,7 @@ def getresponse(error):
     raise error(0)
 
 
-def test_interface(servers):
+def test_interface(servers):  # noqa
     "Distributed reading and writing."
     for port in servers.ports:
         servers.start(port)
@@ -80,7 +80,7 @@ def test_interface(servers):
     client.Pool.resource_class = client.Resource
 
 
-def test_sharding(servers):
+def test_sharding(servers):  # noqa
     "Sharding of indices across servers."
     for port in servers.ports:
         servers.start(port)
@@ -115,7 +115,7 @@ def test_sharding(servers):
         shards.choice([[0]])
 
 
-def test_replication(tempdir, servers):
+def test_replication(tempdir, servers):  # noqa
     "Replication from indexer to searcher."
     directory = os.path.join(tempdir, 'backup')
     sync, update = '--autosync=' + servers.hosts[0], '--autoupdate=1'

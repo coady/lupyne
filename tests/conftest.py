@@ -1,5 +1,5 @@
 import lucene
-from .fixtures import tempdir, constitution, zipcodes
+from .fixtures import tempdir, constitution, zipcodes  # noqa
 
 
 def pytest_report_header(config):
