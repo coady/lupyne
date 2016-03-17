@@ -52,8 +52,8 @@ import argparse
 import contextlib
 import lucene
 import cherrypy
-from . import engine, client
-from .utils import json, suppress
+from lupyne import engine, client
+from lupyne.utils import json, suppress
 
 
 def tool(hook):

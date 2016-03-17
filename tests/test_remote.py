@@ -281,14 +281,18 @@ def test_interface(tempdir, servers):
     resource = client.Resource('localhost', servers.ports[1] + 1)
     with raises(IOError, errno.ECONNREFUSED):
         resource.get('/')
+
+
+def test_start(tempdir, servers):
+    "Server run options."
     port = servers.ports[0]
-    servers.stop(port)
     pidfile = os.path.join(tempdir, 'pid')
     servers.start(port, '-dp', pidfile)
     time.sleep(1)
     os.kill(int(open(pidfile).read()), signal.SIGTERM)
     del servers[port]
     assert subprocess.call((sys.executable, '-m', 'lupyne.server', '-c', __file__), stderr=subprocess.PIPE)
+    assert subprocess.call((sys.executable, 'lupyne/server.py', '-x'), env={'PYTHONPATH': '.'}, stderr=subprocess.PIPE) == 2
     assert cherrypy.tree.mount(None)
     server.init(vmargs=None)
     with pytest.raises(AttributeError):
