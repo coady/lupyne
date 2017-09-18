@@ -2,7 +2,8 @@ language: python
 
 build:
   pre_ci_boot:
-    image_name: coady/pylucene:4
+    image_name: coady/pylucene
+    image_tag: 4
     pull: true
   ci:
     - pip install cherrypy pytest-cov

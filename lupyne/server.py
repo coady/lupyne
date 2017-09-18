@@ -49,22 +49,13 @@ import collections
 import itertools
 import os
 import argparse
-import contextlib
 import lucene
 import cherrypy
 from lupyne import engine, client
 from lupyne.utils import json, suppress
 
 
-def tool(hook):
-    "Return decorator to register tool at given hook point."
-    def decorator(func):
-        setattr(cherrypy.tools, func.__name__, cherrypy.Tool(hook, func))
-        return func
-    return decorator
-
-
-@tool('before_request_body')
+@cherrypy.tools.register('before_request_body')
 def json_in(process_body=None, **kwargs):
     """Handle request bodies in json format.
     
@@ -76,12 +67,12 @@ def json_in(process_body=None, **kwargs):
     def processor(entity):
         cherrypy.lib.jsontools.json_processor(entity)
         if process_body is not None:
-            with HTTPError(httplib.BAD_REQUEST, TypeError):
+            with cherrypy.HTTPError.handle(TypeError, httplib.BAD_REQUEST):
                 request.params.update(process_body(request.json))
     cherrypy.lib.jsontools.json_in(force='content-type' in request.headers, processor=processor, **kwargs)
 
 
-@tool('before_handler')
+@cherrypy.tools.register('before_handler')
 def json_out(content_type='application/json', indent=None, **kwargs):
     """Handle responses in json format.
     
@@ -94,24 +85,24 @@ def json_out(content_type='application/json', indent=None, **kwargs):
     cherrypy.lib.jsontools.json_out(content_type, handler=handler, **kwargs)
 
 
-@tool('on_start_resource')
+@cherrypy.tools.register('on_start_resource')
 def allow(methods=None, paths=(), **kwargs):
     "Only allow specified methods."
     handler = cherrypy.request.handler
     if paths and hasattr(handler, 'args'):
-        with HTTPError(httplib.NOT_FOUND, IndexError):
+        with cherrypy.HTTPError.handle(IndexError, httplib.NOT_FOUND):
             methods = paths[len(handler.args)]
     cherrypy.lib.cptools.allow(methods, **kwargs)
 
 
-@tool('before_finalize')
+@cherrypy.tools.register('before_finalize')
 def timer():
     "Return response time in headers."
     response = cherrypy.serving.response
     response.headers['x-response-time'] = time.time() - response.time
 
 
-@tool('on_start_resource')
+@cherrypy.tools.register('on_start_resource')
 def validate(etag=True, last_modified=False, max_age=None, expires=None):
     """Return and validate caching headers.
     
@@ -135,11 +126,11 @@ def validate(etag=True, last_modified=False, max_age=None, expires=None):
         headers['expires'] = cherrypy.lib.httputil.HTTPDate(expires + root.updated)
 
 
-@tool('before_handler')
+@cherrypy.tools.register('before_handler')
 def params(**types):
     "Convert specified request params."
     params = cherrypy.request.params
-    with HTTPError(httplib.BAD_REQUEST, ValueError):
+    with cherrypy.HTTPError.handle(ValueError, httplib.BAD_REQUEST):
         for key in set(types).intersection(params):
             params[key] = types[key](params[key])
 
@@ -163,13 +154,13 @@ class parse:
         else:
             field = [name for name, boost in fields] or ''
         if 'type' in options:
-            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+            with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
                 return getattr(engine.Query, options['type'])(field, q)
         for key in set(options) - {'op', 'version'}:
-            with HTTPError(httplib.BAD_REQUEST, ValueError):
+            with cherrypy.HTTPError.handle(ValueError, httplib.BAD_REQUEST):
                 options[key] = json.loads(options[key])
         if q is not None:
-            with HTTPError(httplib.BAD_REQUEST, lucene.JavaError):
+            with cherrypy.HTTPError.handle(lucene.JavaError, httplib.BAD_REQUEST):
                 return searcher.parse(q, field=field, **options)
 
     @staticmethod
@@ -217,15 +208,6 @@ class AttachedMonitor(cherrypy.process.plugins.Monitor):
     def unsubscribe(self):
         cherrypy.process.plugins.Monitor.unsubscribe(self)
         self.thread.cancel()
-
-
-@contextlib.contextmanager
-def HTTPError(status, *exceptions):
-    "Interpret exceptions as an HTTPError with given status code."
-    try:
-        yield
-    except exceptions as exc:
-        raise cherrypy.HTTPError(status, str(exc))
 
 
 class WebSearcher(object):
@@ -363,10 +345,10 @@ class WebSearcher(object):
         searcher = self.searcher
         if not name:
             return list(searcher)
-        with HTTPError(httplib.NOT_FOUND, ValueError):
+        with cherrypy.HTTPError.handle(ValueError, httplib.NOT_FOUND):
             id, = searcher.docs(name, value) if value else [int(name)]
         fields, multi, indexed = parse.fields(searcher, **options)
-        with HTTPError(httplib.NOT_FOUND, lucene.JavaError):
+        with cherrypy.HTTPError.handle(lucene.JavaError, httplib.NOT_FOUND):
             doc = searcher[id] if fields is None else searcher.get(id, *itertools.chain(fields, multi))
         result = doc.dict(*multi, **(fields or {}))
         result.update((name, indexed[name][id]) for name in indexed)
@@ -444,7 +426,7 @@ class WebSearcher(object):
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort)
             sort = [(name, (type or 'string'), (reverse == '-')) for reverse, name, type in sort]
-            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+            with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
                 sort = [searcher.sorter(name, type, reverse=reverse) for name, type, reverse in sort]
         q = parse.q(searcher, q, **options)
         qfilter = options.pop('filter', None)
@@ -455,7 +437,7 @@ class WebSearcher(object):
             if q is not None:
                 mlt, = searcher.search(q, count=mlt + 1, sort=sort)[mlt:].ids
             mltfields = options.pop('mlt.fields', ())
-            with HTTPError(httplib.BAD_REQUEST, ValueError):
+            with cherrypy.HTTPError.handle(ValueError, httplib.BAD_REQUEST):
                 attrs = {key.partition('.')[-1]: json.loads(options[key]) for key in options if key.startswith('mlt.')}
             q = searcher.morelikethis(mlt, *mltfields, analyzer=searcher.analyzer, **attrs)
         if count is not None:
@@ -467,7 +449,7 @@ class WebSearcher(object):
         scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
         if ':' in group or group in searcher.sorters:
             hits = searcher.search(q, filter=qfilter, sort=sort, timeout=timeout, **scores)
-            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+            with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
                 groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__, count=count, docs=gcount)
             groups.groupdocs = groups.groupdocs[start:]
         elif group:
@@ -569,7 +551,7 @@ class WebSearcher(object):
         if not name:
             return sorted(searcher.names(**options))
         if ':' in name:
-            with HTTPError(httplib.BAD_REQUEST, ValueError, AttributeError):
+            with cherrypy.HTTPError.handle((ValueError, AttributeError), httplib.BAD_REQUEST):
                 name, type = name.split(':')
                 type = getattr(__builtins__, type)
             return list(searcher.numbers(name, step=options.get('step', 0), type=type))
@@ -581,7 +563,7 @@ class WebSearcher(object):
                 return searcher.suggest(name, value, options['count'])
             return list(searcher.terms(name, value))
         if '~' in value:
-            with HTTPError(httplib.BAD_REQUEST, ValueError):
+            with cherrypy.HTTPError.handle(ValueError, httplib.BAD_REQUEST):
                 value, distance = value.split('~')
                 distance = int(distance or 2)
             if 'count' in options:
@@ -631,7 +613,7 @@ class WebSearcher(object):
         if not value:
             if request.method == 'GET':
                 request.body.process()
-            with HTTPError(httplib.NOT_FOUND, KeyError):
+            with cherrypy.HTTPError.handle(KeyError, httplib.NOT_FOUND):
                 queries = self.query_map[name]
             scores = self.searcher.match(getattr(request, 'json', {}), *queries.values())
             return dict(zip(queries, scores))
@@ -642,7 +624,7 @@ class WebSearcher(object):
             if value not in queries:
                 cherrypy.response.status = httplib.CREATED
             queries[value] = self.searcher.parse(request.json)
-        with HTTPError(httplib.NOT_FOUND, KeyError):
+        with cherrypy.HTTPError.handle(KeyError, httplib.NOT_FOUND):
             return str(self.query_map[name][value])
 
 
@@ -723,14 +705,14 @@ class WebIndexer(WebSearcher):
             response.status = httplib.CREATED
             response.headers['location'] = cherrypy.url('/update/{0:d}'.format(commit.generation), relative='server')
         else:
-            with HTTPError(httplib.NOT_FOUND, ValueError, AssertionError):
+            with cherrypy.HTTPError.handle((ValueError, AssertionError), httplib.NOT_FOUND):
                 commit = self.indexer.policy.getIndexCommit(long(id))
                 assert commit is not None, 'commit not snapshotted'
             if method == 'DELETE':
                 self.indexer.policy.release(commit)
         if not name:
             return list(commit.fileNames)
-        with HTTPError(httplib.NOT_FOUND, TypeError, AssertionError):
+        with cherrypy.HTTPError.handle((TypeError, AssertionError), httplib.NOT_FOUND):
             directory = self.searcher.path
             assert name in commit.fileNames, 'file not referenced in commit'
         return cherrypy.lib.static.serve_download(os.path.join(directory, name))
@@ -760,13 +742,13 @@ class WebIndexer(WebSearcher):
                 self.indexer.add(doc)
         else:
             doc = getattr(request, 'json', {})
-            with HTTPError(httplib.CONFLICT, KeyError, AssertionError):
+            with cherrypy.HTTPError.handle((KeyError, AssertionError), httplib.CONFLICT):
                 assert self.indexer.fields[name].indexed(), 'unique field must be indexed'
             if request.method == 'PUT':
-                with HTTPError(httplib.BAD_REQUEST, AssertionError):
+                with cherrypy.HTTPError.handle(AssertionError, httplib.BAD_REQUEST):
                     assert doc.setdefault(name, value) == value, 'multiple values for unique field'
             else:
-                with HTTPError(httplib.CONFLICT, KeyError, AssertionError):
+                with cherrypy.HTTPError.handle((KeyError, AssertionError), httplib.CONFLICT):
                     assert all(self.indexer.fields[name].docValueType() for name in doc)
             self.indexer.update(name, value, doc)
         self.refresh()
@@ -816,9 +798,9 @@ class WebIndexer(WebSearcher):
         if cherrypy.request.method == 'PUT':
             if name not in self.indexer.fields:
                 cherrypy.response.status = httplib.CREATED
-            with HTTPError(httplib.BAD_REQUEST, AttributeError):
+            with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
                 self.indexer.set(name, **settings)
-        with HTTPError(httplib.NOT_FOUND, KeyError):
+        with cherrypy.HTTPError.handle(KeyError, httplib.NOT_FOUND):
             return self.indexer.fields[name].settings
 
 
