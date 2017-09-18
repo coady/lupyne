@@ -54,7 +54,7 @@ Tests
 ==================
 100% branch coverage. ::
 
-   $ py.test [--cov]
+   $ pytest [--cov]
 
 Changes
 ==================

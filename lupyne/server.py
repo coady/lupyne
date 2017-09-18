@@ -72,6 +72,7 @@ def json_in(process_body=None, **kwargs):
     :param process_body: optional function to process body into request.params
     """
     request = cherrypy.serving.request
+
     def processor(entity):
         cherrypy.lib.jsontools.json_processor(entity)
         if process_body is not None:
@@ -874,6 +875,7 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
     if root is not None:
         mount(root, path, config, autoupdate)
     cherrypy.quickstart(cherrypy.tree.apps.get(path), path, config)
+
 
 parser = argparse.ArgumentParser(description='Restful json cherrypy server.', prog='lupyne.server')
 parser.add_argument('directories', nargs='*', metavar='directory', help='index directories')

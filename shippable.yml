@@ -2,9 +2,9 @@ language: python
 
 build:
   pre_ci_boot:
-    image_name: coady/pylucene
+    image_name: coady/pylucene:4
     pull: true
   ci:
     - pip install cherrypy pytest-cov
-    - py.test -v --cov --cov-fail-under=100
+    - pytest -v --cov --cov-fail-under=100
     - coverage xml -o shippable/codecoverage/coverage.xml

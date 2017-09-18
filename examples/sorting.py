@@ -67,6 +67,7 @@ class ComparatorSource(PythonFieldComparatorSource):
         def copy(self, slot, doc):
             self.values[slot] = self.comparator.get(doc).utf8ToString()
 
+
 sorter = search.Sort(search.SortField('color', ComparatorSource()))
 # still must supply excessive doc count to use the sorter
 topdocs = searcher.search(search.MatchAllDocsQuery(), None, 10, sorter)

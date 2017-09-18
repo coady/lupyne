@@ -123,6 +123,7 @@ class Resource(httplib.HTTPConnection):
         "Return response body from PATCH request."
         return self.call('PATCH', path, body, **kwargs)()
 
+
 if hasattr(httplib, 'HTTPSConnection'):  # pragma: no branch
     class SResource(Resource, httplib.HTTPSConnection, object):
         pass

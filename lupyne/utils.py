@@ -29,6 +29,7 @@ class Atomic(object):
     def __subclasshook__(cls, other):
         return not issubclass(other, collections.Iterable) or NotImplemented
 
+
 Atomic.register(basestring)
 
 

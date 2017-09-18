@@ -22,6 +22,7 @@ from tests import fixtures
 def parse(date):
     return int(date.utf8ToString().split('-')[0])
 
+
 if __name__ == '__main__':
     lucene.initVM(vmargs='-Xrs')
     root = server.WebIndexer()
