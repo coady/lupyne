@@ -250,7 +250,7 @@ class WebSearcher(object):
         directory = self.searcher.path
         resource = client.Resource(host)
         resource.headers = dict(resource.headers, **{'if-none-match': self.etag})
-        response = resource.call('PUT', '/{}/update/snapshot'.format(path.lstrip('/')))
+        response = resource.call('PUT', path.lstrip('/') + '/update/snapshot')
         if response.status == httplib.PRECONDITION_FAILED:
             return []
         names = sorted(set(response()).difference(os.listdir(directory)))

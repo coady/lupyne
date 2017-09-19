@@ -26,29 +26,27 @@ A simple client to make interacting with the server as convenient as an RPC inte
 It handles all of the HTTP interactions, with support for compression, json, and connection reuse.
 
 Advanced search features:
-   * Distributed searching with support for replication, partitioning, and sharding.
-   * Optimized faceted and grouped search.
-   * Optimized prefix and range queries.
-   * Geospatial support.
-   * Spellchecking.
-   * Near real-time indexing.
+
+* Distributed searching with support for replication, partitioning, and sharding.
+* Optimized faceted and grouped search.
+* Optimized prefix and range queries.
+* Geospatial support.
+* Spellchecking.
+* Near real-time indexing.
 
 See `documentation`_ for example usage.
 
 Installation
 ==================
-Standard installation from pypi or local download. ::
+::
 
    $ pip install lupyne
-   $ python setup.py install
 
 Dependencies
 ==================
-Lupyne should run anywhere PyLucene does, though its primary testing is on the popular unix variants.
-
-   * Python 2.7
-   * PyLucene 4.10      (installed separately)
-   * CherryPy 3.8+      (optional)
+* Python 2.7
+* PyLucene 4.10      (installed separately)
+* CherryPy 10+       (optional)
 
 Tests
 ==================
@@ -59,17 +57,19 @@ Tests
 Changes
 ==================
 1.9
-   * Python 2.6 dropped
-   * PyLucene 4.8 and 4.9 dropped
-   * IndexWriter implements context manager
-   * Server DocValues updated via patch method
-   * Spatial tile search optimized
+
+* Python 2.6 dropped
+* PyLucene 4.8 and 4.9 dropped
+* IndexWriter implements context manager
+* Server DocValues updated via patch method
+* Spatial tile search optimized
 
 1.8
-   * PyLucene 4.10 supported
-   * PyLucene 4.6 and 4.7 dropped
-   * Comparator iteration optimized
-   * Support for string based FieldCacheRangeFilters
+
+* PyLucene 4.10 supported
+* PyLucene 4.6 and 4.7 dropped
+* Comparator iteration optimized
+* Support for string based FieldCacheRangeFilters
 
 .. _PyLucene is dormant: http://mail-archives.apache.org/mod_mbox/lucene-pylucene-dev/201506.mbox/%3calpine.OSX.2.01.1506010952020.53725@yuzu.local%3e
 .. _PyLucene: http://lucene.apache.org/pylucene/

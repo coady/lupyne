@@ -16,6 +16,7 @@ import contextlib
 from email.utils import parsedate
 import pytest
 import cherrypy
+import portend
 from lupyne import client, engine, server
 from .fixtures import warns
 
@@ -30,9 +31,9 @@ class Servers(dict):
         "Start server in separate process on given port."
         config.update(self.config)
         config['server.socket_port'] = port
-        cherrypy.process.servers.wait_for_free_port('localhost', port)
+        portend.free('localhost', port)
         server = self[port] = subprocess.Popen((sys.executable, '-m', self.module, '-c', json.dumps(config)) + args)
-        cherrypy.process.servers.wait_for_occupied_port('localhost', port)
+        portend.occupied('localhost', port)
         server.started = time.time()
         assert not server.poll()
 
