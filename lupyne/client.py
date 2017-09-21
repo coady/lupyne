@@ -4,7 +4,6 @@ Restful json clients.
 Use `Resource`_ for a connection to a single host.
 Use `Pool`_ for persistent thread-safe connections to a single host.
 Use `Resources`_ for multiple hosts with simple partitioning or replication.
-Use `Shards`_ for horizontally partitioning hosts by different keys.
 
 `Resources`_ optionally reuse connections, handling request timeouts.
 Broadcasting to multiple resources is parallelized with asynchronous requests and responses.
@@ -13,10 +12,9 @@ The load balancing strategy is randomized, biased by the number of cached connec
 This inherently provides limited failover support, but applications must still handle exceptions as desired.
 """
 
-from future_builtins import map, zip
+from future_builtins import zip
 import warnings
 import random
-import itertools
 import collections
 import io
 import gzip
@@ -191,42 +189,3 @@ class Resources(dict):
         hosts = tuple(hosts) or self
         streams = [self[host].stream(method, path, body) for host in hosts]
         return list(zip(*streams))[-1]
-
-
-class Shards(dict):
-    """Mapping of keys to host clusters, with associated `resources`_.
-    
-    :param items: host, key pairs
-    :param limit: maximum number of cached connections per host
-    :param multimap: mapping of hosts to multiple keys
-    """
-    choice = Resources.__dict__['choice']
-
-    def __init__(self, items=(), limit=0, **multimap):
-        pairs = ((host, key) for host in multimap for key in multimap[host])
-        for host, key in itertools.chain(items, pairs):
-            self.setdefault(key, set()).add(host)
-        self.resources = Resources(itertools.chain(*self.values()), limit)
-
-    def priority(self, hosts):
-        "Return combined priority for hosts."
-        priorities = list(map(self.resources.priority, hosts))
-        if None not in priorities:
-            return len(priorities), sum(priorities)
-
-    def unicast(self, key, method, path, body=None):
-        "Send request and return `response`_ from any host for corresponding key."
-        return self.resources.unicast(method, path, body, self[key])
-
-    def broadcast(self, key, method, path, body=None):
-        "Send requests and return responses from all hosts for corresponding key."
-        return self.resources.broadcast(method, path, body, self[key])
-
-    def multicast(self, keys, method, path, body=None):
-        """Send requests and return responses from a minimal subset of hosts which cover all corresponding keys.
-        Response overlap is possible depending on partitioning.
-        """
-        shards = frozenset(),
-        for key in keys:
-            shards = {hosts.union([host]) for hosts, host in itertools.product(shards, self[key])}
-        return self.resources.broadcast(method, path, body, self.choice(shards))

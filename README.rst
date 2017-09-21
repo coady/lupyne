@@ -27,7 +27,7 @@ It handles all of the HTTP interactions, with support for compression, json, and
 
 Advanced search features:
 
-* Distributed searching with support for replication, partitioning, and sharding.
+* Automatic updating and syncing to support replication.
 * Optimized faceted and grouped search.
 * Optimized prefix and range queries.
 * Geospatial support.

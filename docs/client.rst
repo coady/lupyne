@@ -49,14 +49,4 @@ Resources
   :show-inheritance:
   :members:
 
-Shards
----------
-.. autoclass:: Shards
-  :show-inheritance:
-  :members:
-
-  .. attribute:: resources
-
-    `Resources`_ mapping.
-
 .. _thread pool: http://docs.cherrypy.org/en/latest/pkg/cherrypy.html#cherrypy._cpserver.Server.thread_pool

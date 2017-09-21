@@ -2,7 +2,6 @@ from future_builtins import map
 import os
 import sys
 import subprocess
-import heapq
 import time
 import httplib
 import pytest
@@ -78,41 +77,6 @@ def test_interface(servers):  # noqa
         with pytest.raises(httplib.ssl.SSLError):
             client.Pool(servers.hosts[-1]).call('GET', '/')
     client.Pool.resource_class = client.Resource
-
-
-def test_sharding(servers):  # noqa
-    "Sharding of indices across servers."
-    for port in servers.ports:
-        servers.start(port)
-    keys = range(len(servers.hosts))
-    shards = client.Shards(zip(servers.hosts * 2, heapq.merge(keys, keys)), limit=1)
-    shards.resources.broadcast('PUT', '/fields/zone', {'stored': True})
-    for zone in range(len(servers.ports)):
-        shards.broadcast(zone, 'POST', '/docs', [{'zone': str(zone)}])
-    shards.resources.broadcast('POST', '/update')
-    result = shards.unicast(0, 'GET', '/search?q=zone:0')()
-    assert result['count'] == len(result['docs']) == 1
-    assert all(response() == result for response in shards.broadcast(0, 'GET', '/search?q=zone:0'))
-    response, = shards.multicast([0], 'GET', '/search')
-    assert {doc['zone'] for doc in response()['docs']} > {'0'}
-    response, = shards.multicast([0, 1], 'GET', '/search')
-    assert {doc['zone'] for doc in response()['docs']} == set('01')
-    zones = set()
-    responses = shards.multicast([0, 1, 2], 'GET', '/search')
-    assert len(responses) == 2
-    for response in responses:
-        docs = response()['docs']
-        assert len(docs) == 2
-        zones.update(doc['zone'] for doc in docs)
-    assert zones == set('012')
-    servers.stop(servers.ports[0])
-    with pytest.raises(IOError):
-        shards.broadcast(0, 'GET', '/')
-    responses = shards.multicast([0, 1, 2], 'GET', '/')
-    assert len(responses) == 2 and all(response() for response in responses)
-    shards.resources.priority = lambda hosts: None
-    with pytest.raises(ValueError):
-        shards.choice([[0]])
 
 
 def test_replication(tempdir, servers):  # noqa
