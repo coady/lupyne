@@ -59,11 +59,4 @@ Shards
 
     `Resources`_ mapping.
 
-Replicas
----------
-.. versionadded:: 1.2
-.. autoclass:: Replicas
-  :show-inheritance:
-  :members:
-
 .. _thread pool: http://docs.cherrypy.org/en/latest/pkg/cherrypy.html#cherrypy._cpserver.Server.thread_pool

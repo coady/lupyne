@@ -5,20 +5,17 @@ Use `Resource`_ for a connection to a single host.
 Use `Pool`_ for persistent thread-safe connections to a single host.
 Use `Resources`_ for multiple hosts with simple partitioning or replication.
 Use `Shards`_ for horizontally partitioning hosts by different keys.
-Use `Replicas`_ in coordination with automatic host synchronization.
 
 `Resources`_ optionally reuse connections, handling request timeouts.
 Broadcasting to multiple resources is parallelized with asynchronous requests and responses.
 
 The load balancing strategy is randomized, biased by the number of cached connections available.
 This inherently provides limited failover support, but applications must still handle exceptions as desired.
-`Replicas`_ will automatically retry if host is unreachable.
 """
 
 from future_builtins import map, zip
 import warnings
 import random
-import time
 import itertools
 import collections
 import io
@@ -233,40 +230,3 @@ class Shards(dict):
         for key in keys:
             shards = {hosts.union([host]) for hosts, host in itertools.product(shards, self[key])}
         return self.resources.broadcast(method, path, body, self.choice(shards))
-
-
-class Replicas(Resources):
-    """Resources which failover assuming the hosts are being automatically synchronized.
-    Writes are dispatched to the first host and sequentially failover.
-    Reads are balanced among all remaining hosts.
-    """
-    get, post, put, delete = map(Resource.__dict__.__getitem__, ['get', 'post', 'put', 'delete'])
-
-    def __init__(self, hosts, limit=0):
-        self.hosts = collections.deque(hosts)
-        Resources.__init__(self, self.hosts, limit)
-        for pool in self.values():
-            pool.failure = 0
-
-    def priority(self, host):
-        pool = self[host]
-        if not pool.failure:
-            return -len(pool)
-
-    def call(self, method, path, body=None, params=(), retry=False):
-        """Send request and return completed `response`_, even if hosts are unreachable.
-        
-        :param retry: optionally retry request on http errors as well, such as waiting for indexer promotion
-        """
-        if params:
-            path += '?' + urllib.urlencode(params, doseq=True)
-        host = self.choice(self) if method == 'GET' else self.hosts[0]
-        try:
-            response = self[host].call(method, path, body)
-        except IOError:
-            self[host].failure = time.time()
-            if method != 'GET':
-                with suppress(ValueError):
-                    self.hosts.remove(host)
-            return self.call(method, path, body, retry=retry)
-        return response if (response or not retry) else self.call(method, path, body, retry=retry - 1)

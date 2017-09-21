@@ -124,17 +124,17 @@ def test_replication(tempdir, servers):  # noqa
     servers.start(servers.ports[2], '-r', directory),
     for args in [('-r', tempdir), (update, tempdir), (update, tempdir, tempdir)]:
         assert subprocess.call((sys.executable, '-m', 'lupyne.server', sync) + args, stderr=subprocess.PIPE)
-    replicas = client.Replicas(servers.hosts[:2], limit=1)
-    replicas.post('/docs', [{}])
-    assert replicas.post('/update') == 1
+    primary = client.Resource(servers.hosts[0])
+    primary.post('/docs', [{}])
+    assert primary.post('/update') == 1
     resource = client.Resource(servers.hosts[2])
     response = resource.call('POST', '/', {'host': servers.hosts[0]})
     assert response.status == httplib.ACCEPTED and sum(response().values()) == 0
     assert resource.post('/update') == 1
     assert resource.post('/', {'host': servers.hosts[0], 'path': '/'})
     assert resource.post('/update') == 1
-    replicas.post('/docs', [{}])
-    assert replicas.post('/update') == 2
+    primary.post('/docs', [{}])
+    assert primary.post('/update') == 2
     resource = client.Resource(servers.hosts[1])
     time.sleep(1.1)
     assert sum(resource.get('/').values()) == 2
@@ -145,10 +145,9 @@ def test_replication(tempdir, servers):  # noqa
     assert root.update() == 2
     assert len(root.hosts) == 2
     servers.stop(servers.ports[0])
-    assert replicas.get('/docs')
-    assert replicas.call('POST', '/docs', []).status == httplib.METHOD_NOT_ALLOWED
-    assert replicas.get('/terms', option='indexed') == []
-    assert replicas.call('POST', '/docs', [], retry=True).status == httplib.METHOD_NOT_ALLOWED
+    assert resource.get('/docs')
+    assert resource.call('POST', '/docs', []).status == httplib.METHOD_NOT_ALLOWED
+    assert resource.get('/terms', option='indexed') == []
     assert root.update() == 2
     assert len(root.hosts) == 1
     servers.stop(servers.ports[1])
