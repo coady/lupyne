@@ -18,7 +18,6 @@ import pytest
 import cherrypy
 import portend
 from lupyne import client, engine, server
-from .fixtures import warns
 
 
 class Servers(dict):
@@ -155,7 +154,7 @@ def test_interface(tempdir, servers):
     assert math.isnan(result.pop('maxscore'))
     assert result == {'query': 'text:hello', 'count': 0, 'docs': []}
     resource.headers['if-none-match'] = version
-    response = resource.call('GET', '/', redirect=True)
+    response = resource.call('GET', '/')
     assert response.status == httplib.NOT_MODIFIED and response.getheader('etag') == version
     del resource.headers['if-none-match']
     resource.headers['if-modified-since'] = modified
@@ -253,14 +252,10 @@ def test_interface(tempdir, servers):
     with raises(httplib.HTTPException, httplib.NOT_FOUND):
         resource.get('/docs/missing/sample')
     assert not resource.delete('/search')
-    responses = list(resource.multicall(('POST', '/docs', [{}]), ('POST', '/update'), ('GET', '/docs')))
-    assert responses[0].status == httplib.ACCEPTED and responses[1]() == len(responses[2]()) == 1
     tmpdir = tempfile.mkdtemp(dir=os.path.dirname(__file__))
     engine.IndexWriter(tmpdir).add()
-    assert resource.post('/', [tmpdir]).values() == [2]
+    assert resource.post('/', [tmpdir]).values() == [1]
     shutil.rmtree(tmpdir)
-    with warns(DeprecationWarning, UserWarning):
-        assert Resource(resource.host, resource.port).call('GET', '/missing', redirect=True)()
     with raises(httplib.HTTPException, httplib.NOT_FOUND):
         resource.get('/update/snapshot')
     response = resource.call('PUT', '/update/snapshot')
