@@ -2,28 +2,16 @@
 Restful json clients.
 
 Use `Resource`_ for a connection to a single host.
-Use `Pool`_ for persistent thread-safe connections to a single host.
-Use `Resources`_ for multiple hosts with simple partitioning or replication.
-
-`Resources`_ optionally reuse connections, handling request timeouts.
-Broadcasting to multiple resources is parallelized with asynchronous requests and responses.
-
-The load balancing strategy is randomized, biased by the number of cached connections available.
-This inherently provides limited failover support, but applications must still handle exceptions as desired.
 """
 
-from future_builtins import zip
 import warnings
-import random
-import collections
 import io
 import gzip
 import shutil
 import httplib
 import urllib
 import urlparse
-import errno
-from .utils import json, suppress
+from .utils import json
 
 
 class Response(httplib.HTTPResponse):
@@ -122,70 +110,3 @@ class Resource(httplib.HTTPConnection):
 if hasattr(httplib, 'HTTPSConnection'):  # pragma: no branch
     class SResource(Resource, httplib.HTTPSConnection, object):
         pass
-
-
-class Pool(collections.deque):
-    "Thread-safe resource pool for one host."
-    resource_class = Resource
-
-    def __init__(self, host, limit=0):
-        collections.deque.__init__(self, maxlen=limit)
-        self.host = host
-
-    def stream(self, method, path, body=None):
-        "Generate resource, initial response, and final response while handling timeouts."
-        try:
-            resource = self.popleft()
-        except IndexError:
-            resource = self.resource_class(self.host)
-        resource.request(method, path, body)
-        response = yield resource
-        with suppress(httplib.BadStatusLine, IOError, errno=errno.ECONNRESET):
-            response = resource.getresponse()
-            timeout = response.status == httplib.BAD_REQUEST and response.body == 'Illegal end of headers.'
-        if response is None or response.status == httplib.REQUEST_TIMEOUT or timeout:
-            resource.close()
-            resource.request(method, path, body)
-            yield response
-            yield resource.getresponse()
-        else:
-            self.append(resource)
-            yield response
-            yield response
-
-    def call(self, method, path, body=None):
-        "Send request and return completed `response`_."
-        return list(self.stream(method, path, body))[-1]
-
-
-class Resources(dict):
-    """Thread-safe mapping of hosts to resource pools.
-    
-    :param hosts: host[:port] strings
-    :param limit: maximum number of cached resources per host
-    """
-    def __init__(self, hosts, limit=0):
-        self.update((host, Pool(host, limit)) for host in hosts)
-
-    def priority(self, host):
-        "Return priority for host.  None may be used to eliminate from consideration."
-        return -len(self[host])
-
-    def choice(self, hosts):
-        "Return chosen host according to priority."
-        priorities = collections.defaultdict(list)
-        for host in hosts:
-            priorities[self.priority(host)].append(host)
-        priorities.pop(None, None)
-        return random.choice(priorities[min(priorities)])
-
-    def unicast(self, method, path, body=None, hosts=()):
-        "Send request and return `response`_ from any host, optionally from given subset."
-        host = self.choice(tuple(hosts) or self)
-        return self[host].call(method, path, body)
-
-    def broadcast(self, method, path, body=None, hosts=()):
-        "Send requests and return responses from all hosts, optionally from given subset."
-        hosts = tuple(hosts) or self
-        streams = [self[host].stream(method, path, body) for host in hosts]
-        return list(zip(*streams))[-1]

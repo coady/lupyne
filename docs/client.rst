@@ -36,17 +36,4 @@ Resource
   :members:
   :exclude-members: response_class
 
-Pool
----------
-.. versionadded:: 1.2
-.. autoclass:: Pool
-  :show-inheritance:
-  :members:
-
-Resources
----------
-.. autoclass:: Resources
-  :show-inheritance:
-  :members:
-
 .. _thread pool: http://docs.cherrypy.org/en/latest/pkg/cherrypy.html#cherrypy._cpserver.Server.thread_pool

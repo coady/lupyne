@@ -1,82 +1,11 @@
-from future_builtins import map
 import os
 import sys
 import subprocess
 import time
 import httplib
-import pytest
 import cherrypy
 from lupyne import client, server
 from .test_remote import servers  # noqa
-
-
-def getresponse(error):
-    "Test error handling in resources."
-    raise error(0)
-
-
-def test_interface(servers):  # noqa
-    "Distributed reading and writing."
-    for port in servers.ports:
-        servers.start(port)
-    resources = client.Resources(servers.hosts, limit=1)
-    assert resources.unicast('GET', '/')
-    assert not resources.unicast('POST', '/terms')
-    responses = resources.broadcast('GET', '/')
-    assert len(responses) == len(resources)
-    for response in responses:
-        (directory, count), = response().items()
-        assert count == 0 and 'RAMDirectory@' in directory
-    responses = resources.broadcast('PUT', '/fields/text')
-    assert all(response() == {'indexed': True} for response in responses)
-    responses = resources.broadcast('PUT', '/fields/name', {'stored': True, 'tokenized': False})
-    assert all(response() == {'stored': True, 'indexed': True, 'tokenized': False} for response in responses)
-    doc = {'name': 'sample', 'text': 'hello world'}
-    responses = resources.broadcast('POST', '/docs', [doc])
-    assert all(response() is None for response in responses)
-    response = resources.unicast('POST', '/docs', [doc])
-    assert response() is None
-    responses = resources.broadcast('POST', '/update')
-    assert all(response() >= 1 for response in responses)
-    responses = resources.broadcast('GET', '/search?q=text:hello')
-    docs = []
-    for response in responses:
-        result = response()
-        assert result['count'] >= 1
-        docs += result['docs']
-    assert len(docs) == len(resources) + 1
-    assert len({doc['__id__'] for doc in docs}) == 2
-    servers.stop(servers.ports[0])
-    with pytest.raises(IOError):
-        resources.broadcast('GET', '/')
-    assert resources.unicast('GET', '/')()
-    del resources[servers.hosts[0]]
-    assert all(resources.broadcast('GET', '/'))
-    assert list(map(len, resources.values())) == [1, 1]
-    time.sleep(servers.config['server.socket_timeout'] + 1)
-    assert resources.unicast('GET', '/')
-    counts = list(map(len, resources.values()))
-    assert set(counts) == {0, 1}
-    assert resources.broadcast('GET', '/')
-    assert list(map(len, resources.values())) == counts[::-1]
-    host = servers.hosts[1]
-    stream = resources[host].stream('GET', '/')
-    resource = next(stream)
-    resource.getresponse = lambda: getresponse(IOError)
-    with pytest.raises(IOError):
-        next(stream)
-    stream = resources[host].stream('GET', '/')
-    resource = next(stream)
-    resource.getresponse = lambda: getresponse(httplib.BadStatusLine)
-    assert next(stream) is None
-    resources.clear()
-    with pytest.raises(ValueError):
-        resources.unicast('GET', '/')
-    if hasattr(client, 'SResource'):
-        client.Pool.resource_class = client.SResource
-        with pytest.raises(httplib.ssl.SSLError):
-            client.Pool(servers.hosts[-1]).call('GET', '/')
-    client.Pool.resource_class = client.Resource
 
 
 def test_replication(tempdir, servers):  # noqa

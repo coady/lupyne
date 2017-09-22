@@ -12,13 +12,12 @@ except ImportError:
 
 
 @contextlib.contextmanager
-def suppress(*exceptions, **attrs):
-    "From Python 3: extended to also match attributes, e.g., error codes."
+def suppress(*exceptions):
+    """Backport of contextlib.suppress."""
     try:
         yield
-    except exceptions as exc:
-        if any(getattr(exc, name, value) != value for name, value in attrs.items()):
-            raise
+    except exceptions:  # pragma: no cover
+        pass
 
 
 class Atomic(object):
