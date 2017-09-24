@@ -24,6 +24,7 @@ class Servers(dict):
     module = 'lupyne.server'
     ports = 8080, 8081, 8082
     hosts = list(map('localhost:{:d}'.format, ports))
+    urls = tuple(map('http://localhost:{}'.format, ports))
     config = {'server.socket_timeout': 2, 'server.shutdown_timeout': 1}
 
     def start(self, port, *args, **config):
@@ -44,7 +45,7 @@ class Servers(dict):
         assert server.wait() == 0
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def servers(request):
     servers = Servers()
     servers.config['log.screen'] = request.config.option.verbose > 0

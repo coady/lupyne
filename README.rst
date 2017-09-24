@@ -46,7 +46,11 @@ Dependencies
 ==================
 * Python 2.7
 * PyLucene 4.10      (installed separately)
-* CherryPy 10+       (optional)
+
+Optional server extras
+
+* CherryPy 10+
+* clients 0.2+
 
 Tests
 ==================

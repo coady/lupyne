@@ -11,7 +11,7 @@ setup(
     url='https://bitbucket.org/coady/lupyne',
     license='Apache Software License',
     packages=['lupyne', 'lupyne.engine'],
-    extras_require={'server': ['cherrypy>=10']},
+    extras_require={'server': ['cherrypy>=10', 'clients>=0.2']},
     tests_require=['pytest-cov'],
     classifiers=[
         'Development Status :: 6 - Mature',
