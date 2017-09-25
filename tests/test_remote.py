@@ -3,9 +3,7 @@ import os
 import sys
 import tempfile
 import shutil
-import signal
 import subprocess
-import operator
 import httplib
 import math
 import json
@@ -15,9 +13,8 @@ import errno
 import contextlib
 from email.utils import parsedate
 import pytest
-import cherrypy
 import portend
-from lupyne import client, engine, server
+from lupyne import client, engine
 
 
 class Servers(dict):
@@ -278,161 +275,3 @@ def test_interface(tempdir, servers):
     resource = client.Resource('localhost', servers.ports[1] + 1)
     with raises(IOError, errno.ECONNREFUSED):
         resource.get('/')
-
-
-def test_start(tempdir, servers):
-    "Server run options."
-    port = servers.ports[0]
-    pidfile = os.path.join(tempdir, 'pid')
-    servers.start(port, '-dp', pidfile)
-    time.sleep(1)
-    os.kill(int(open(pidfile).read()), signal.SIGTERM)
-    del servers[port]
-    assert subprocess.call((sys.executable, '-m', 'lupyne.server', '-c', __file__), stderr=subprocess.PIPE)
-    assert subprocess.call((sys.executable, 'lupyne/server.py', '-x'), env={'PYTHONPATH': '.'}, stderr=subprocess.PIPE) == 2
-    assert cherrypy.tree.mount(None)
-    server.init(vmargs=None)
-    with pytest.raises(AttributeError):
-        server.start(config=True)
-
-
-def test_basic(tempdir, servers, constitution):
-    "Remote text indexing and searching."
-    servers.start(servers.ports[0], tempdir)
-    resource = client.Resource('localhost', servers.ports[0])
-    assert resource.get('/fields') == []
-    for name, settings in constitution.fields.items():
-        assert resource.put('/fields/' + name, settings)
-    fields = resource.get('/fields')
-    assert sorted(fields) == ['amendment', 'article', 'date', 'text']
-    for field in fields:
-        assert resource.get('/fields/' + name)['indexed']
-    resource.post('/docs', list(constitution))
-    assert resource.get('/').values() == [35]
-    resource.post('/update', {'spellcheckers': True, 'merge': 1})
-    assert resource.get('/docs/0', **{'fields.indexed': 'amendment:int'}) == {'amendment': 0, 'article': 'Preamble'}
-    doc = resource.get('/docs/0', **{'fields.vector': 'text,missing'})
-    assert doc['missing'] == [] and doc['text'].index('states') < doc['text'].index('united')
-    doc = resource.get('/docs/0', **{'fields.vector.counts': 'text'})
-    with raises(httplib.HTTPException, httplib.CONFLICT):
-        resource.patch('/docs/amendment/1', {'amendment': '1'})
-    assert not resource.patch('/docs/amendment/1')
-    assert sorted(term for term, count in doc['text'].items() if count > 1) == ['establish', 'states', 'united']
-    assert resource.get('/terms') == ['amendment', 'article', 'date', 'text']
-    articles = resource.get('/terms/article')
-    articles.remove('Preamble')
-    assert sorted(map(int, articles)) == range(1, 8)
-    assert sorted(map(int, resource.get('/terms/amendment'))) == range(1, 28)
-    assert resource.get('/terms/text/:0') == []
-    assert resource.get('/terms/text/right:right~') == resource.get('/terms/text/right*') == ['right', 'rights']
-    assert resource.get('/terms/text/writ*') == ['writ', 'writing', 'writings', 'writs', 'written']
-    assert resource.get('/terms/text/*?count=0') == []
-    assert resource.get('/terms/text/writ*?count=10') == ['writs', 'writ', 'writing', 'writings', 'written']
-    assert resource.get('/terms/text/writ*?count=3') == ['writs', 'writ', 'writing']
-    assert resource.get('/terms/text/right~1') == ['eight', 'right', 'rights']
-    assert resource.get('/terms/text/right~') == ['eight', 'high', 'right', 'rights']
-    assert resource.get('/terms/text/right~?count=3') == ['right', 'eight', 'rights']
-    assert resource.get('/terms/text/right~?count=5') == ['right', 'eight', 'rights', 'high']
-    assert resource.get('/terms/text/write~?count=5') == ['writs', 'writ', 'crime', 'written']
-    docs = resource.get('/terms/text/people/docs')
-    assert resource.get('/terms/text/people') == len(docs) == 8
-    counts = dict(resource.get('/terms/text/people/docs/counts'))
-    assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
-    positions = dict(resource.get('/terms/text/people/docs/positions'))
-    assert sorted(positions) == docs and list(map(len, positions.values())) == counts.values()
-    doc = resource.get('/docs/amendment/1', **{'fields.multi': 'text', 'fields.indexed': 'text'})
-    assert doc['text'][:3] == ['abridging', 'assemble', 'congress']
-    doc, = resource.get('/search', q='amendment:1', fields='', **{'fields.indexed': 'article,amendment:int'})['docs']
-    assert doc['amendment'] == 1 and not doc['article']
-    result = resource.get('/search', **{'q.field': 'text', 'q': 'write "hello world"', 'spellcheck': 3})
-    terms = result['spellcheck'].pop('text')
-    assert result['docs'] == [] and result['spellcheck'] == {}
-    assert terms == {'write': ['writs', 'writ', 'crime'], 'world': ['would', 'hold', 'gold'], 'hello': ['held', 'well']}
-    result = resource.get('/search', **{'q.field': 'text', 'q': 'write "hello world"', 'q.spellcheck': 'true'})
-    assert result['query'] == 'text:writs text:"held would"'
-    assert result['count'] == len(result['docs']) == resource.get('/terms/text/writs') == 2
-    assert resource.get('/search', q='Preamble', **{'q.field': 'article'})['count'] == 0
-    result = resource.get('/search', q='Preamble', **{'q.field': 'article', 'q.type': 'prefix'})
-    assert result['count'] == 1 and result['query'] == 'article:Preamble*'
-    result = resource.get('/search', q='text:"We the People"', **{'q.phraseSlop': 3})
-    assert 0 < result['maxscore'] < 1 and result['count'] == 1
-    assert result['query'] == 'text:"we ? people"~3'
-    doc, = result['docs']
-    assert sorted(doc) == ['__id__', '__score__', 'article']
-    assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__'] < 1
-    result = resource.get('/search', q='text:people')
-    docs = result['docs']
-    assert sorted(docs, key=operator.itemgetter('__score__'), reverse=True) == docs
-    assert len(docs) == result['count'] == 8
-    result = resource.get('/search', q='text:people', count=5)
-    maxscore = result['maxscore']
-    assert docs[:5] == result['docs'] and result['count'] == len(docs)
-    result = resource.get('/search', q='text:people', count=5, sort='-amendment:int')
-    assert math.isnan(result['maxscore']) and all(math.isnan(doc['__score__']) for doc in result['docs'])
-    assert [doc['amendment'] for doc in result['docs']] == ['17', '10', '9', '4', '2']
-    result = resource.get('/search', q='text:people', sort='-amendment:int')
-    assert [doc.get('amendment') for doc in result['docs']] == ['17', '10', '9', '4', '2', '1', None, None]
-    result = resource.get('/search', q='text:people', count=5, sort='-amendment:int', **{'sort.scores': ''})
-    assert math.isnan(result['maxscore']) and maxscore in (doc['__score__'] for doc in result['docs'])
-    result = resource.get('/search', q='text:people', count=1, sort='-amendment:int', **{'sort.scores': 'max'})
-    assert maxscore == result['maxscore'] and maxscore not in (doc['__score__'] for doc in result['docs'])
-    result = resource.get('/search', q='text:people', count=5, sort='-article,amendment:int')
-    assert [doc.get('amendment') for doc in result['docs']] == [None, None, '1', '2', '4']
-    assert [doc['__keys__'] for doc in result['docs']] == [['Preamble', 0], ['1', 0], [None, 1], [None, 2], [None, 4]]
-    result = resource.get('/search', q='text:people', start=2, count=2, facets='article,amendment')
-    assert [doc['amendment'] for doc in result['docs']] == ['10', '1']
-    assert result['count'] == sum(sum(facets.values()) for facets in result['facets'].values())
-    for name, keys in [('article', ['1', 'Preamble']), ('amendment', ['1', '10', '17', '2', '4', '9'])]:
-        assert sorted(key for key, value in result['facets'][name].items() if value) == keys
-    result = resource.get('/search', q='text:president', facets='date')
-    assert len(result['facets']['date']) == sum(result['facets']['date'].values()) == 7
-    result = resource.get('/search', q='text:freedom')
-    assert result['count'] == 1
-    doc, = result['docs']
-    assert doc['amendment'] == '1'
-    doc, = resource.get('/search', q='amendment:1', hl='amendment', fields='article')['docs']
-    assert doc['__highlights__'] == {'amendment': ['<strong>1</strong>']}
-    doc, = resource.get('/search', q='amendment:1', hl='amendment,article', **{'hl.count': 2, 'hl.tag': 'em'})['docs']
-    assert doc['__highlights__'] == {'amendment': ['<em>1</em>']}
-    result = resource.get('/search', q='text:1', hl='amendment,article')
-    highlights = [doc['__highlights__'] for doc in result['docs']]
-    assert all(highlight and not any(highlight.values()) for highlight in highlights)
-    result = resource.get('/search', q='text:1', hl='article', **{'hl.enable': 'fields'})
-    highlights = [doc['__highlights__'] for doc in result['docs']]
-    highlight, = [highlight['article'] for highlight in highlights if highlight.get('article')]
-    assert highlight == ['<strong>1</strong>']
-    result = resource.get('/search', q='text:"section 1"', hl='amendment,article', **{'hl.enable': 'fields'})
-    highlights = [doc['__highlights__'] for doc in result['docs']]
-    assert all(highlight and not any(highlight.values()) for highlight in highlights)
-    result = resource.get('/search', q='text:"section 1"', hl='amendment,article', **{'hl.enable': ['fields', 'terms']})
-    highlights = [doc['__highlights__'] for doc in result['docs']]
-    highlight, = [highlight['article'] for highlight in highlights if highlight.get('article')]
-    assert highlight == ['<strong>1</strong>']
-    result = resource.get('/search', mlt=0)
-    assert result['count'] == 25 and set(result['query'].split()) == {'text:united', 'text:states'}
-    assert [doc['amendment'] for doc in result['docs'][:4]] == ['10', '11', '15', '19']
-    result = resource.get('/search', q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})
-    assert result['count'] == 11 and set(result['query'].split()) == {'text:necessary', 'text:people'}
-    assert [doc['amendment'] for doc in result['docs'][:4]] == ['2', '9', '10', '1']
-    result = resource.get('/search', q='text:people', count=1, timeout=-1)
-    assert result == {'query': 'text:people', 'count': None, 'maxscore': None, 'docs': []}
-    result = resource.get('/search', q='text:people', timeout=0.01)
-    assert result['count'] in (None, 8) and result['maxscore'] in (None, maxscore)
-    result = resource.get('/search', filter='text:people')
-    assert result['count'] == 8 and {doc['__score__'] for doc in result['docs']} == {1.0}
-    result = resource.get('/search', q='text:right', filter='text:people')
-    assert result['count'] == 4 and 0 < result['maxscore'] < 1.0
-    result = resource.get('/search', q='text:right', group='date', count=2, **{'group.count': 2})
-    assert 'docs' not in result and len(result['groups']) == 2
-    assert sum(map(operator.itemgetter('count'), result['groups'])) < result['count'] == 13
-    assert all(min(group['count'], 2) >= len(group['docs']) for group in result['groups'])
-    assert all(doc.get('date') == group['value'] for group in result['groups'] for doc in group['docs'])
-    group = result['groups'][0]
-    assert group['value'] == '1791-12-15'
-    assert sorted(group) == ['count', 'docs', 'value'] and group['count'] == 5
-    assert len(group['docs']) == 2 and group['docs'][0]['amendment'] == '2'
-    assert len(result['groups'][1]['docs']) == 1 and all(group['docs'] == [] for group in result['groups'][2:])
-    result = resource.get('/search', q='text:right', group='amendment:int')
-    assert set(map(operator.itemgetter('count'), result['groups'])) == {1}
-    assert all(int(doc.get('amendment', 0)) == group['value'] for group in result['groups'] for doc in group['docs'])
-    assert result['groups'][0]['value'] == 2 and result['groups'][-1]['value'] == 0
