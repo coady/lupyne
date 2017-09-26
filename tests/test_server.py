@@ -20,7 +20,6 @@ from lupyne import engine, server
 class Servers(dict):
     module = 'lupyne.server'
     ports = 8080, 8081, 8082
-    hosts = tuple(map('localhost:{:d}'.format, ports))
     config = {'server.socket_timeout': 2, 'server.shutdown_timeout': 1}
 
     def start(self, port, *args, **config):
@@ -339,8 +338,8 @@ def test_example(request, servers):
 
 def test_replication(tempdir, servers):
     directory = os.path.join(tempdir, 'backup')
-    sync, update = '--autosync=' + servers.hosts[0], '--autoupdate=1'
     primary = servers.start(servers.ports[0], tempdir)
+    sync, update = '--autosync=' + primary.url, '--autoupdate=1'
     secondary = servers.start(servers.ports[1], '-r', directory, sync, update)
     resource = servers.start(servers.ports[2], '-r', directory)
     for args in [('-r', tempdir), (update, tempdir), (update, tempdir, tempdir)]:
@@ -348,30 +347,30 @@ def test_replication(tempdir, servers):
     primary.post('docs', [{}])
     assert primary.post('update') == 1
     assert primary.client.put('update/0').status_code == httplib.NOT_FOUND
-    response = resource.client.post(json={'host': servers.hosts[0]})
+    response = resource.client.post(json={'url': primary.url})
     assert response.status_code == httplib.ACCEPTED and sum(response.json().values()) == 0
     assert resource.post('update') == 1
-    assert resource.post(json={'host': servers.hosts[0], 'path': '/'})
+    assert resource.post(json={'url': primary.url})
     assert resource.post('update') == 1
     primary.post('docs', [{}])
     assert primary.post('update') == 2
     time.sleep(1.1)
     assert sum(secondary().values()) == 2
     servers.stop(servers.ports[-1])
-    root = server.WebSearcher(directory, hosts=servers.hosts[:2])
+    root = server.WebSearcher(directory, urls=(primary.url, secondary.url))
     app = server.mount(root)
     root.fields = {}
     assert root.update() == 2
-    assert len(root.hosts) == 2
+    assert len(root.urls) == 2
     servers.stop(servers.ports[0])
     assert secondary.docs()
     assert secondary.client.post('docs', []).status_code == httplib.METHOD_NOT_ALLOWED
     assert secondary.terms(option='indexed') == []
     assert root.update() == 2
-    assert len(root.hosts) == 1
+    assert len(root.urls) == 1
     servers.stop(servers.ports[1])
     assert root.update() == 2
-    assert len(root.hosts) == 0 and isinstance(app.root, server.WebIndexer)
+    assert len(root.urls) == 0 and isinstance(app.root, server.WebIndexer)
     app.root.close()
     root = server.WebSearcher(directory)
     app = server.mount(root, autoupdate=0.1)

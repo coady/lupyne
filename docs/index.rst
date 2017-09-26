@@ -40,7 +40,6 @@ Contents
 
    engine
    server
-   client
 
 .. toctree::
    :hidden:

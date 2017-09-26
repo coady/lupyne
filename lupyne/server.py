@@ -51,7 +51,8 @@ import os
 import argparse
 import lucene
 import cherrypy
-from lupyne import engine, client
+import clients
+from lupyne import engine
 from lupyne.utils import json, suppress
 
 
@@ -213,7 +214,7 @@ class AttachedMonitor(cherrypy.process.plugins.Monitor):
 class WebSearcher(object):
     """Dispatch root with a delegated Searcher.
     
-    :param hosts: ordered hosts to synchronize with
+    :param urls: ordered hosts to synchronize with
     """
     _cp_config = {
         'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json'],
@@ -224,8 +225,8 @@ class WebSearcher(object):
     }
 
     def __init__(self, *directories, **kwargs):
-        self.hosts = collections.deque(kwargs.pop('hosts', ()))
-        if self.hosts:
+        self.urls = collections.deque(kwargs.pop('urls', ()))
+        if self.urls:
             engine.IndexWriter(*directories).close()
         self.searcher = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
         self.updated = time.time()
@@ -245,39 +246,40 @@ class WebSearcher(object):
     def etag(self):
         return 'W/"{}"'.format(self.searcher.version)
 
-    def sync(self, host, path=''):
-        "Sync with remote index."
+    def sync(self, url):
+        """Sync with remote index."""
         directory = self.searcher.path
-        resource = client.Resource(host)
-        resource.headers = dict(resource.headers, **{'if-none-match': self.etag})
-        response = resource.call('PUT', path.lstrip('/') + '/update/snapshot')
-        if response.status == httplib.PRECONDITION_FAILED:
+        resource = clients.Resource(url, headers={'if-none-match': self.etag})
+        response = resource.client.put('update/snapshot')
+        if response.status_code in (httplib.PRECONDITION_FAILED, httplib.METHOD_NOT_ALLOWED):
             return []
-        names = sorted(set(response()).difference(os.listdir(directory)))
-        path = response.getheader('location') + '/'
+        response.raise_for_status()
+        names = sorted(set(response.json()).difference(os.listdir(directory)))
+        resource /= response.headers['location']
         try:
             for name in names:
-                resource.download(path + name, os.path.join(directory, name))
+                with open(os.path.join(directory, name), 'wb') as file:
+                    resource.download(file, name)
         finally:
-            resource.delete(path)
+            resource.delete()
         return names
 
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
     @cherrypy.tools.allow(methods=['GET', 'POST'])
-    def index(self, host='', path=''):
+    def index(self, url=''):
         """Return index information and synchronize with remote index.
         
         **GET, POST** /[index]
             Return a mapping of the directory to the document count.
             Add new segments from remote host.
             
-            {"host": *string*\ [, "path": *string*]}
+            {"url": *string*}
             
             :return: {*string*: *int*,... }
         """
         if cherrypy.request.method == 'POST':
-            self.sync(host, path)
+            self.sync(url)
             cherrypy.response.status = httplib.ACCEPTED
         if isinstance(self.searcher, engine.MultiSearcher):
             return {reader.directory().toString(): reader.numDocs() for reader in self.searcher.indexReaders}
@@ -299,22 +301,19 @@ class WebSearcher(object):
             :return: *int*
         """
         names = ()
-        while self.hosts:
-            host = self.hosts[0]
+        while self.urls:
+            url = self.urls[0]
             try:
-                names = self.sync(*host.split('/'))
+                names = self.sync(url)
                 break
             except IOError:
                 with suppress(ValueError):
-                    self.hosts.remove(host)
-            except httplib.HTTPException as exc:
-                assert exc[0] == httplib.METHOD_NOT_ALLOWED, exc
-                break
+                    self.urls.remove(url)
         self.searcher = self.searcher.reopen(**caches)
         self.updated = time.time()
         if names:
             engine.IndexWriter(self.searcher.directory).close()
-        if not self.hosts and hasattr(self, 'fields'):
+        if not self.urls and hasattr(self, 'fields'):
             other = WebIndexer(self.searcher.directory, analyzer=self.searcher.analyzer)
             other.indexer.shared, other.indexer.fields = self.searcher.shared, self.fields
             app, = (app for app in cherrypy.tree.apps.values() if app.root is self)
@@ -867,7 +866,7 @@ parser.add_argument('-p', '--pidfile', metavar='FILE', help='store the process i
 parser.add_argument('-d', '--daemonize', action='store_true', help='run the server as a daemon')
 parser.add_argument('--autoreload', type=float, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
 parser.add_argument('--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes')
-parser.add_argument('--autosync', metavar='HOST{:PORT}{/PATH},...', help='automatically synchronize searcher with remote hosts and update')
+parser.add_argument('--autosync', metavar='URL,...', help='automatically synchronize searcher with remote hosts and update')
 parser.add_argument('--real-time', action='store_true', help='search in real-time without committing')
 
 if __name__ == '__main__':
@@ -877,7 +876,7 @@ if __name__ == '__main__':
     if read_only and (args.real_time or not args.directories):
         parser.error('incompatible read/write options')
     if args.autosync:
-        kwargs['hosts'] = args.autosync.split(',')
+        kwargs['urls'] = args.autosync.split(',')
         if not (args.autoupdate and len(args.directories) == 1):
             parser.error('autosync requires autoupdate and a single directory')
     if args.config and not os.path.exists(args.config):
