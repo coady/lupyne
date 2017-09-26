@@ -21,7 +21,7 @@ def suppress(*exceptions):
 
 
 class Atomic(object):
-    "Abstract base class to distinguish singleton values from other iterables."
+    """Abstract base class to distinguish singleton values from other iterables."""
     __metaclass__ = abc.ABCMeta
 
     @classmethod
@@ -33,6 +33,6 @@ Atomic.register(basestring)
 
 
 class method(staticmethod):
-    "From Python 3: return functions instead of unbound methods when accessed through the class."
+    """Backport of Python 3's unbound methods."""
     def __get__(self, instance, owner):
         return self.__func__ if instance is None else self.__func__.__get__(instance, owner)

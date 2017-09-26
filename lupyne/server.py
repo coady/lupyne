@@ -59,7 +59,7 @@ from lupyne.utils import json, suppress
 @cherrypy.tools.register('before_request_body')
 def json_in(process_body=None, **kwargs):
     """Handle request bodies in json format.
-    
+
     :param content_type: request media type
     :param process_body: optional function to process body into request.params
     """
@@ -76,7 +76,7 @@ def json_in(process_body=None, **kwargs):
 @cherrypy.tools.register('before_handler')
 def json_out(content_type='application/json', indent=None, **kwargs):
     """Handle responses in json format.
-    
+
     :param content_type: response content-type header
     :param indent: indentation level for pretty printing
     """
@@ -88,7 +88,7 @@ def json_out(content_type='application/json', indent=None, **kwargs):
 
 @cherrypy.tools.register('on_start_resource')
 def allow(methods=None, paths=(), **kwargs):
-    "Only allow specified methods."
+    """Only allow specified methods."""
     handler = cherrypy.request.handler
     if paths and hasattr(handler, 'args'):
         with cherrypy.HTTPError.handle(IndexError, httplib.NOT_FOUND):
@@ -98,7 +98,7 @@ def allow(methods=None, paths=(), **kwargs):
 
 @cherrypy.tools.register('before_finalize')
 def timer():
-    "Return response time in headers."
+    """Return response time in headers."""
     response = cherrypy.serving.response
     response.headers['x-response-time'] = time.time() - response.time
 
@@ -106,7 +106,7 @@ def timer():
 @cherrypy.tools.register('on_start_resource')
 def validate(etag=True, last_modified=False, max_age=None, expires=None):
     """Return and validate caching headers.
-    
+
     :param etag: return weak entity tag header based on index version and validate if-match headers
     :param last_modified: return last-modified header based on index timestamp and validate if-modified headers
     :param max_age: return cache-control max-age and age headers based on last update timestamp
@@ -129,7 +129,7 @@ def validate(etag=True, last_modified=False, max_age=None, expires=None):
 
 @cherrypy.tools.register('before_handler')
 def params(**types):
-    "Convert specified request params."
+    """Convert specified request params."""
     params = cherrypy.request.params
     with cherrypy.HTTPError.handle(ValueError, httplib.BAD_REQUEST):
         for key in set(types).intersection(params):
@@ -141,7 +141,7 @@ def multi(value):
 
 
 class parse:
-    "Parameter parsing."
+    """Parameter parsing."""
     @staticmethod
     def q(searcher, q, **options):
         options = {key.partition('.')[-1]: options[key] for key in options if key.startswith('q.')}
@@ -175,26 +175,26 @@ class parse:
 
 
 def json_error(version, **body):
-    "Transform errors into json format."
+    """Transform errors into json format."""
     tool = cherrypy.request.toolmaps['tools'].get('json_out', {})
     cherrypy.response.headers['content-type'] = tool.get('content_type', 'application/json')
     return json.dumps(body, indent=tool.get('indent'))
 
 
 def attach_thread(id=None):
-    "Attach current cherrypy worker thread to lucene VM."
+    """Attach current cherrypy worker thread to lucene VM."""
     lucene.getVMEnv().attachCurrentThread()
 
 
 class Autoreloader(cherrypy.process.plugins.Autoreloader):
-    "Autoreload monitor compatible with lucene VM."
+    """Autoreload monitor compatible with lucene VM."""
     def run(self):
         attach_thread()
         cherrypy.process.plugins.Autoreloader.run(self)
 
 
 class AttachedMonitor(cherrypy.process.plugins.Monitor):
-    "Periodically run a callback function in an attached thread."
+    """Periodically run a callback function in an attached thread."""
     def __init__(self, bus, callback, frequency=cherrypy.process.plugins.Monitor.frequency):
         def run():
             attach_thread()
@@ -213,7 +213,7 @@ class AttachedMonitor(cherrypy.process.plugins.Monitor):
 
 class WebSearcher(object):
     """Dispatch root with a delegated Searcher.
-    
+
     :param urls: ordered hosts to synchronize with
     """
     _cp_config = {
@@ -234,7 +234,7 @@ class WebSearcher(object):
 
     @classmethod
     def new(cls, *args, **kwargs):
-        "Return new uninitialized root which can be mounted on dispatch tree before VM initialization."
+        """Return new uninitialized root which can be mounted on dispatch tree before VM initialization."""
         self = object.__new__(cls)
         self.args, self.kwargs = args, kwargs
         return self
@@ -269,13 +269,13 @@ class WebSearcher(object):
     @cherrypy.tools.allow(methods=['GET', 'POST'])
     def index(self, url=''):
         """Return index information and synchronize with remote index.
-        
+
         **GET, POST** /[index]
             Return a mapping of the directory to the document count.
             Add new segments from remote host.
-            
+
             {"url": *string*}
-            
+
             :return: {*string*: *int*,... }
         """
         if cherrypy.request.method == 'POST':
@@ -290,14 +290,14 @@ class WebSearcher(object):
     @cherrypy.tools.allow(methods=['POST'])
     def update(self, **caches):
         """Refresh index version.
-        
+
         **POST** /update
             Reopen searcher, optionally reloading caches, and return document count.
-            
+
             {"filters"|"sorters"|"spellcheckers": true,... }
-            
+
             .. versionchanged:: 1.2 request body is an object instead of an array
-            
+
             :return: *int*
         """
         names = ()
@@ -324,21 +324,21 @@ class WebSearcher(object):
     @cherrypy.tools.params(**dict.fromkeys(['fields', 'fields.multi', 'fields.indexed', 'fields.vector', 'fields.vector.counts'], multi))
     def docs(self, name=None, value='', **options):
         """Return ids or documents.
-        
+
         **GET** /docs
             Return array of doc ids.
-            
+
             :return: [*int*,... ]
-        
+
         **GET** /docs/[*int*\|\ *chars*/*chars*]?
             Return document mapping from id or unique name and value.
-            
+
             &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
                 optionally select stored, multi-valued, and cached indexed fields
-            
+
             &fields.vector=\ *chars*,... &fields.vector.counts=\ *chars*,...
                 optionally select term vectors with term counts
-            
+
             :return: {*string*: null|\ *string*\|\ *number*\|\ *array*\|\ *object*,... }
         """
         searcher = self.searcher
@@ -362,53 +362,53 @@ class WebSearcher(object):
                            })
     def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
         """Run query and return documents.
-        
+
         **GET** /search?
             Return array of document objects and total doc count.
-            
+
             &q=\ *chars*\ &q.type=[term|prefix|wildcard]&q.\ *chars*\ =...,
                 query, optional type to skip parsing, and optional parser settings: q.field, q.op,...
-            
+
             &filter=\ *chars*
                 | cached filter applied to the query
                 | if a previously cached filter is not found, the value will be parsed as a query
-            
+
             &count=\ *int*\ &start=0
                 maximum number of docs to return and offset to start at
-            
+
             &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
                 only include selected stored fields; multi-valued fields returned in an array; indexed fields with optional type are cached
-            
+
             &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores[=max]
                 | field name, optional type, minus sign indicates descending
                 | optionally score docs, additionally compute maximum score
-            
+
             &facets=\ *chars*,... &facets.count=\ *int*\&facets.min=0
                 | include facet counts for given field names; facets filters are cached
                 | optional maximum number of most populated facet values per field, and minimum count to return
-            
+
             &group=\ *chars*\ [:*chars*]&group.count=1
                 | group documents by field value with optional type, up to given maximum count
-            
+
             .. versionchanged:: 1.6 grouping searches use count and start options
-            
+
             &hl=\ *chars*,... &hl.count=1&hl.tag=strong&hl.enable=[fields|terms]
                 | stored fields to return highlighted
                 | optional maximum fragment count and html tag name
                 | optionally enable matching any field or any term
-            
+
             &mlt=\ *int*\ &mlt.fields=\ *chars*,... &mlt.\ *chars*\ =...,
                 | doc index (or id without a query) to find MoreLikeThis
                 | optional document fields to match
                 | optional MoreLikeThis settings: mlt.minTermFreq, mlt.minDocFreq,...
-            
+
             &spellcheck=\ *int*
                 | maximum number of spelling corrections to return for each query term, grouped by field
                 | original query is still run; use q.spellcheck=true to affect query parsing
-            
+
             &timeout=\ *number*
                 timeout search after elapsed number of seconds
-            
+
             :return:
                 | {
                 | "query": *string*\|null,
@@ -502,48 +502,48 @@ class WebSearcher(object):
     @cherrypy.tools.params(count=int, step=int, indexed=json.loads)
     def terms(self, name='', value='*', *path, **options):
         """Return data about indexed terms.
-        
+
         **GET** /terms?
             Return field names, with optional selection.
-            
+
             &indexed=true|false
-            
+
             :return: [*string*,... ]
-        
+
         **GET** /terms/*chars*\[:int|float\]?step=0
             Return term values for given field name, with optional type and step for numeric encoded values.
-            
+
             :return: [*string*,... ]
-        
+
         **GET** /terms/*chars*/*chars*\[\*\|:*chars*\|~[\ *int*\]]
             Return term values (prefix, slices, or fuzzy terms) for given field name.
-            
+
             :return: [*string*,... ]
-        
+
         **GET** /terms/*chars*/*chars*\[\*\|~[\ *int*\]\]?count=\ *int*
             Return spellchecked term values ordered by decreasing document frequency.
             Prefixes (*) are optimized to be suitable for real-time query suggestions; all terms are cached.
-            
+
             :return: [*string*,... ]
-        
+
         **GET** /terms/*chars*/*chars*
             Return document count for given term.
-            
+
             :return: *int*
-        
+
         **GET** /terms/*chars*/*chars*/docs
             Return document ids for given term.
-            
+
             :return: [*int*,... ]
-        
+
         **GET** /terms/*chars*/*chars*/docs/counts
             Return document ids and frequency counts for given term.
-            
+
             :return: [[*int*, *int*],... ]
-        
+
         **GET** /terms/*chars*/*chars*/docs/positions
             Return document ids and positions for given term.
-            
+
             :return: [[*int*, [*int*,... ]],... ]
         """
         searcher = self.searcher
@@ -583,27 +583,28 @@ class WebSearcher(object):
     @cherrypy.tools.allow(paths=[('GET',), ('GET', 'POST'), ('GET', 'PUT', 'DELETE')])
     def queries(self, name='', value=''):
         """Match a document against registered queries.
+
         Queries are cached by a unique name and value, suitable for document indexing.
-        
+
         .. versionadded:: 1.4
-        
+
         **GET** /queries
             Return query set names.
-            
+
             :return: [*string*,... ]
-        
+
         **GET, POST** /queries/*chars*
             Return query values and scores which match given document.
-            
+
             {*string*: *string*,... }
-            
+
             :return: {*string*: *number*,... }
-        
+
         **GET, PUT, DELETE** /queries/*chars*/*chars*
             Return, create, or delete a registered query.
-            
+
             *string*
-            
+
             :return: *string*
         """
         request = cherrypy.serving.request
@@ -628,7 +629,7 @@ class WebSearcher(object):
 
 
 class WebIndexer(WebSearcher):
-    "Dispatch root with a delegated Indexer, exposing write methods."
+    """Dispatch root with a delegated Indexer, exposing write methods."""
     def __init__(self, *args, **kwargs):
         self.indexer = engine.Indexer(*args, **kwargs)
         self.updated = time.time()
@@ -653,10 +654,10 @@ class WebIndexer(WebSearcher):
     @cherrypy.tools.allow(methods=['GET', 'POST'])
     def index(self):
         """Add indexes.  See :meth:`WebSearcher.index` for GET method.
-        
+
         **POST** /[index]
             Add indexes without optimization.
-            
+
             [*string*,... ]
         """
         request = cherrypy.serving.request
@@ -671,23 +672,23 @@ class WebIndexer(WebSearcher):
     @cherrypy.tools.allow(paths=[('POST',), ('GET', 'PUT', 'DELETE'), ('GET',)])
     def update(self, id='', name='', **options):
         """Commit index changes and refresh index version.
-        
+
         **POST** /update
             Commit write operations and return document count.  See :meth:`WebSearcher.update` for caching options.
-            
+
             {"merge": true|\ *int*,... }
-            
+
             .. versionchanged:: 1.2 request body is an object instead of an array
-            
+
             :return: *int*
-        
+
         **GET, PUT, DELETE** /update/[snapshot|\ *int*]
             Verify, create, or release unique snapshot of current index commit and return array of referenced filenames.
-            
+
             .. versionchanged:: 1.4 lucene identifies snapshots by commit generation;  use location header
-            
+
             :return: [*string*,... ]
-        
+
         **GET** /update/*int*/*chars*
             Download index file corresponding to snapshot id and filename.
         """
@@ -720,15 +721,15 @@ class WebIndexer(WebSearcher):
     @cherrypy.tools.allow(paths=[('GET', 'POST'), ('GET',), ('GET', 'PUT', 'DELETE', 'PATCH')])
     def docs(self, name=None, value='', **options):
         """Add or return documents.  See :meth:`WebSearcher.docs` for GET method.
-        
+
         **POST** /docs
             Add documents to index.
-            
+
             [{*string*: *string*\|\ *number*\|\ *array*,... },... ]
-        
+
         **PUT, DELETE** /docs/*chars*/*chars*
             Set or delete document.  Unique term should be indexed and is added to the new document.
-            
+
             {*string*: *string*\|\ *number*\|\ *array*,... }
         """
         request = cherrypy.serving.request
@@ -758,7 +759,7 @@ class WebIndexer(WebSearcher):
     @cherrypy.tools.allow(methods=['GET', 'DELETE'])
     def search(self, q=None, **options):
         """Run or delete a query.  See :meth:`WebSearcher.search` for GET method.
-        
+
         **DELETE** /search?q=\ *chars*
             Delete documents which match query.
         """
@@ -777,19 +778,19 @@ class WebIndexer(WebSearcher):
     @cherrypy.tools.validate(on=False)
     def fields(self, name='', **settings):
         """Return or store a field's settings.
-        
+
         **GET** /fields
             Return known field names.
-            
+
             :return: [*string*,... ]
-        
+
         **GET, PUT** /fields/*chars*
             Set and return settings for given field name.
-            
+
             {"stored"|"indexed"\|...: *string*\|true|false,... }
-            
+
             .. versionchanged:: 1.6 lucene FieldType attributes used as settings
-            
+
             :return: {"stored"|"indexed"\|...: *string*\|true|false,... }
         """
         if not name:
@@ -804,7 +805,7 @@ class WebIndexer(WebSearcher):
 
 
 def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
-    "Callback to initialize VM and app roots after daemonizing."
+    """Callback to initialize VM and app roots after daemonizing."""
     if vmargs:
         kwargs['vmargs'] = vmargs
     lucene.initVM(**kwargs)
@@ -815,7 +816,7 @@ def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
 
 def mount(root, path='', config=None, autoupdate=0, app=None):
     """Attach root and subscribe to plugins.
-    
+
     :param root,path,config: see cherrypy.tree.mount
     :param autoupdate: see command-line options
     :param app: optionally replace root on existing app
@@ -836,7 +837,7 @@ def mount(root, path='', config=None, autoupdate=0, app=None):
 
 def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, callback=None):
     """Attach root, subscribe to plugins, and start server.
-    
+
     :param root,path,config: see cherrypy.quickstart
     :param pidfile,daemonize,autoreload,autoupdate: see command-line options
     :param callback: optional callback function scheduled after daemonizing

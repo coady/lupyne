@@ -17,7 +17,7 @@ from .queries import Query
 
 class Field(document.FieldType):
     """Saved parameters which can generate lucene Fields given values.
-    
+
     :param name: name of field
     :param boost: boost factor
     :param stored, indexed, settings: lucene FieldType attributes
@@ -41,7 +41,7 @@ class Field(document.FieldType):
 
     @property
     def settings(self):
-        "dict representation of settings"
+        """dict representation of settings"""
         defaults = document.FieldType()
         result = {'indexed': self.indexed()}
         for name in Field.attrs:
@@ -51,7 +51,7 @@ class Field(document.FieldType):
         return result
 
     def items(self, *values):
-        "Generate lucene Fields suitable for adding to a document."
+        """Generate lucene Fields suitable for adding to a document."""
         for value in values:
             field = document.Field(self.name, value, self)
             field.setBoost(self.boost)
@@ -60,7 +60,7 @@ class Field(document.FieldType):
 
 class MapField(Field):
     """Field which applies a function across its values.
-    
+
     :param func: callable
     """
     def __init__(self, name, func, **kwargs):
@@ -68,14 +68,15 @@ class MapField(Field):
         self.func = func
 
     def items(self, *values):
-        "Generate fields with mapped values."
+        """Generate fields with mapped values."""
         return Field.items(self, *map(self.func, values))
 
 
 class NestedField(Field):
     """Field which indexes every component into its own field.
+
     Original value may be stored for convenience.
-    
+
     :param sep: field separator used on name and values
     """
     def __init__(self, name, sep='.', tokenized=False, **kwargs):
@@ -84,31 +85,31 @@ class NestedField(Field):
         self.names = tuple(self.values(name))
 
     def values(self, value):
-        "Generate component field values in order."
+        """Generate component field values in order."""
         value = value.split(self.sep)
         for index in range(1, len(value) + 1):
             yield self.sep.join(value[:index])
 
     def items(self, *values):
-        "Generate indexed component fields."
+        """Generate indexed component fields."""
         for value in values:
             for index, text in enumerate(self.values(value)):
                 yield document.Field(self.names[index], text, self)
 
     def prefix(self, value):
-        "Return prefix query of the closest possible prefixed field."
+        """Return prefix query of the closest possible prefixed field."""
         index = value.count(self.sep)
         return Query.prefix(self.names[index], value)
 
     def range(self, start, stop, lower=True, upper=False):
-        "Return range query of the closest possible prefixed field."
+        """Return range query of the closest possible prefixed field."""
         index = max(value.count(self.sep) for value in (start, stop) if value is not None)
         return Query.range(self.names[index], start, stop, lower, upper)
 
 
 class DocValuesField(Field):
     """Field which stores a per-document values, used for efficient sorting.
-    
+
     :param name: name of field
     :param type: lucene DocValuesType string
     """
@@ -117,14 +118,14 @@ class DocValuesField(Field):
         self.cls = getattr(document, type.title().replace('_', '') + 'DocValuesField')
 
     def items(self, *values):
-        "Generate lucene DocValuesFields suitable for adding to a document."
+        """Generate lucene DocValuesFields suitable for adding to a document."""
         for value in values:
             yield self.cls(self.name, long(value) if isinstance(value, int) else util.BytesRef(value))
 
 
 class NumericField(Field):
     """Field which indexes numbers in a prefix tree.
-    
+
     :param name: name of field
     :param type: optional int, float, or lucene NumericType string
     """
@@ -134,7 +135,7 @@ class NumericField(Field):
         Field.__init__(self, name, tokenized=tokenized, **kwargs)
 
     def items(self, *values):
-        "Generate lucene NumericFields suitable for adding to a document."
+        """Generate lucene NumericFields suitable for adding to a document."""
         if not self.numericType():
             cls, = set(map(type, values))
             self.update(numericType='double' if issubclass(cls, float) else 'long')
@@ -145,7 +146,7 @@ class NumericField(Field):
                 yield document.LongField(self.name, long(value), self)
 
     def range(self, start, stop, lower=True, upper=False):
-        "Return lucene NumericRangeQuery."
+        """Return lucene NumericRangeQuery."""
         step = self.numericPrecisionStep()
         if isinstance(start, float) or isinstance(stop, float):
             start, stop = (value if value is None else Double(value) for value in (start, stop))
@@ -157,17 +158,18 @@ class NumericField(Field):
         return search.NumericRangeQuery.newLongRange(self.name, step, start, stop, lower, upper)
 
     def term(self, value):
-        "Return range query to match single term."
+        """Return range query to match single term."""
         return self.range(value, value, upper=True)
 
     def filter(self, *args, **kwargs):
-        ".. deprecated:: 1.9 convert NumericRangeQuery with `Query`_.filter instead"
+        """.. deprecated:: 1.9 convert NumericRangeQuery with `Query`_.filter instead"""
         warnings.warn(NumericField.filter.__doc__, DeprecationWarning)
         return Query.filter(self.range(*args, **kwargs), cache=False)
 
 
 class DateTimeField(NumericField):
     """Field which indexes datetimes as a NumericField of timestamps.
+
     Supports datetimes, dates, and any prefix of time tuples.
     """
     def __init__(self, name, **kwargs):
@@ -175,22 +177,22 @@ class DateTimeField(NumericField):
 
     @classmethod
     def timestamp(cls, date):
-        "Return utc timestamp from date or time tuple."
+        """Return utc timestamp from date or time tuple."""
         if isinstance(date, datetime.date):
             return calendar.timegm(date.timetuple()) + getattr(date, 'microsecond', 0) * 1e-6
         return float(calendar.timegm(tuple(date) + (None, 1, 1, 0, 0, 0)[len(date):]))
 
     def items(self, *dates):
-        "Generate lucene NumericFields of timestamps."
+        """Generate lucene NumericFields of timestamps."""
         return NumericField.items(self, *map(self.timestamp, dates))
 
     def range(self, start, stop, lower=True, upper=False):
-        "Return NumericRangeQuery of timestamps."
+        """Return NumericRangeQuery of timestamps."""
         start, stop = (date and self.timestamp(date) for date in (start, stop))
         return NumericField.range(self, start, stop, lower, upper)
 
     def prefix(self, date):
-        "Return range query which matches the date prefix."
+        """Return range query which matches the date prefix."""
         if isinstance(date, datetime.date):
             date = date.timetuple()[:6 if isinstance(date, datetime.datetime) else 3]
         if len(date) == 2 and date[1] == 12:  # month must be valid
@@ -199,7 +201,7 @@ class DateTimeField(NumericField):
 
     def duration(self, date, days=0, **delta):
         """Return date range query within time span of date.
-        
+
         :param date: origin date or tuple
         :param days,delta: timedelta parameters
         """
@@ -210,8 +212,9 @@ class DateTimeField(NumericField):
 
     def within(self, days=0, weeks=0, utc=True, **delta):
         """Return date range query within current time and delta.
+
         If the delta is an exact number of days, then dates will be used.
-        
+
         :param days,weeks: number of days to offset from today
         :param utc: optionally use utc instead of local time
         :param delta: additional timedelta parameters
@@ -223,7 +226,7 @@ class DateTimeField(NumericField):
 
 
 class Document(dict):
-    "Multimapping of field names to values, but default getters return the first value."
+    """Multimapping of field names to values, but default getters return the first value."""
     def __init__(self, doc):
         for field in doc.iterator():
             value = convert(field.numericValue() or field.stringValue() or field.binaryValue())
@@ -236,12 +239,12 @@ class Document(dict):
         return dict.get(self, name, [default])[0]
 
     def getlist(self, name):
-        "Return list of all values for given field."
+        """Return list of all values for given field."""
         return dict.get(self, name, [])
 
     def dict(self, *names, **defaults):
         """Return dict representation of document.
-        
+
         :param names: names of multi-valued fields to return as a list
         :param defaults: include only given fields, using default values as necessary
         """
@@ -251,7 +254,7 @@ class Document(dict):
 
 
 def convert(value):
-    "Return python object from java Object."
+    """Return python object from java Object."""
     if util.BytesRef.instance_(value):
         return util.BytesRef.cast_(value).utf8ToString()
     if not Number.instance_(value):
@@ -261,14 +264,14 @@ def convert(value):
 
 
 class Hit(Document):
-    "A Document from a search result, with :attr:`id`, :attr:`score`, and optional sort :attr:`keys`."
+    """A Document from a search result, with :attr:`id`, :attr:`score`, and optional sort :attr:`keys`."""
     def __init__(self, doc, id, score, keys=()):
         Document.__init__(self, doc)
         self.id, self.score = id, score
         self.keys = tuple(map(convert, keys))
 
     def dict(self, *names, **defaults):
-        "Return dict representation of document with __id__, __score__, and any sort __keys__."
+        """Return dict representation of document with __id__, __score__, and any sort __keys__."""
         result = Document.dict(self, *names, **defaults)
         result.update(__id__=self.id, __score__=self.score)
         if self.keys:
@@ -278,8 +281,9 @@ class Hit(Document):
 
 class Hits(object):
     """Search results: lazily evaluated and memory efficient.
+
     Provides a read-only sequence interface to hit objects.
-    
+
     :param searcher: `IndexSearcher`_ which can retrieve documents
     :param scoredocs: lucene ScoreDocs
     :param count: total number of hits
@@ -292,7 +296,7 @@ class Hits(object):
         self.fields = fields
 
     def select(self, *fields):
-        "Only load selected fields."
+        """Only load selected fields."""
         self.fields = HashSet(Arrays.asList(fields))
 
     def __len__(self):
@@ -318,7 +322,7 @@ class Hits(object):
         return map(operator.attrgetter('score'), self.scoredocs)
 
     def items(self):
-        "Generate zipped ids and scores."
+        """Generate zipped ids and scores."""
         return map(operator.attrgetter('doc', 'score'), self.scoredocs)
 
     def groupby(self, func, count=None, docs=None):
@@ -340,18 +344,18 @@ class Hits(object):
         return Groups(self.searcher, groups[:count], len(groups), self.maxscore, self.fields)
 
     def filter(self, func):
-        "Return `Hits`_ filtered by function applied to doc ids."
+        """Return `Hits`_ filtered by function applied to doc ids."""
         scoredocs = [scoredoc for scoredoc in self.scoredocs if func(scoredoc.doc)]
         return type(self)(self.searcher, scoredocs, fields=self.fields)
 
     def sorted(self, key, reverse=False):
-        "Return `Hits`_ sorted by key function applied to doc ids."
+        """Return `Hits`_ sorted by key function applied to doc ids."""
         scoredocs = sorted(self.scoredocs, key=lambda scoredoc: key(scoredoc.doc), reverse=reverse)
         return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
 
 
 class Groups(object):
-    "Sequence of grouped `Hits`_."
+    """Sequence of grouped `Hits`_."""
     select = Hits.__dict__['select']
 
     def __init__(self, searcher, groupdocs, count=None, maxscore=None, fields=None):
@@ -372,13 +376,13 @@ class Groups(object):
 
     @property
     def facets(self):
-        "mapping of field values and counts"
+        """mapping of field values and counts"""
         return {hits.value: hits.count for hits in self}
 
 
 class GroupingSearch(grouping.GroupingSearch):
     """Inherited lucene GroupingSearch with optimized faceting.
-    
+
     :param field: unique field name to group by
     :param sort: lucene Sort to order groups and docs
     :param cache: use unlimited caching
@@ -402,7 +406,7 @@ class GroupingSearch(grouping.GroupingSearch):
         return map(convert, self.allMatchingGroups)
 
     def search(self, searcher, query, filter=None, count=None, start=0):
-        "Run query and return `Groups`_."
+        """Run query and return `Groups`_."""
         if count is None:
             count = sum(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field).valueCount for reader in searcher.readers)
         topgroups = grouping.GroupingSearch.search(self, searcher, filter, query, start, count - start)
