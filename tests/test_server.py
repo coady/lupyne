@@ -1,39 +1,72 @@
 import calendar
+import httplib
+import json
 import math
 import operator
 import os
 import signal
-import sys
 import subprocess
+import sys
 import time
-import httplib
 import urllib
 from email.utils import parsedate
 import cherrypy
 import clients
+import portend
 import pytest
 from lupyne import engine, server
-from .test_remote import servers  # noqa
 
 
-@pytest.fixture  # noqa
+class Servers(dict):
+    module = 'lupyne.server'
+    ports = 8080, 8081, 8082
+    hosts = tuple(map('localhost:{:d}'.format, ports))
+    config = {'server.socket_timeout': 2, 'server.shutdown_timeout': 1}
+
+    def start(self, port, *args, **config):
+        config.update(self.config)
+        config['server.socket_port'] = port
+        portend.free('localhost', port)
+        server = self[port] = subprocess.Popen((sys.executable, '-m', self.module, '-c', json.dumps(config)) + args)
+        portend.occupied('localhost', port)
+        server.started = time.time()
+        assert not server.poll()
+        return clients.Resource('http://localhost:{}'.format(port))
+
+    def stop(self, port):
+        server = self.pop(port)
+        time.sleep(max(0, server.started + 0.1 - time.time()))
+        server.terminate()
+        assert server.wait() == 0
+
+
+@pytest.fixture
+def servers(request):
+    servers = Servers()
+    servers.config['log.screen'] = request.config.option.verbose > 0
+    yield servers
+    for port in list(servers):
+        servers.stop(port)
+
+
+@pytest.fixture
 def resource(tempdir, servers, constitution):
-    servers.start(servers.ports[0], tempdir)
-    resource = clients.Resource(servers.urls[0])
+    resource = servers.start(servers.ports[0], tempdir)
     for name, settings in constitution.fields.items():
-        assert resource.put('fields/' + name, settings)
-    resource.post('docs', list(constitution))
+        assert resource.client.put('fields/' + name, settings).status_code == httplib.CREATED
+    assert resource.post('docs', list(constitution)) is None
     assert resource.post('update', {'spellcheckers': True, 'merge': 1})
     return resource
 
 
 def test_docs(resource):
-    index, size = resource().popitem()
-    assert '/fixtures/' in index and size == 35
+    (directory, size), = resource().items()
+    assert 'Directory@' in directory and size == 35
     fields = resource.get('/fields')
     assert sorted(fields) == ['amendment', 'article', 'date', 'text']
     for field in fields:
         assert resource.fields(field)['indexed']
+    assert resource.client.put('fields/' + field, {}).status_code == httplib.OK
     assert resource.docs('0', **{'fields.indexed': 'amendment:int'}) == {'amendment': 0, 'article': 'Preamble'}
     doc = resource.docs('0', **{'fields.vector': 'text,missing'})
     assert doc['missing'] == [] and doc['text'].index('states') < doc['text'].index('united')
@@ -43,6 +76,8 @@ def test_docs(resource):
     assert sorted(term for term, count in doc['text'].items() if count > 1) == ['establish', 'states', 'united']
     doc = resource.docs('amendment/1', **{'fields.multi': 'text', 'fields.indexed': 'text'})
     assert doc['text'][:3] == ['abridging', 'assemble', 'congress']
+    assert resource.client.put('docs/article/0', {'article': '-1'}).status_code == httplib.BAD_REQUEST
+    assert resource.delete('docs/article/0') is None
 
 
 def test_terms(resource):
@@ -68,6 +103,8 @@ def test_terms(resource):
     assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
     positions = dict(resource.terms('text/people/docs/positions'))
     assert sorted(positions) == docs and list(map(len, positions.values())) == counts.values()
+    assert resource.client.get('terms/text/people/missing').status_code == httplib.NOT_FOUND
+    assert resource.client.get('terms/text/people/docs/missing').status_code == httplib.NOT_FOUND
 
 
 def test_search(resource):
@@ -119,6 +156,9 @@ def test_search(resource):
     assert result['count'] == 1
     doc, = result['docs']
     assert doc['amendment'] == '1'
+    assert resource.delete('search', params={'q': 'text:freedom'}) is None
+    assert resource.post('update') == 34
+    assert resource.search(q='text:freedom')['docs'] == []
 
 
 def test_highlights(resource):
@@ -168,19 +208,19 @@ def test_highlights(resource):
     assert set(map(operator.itemgetter('count'), result['groups'])) == {1}
     assert all(int(doc.get('amendment', 0)) == group['value'] for group in result['groups'] for doc in group['docs'])
     assert result['groups'][0]['value'] == 2 and result['groups'][-1]['value'] == 0
+    assert resource.search(q='hello', **{'q.field': 'body.title^2.0'})['query'] == 'body.title:hello^2.0'
 
 
-def test_facets(tempdir, servers, zipcodes):  # noqa
+def test_facets(tempdir, servers, zipcodes):
     writer = engine.IndexWriter(tempdir)
     writer.commit()
-    servers.start(servers.ports[0], '-r', tempdir)
+    resource = servers.start(servers.ports[0], '-r', tempdir)
     writer.set('zipcode', engine.NumericField, type=int, stored=True)
     writer.fields['location'] = engine.NestedField('county.city')
     for doc in zipcodes:
         if doc['state'] == 'CA':
             writer.add(zipcode=doc['zipcode'], location='{}.{}'.format(doc['county'], doc['city']))
     writer.commit()
-    resource = clients.Resource(servers.urls[0])
     assert resource.post('update') == resource().popitem()[1] == len(writer)
     terms = resource.terms(urllib.quote('zipcode:int'))
     assert len(terms) == len(writer) and terms[0] == 90001
@@ -201,9 +241,9 @@ def test_facets(tempdir, servers, zipcodes):  # noqa
     assert sum(map(operator.itemgetter('count'), result['groups'])) == sum(facets.values()) == result['count']
 
 
-def test_queries(servers):  # noqa
-    servers.start(servers.ports[0], **{'tools.validate.etag': False})
-    resource = clients.Resource(servers.urls[0], headers={'content-length': '0'})
+def test_queries(servers):
+    resource = servers.start(servers.ports[0], **{'tools.validate.etag': False})
+    resource.headers['content-length'] = '0'
     assert resource.queries() == []
     resource.client.get('queries/default').status_code == httplib.NOT_FOUND
     resource.client.put('queries/default/alpha', '*:*').status_code == httplib.CREATED
@@ -222,24 +262,22 @@ def test_queries(servers):  # noqa
     assert resource.queries('default') == {'bravo': 0.0}
 
 
-def test_realtime(tempdir, servers):  # noqa
+def test_realtime(tempdir, servers):
     for args in [('-r',), ('--real-time', 'index0', 'index1'), ('-r', '--real-time', 'index')]:
         assert subprocess.call((sys.executable, '-m', 'lupyne.server') + args, stderr=subprocess.PIPE)
     root = server.WebIndexer(tempdir)
     root.indexer.add()
     assert root.update() == 1
     del root
-    servers.start(servers.ports[0], '--real-time', **{'tools.validate.expires': 0})
-    client = clients.Client(servers.urls[0])
+    resource = servers.start(servers.ports[0], '--real-time', **{'tools.validate.expires': 0})
+    client = resource.client
     response = client.get('docs')
     version, modified, expires = map(response.headers.get, ('etag', 'last-modified', 'expires'))
     assert response.ok and modified is None and response.json() == []
     assert client.post('docs', [{}]).status_code == httplib.OK
-    response = client.get('docs')
-    assert response.ok and response.json() == [0]
+    assert resource.docs() == [0]
     assert client.delete('search').status_code == httplib.OK
-    response = client.get('docs')
-    assert response.ok and response.json() == []
+    assert resource.docs() == []
     time.sleep(max(0, calendar.timegm(parsedate(expires)) + 1 - time.time()))
     assert client.post(json=[tempdir]).status_code == httplib.OK
     response = client.get('docs')
@@ -249,7 +287,7 @@ def test_realtime(tempdir, servers):  # noqa
     assert response.ok and version != response.headers['etag']
 
 
-def test_start(tempdir, servers):  # noqa
+def test_start(tempdir, servers):
     port = servers.ports[0]
     pidfile = os.path.join(tempdir, 'pid')
     servers.start(port, '-dp', pidfile)
@@ -264,13 +302,29 @@ def test_start(tempdir, servers):  # noqa
         server.start(config=True)
 
 
-def test_example(request, servers):  # noqa
+def test_config(tempdir, servers):
+    engine.IndexWriter(tempdir).close()
+    config = {'tools.json_out.indent': 2, 'tools.validate.last_modified': True, 'tools.validate.expires': 0, 'tools.validate.max_age': 0}
+    client = servers.start(servers.ports[0], tempdir, tempdir, '--autoreload=0.1', **config).client
+    response = client.get()
+    assert response.ok
+    (directory, size), = response.json().items()
+    assert 'Directory@' in directory and size == 0
+    assert int(response.headers['age']) >= 0
+    assert response.headers['cache-control'] == 'max-age=0'
+    assert float(response.headers['x-response-time']) > 0.0
+    dates = [parsedate(response.headers[header]) for header in ('last-modified', 'expires', 'date')]
+    assert all(dates) and sorted(dates) == dates
+    w, verion, _ = response.headers['etag'].split('"')
+    assert w == 'W/' and verion.isdigit()
+
+
+def test_example(request, servers):
     """Custom server example (only run explicitly)."""
     if request.config.option.verbose < 0:
         pytest.skip("requires verbose output")
     servers.module = 'examples.server'
-    servers.start(servers.ports[0])
-    resource = clients.Resource(servers.urls[0])
+    resource = servers.start(servers.ports[0])
     result = resource.search(q='date:17*', group='year')
     assert dict(map(operator.itemgetter('value', 'count'), result['groups'])) == {1795: 1, 1791: 10}
     result = resource.search(q='date:17*', group='year', sort='-year')
@@ -283,18 +337,17 @@ def test_example(request, servers):  # noqa
     assert len(result['docs']) == result['count'] == sum(facets.values())
 
 
-def test_replication(tempdir, servers):  # noqa
+def test_replication(tempdir, servers):
     directory = os.path.join(tempdir, 'backup')
     sync, update = '--autosync=' + servers.hosts[0], '--autoupdate=1'
-    servers.start(servers.ports[0], tempdir),
-    servers.start(servers.ports[1], '-r', directory, sync, update),
-    servers.start(servers.ports[2], '-r', directory),
+    primary = servers.start(servers.ports[0], tempdir)
+    secondary = servers.start(servers.ports[1], '-r', directory, sync, update)
+    resource = servers.start(servers.ports[2], '-r', directory)
     for args in [('-r', tempdir), (update, tempdir), (update, tempdir, tempdir)]:
         assert subprocess.call((sys.executable, '-m', 'lupyne.server', sync) + args, stderr=subprocess.PIPE)
-    primary = clients.Resource(servers.urls[0])
     primary.post('docs', [{}])
     assert primary.post('update') == 1
-    resource = clients.Resource(servers.urls[2])
+    assert primary.client.put('update/0').status_code == httplib.NOT_FOUND
     response = resource.client.post(json={'host': servers.hosts[0]})
     assert response.status_code == httplib.ACCEPTED and sum(response.json().values()) == 0
     assert resource.post('update') == 1
@@ -302,9 +355,8 @@ def test_replication(tempdir, servers):  # noqa
     assert resource.post('update') == 1
     primary.post('docs', [{}])
     assert primary.post('update') == 2
-    resource = clients.Resource(servers.urls[1])
     time.sleep(1.1)
-    assert sum(resource().values()) == 2
+    assert sum(secondary().values()) == 2
     servers.stop(servers.ports[-1])
     root = server.WebSearcher(directory, hosts=servers.hosts[:2])
     app = server.mount(root)
@@ -312,9 +364,9 @@ def test_replication(tempdir, servers):  # noqa
     assert root.update() == 2
     assert len(root.hosts) == 2
     servers.stop(servers.ports[0])
-    assert resource.docs()
-    assert resource.client.post('docs', []).status_code == httplib.METHOD_NOT_ALLOWED
-    assert resource.terms(option='indexed') == []
+    assert secondary.docs()
+    assert secondary.client.post('docs', []).status_code == httplib.METHOD_NOT_ALLOWED
+    assert secondary.terms(option='indexed') == []
     assert root.update() == 2
     assert len(root.hosts) == 1
     servers.stop(servers.ports[1])

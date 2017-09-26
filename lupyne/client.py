@@ -8,7 +8,6 @@ import io
 import gzip
 import shutil
 import httplib
-import urllib
 from .utils import json
 
 
@@ -18,7 +17,6 @@ class Response(httplib.HTTPResponse):
 
     def end(self):
         self.body = self.read()
-        self.time = float(self.getheader('x-response-time', 'nan'))
         if 'gzip' in self.getheader('content-encoding', ''):
             self.body = gzip.GzipFile(fileobj=io.BytesIO(self.body)).read()
 
@@ -43,11 +41,7 @@ class Resource(httplib.HTTPConnection):
 
     def request(self, method, path, body=None):
         "Send request after handling body and headers."
-        headers = dict(self.headers)
-        if body is not None:
-            body = json.dumps(body)
-            headers.update({'content-length': str(len(body)), 'content-type': self.response_class.content_type})
-        httplib.HTTPConnection.request(self, method, path, body, headers)
+        httplib.HTTPConnection.request(self, method, path, body, self.headers)
 
     def getresponse(self, filename=''):
         "Return completed response, optionally write response body to a file."
@@ -60,8 +54,6 @@ class Resource(httplib.HTTPConnection):
 
     def call(self, method, path, body=None, params=(), redirect=False):
         "Send request and return completed `response`_."
-        if params:
-            path += '?' + urllib.urlencode(params, doseq=True)
         self.request(method, path, body)
         return self.getresponse()
 
@@ -70,15 +62,6 @@ class Resource(httplib.HTTPConnection):
         self.request('GET', path)
         return self.getresponse(filename)()
 
-    def get(self, path, **params):
-        "Return response body from GET request."
-        return self.call('GET', path, params=params)()
-    def post(self, path, body=None, **kwargs):
-        "Return response body from POST request."
-        return self.call('POST', path, body, **kwargs)()
-    def put(self, path, body=None, **kwargs):
-        "Return response body from PUT request."
-        return self.call('PUT', path, body, **kwargs)()
     def delete(self, path, **params):
         "Return response body from DELETE request."
         return self.call('DELETE', path, params=params)()
