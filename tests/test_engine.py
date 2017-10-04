@@ -30,7 +30,6 @@ def tokenizer(reader):
 
 
 def test_interface(tempdir):
-    "Indexer and document interfaces."
     with pytest.raises(TypeError):
         engine.IndexSearcher()
     stemmer = engine.Analyzer(tokenizer, analysis.en.PorterStemFilter, typeAsPayload)
@@ -177,7 +176,6 @@ def test_interface(tempdir):
 
 
 def test_basic(tempdir, constitution):
-    "Text fields and simple searches."
     with pytest.raises(lucene.JavaError):
         engine.Indexer(tempdir, 'r')
     indexer = engine.Indexer(tempdir)
@@ -423,7 +421,6 @@ def test_advanced(tempdir, zipcodes):
 
 
 def test_spatial(tempdir, zipcodes):
-    "Spatial tiles."
     point = engine.spatial.Point(-120, 39)
     assert point.coords == (-120, 39) and not list(point.within(1, 0))
     indexer = engine.Indexer(tempdir, 'w')
@@ -477,7 +474,6 @@ def test_spatial(tempdir, zipcodes):
 
 
 def test_fields(tempdir, constitution):
-    "Custom fields."
     with pytest.raises(lucene.InvalidArgsError):
         engine.Field('', stored='invalid')
     settings = {'indexed': False, 'docValueType': 'NUMERIC', 'indexOptions': 'DOCS_ONLY'}
@@ -527,9 +523,6 @@ def test_fields(tempdir, constitution):
     assert [int(hit['amendment']) for hit in hits] == [1, 2, 3]
     hits = indexer.search(count=3, sort='year', reverse=True)
     assert [int(hit['amendment']) for hit in hits] == [27, 26, 25]
-    filter = indexer.sorters['year'].filter(None, 1792)
-    assert indexer.count(filter=filter) == 10
-    assert set(indexer.sorters['year'].terms(filter, *indexer.readers)) == {1791}
     assert cache == len(search.FieldCache.DEFAULT.cacheEntries)
     indexer.add()
     indexer.commit(sorters=True)
@@ -541,7 +534,6 @@ def test_fields(tempdir, constitution):
 
 
 def test_numeric(tempdir, constitution):
-    "Numeric fields."
     nf, = engine.NumericField('temp').items(0.5)
     assert nf.numericValue().doubleValue() == 0.5
     indexer = engine.Indexer(tempdir)
@@ -591,7 +583,6 @@ def test_numeric(tempdir, constitution):
 
 
 def test_highlighting(constitution):
-    "Highlighting text fragments."
     indexer = engine.Indexer()
     indexer.set('text', stored=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
     for doc in constitution:
@@ -623,7 +614,6 @@ def test_highlighting(constitution):
 
 
 def test_nrt():
-    "Near real-time index updates."
     indexer = engine.Indexer(version=util.Version.LUCENE_4_10_0, nrt=True)
     indexer.add()
     assert indexer.count() == 0 and not indexer.current
@@ -637,7 +627,6 @@ def test_nrt():
 
 
 def test_multi(tempdir):
-    "MultiSearchers."
     indexers = engine.Indexer(tempdir), engine.Indexer()
     searcher = engine.MultiSearcher([indexers[0].indexReader, indexers[1].directory])
     pytest.raises(TypeError, getattr, searcher, 'timestamp')
@@ -655,7 +644,6 @@ def test_multi(tempdir):
 
 
 def test_docvalues():
-    "DocValues and updates."
     indexer = engine.Indexer()
     indexer.set('id')
     indexer.set('votes', engine.DocValuesField, type='numeric')
@@ -676,4 +664,3 @@ def test_docvalues():
     assert indexer.segments == segments
     assert list(indexer.comparator('votes', type=int)) == [3]
     assert list(indexer.comparator('tag', type='bytes')) == ['high']
-    assert indexer.count(filter=indexer.sorter('votes', int).filter(3, 4))

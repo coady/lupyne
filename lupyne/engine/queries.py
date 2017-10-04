@@ -316,19 +316,6 @@ class SortField(search.SortField):
         assert not multi or self.typename == 'String'
         return Comparator(self.array(reader, multi) for reader in searcher.readers)
 
-    def filter(self, start, stop, lower=True, upper=False):
-        """Return lucene FieldCacheRangeFilter based on field and type."""
-        method = getattr(search.FieldCacheRangeFilter, 'new{}Range'.format(self.typename))
-        return method(self.field, self.parser, start, stop, lower, upper)
-
-    def terms(self, filter, *readers):
-        """Generate field cache terms from docs which match filter from all segments."""
-        for reader in readers:
-            array, docset = self.array(reader), filter.getDocIdSet(reader.context, reader.liveDocs)
-            docsetit = docset.iterator() if docset else search.DocIdSetIterator.empty()
-            for id in iter(docsetit.nextDoc, search.DocIdSetIterator.NO_MORE_DOCS):
-                yield array[id]
-
 
 class Highlighter(highlight.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
