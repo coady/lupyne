@@ -5,6 +5,7 @@ Common utilities with no outside dependencies.
 import abc
 import collections
 import contextlib
+import types
 try:
     import simplejson as json
 except ImportError:
@@ -35,4 +36,4 @@ Atomic.register(basestring)
 class method(staticmethod):
     """Backport of Python 3's unbound methods."""
     def __get__(self, instance, owner):
-        return self.__func__ if instance is None else self.__func__.__get__(instance, owner)
+        return self.__func__ if instance is None else types.MethodType(self.__func__, instance)

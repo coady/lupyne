@@ -22,6 +22,8 @@ class Query(object):
 
     Uses class methods and operator overloading for convenient query construction.
     """
+    filter = method(search.QueryWrapperFilter)
+
     def __new__(cls, base, *args, **attrs):
         return base.__new__(type(base.__name__, (cls, base), {}))
 
@@ -29,17 +31,6 @@ class Query(object):
         base.__init__(self, *args)
         for name in attrs:
             setattr(self, name, attrs[name])
-
-    @method
-    def filter(self, cache=True):
-        """Return query as a filter, as specifically matching as possible, but defaulting to QueryWrapperFilter."""
-        if isinstance(self, search.PrefixQuery):
-            filter = search.PrefixFilter(self.getPrefix())
-        elif isinstance(self, search.TermRangeQuery):
-            filter = search.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
-        else:
-            filter = search.QueryWrapperFilter(self)
-        return search.CachingWrapperFilter(filter) if cache else filter
 
     @method
     def terms(self):

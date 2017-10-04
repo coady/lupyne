@@ -117,8 +117,6 @@ def test_interface(tempdir):
     query = engine.Query.span('text', 'world')
     assert str(query.mask('name')) == 'mask(text:world) as name'
     assert str(query.payload()) == 'spanPayCheck(text:world, payloadRef: )'
-    assert isinstance(query.filter(cache=False), search.QueryWrapperFilter)
-    assert isinstance(query.filter(), search.CachingWrapperFilter)
     query = engine.Query.disjunct(0.1, query, name='sample')
     assert str(query) == '(text:world | name:sample)~0.1'
     query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
@@ -271,8 +269,6 @@ def test_basic(tempdir, constitution):
     amendments = ['18', '19']
     assert sorted(hit['amendment'] for hit in hits) == amendments
     query = engine.Query.range('date', '1919', '1921')
-    hits = indexer.search(filter=query.filter())
-    assert sorted(hit['amendment'] for hit in hits) == amendments
     hits = indexer.search(query | engine.Query.term('text', 'vote'))
     assert {hit.get('amendment') for hit in hits} > set(amendments)
     hit, = indexer.search(query & engine.Query.term('text', 'vote'))
