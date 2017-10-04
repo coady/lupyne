@@ -6,12 +6,11 @@ from future_builtins import filter, map
 import itertools
 import bisect
 import heapq
-import threading
 import contextlib
 import lucene
 from java.lang import Integer
 from java.util import Arrays, HashSet
-from org.apache.lucene import index, queries, search, store, util
+from org.apache.lucene import index, queries, search, util
 from org.apache.lucene.search import highlight, spans, vectorhighlight
 from org.apache.pylucene import search as pysearch
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
@@ -38,8 +37,6 @@ class Query(object):
             filter = search.PrefixFilter(self.getPrefix())
         elif isinstance(self, search.TermRangeQuery):
             filter = search.TermRangeFilter(self.field, self.lowerTerm, self.upperTerm, self.includesLower(), self.includesUpper())
-        elif isinstance(self, search.TermQuery):
-            filter = queries.TermsFilter([self.getTerm()])
         elif isinstance(self, search.NumericRangeQuery):
             method = getattr(search.NumericRangeFilter, 'new{0}Range'.format(self.parameters_[0].__name__))
             filter = method(self.field, self.precisionStep, self.min, self.max, self.includesMin(), self.includesMax())
@@ -251,11 +248,6 @@ class BooleanFilter(queries.BooleanFilter):
         return cls(search.BooleanClause.Occur.MUST, *filters)
 
 
-class Filter(pysearch.PythonFilter):
-    def getDocIdSet(self, context, acceptDocs):
-        return util.FixedBitSet(context.reader().maxDoc())
-
-
 @contextlib.contextmanager
 def suppress(exception):
     """Suppress specific lucene exception."""
@@ -264,68 +256,6 @@ def suppress(exception):
     except lucene.JavaError as exc:
         if not exception.instance_(exc.getJavaException()):
             raise
-
-
-class TermsFilter(search.CachingWrapperFilter):
-    """Caching filter based on a unique field and set of matching values.
-
-    Optimized for many terms and docs, with support for incremental updates.
-    Suitable for searching external metadata associated with indexed identifiers.
-    Call :meth:`refresh` to cache a new (or reopened) searcher.
-
-    :param field: field name
-    :param values: initial term values, synchronized with the cached filters
-    """
-    ops = {'or': 'update', 'and': 'intersection_update', 'andNot': 'difference_update'}
-
-    def __init__(self, field, values=()):
-        search.CachingWrapperFilter.__init__(self, Filter())
-        self.field = field
-        self.values = set(values)
-        self.readers = set()
-        self.lock = threading.Lock()
-
-    def filter(self, values, cache=True):
-        """Return lucene TermsFilter, optionally using the FieldCache."""
-        if cache:
-            return search.FieldCacheTermsFilter(self.field, tuple(values))
-        return queries.TermsFilter(self.field, tuple(map(util.BytesRef, values)))
-
-    def apply(self, filter, op, readers):
-        for reader in readers:
-            with suppress(store.AlreadyClosedException):
-                bitset = util.FixedBitSet.cast_(self.getDocIdSet(reader.context, None))
-                docset = filter.getDocIdSet(reader.context, None)
-                if docset:
-                    getattr(bitset, op)(docset.iterator())
-
-    def update(self, values, op='or', cache=True):
-        """Update allowed values and corresponding cached bitsets.
-
-        :param values: additional term values
-        :param op: set operation used to combine terms and docs: *and*, *or*, *andNot*
-        :param cache: optionally cache all term values using FieldCache
-        """
-        values = tuple(values)
-        filter = self.filter(values, cache)
-        with self.lock:
-            self.apply(filter, op, self.readers)
-            getattr(self.values, self.ops[op])(values)
-
-    def refresh(self, searcher):
-        """Refresh cached bitsets of current values for new segments of searcher."""
-        readers = set(searcher.readers)
-        with self.lock:
-            self.apply(self.filter(self.values), 'or', readers - self.readers)
-            self.readers = {reader for reader in readers | self.readers if reader.refCount}
-
-    def add(self, *values):
-        """Add a few term values."""
-        self.update(values, cache=False)
-
-    def discard(self, *values):
-        """Discard a few term values."""
-        self.update(values, op='andNot', cache=False)
 
 
 class Array(object):

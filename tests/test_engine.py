@@ -641,26 +641,6 @@ def test_nrt():
     assert indexer.count() == engine.IndexSearcher(indexer.directory).count() == 2
 
 
-def test_filters():
-    "Custom filters."
-    indexer = engine.Indexer()
-    indexer.set('name', stored=True, tokenized=False)
-    for name in ('alpha', 'bravo'):
-        indexer.add(name=name)
-    indexer.commit()
-    filter = indexer.termsfilter('name')
-    assert filter.readers
-    indexer.add(name='charlie')
-    indexer.commit()
-    filter.add('alpha', 'bravo')
-    filter.discard('bravo', 'charlie')
-    assert filter.values == {'alpha'}
-    assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha']
-    indexer.update('name', document={'name': 'alpha'})
-    indexer.commit()
-    assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha']
-
-
 def test_multi(tempdir):
     "MultiSearchers."
     indexers = engine.Indexer(tempdir), engine.Indexer()

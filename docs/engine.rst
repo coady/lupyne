@@ -4,7 +4,7 @@ engine
 
   * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_,
   * `Document`_, `Field`_, `MapField`_, `NestedField`_, `DocValuesField`_, `NumericField`_, `DateTimeField`_
-  * `Query`_, `SortField`_, `TermsFilter`_
+  * `Query`_, `SortField`_,
   * `PointField`_, `PolygonField`_
 
 
@@ -64,10 +64,6 @@ IndexSearcher
   .. attribute:: spellcheckers
 
     Mapping of cached spellcheckers by field.
-
-  .. attribute:: termsfilters
-
-    Set of registered termsfilters.
 
 MultiSearcher
 ^^^^^^^^^^^^^
@@ -249,13 +245,6 @@ SpanQuery
   .. automethod:: __or__
 
     <SpanOrQuery: spanOr(spans)>
-
-TermsFilter
-^^^^^^^^^^^^^
-.. versionadded:: 1.2
-.. autoclass:: TermsFilter
-  :show-inheritance:
-  :members:
 
 SortField
 ^^^^^^^^^^^^^

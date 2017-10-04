@@ -17,7 +17,7 @@ from java.util import Arrays, HashMap, HashSet
 from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
-from .queries import suppress, Query, BooleanFilter, TermsFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
+from .queries import suppress, Query, BooleanFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import DistanceComparator
 from ..utils import Atomic, method
@@ -427,7 +427,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         search.IndexSearcher.__init__(self, self.shared.reader(directory))
         self.analyzer = self.shared.analyzer(analyzer)
         self.filters, self.sorters, self.spellcheckers = {}, {}, {}
-        self.termsfilters = set()
 
     @classmethod
     def load(cls, directory, analyzer=None):
@@ -448,8 +447,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def reopen(self, filters=False, sorters=False, spellcheckers=False):
         """Return current `IndexSearcher`_, only creating a new one if necessary.
 
-        Any registered :attr:`termsfilters` are also refreshed.
-
         :param filters: refresh cached facet :attr:`filters`
         :param sorters: refresh cached :attr:`sorters` with associated parsers
         :param spellcheckers: refresh cached :attr:`spellcheckers`
@@ -461,9 +458,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         other.decRef()
         other.shared = self.shared
         other.filters.update((key, value if isinstance(value, search.Filter) else dict(value)) for key, value in self.filters.items())
-        other.termsfilters.update(self.termsfilters)
-        for termsfilter in self.termsfilters:
-            termsfilter.refresh(other)
         if filters:
             other.facets(Query.any(), *other.filters)
         other.sorters = {name: SortField(sorter.field, sorter.typename, sorter.parser) for name, sorter in self.sorters.items()}
@@ -642,17 +636,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 value = value,
             searcher.addField(name, *value)
         return (searcher.search(self.parse(query)) for query in queries)
-
-    def termsfilter(self, field, values=()):
-        """Return registered `TermsFilter`_, which will be refreshed whenever the searcher is reopened.
-
-        .. versionadded:: 1.7
-        .. note:: This interface is experimental and might change in incompatible ways in the next release.
-        """
-        termsfilter = TermsFilter(field, values)
-        termsfilter.refresh(self)
-        self.termsfilters.add(termsfilter)
-        return termsfilter
 
 
 class MultiSearcher(IndexSearcher):
