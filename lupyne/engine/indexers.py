@@ -32,9 +32,9 @@ class closing(set):
         for obj in self:
             obj.close()
 
-    def analyzer(self, analyzer, version=None):
+    def analyzer(self, analyzer):
         if analyzer is None:
-            analyzer = analysis.standard.StandardAnalyzer(version or util.Version.LATEST)
+            analyzer = analysis.standard.StandardAnalyzer()
             self.add(analyzer)
         return analyzer
 
@@ -190,13 +190,12 @@ class Analyzer(PythonAnalyzer):
         return self.components(field, StringReader(text))[1]
 
     @method
-    def parse(self, query, field='', op='', version=None, parser=None, **attrs):
+    def parse(self, query, field='', op='', parser=None, **attrs):
         """Return parsed lucene Query.
 
         :param query: query string
         :param field: default query field name, sequence of names, or boost mapping
         :param op: default query operator ('or', 'and')
-        :param version: lucene Version
         :param parser: custom PythonQueryParser class
         :param attrs: additional attributes to set on the parser
         """
@@ -208,7 +207,7 @@ class Analyzer(PythonAnalyzer):
             for key in field:
                 boosts.put(key, Float(field[key]))
             args = list(field), self, boosts
-        parser = (parser or cls)(version or util.Version.LATEST, *args)
+        parser = parser(util.Version.LATEST, *args) if parser else cls(*args)
         if op:
             parser.defaultOperator = getattr(queryparser.classic.QueryParser.Operator, op.upper())
         for name, value in attrs.items():
@@ -665,7 +664,7 @@ class IndexWriter(index.IndexWriter):
     :param directory: directory path or lucene Directory, default RAMDirectory
     :param mode: file mode (rwa), except updating (+) is implied
     :param analyzer: lucene Analyzer, default StandardAnalyzer
-    :param version: lucene Version argument passed to IndexWriterConfig or StandardAnalyzer, default is latest
+    :param version: lucene Version argument passed to IndexWriterConfig, default is latest
     :param attrs: additional attributes to set on IndexWriterConfig
     """
     __len__ = index.IndexWriter.numDocs
@@ -673,9 +672,7 @@ class IndexWriter(index.IndexWriter):
 
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
-        if version is None:
-            version = util.Version.LATEST
-        config = index.IndexWriterConfig(version, self.shared.analyzer(analyzer, version))
+        config = index.IndexWriterConfig(version or util.Version.LATEST, self.shared.analyzer(analyzer))
         config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
         for name, value in attrs.items():
             setattr(config, name, value)

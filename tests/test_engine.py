@@ -25,8 +25,7 @@ class Filter(PythonFilter):
         assert False
 
 
-def tokenizer(reader):
-    return analysis.standard.StandardTokenizer(util.Version.LATEST, reader)
+tokenizer = analysis.standard.StandardTokenizer
 
 
 def test_interface(tempdir):
@@ -43,7 +42,7 @@ def test_interface(tempdir):
         token.offset, token.positionIncrement = (0, 0), 0
     assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
     assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
-    indexer = engine.Indexer(analyzer=stemmer, version=util.Version.LUCENE_4_10_0, writeLockTimeout=100L)
+    indexer = engine.Indexer(analyzer=stemmer, writeLockTimeout=100L)
     assert indexer.config.writeLockTimeout == 100
     with pytest.raises(lucene.JavaError):
         engine.Indexer(indexer.directory)
@@ -154,7 +153,7 @@ def test_interface(tempdir):
     for other in (temp, temp.directory, tempdir):
         indexer += other
     assert len(indexer) == 3
-    indexer.add(text=analysis.core.WhitespaceTokenizer(util.Version.LATEST, StringReader('?')), name=util.BytesRef('{}'))
+    indexer.add(text=analysis.core.WhitespaceTokenizer(StringReader('?')), name=util.BytesRef('{}'))
     indexer.commit()
     assert indexer[next(indexer.docs('text', '?'))]['name'] == '{}'
     indexer.delete('text', '?')
@@ -303,7 +302,7 @@ def test_basic(tempdir, constitution):
     assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
     assert dict(indexer.positionvector(id, 'text'))['persons'] in ([3, 26], [10, 48])
     assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
-    analyzer = analysis.core.WhitespaceAnalyzer(util.Version.LATEST)
+    analyzer = analysis.core.WhitespaceAnalyzer()
     query = indexer.morelikethis(0, analyzer=analyzer)
     assert set(str(query).split()) == {'text:united', 'text:states'}
     hits = indexer.search(query & engine.Query.prefix('article', ''))
@@ -607,7 +606,7 @@ def test_highlighting(constitution):
 
 
 def test_nrt():
-    indexer = engine.Indexer(version=util.Version.LUCENE_4_10_0, nrt=True)
+    indexer = engine.Indexer(nrt=True)
     indexer.add()
     assert indexer.count() == 0 and not indexer.current
     indexer.refresh(filters=True)

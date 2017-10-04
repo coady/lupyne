@@ -9,7 +9,7 @@ lucene.initVM()
 
 # # # lucene # # #
 
-analyzer = analysis.standard.StandardAnalyzer(util.Version.LUCENE_CURRENT)
+analyzer = analysis.standard.StandardAnalyzer()
 
 # Store the index in memory:
 directory = store.RAMDirectory()
@@ -19,7 +19,7 @@ config = index.IndexWriterConfig(util.Version.LUCENE_CURRENT, analyzer)
 iwriter = index.IndexWriter(directory, config)
 doc = document.Document()
 text = "This is the text to be indexed."
-doc.add(document.Field("fieldname", text, document.TextField.TYPE_STORED))
+doc.add(document.Field('fieldname', text, document.TextField.TYPE_STORED))
 iwriter.addDocument(doc)
 iwriter.close()
 
@@ -27,8 +27,8 @@ iwriter.close()
 ireader = index.IndexReader.open(directory)
 isearcher = search.IndexSearcher(ireader)
 # Parse a simple query that searches for "text":
-parser = queryparser.classic.QueryParser(util.Version.LUCENE_CURRENT, "fieldname", analyzer)
-query = parser.parse("text")
+parser = queryparser.classic.QueryParser('fieldname', analyzer)
+query = parser.parse('text')
 hits = isearcher.search(query, None, 1000).scoreDocs
 assert len(hits) == 1
 # Iterate through the results:
