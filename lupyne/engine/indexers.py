@@ -17,7 +17,7 @@ from java.util import Arrays, HashMap, HashSet
 from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
-from .queries import suppress, Query, BooleanFilter, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
+from .queries import suppress, Query, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import DistanceComparator
 from ..utils import Atomic, method
@@ -554,28 +554,23 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
 
         .. versionchanged:: 1.6 filters are no longer implicitly cached, a `GroupingSearch`_ is used instead
 
-        :param query: query string, lucene Query, or lucene Filter
+        :param query: query string or lucene Query
         :param keys: field names, term tuples, or any keys to previously cached filters
         """
         counts = collections.defaultdict(dict)
-        if isinstance(query, basestring):
-            query = self.parse(query)
-        if isinstance(query, search.Query):
-            query = search.QueryWrapperFilter(query)
-        if not isinstance(query, search.CachingWrapperFilter):
-            query = search.CachingWrapperFilter(query)
+        query = self.parse(query)
         for key in keys:
             filters = self.filters.get(key)
             if isinstance(filters, search.Filter):
-                counts[key] = self.count(filter=BooleanFilter.all(query, filters))
+                counts[key] = self.count(query, filter=filters)
             elif isinstance(filters, collections.Mapping):
                 for value in filters:
-                    counts[key][value] = self.count(filter=BooleanFilter.all(query, filters[value]))
+                    counts[key][value] = self.count(query, filter=filters[value])
             elif isinstance(key, basestring):
-                counts[key] = self.groupby(key, Query.alldocs(), filter=query).facets
+                counts[key] = self.groupby(key, query).facets
             else:
                 name, value = key
-                counts[name][value] = self.count(filter=BooleanFilter.all(query, self.filters[name][value]))
+                counts[name][value] = self.count(query, filter=self.filters[name][value])
         return dict(counts)
 
     def groupby(self, field, query, filter=None, count=None, start=0, **attrs):

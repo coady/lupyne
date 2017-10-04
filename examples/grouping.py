@@ -6,8 +6,8 @@ GroupingSearch objects only support single-valued strings, and won't find zero-v
 Lupyne also supports grouping hits by an arbitrary function after the original search,
 Similar to sorting, the native approach is generally more efficient, proportional to the number of documents culled.
 
-Lupyne also supports using cached filters to compute facet counts.
-Although seemingly less efficient, it is significantly faster with small numbers of terms.
+Lupyne can also compute facet counts with intersected queries.
+Although seemingly less efficient, it may be faster with small numbers of terms.
 It also has no limitations on multiple values, and can be fully customized without reindexing.
 """
 

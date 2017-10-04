@@ -361,7 +361,6 @@ def test_basic(tempdir, constitution):
 
 
 def test_advanced(tempdir, zipcodes):
-    "Large data set with hierarchical fields."
     indexer = engine.Indexer(tempdir)
     for name, params in zipcodes.fields.items():
         indexer.set(name, **params)
@@ -387,7 +386,7 @@ def test_advanced(tempdir, zipcodes):
     hit, = indexer.search('zipcode:90210')
     assert hit['state'] == 'CA' and hit['county'] == 'Los Angeles' and hit['city'] == 'Beverly Hills' and hit['longitude'] == '-118.406'
     query = engine.Query.prefix('zipcode', '90')
-    (field, facets), = indexer.facets(query.filter(), 'state.county').items()
+    (field, facets), = indexer.facets(query, 'state.county').items()
     assert field == 'state.county'
     la, orange = sorted(filter(facets.get, facets))
     assert la == 'CA.Los Angeles' and facets[la] > 100

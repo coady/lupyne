@@ -10,7 +10,7 @@ import contextlib
 import lucene
 from java.lang import Integer
 from java.util import Arrays, HashSet
-from org.apache.lucene import index, queries, search, util
+from org.apache.lucene import index, search, util
 from org.apache.lucene.search import highlight, spans, vectorhighlight
 from org.apache.pylucene import search as pysearch
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
@@ -233,19 +233,6 @@ class SpanQuery(Query):
         """Return lucene SpanPayloadCheckQuery from payload values."""
         base = spans.SpanNearPayloadCheckQuery if spans.SpanNearQuery.instance_(self) else spans.SpanPayloadCheckQuery
         return SpanQuery(base, self, Arrays.asList(list(map(lucene.JArray_byte, values))))
-
-
-class BooleanFilter(queries.BooleanFilter):
-    """Inherited lucene BooleanFilter similar to BooleanQuery."""
-    def __init__(self, occur, *filters):
-        queries.BooleanFilter.__init__(self)
-        for filter in filters:
-            self.add(queries.FilterClause(filter, occur))
-
-    @classmethod
-    def all(cls, *filters):
-        """Return `BooleanFilter`_ (AND) from filters."""
-        return cls(search.BooleanClause.Occur.MUST, *filters)
 
 
 @contextlib.contextmanager
