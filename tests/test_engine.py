@@ -11,7 +11,6 @@ from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
 from org.apache.pylucene.search import PythonFilter
 from lupyne import engine
-from .fixtures import warns
 
 
 class typeAsPayload(engine.TokenFilter):
@@ -553,9 +552,6 @@ def test_numeric(tempdir, constitution):
         if 'amendment' in doc:
             indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
     indexer.commit()
-    with warns(DeprecationWarning):
-        filter = indexer.fields['amendment'].filter(None, 10)
-    assert isinstance(filter, search.NumericRangeFilter) and indexer.count(filter=filter) == 9
     query = field.prefix((1791, 12))
     assert indexer.count(query) == 10
     query = field.prefix(datetime.date(1791, 12, 15))

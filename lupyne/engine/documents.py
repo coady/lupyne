@@ -6,7 +6,6 @@ from future_builtins import map
 import datetime
 import calendar
 import operator
-import warnings
 import lucene  # noqa
 from java.lang import Double, Float, Long, Number, Object
 from java.util import Arrays, HashSet
@@ -160,11 +159,6 @@ class NumericField(Field):
     def term(self, value):
         """Return range query to match single term."""
         return self.range(value, value, upper=True)
-
-    def filter(self, *args, **kwargs):
-        """.. deprecated:: 1.9 convert NumericRangeQuery with `Query`_.filter instead"""
-        warnings.warn(NumericField.filter.__doc__, DeprecationWarning)
-        return Query.filter(self.range(*args, **kwargs), cache=False)
 
 
 class DateTimeField(NumericField):

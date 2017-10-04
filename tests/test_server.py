@@ -34,7 +34,7 @@ class Servers(dict):
 
     def stop(self, port):
         server = self.pop(port)
-        time.sleep(max(0, server.started + 0.1 - time.time()))
+        time.sleep(max(0, server.started + 0.2 - time.time()))  # let server finish starting for clean shutdown
         server.terminate()
         assert server.wait() == 0
 
