@@ -43,7 +43,7 @@ assert indexer.facets(query, 'color')['color'] == facets
 
 # filters allow flexible customizations without any indexing changes
 indexer.filters['color'] = {
-    'additive': engine.Query.any(color=colors[:3]).filter(),
-    'subtractive': engine.Query.any(color=colors[3:]).filter(),
+    'additive': engine.Query.filter(engine.Query.any(color=colors[:3])),
+    'subtractive': engine.Query.filter(engine.Query.any(color=colors[3:])),
 }
 assert indexer.facets(query, 'color')['color'] == {'additive': 6, 'subtractive': 15}

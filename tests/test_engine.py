@@ -107,10 +107,8 @@ def test_interface(tempdir):
     assert str(query) == 'text:*' and isinstance(query, search.WildcardQuery)
     assert str(search.MatchAllDocsQuery() | query) == '*:* text:*'
     assert str(search.MatchAllDocsQuery() - query) == '*:* -text:*'
-    query = +query
-    query &= engine.Query.fuzzy('text', 'hello')
-    query |= engine.Query.fuzzy('text', 'hello', 1)
-    assert str(query) == '+text:* +text:hello~2 text:hello~1'
+    assert str(+query) == '+text:*'
+    assert str(engine.Query.fuzzy('text', 'hello')) == 'text:hello~2'
     query = engine.Query.regexp('text', '.*')
     assert str(query) == 'text:/.*/'
     assert str(query.constant()) == 'ConstantScore(text:/.*/)'
@@ -285,9 +283,8 @@ def test_basic(tempdir, constitution):
     assert str(-query) == '-text:persons'
     query = +query
     query -= engine.Query.term('text', 'papers')
-    assert ('text', 'persons') in query.terms()
-    assert str(query[-1]) == '-text:papers'
-    assert len(query) == len(list(query)) == 2
+    assert ('text', 'persons') in engine.Query.terms(query)
+    assert len(list(query)) == 2
     span = engine.Query.span('text', 'persons')
     count = indexer.count(span)
     assert indexer.count(engine.Query.span(engine.Query.prefix('text', 'person'))) > count
@@ -448,7 +445,7 @@ def test_spatial(tempdir, zipcodes):
     cities = {hit['city'] for hit in hits}
     assert city in cities and len(cities) > 10
     query = field.within(x, y, 10 ** 4)
-    assert len(query) == 3
+    assert len(list(query)) == 3
     distances = indexer.distances(x, y, 'longitude', 'latitude')
     hits = indexer.search(query).sorted(distances.__getitem__)
     assert hits[0]['zipcode'] == zipcode and distances[hits[0].id] < 10
@@ -461,7 +458,7 @@ def test_spatial(tempdir, zipcodes):
     groups = hits.groupby(lambda id: bisect.bisect_left(ranges, distances[id]))
     counts = {hits.value: len(hits) for hits in groups}
     assert 1 == counts[0] < counts[2] < counts[1]
-    assert len(field.within(x, y, 10 ** 8)) == 1
+    assert len(list(field.within(x, y, 10 ** 8))) == 1
     hits = hits.filter(lambda id: distances[id] < 10 ** 4)
     assert 0 < len(hits) < sum(counts.values())
     hits = hits.sorted(distances.__getitem__, reverse=True)

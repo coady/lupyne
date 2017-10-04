@@ -46,7 +46,7 @@ class Query(object):
 
     @classmethod
     def boolean(cls, occur, *queries, **terms):
-        self = BooleanQuery(search.BooleanQuery)
+        self = search.BooleanQuery()
         for query in queries:
             self.add(query, occur)
         for name, values in terms.items():
@@ -56,12 +56,12 @@ class Query(object):
 
     @classmethod
     def any(cls, *queries, **terms):
-        """Return `BooleanQuery`_ (OR) from queries and terms."""
+        """Return lucene BooleanQuery (OR) from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.SHOULD, *queries, **terms)
 
     @classmethod
     def all(cls, *queries, **terms):
-        """Return `BooleanQuery`_ (AND) from queries and terms."""
+        """Return lucene BooleanQuery (AND) from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.MUST, *queries, **terms)
 
     @classmethod
@@ -142,52 +142,37 @@ class Query(object):
         return search.ConstantScoreQuery(self)
 
     def __pos__(self):
+        """+self"""
         return Query.all(self)
 
     def __neg__(self):
+        """-self"""
         return Query.boolean(search.BooleanClause.Occur.MUST_NOT, self)
 
     def __and__(self, other):
+        """+self +other"""
         return Query.all(self, other)
 
     def __rand__(self, other):
         return Query.all(other, self)
 
     def __or__(self, other):
+        """self other"""
         return Query.any(self, other)
 
     def __ror__(self, other):
         return Query.any(other, self)
 
     def __sub__(self, other):
-        return Query.any(self).__isub__(other)
+        """self -other"""
+        query = Query.any(self)
+        query.add(other, search.BooleanClause.Occur.MUST_NOT)
+        return query
 
     def __rsub__(self, other):
-        return Query.any(other).__isub__(self)
-
-
-class BooleanQuery(Query):
-    """Inherited lucene BooleanQuery with sequence interface to clauses."""
-    def __len__(self):
-        return len(self.getClauses())
-
-    def __iter__(self):
-        return iter(self.getClauses())
-
-    def __getitem__(self, index):
-        return self.getClauses()[index]
-
-    def __iand__(self, other):
-        self.add(other, search.BooleanClause.Occur.MUST)
-        return self
-
-    def __ior__(self, other):
-        self.add(other, search.BooleanClause.Occur.SHOULD)
-        return self
-
-    def __isub__(self, other):
-        self.add(other, search.BooleanClause.Occur.MUST_NOT)
-        return self
+        query = Query.any(other)
+        query.add(self, search.BooleanClause.Occur.MUST_NOT)
+        return query
 
 
 class SpanQuery(Query):

@@ -191,42 +191,8 @@ Query
 ^^^^^^^^^^^^^
 .. autoclass:: Query
   :members:
-
-  .. automethod:: __and__
-
-    `BooleanQuery`_ +self +other>
-
-  .. automethod:: __or__
-
-    `BooleanQuery`_ self other>
-
-  .. automethod:: __sub__
-
-    `BooleanQuery`_ self -other>
-
-BooleanQuery
-^^^^^^^^^^^^^
-.. autoclass:: BooleanQuery
-  :show-inheritance:
-  :members:
-
-  .. automethod:: __len__
-
-  .. automethod:: __iter__
-
-  .. automethod:: __getitem__
-
-  .. automethod:: __iand__
-
-    add +other
-
-  .. automethod:: __ior__
-
-    add other
-
-  .. automethod:: __isub__
-
-    add -other
+  :special-members:
+  :exclude-members: __weakref__
 
 SpanQuery
 ^^^^^^^^^^^^^

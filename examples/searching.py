@@ -73,7 +73,7 @@ assert [hit['city'] for hit in indexer.search(query)] == ['San Francisco', 'Port
 cities = ['San Francisco', 'Los Angeles', 'Portland']
 for index, distance in enumerate([1e3, 1e5, 2e5, 1e6]):
     query = indexer.fields['point'].within(-122.4, 37.7, distance=distance)
-    assert isinstance(query, search.BooleanQuery) and len(query) <= 4
+    assert isinstance(query, search.BooleanQuery) and len(list(query)) <= 4
     assert {hit['city'] for hit in indexer.search(query)} == set(cities[:index])
 
 query = indexer.fields['location'].prefix('CA.San')
