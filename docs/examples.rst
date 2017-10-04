@@ -22,10 +22,6 @@ grouping
 ---------
 .. literalinclude:: ../examples/grouping.py
 
-parallel
----------
-.. literalinclude:: ../examples/parallel.py
-
 server
 ---------
 .. literalinclude:: ../examples/server.py

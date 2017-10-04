@@ -659,29 +659,6 @@ def test_filters():
     indexer.update('name', document={'name': 'alpha'})
     indexer.commit()
     assert [hit['name'] for hit in indexer.search(filter=filter)] == ['alpha']
-    parallel = engine.ParallelIndexer('name')
-    parallel.set('priority', tokenized=False)
-    for name in ('alpha', 'bravo', 'delta'):
-        parallel.update(name, priority='high')
-    parallel.commit()
-    filter = parallel.termsfilter(engine.Query.term('priority', 'high').filter(), indexer)
-    assert [hit['name'] for hit in indexer.search(filter=filter)] == ['bravo', 'alpha']
-    indexer.add(name='delta')
-    indexer.delete('name', 'alpha')
-    indexer.commit()
-    assert filter.readers > set(indexer.readers)
-    assert [hit['name'] for hit in indexer.search(filter=filter)] == ['bravo', 'delta']
-    parallel.update('bravo')
-    parallel.update('charlie', priority='high')
-    parallel.commit()
-    assert [hit['name'] for hit in indexer.search(filter=filter)] == ['charlie', 'delta']
-    parallel.commit()
-    filter.refresh(indexer)
-    assert filter.readers == set(indexer.readers)
-    parallel.update('charlie', priority='low')
-    parallel.commit()
-    assert [hit['name'] for hit in indexer.search(filter=filter)] == ['delta']
-    assert indexer.count(filter=indexer.sorter('name').filter('a', 'c'))
 
 
 def test_multi(tempdir):

@@ -2,7 +2,7 @@ engine
 ======
 .. automodule:: lupyne.engine
 
-  * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_, `ParallelIndexer`_
+  * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_,
   * `Document`_, `Field`_, `MapField`_, `NestedField`_, `DocValuesField`_, `NumericField`_, `DateTimeField`_
   * `Query`_, `SortField`_, `TermsFilter`_
   * `PointField`_, `PolygonField`_
@@ -97,17 +97,6 @@ Indexer
 .. autoclass:: Indexer
   :show-inheritance:
   :members:
-
-ParallelIndexer
-^^^^^^^^^^^^^^^
-.. versionadded:: 1.2
-.. autoclass:: ParallelIndexer
-  :show-inheritance:
-  :members:
-
-  .. attribute:: termsfilters
-
-    Mapping of filters to synchronized termsfilters.
 
 
 documents
