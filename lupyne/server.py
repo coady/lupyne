@@ -369,10 +369,6 @@ class WebSearcher(object):
             &q=\ *chars*\ &q.type=[term|prefix|wildcard]&q.\ *chars*\ =...,
                 query, optional type to skip parsing, and optional parser settings: q.field, q.op,...
 
-            &filter=\ *chars*
-                | cached filter applied to the query
-                | if a previously cached filter is not found, the value will be parsed as a query
-
             &count=\ *int*\ &start=0
                 maximum number of docs to return and offset to start at
 
@@ -384,7 +380,7 @@ class WebSearcher(object):
                 | optionally score docs, additionally compute maximum score
 
             &facets=\ *chars*,... &facets.count=\ *int*\&facets.min=0
-                | include facet counts for given field names; facets filters are cached
+                | include facet counts for given field names
                 | optional maximum number of most populated facet values per field, and minimum count to return
 
             &group=\ *chars*\ [:*chars*]&group.count=1
@@ -428,10 +424,6 @@ class WebSearcher(object):
             with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
                 sort = [searcher.sorter(name, type, reverse=reverse) for name, type, reverse in sort]
         q = parse.q(searcher, q, **options)
-        qfilter = options.pop('filter', None)
-        if qfilter is not None and qfilter not in searcher.filters:
-            searcher.filters[qfilter] = engine.Query.filter(parse.q(searcher, qfilter, **options))
-        qfilter = searcher.filters.get(qfilter)
         if mlt is not None:
             if q is not None:
                 mlt, = searcher.search(q, count=mlt + 1, sort=sort)[mlt:].ids
@@ -447,15 +439,15 @@ class WebSearcher(object):
         gcount = options.get('group.count', 1)
         scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
         if ':' in group or group in searcher.sorters:
-            hits = searcher.search(q, filter=qfilter, sort=sort, timeout=timeout, **scores)
+            hits = searcher.search(q, sort=sort, timeout=timeout, **scores)
             with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
                 groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__, count=count, docs=gcount)
             groups.groupdocs = groups.groupdocs[start:]
         elif group:
             scores = {'includeScores': scores['scores'], 'includeMaxScore': scores['maxscore']}
-            groups = searcher.groupby(group, q, qfilter, count, start, sort=sort, groupDocsLimit=gcount, **scores)
+            groups = searcher.groupby(group, q, count, start=start, sort=sort, groupDocsLimit=gcount, **scores)
         else:
-            hits = searcher.search(q, filter=qfilter, sort=sort, count=count, timeout=timeout, **scores)
+            hits = searcher.search(q, sort=sort, count=count, timeout=timeout, **scores)
             groups = engine.documents.Groups(searcher, [hits[start:]], hits.count, hits.maxscore)
         result = {'query': q and unicode(q), 'count': groups.count, 'maxscore': groups.maxscore}
         tag, enable = options.get('hl.tag', 'strong'), options.get('hl.enable', '')

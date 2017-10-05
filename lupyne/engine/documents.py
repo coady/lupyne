@@ -399,9 +399,9 @@ class GroupingSearch(grouping.GroupingSearch):
     def __iter__(self):
         return map(convert, self.allMatchingGroups)
 
-    def search(self, searcher, query, filter=None, count=None, start=0):
+    def search(self, searcher, query, count=None, start=0):
         """Run query and return `Groups`_."""
         if count is None:
             count = sum(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field).valueCount for reader in searcher.readers)
-        topgroups = grouping.GroupingSearch.search(self, searcher, filter, query, start, count - start)
+        topgroups = grouping.GroupingSearch.search(self, searcher, query, start, count - start)
         return Groups(searcher, topgroups.groups, topgroups.totalHitCount, topgroups.maxScore)

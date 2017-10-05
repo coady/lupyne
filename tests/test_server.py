@@ -189,9 +189,7 @@ def test_highlights(resource):
     assert result == {'query': 'text:people', 'count': None, 'maxscore': None, 'docs': []}
     result = resource.search(q='text:people', timeout=0.01)
     assert result['count'] in (None, 8) and (result['maxscore'] is None or result['maxscore'] > 0)
-    result = resource.search(filter='text:people')
-    assert result['count'] == 8 and {doc['__score__'] for doc in result['docs']} == {1.0}
-    result = resource.search(q='text:right', filter='text:people')
+    result = resource.search(q='+text:right +text:people')
     assert result['count'] == 4 and 0 < result['maxscore'] < 1.0
     result = resource.search(q='text:right', group='date', count=2, **{'group.count': 2})
     assert 'docs' not in result and len(result['groups']) == 2

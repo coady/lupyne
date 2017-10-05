@@ -572,9 +572,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 counts[name][value] = self.count(query, filter=self.filters[name][value])
         return dict(counts)
 
-    def groupby(self, field, query, filter=None, count=None, start=0, **attrs):
+    def groupby(self, field, query, count=None, start=0, **attrs):
         """Return `Hits`_ grouped by field using a `GroupingSearch`_."""
-        return GroupingSearch(field, **attrs).search(self, self.parse(query), filter, count, start)
+        return GroupingSearch(field, **attrs).search(self, self.parse(query), count, start)
 
     def sorter(self, field, type='string', parser=None, reverse=False):
         """Return `SortField`_ with cached attributes if available."""
