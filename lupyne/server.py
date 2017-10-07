@@ -474,8 +474,8 @@ class WebSearcher(object):
             result['docs'] = result.pop('groups')[0]['docs']
         q = q or engine.Query.alldocs()
         if facets:
-            facets = (tuple(facet.split(':')) if ':' in facet else facet for facet in facets)
-            facets = result['facets'] = searcher.facets(q, *facets)
+            query_map = {facet: self.query_map[facet] for facet in set(facets).intersection(self.query_map)}
+            facets = result['facets'] = searcher.facets(q, *set(facets).difference(query_map), **query_map)
             for counts in facets.values():
                 counts.pop(None, None)
             if 'facets.min' in options:

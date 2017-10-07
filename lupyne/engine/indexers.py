@@ -425,7 +425,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         self.shared = closing()
         search.IndexSearcher.__init__(self, self.shared.reader(directory))
         self.analyzer = self.shared.analyzer(analyzer)
-        self.filters, self.sorters, self.spellcheckers = {}, {}, {}
+        self.sorters, self.spellcheckers = {}, {}
 
     @classmethod
     def load(cls, directory, analyzer=None):
@@ -443,10 +443,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def openIfChanged(self):
         return index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
 
-    def reopen(self, filters=False, sorters=False, spellcheckers=False):
+    def reopen(self, sorters=False, spellcheckers=False):
         """Return current `IndexSearcher`_, only creating a new one if necessary.
 
-        :param filters: refresh cached facet :attr:`filters`
         :param sorters: refresh cached :attr:`sorters` with associated parsers
         :param spellcheckers: refresh cached :attr:`spellcheckers`
         """
@@ -456,9 +455,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         other = type(self)(reader, self.analyzer)
         other.decRef()
         other.shared = self.shared
-        other.filters.update((key, value if isinstance(value, search.Filter) else dict(value)) for key, value in self.filters.items())
-        if filters:
-            other.facets(Query.any(), *other.filters)
         other.sorters = {name: SortField(sorter.field, sorter.typename, sorter.parser) for name, sorter in self.sorters.items()}
         if sorters:
             for field in self.sorters:
@@ -548,29 +544,20 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         stats = (topdocs.totalHits, topdocs.maxScore) * (timeout is None)
         return Hits(self, topdocs.scoreDocs, *stats)
 
-    def facets(self, query, *keys):
+    def facets(self, query, *fields, **query_map):
         """Return mapping of document counts for the intersection with each facet.
 
         .. versionchanged:: 1.6 filters are no longer implicitly cached, a `GroupingSearch`_ is used instead
 
         :param query: query string or lucene Query
-        :param keys: field names, term tuples, or any keys to previously cached filters
+        :param fields: field names for lucene GroupingSearch
+        :param query_map: `{facet: {key: query, ...}, ...}` for intersected query counts
         """
-        counts = collections.defaultdict(dict)
         query = self.parse(query)
-        for key in keys:
-            filters = self.filters.get(key)
-            if isinstance(filters, search.Filter):
-                counts[key] = self.count(query, filter=filters)
-            elif isinstance(filters, collections.Mapping):
-                for value in filters:
-                    counts[key][value] = self.count(query, filter=filters[value])
-            elif isinstance(key, basestring):
-                counts[key] = self.groupby(key, query).facets
-            else:
-                name, value = key
-                counts[name][value] = self.count(query, filter=self.filters[name][value])
-        return dict(counts)
+        counts = {field: self.groupby(field, query).facets for field in fields}
+        for facet, queries in query_map.items():
+            counts[facet] = {key: self.count(Query.all(query, queries[key])) for key in queries}
+        return counts
 
     def groupby(self, field, query, count=None, start=0, **attrs):
         """Return `Hits`_ grouped by field using a `GroupingSearch`_."""

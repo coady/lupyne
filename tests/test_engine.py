@@ -182,14 +182,14 @@ def test_basic(tempdir, constitution):
     searcher = engine.IndexSearcher.load(tempdir)
     engine.IndexSearcher.load(searcher.directory)  # ensure directory isn't closed
     assert len(indexer) == len(searcher) and store.RAMDirectory.instance_(searcher.directory)
-    assert indexer.filters == indexer.spellcheckers == {}
+    assert indexer.spellcheckers == {}
     assert indexer.facets(engine.Query.alldocs(), 'amendment')
     assert indexer.suggest('amendment', '')
     assert list(indexer.spellcheckers) == ['amendment']
     indexer.delete('amendment', doc['amendment'])
     indexer.add(doc)
     reader = indexer.indexReader
-    indexer.commit(filters=True, spellcheckers=True)
+    indexer.commit(spellcheckers=True)
     assert reader.refCount == 0
     assert list(indexer.spellcheckers) == ['amendment']
     doc['amendment'] = engine.Analyzer(tokenizer).tokens(doc['amendment'])
@@ -253,11 +253,8 @@ def test_basic(tempdir, constitution):
     assert hit['amendment'] == '1'
     assert sorted(hit.dict()) == ['__id__', '__score__', 'amendment', 'date']
     hits = indexer.search('text:right')
-    for name in ('amendment', 'article'):
-        indexer.filters[name] = engine.Query.prefix(name, '').filter()
     query = engine.Query.term('text', 'right', boost=2.0)
     assert query.boost == 2.0
-    assert indexer.facets(str(query), 'amendment', 'article') == {'amendment': 12, 'article': 1}
     hits = indexer.search('text:people', filter=query.filter())
     assert len(hits) == 4
     hit, = indexer.search('date:192*')
@@ -380,11 +377,10 @@ def test_advanced(tempdir, zipcodes):
     la, orange = sorted(filter(facets.get, facets))
     assert la == 'CA.Los Angeles' and facets[la] > 100
     assert orange == 'CA.Orange' and facets[orange] > 10
-    indexer.filters[field] = {term: engine.Query.term(field, term).filter() for term in indexer.terms(field, 'CA.')}
-    (field, facets), = indexer.facets(query, field).items()
-    assert all(value.startswith('CA.') for value in facets) and set(facets) == set(indexer.filters[field])
-    (field, facets), = indexer.facets(query, (field, 'CA.Los Angeles')).items()
-    assert facets == {'CA.Los Angeles': 264}
+    queries = {term: engine.Query.term(field, term) for term in indexer.terms(field, 'CA.')}
+    (field, facets), = indexer.facets(query, **{field: queries}).items()
+    assert all(value.startswith('CA.') for value in facets) and set(facets) == set(queries)
+    assert facets['CA.Los Angeles'] == 264
     groups = indexer.groupby(field, engine.Query.term('state', 'CA'), count=1)
     assert len(groups) == 1 < groups.count
     hits, = groups
@@ -609,7 +605,7 @@ def test_nrt():
     indexer = engine.Indexer(nrt=True)
     indexer.add()
     assert indexer.count() == 0 and not indexer.current
-    indexer.refresh(filters=True)
+    indexer.refresh()
     assert indexer.count() == 1 and indexer.current
     searcher = engine.IndexSearcher(indexer.directory)
     assert searcher.count() == 0 and searcher.current

@@ -41,9 +41,9 @@ for hits in indexer.search(query).groupby(indexer.comparator('color').__getitem_
 # facets use a GroupingSearch if no filters are registered
 assert indexer.facets(query, 'color')['color'] == facets
 
-# filters allow flexible customizations without any indexing changes
-indexer.filters['color'] = {
-    'additive': engine.Query.filter(engine.Query.any(color=colors[:3])),
-    'subtractive': engine.Query.filter(engine.Query.any(color=colors[3:])),
+# queries allow flexible customizations without any indexing changes
+queries = {
+    'additive': engine.Query.any(color=colors[:3]),
+    'subtractive': engine.Query.any(color=colors[3:]),
 }
-assert indexer.facets(query, 'color')['color'] == {'additive': 6, 'subtractive': 15}
+assert indexer.facets(query, color=queries)['color'] == {'additive': 6, 'subtractive': 15}
