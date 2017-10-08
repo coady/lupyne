@@ -425,7 +425,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         self.shared = closing()
         search.IndexSearcher.__init__(self, self.shared.reader(directory))
         self.analyzer = self.shared.analyzer(analyzer)
-        self.sorters, self.spellcheckers = {}, {}
+        self.spellcheckers = {}
 
     @classmethod
     def load(cls, directory, analyzer=None):
@@ -443,10 +443,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def openIfChanged(self):
         return index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
 
-    def reopen(self, sorters=False, spellcheckers=False):
+    def reopen(self, spellcheckers=False):
         """Return current `IndexSearcher`_, only creating a new one if necessary.
 
-        :param sorters: refresh cached :attr:`sorters` with associated parsers
         :param spellcheckers: refresh cached :attr:`spellcheckers`
         """
         reader = self.openIfChanged()
@@ -455,10 +454,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         other = type(self)(reader, self.analyzer)
         other.decRef()
         other.shared = self.shared
-        other.sorters = {name: SortField(sorter.field, sorter.typename, sorter.parser) for name, sorter in self.sorters.items()}
-        if sorters:
-            for field in self.sorters:
-                other.comparator(field)
         if spellcheckers:
             for field in self.spellcheckers:
                 other.spellchecker(field)
@@ -508,7 +503,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if sort is None:
             return search.TopScoreDocCollector.create(count, inorder)
         if isinstance(sort, basestring):
-            sort = self.sorter(sort, reverse=reverse)
+            sort = SortField(sort, reverse=reverse)
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
         return search.TopFieldCollector.create(sort, count, True, scores, maxscore, inorder)
@@ -563,12 +558,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """Return `Hits`_ grouped by field using a `GroupingSearch`_."""
         return GroupingSearch(field, **attrs).search(self, self.parse(query), count, start)
 
-    def sorter(self, field, type='string', parser=None, reverse=False):
-        """Return `SortField`_ with cached attributes if available."""
-        sorter = self.sorters.get(field, SortField(field, type, parser, reverse))
-        return sorter if sorter.reverse == reverse else SortField(sorter.field, sorter.typename, sorter.parser, reverse)
-
-    def comparator(self, field, type='string', parser=None, multi=False):
+    def comparator(self, field, type='string', multi=False):
         """Return cache of field values suitable for sorting, using a cached `SortField`_ if available.
 
         Parsing values into an array is memory optimized.
@@ -577,10 +567,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
 
         :param name: field name
         :param type: type object or name compatible with FieldCache
-        :param parser: lucene FieldCache.Parser or callable applied to field values
         :param multi: retrieve multi-valued string terms as a tuple
         """
-        return self.sorter(field, type, parser).comparator(self, multi)
+        return SortField(field, type).comparator(self, multi)
 
     def distances(self, lng, lat, lngfield, latfield):
         """Return distance comparator computed from cached lat/lng fields."""

@@ -12,7 +12,6 @@ from java.lang import Integer
 from java.util import Arrays, HashSet
 from org.apache.lucene import index, search, util
 from org.apache.lucene.search import highlight, spans, vectorhighlight
-from org.apache.pylucene import search as pysearch
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from ..utils import method
 
@@ -263,18 +262,11 @@ class SortField(search.SortField):
 
     :param name: field name
     :param type: type object or name compatible with SortField constants
-    :param parser: lucene FieldCache.Parser or callable applied to field values
     :param reverse: reverse flag used with sort
     """
-    def __init__(self, name, type='string', parser=None, reverse=False):
+    def __init__(self, name, type='string', reverse=False):
         type = self.typename = getattr(type, '__name__', type).capitalize()
-        if parser is None:
-            parser = getattr(self.Type, type.upper())
-        elif not search.FieldCache.Parser.instance_(parser):
-            base = getattr(pysearch, 'Python{}Parser'.format(type))
-            namespace = {'parse' + type: staticmethod(parser), 'termsEnum': lambda self, terms: terms.iterator(None)}
-            parser = object.__class__(base.__name__, (base,), namespace)()
-        search.SortField.__init__(self, name, parser, reverse)
+        search.SortField.__init__(self, name, getattr(self.Type, type.upper()), reverse)
 
     def array(self, reader, multi=False):
         size = reader.maxDoc()

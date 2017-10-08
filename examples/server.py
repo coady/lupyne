@@ -1,15 +1,13 @@
 """
-Custom server.
+Example server.
 
 Fields settings are assigned directly to the root.
 Indexing is done here just to populate the example.
 
-A custom filter and sorter are demonstrated by transforming a date field into a year field.
-Filters are also used for faceting;  sorters are also used for grouping.
+Registered queries demonstrate custom facets.
 
 Example queries:
- * http://localhost:8080/search?q=date:17*&group=year
- * http://localhost:8080/search?q=date:17*&group=year&sort=-year
+ * http://localhost:8080/search?q=date:17*&group=date
  * http://localhost:8080/search?count=0&facets=year
  * http://localhost:8080/search?q=text:right&count=3&facets=year
 """
@@ -17,10 +15,7 @@ Example queries:
 import lucene
 from lupyne import engine, server
 from tests import fixtures
-
-
-def parse(date):
-    return int(date.utf8ToString().split('-')[0])
+Q = engine.Query
 
 
 if __name__ == '__main__':
@@ -36,8 +31,7 @@ if __name__ == '__main__':
             root.indexer.add(doc)
     root.update()
     # assign custom filter and sorter based on year
-    root.searcher.sorters['year'] = engine.SortField('date', int, parse)
     years = {date.split('-')[0] for date in root.searcher.terms('date')}
-    root.query_map['year'] = {year: engine.Query.prefix('date', year) for year in years}
+    root.query_map['year'] = {year: Q.prefix('date', year) for year in years}
     # start with pretty-printing
     server.start(root, config={'global': {'tools.json_out.indent': 2}})

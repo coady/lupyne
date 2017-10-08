@@ -322,10 +322,8 @@ def test_example(request, servers):
         pytest.skip("requires verbose output")
     servers.module = 'examples.server'
     resource = servers.start(servers.ports[0])
-    result = resource.search(q='date:17*', group='year')
-    assert dict(map(operator.itemgetter('value', 'count'), result['groups'])) == {1795: 1, 1791: 10}
-    result = resource.search(q='date:17*', group='year', sort='-year')
-    assert list(map(operator.itemgetter('value'), result['groups'])) == [1795, 1791]
+    result = resource.search(q='date:17*', group='date')
+    assert {group['value']: group['count'] for group in result['groups']} == {'1795-02-07': 1, '1791-12-15': 10}
     result = resource.search(count=0, facets='year')
     facets = result['facets']['year']
     assert not result['docs'] and facets['1791'] == 10 and sum(facets.values()) == result['count']

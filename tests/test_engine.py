@@ -241,9 +241,6 @@ def test_basic(tempdir, constitution):
     assert hits.maxscore > max(hits.scores)
     with pytest.raises(AssertionError):
         indexer.comparator('amendment', type=int, multi=True)
-    comparator = indexer.comparator('amendment', type=int, parser=lambda value: int(value.utf8ToString() or -1))
-    hits = indexer.search('text:people').sorted(comparator.__getitem__)
-    assert sorted(hits.ids) == list(hits.ids) and list(hits.ids) != ids
     comparator = list(zip(*map(indexer.comparator, ['article', 'amendment'])))
     hits = indexer.search('text:people').sorted(comparator.__getitem__)
     assert sorted(hits.ids) != list(hits.ids)
@@ -385,7 +382,7 @@ def test_advanced(tempdir, zipcodes):
     assert len(groups) == 1 < groups.count
     hits, = groups
     assert hits.value == 'CA.Los Angeles' and len(hits) == 1 and hits.count > 100
-    grouping = engine.documents.GroupingSearch(field, sort=search.Sort(indexer.sorter(field)), cache=False, allGroups=True)
+    grouping = engine.documents.GroupingSearch(field, sort=search.Sort(engine.SortField(field)), cache=False, allGroups=True)
     assert all(grouping.search(indexer.indexSearcher, engine.Query.alldocs()).facets.values())
     assert len(grouping) == len(list(grouping)) > 100
     assert set(grouping) > set(facets)
@@ -504,19 +501,6 @@ def test_fields(tempdir, constitution):
     assert list(hits.ids) == ids[:len(hits)]
     query = engine.Query.range('size', None, '1000')
     assert indexer.count(query) == len(sizes) - len(ids)
-    indexer.sorters['year'] = engine.SortField('Y-m-d', type=int, parser=lambda date: int(date.utf8ToString().split('-')[0]))
-    assert list(indexer.comparator('year'))[:10] == [1791] * 10
-    cache = len(search.FieldCache.DEFAULT.cacheEntries)
-    hits = indexer.search(count=3, sort='year')
-    assert [int(hit['amendment']) for hit in hits] == [1, 2, 3]
-    hits = indexer.search(count=3, sort='year', reverse=True)
-    assert [int(hit['amendment']) for hit in hits] == [27, 26, 25]
-    assert cache == len(search.FieldCache.DEFAULT.cacheEntries)
-    indexer.add()
-    indexer.commit(sorters=True)
-    cache = len(search.FieldCache.DEFAULT.cacheEntries)
-    assert list(indexer.comparator('year'))[-1] == 0
-    assert cache == len(search.FieldCache.DEFAULT.cacheEntries)
     with pytest.raises(AttributeError):
         indexer.comparator('size', type='score')
 

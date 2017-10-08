@@ -294,7 +294,7 @@ class WebSearcher(object):
         **POST** /update
             Reopen searcher, optionally reloading caches, and return document count.
 
-            {"filters"|"sorters"|"spellcheckers": true,... }
+            {"spellcheckers": true,... }
 
             .. versionchanged:: 1.2 request body is an object instead of an array
 
@@ -422,7 +422,7 @@ class WebSearcher(object):
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort)
             sort = [(name, (type or 'string'), (reverse == '-')) for reverse, name, type in sort]
             with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
-                sort = [searcher.sorter(name, type, reverse=reverse) for name, type, reverse in sort]
+                sort = [engine.SortField(name, type, reverse=reverse) for name, type, reverse in sort]
         q = parse.q(searcher, q, **options)
         if mlt is not None:
             if q is not None:
@@ -438,7 +438,7 @@ class WebSearcher(object):
         scores = options.get('sort.scores')
         gcount = options.get('group.count', 1)
         scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
-        if ':' in group or group in searcher.sorters:
+        if ':' in group:
             hits = searcher.search(q, sort=sort, timeout=timeout, **scores)
             with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
                 groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__, count=count, docs=gcount)
