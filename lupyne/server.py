@@ -735,13 +735,13 @@ class WebIndexer(WebSearcher):
         else:
             doc = getattr(request, 'json', {})
             with cherrypy.HTTPError.handle((KeyError, AssertionError), httplib.CONFLICT):
-                assert self.indexer.fields[name].indexed(), 'unique field must be indexed'
+                assert self.indexer.fields[name].indexed, 'unique field must be indexed'
             if request.method == 'PUT':
                 with cherrypy.HTTPError.handle(AssertionError, httplib.BAD_REQUEST):
                     assert doc.setdefault(name, value) == value, 'multiple values for unique field'
             else:
                 with cherrypy.HTTPError.handle((KeyError, AssertionError), httplib.CONFLICT):
-                    assert all(self.indexer.fields[name].docValueType() for name in doc)
+                    assert all(self.indexer.fields[name].docValueType for name in doc)
             self.indexer.update(name, value, doc)
         self.refresh()
     docs._cp_config.update(WebSearcher.docs._cp_config)

@@ -3,7 +3,7 @@ engine
 .. automodule:: lupyne.engine
 
   * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_,
-  * `Document`_, `Field`_, `MapField`_, `NestedField`_, `DocValuesField`_, `NumericField`_, `DateTimeField`_
+  * `Document`_, `Field`_, `MapField`_, `NestedField`_, `NumericField`_, `DateTimeField`_
   * `Query`_, `SortField`_,
   * `PointField`_, `PolygonField`_
 
@@ -150,13 +150,6 @@ MapField
 NestedField
 ^^^^^^^^^^^^^
 .. autoclass:: NestedField
-  :show-inheritance:
-  :members:
-
-DocValuesField
-^^^^^^^^^^^^^^
-.. versionadded:: 1.6
-.. autoclass:: DocValuesField
   :show-inheritance:
   :members:
 

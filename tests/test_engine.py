@@ -506,8 +506,6 @@ def test_fields(tempdir, constitution):
 
 
 def test_numeric(tempdir, constitution):
-    nf, = engine.NumericField('temp').items(0.5)
-    assert nf.numericValue().doubleValue() == 0.5
     indexer = engine.Indexer(tempdir)
     indexer.set('amendment', engine.NumericField, type=int, stored=True)
     field = indexer.set('date', engine.DateTimeField, stored=True)
@@ -545,7 +543,7 @@ def test_numeric(tempdir, constitution):
     assert str(field.range(-2 ** 64, 0)) == 'size:[* TO 0}'
     assert str(field.range(0, 2 ** 64)) == 'size:[0 TO *}'
     assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
-    for step, count in zip(range(0, 20, field.numericPrecisionStep()), (26, 19, 3, 1)):
+    for step, count in zip(range(0, 20, field.numericPrecisionStep), (26, 19, 3, 1)):
         sizes = list(indexer.numbers('size', step))
         assert len(sizes) == count and all(isinstance(size, int) for size in sizes)
         numbers = dict(indexer.numbers('size', step, type=float, counts=True))
@@ -618,8 +616,8 @@ def test_multi(tempdir):
 def test_docvalues():
     indexer = engine.Indexer()
     indexer.set('id')
-    indexer.set('votes', engine.DocValuesField, type='numeric')
-    indexer.set('tag', engine.DocValuesField, type='binary')
+    indexer.set('votes', docValueType='numeric', indexed=False)
+    indexer.set('tag', docValueType='binary', indexed=False)
     assert not indexer.comparator('tag')
     indexer.add(id='0', votes=1, tag='low')
     indexer.commit()

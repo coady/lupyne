@@ -12,49 +12,73 @@ from java.util import Arrays, HashSet
 from org.apache.lucene import document, index, search, util
 from org.apache.lucene.search import grouping
 from .queries import Query
+FieldType = document.FieldType
 
 
-class Field(document.FieldType):
+class Field(FieldType):
     """Saved parameters which can generate lucene Fields given values.
 
     :param name: name of field
     :param boost: boost factor
     :param stored, indexed, settings: lucene FieldType attributes
     """
-    attrs = {name[3].lower() + name[4:] for name in dir(document.FieldType) if name.startswith('set')}
+    types = {int: 'long', float: 'double'}
+    docValueType = property(FieldType.docValueType, FieldType.setDocValueType)
+    indexed = property(FieldType.indexed, FieldType.setIndexed)
+    indexOptions = property(FieldType.indexOptions, FieldType.setIndexOptions)
+    numericPrecisionStep = property(FieldType.numericPrecisionStep, FieldType.setNumericPrecisionStep)
+    numericType = property(FieldType.numericType, FieldType.setNumericType)
+    omitNorms = property(FieldType.omitNorms, FieldType.setOmitNorms)
+    stored = property(FieldType.stored, FieldType.setStored)
+    storeTermVectorOffsets = property(FieldType.storeTermVectorOffsets, FieldType.setStoreTermVectorOffsets)
+    storeTermVectorPayloads = property(FieldType.storeTermVectorPayloads, FieldType.setStoreTermVectorPayloads)
+    storeTermVectorPositions = property(FieldType.storeTermVectorPositions, FieldType.setStoreTermVectorPositions)
+    storeTermVectors = property(FieldType.storeTermVectors, FieldType.setStoreTermVectors)
+    tokenized = property(FieldType.tokenized, FieldType.setTokenized)
 
-    def __init__(self, name, stored=False, indexed=True, boost=1.0, **settings):
-        document.FieldType.__init__(self)
+    def __init__(self, name, indexed=True, boost=1.0, docValueType='', indexOptions='', numericType='', **settings):
+        super(Field, self).__init__()
         self.name, self.boost = name, boost
-        self.update(stored=stored, indexed=indexed, **settings)
-
-    def update(self, docValueType='', indexOptions='', numericType='', **settings):
+        self.indexed = indexed
         if docValueType:
-            self.setDocValueType(getattr(index.FieldInfo.DocValuesType, docValueType.upper()))
+            self.docValueType = getattr(index.FieldInfo.DocValuesType, docValueType.upper())
         if indexOptions:
-            self.setIndexOptions(getattr(index.FieldInfo.IndexOptions, indexOptions.upper()))
+            self.indexOptions = getattr(index.FieldInfo.IndexOptions, indexOptions.upper())
         if numericType:
-            self.setNumericType(getattr(document.FieldType.NumericType, numericType.upper()))
+            self.numericType = getattr(FieldType.NumericType, numericType.upper())
         for name in settings:
-            getattr(self, 'set' + name[:1].upper() + name[1:])(settings[name])
+            setattr(self, name, settings[name])
+        assert self.stored or self.indexed or self.docValueType or self.numericType
 
     @property
     def settings(self):
         """dict representation of settings"""
-        defaults = document.FieldType()
-        result = {'indexed': self.indexed()}
-        for name in Field.attrs:
-            value = getattr(self, name)()
-            if value != getattr(defaults, name)():
-                result[name] = value if isinstance(value, int) else str(value)
+        defaults = FieldType()
+        result = {'indexed': self.indexed}
+        for name in dir(Field):
+            if isinstance(getattr(Field, name), property) and name != 'settings':
+                value = getattr(self, name)
+                if value != getattr(defaults, name)():
+                    result[name] = value if isinstance(value, int) else str(value)
         return result
 
     def items(self, *values):
         """Generate lucene Fields suitable for adding to a document."""
-        for value in values:
-            field = document.Field(self.name, value, self)
-            field.setBoost(self.boost)
-            yield field
+        if self.docValueType:
+            cls = getattr(document, str(self.docValueType).title().replace('_', '') + 'DocValuesField')
+            func = long if 'NUMERIC' in str(self.docValueType) else util.BytesRef
+            for value in values:
+                yield cls(self.name, func(value))
+        if self.numericType:
+            cls = getattr(document, str(self.numericType).title() + 'Field')
+            func = long if self.numericType == FieldType.NumericType.LONG else lambda v: v
+            for value in values:
+                yield cls(self.name, func(value), self)
+        elif self.stored or self.indexed:
+            for value in values:
+                field = document.Field(self.name, value, self)
+                field.setBoost(self.boost)
+                yield field
 
 
 class MapField(Field):
@@ -106,47 +130,18 @@ class NestedField(Field):
         return Query.range(self.names[index], start, stop, lower, upper)
 
 
-class DocValuesField(Field):
-    """Field which stores a per-document values, used for efficient sorting.
-
-    :param name: name of field
-    :param type: lucene DocValuesType string
-    """
-    def __init__(self, name, type):
-        Field.__init__(self, name, indexed=False, docValueType=type)
-        self.cls = getattr(document, type.title().replace('_', '') + 'DocValuesField')
-
-    def items(self, *values):
-        """Generate lucene DocValuesFields suitable for adding to a document."""
-        for value in values:
-            yield self.cls(self.name, long(value) if isinstance(value, int) else util.BytesRef(value))
-
-
 class NumericField(Field):
     """Field which indexes numbers in a prefix tree.
 
     :param name: name of field
     :param type: optional int, float, or lucene NumericType string
     """
-    def __init__(self, name, type=None, tokenized=False, **kwargs):
-        if type:
-            kwargs['numericType'] = {int: 'long', float: 'double'}.get(type, str(type))
-        Field.__init__(self, name, tokenized=tokenized, **kwargs)
-
-    def items(self, *values):
-        """Generate lucene NumericFields suitable for adding to a document."""
-        if not self.numericType():
-            cls, = set(map(type, values))
-            self.update(numericType='double' if issubclass(cls, float) else 'long')
-        for value in values:
-            if isinstance(value, float):
-                yield document.DoubleField(self.name, value, self)
-            else:
-                yield document.LongField(self.name, long(value), self)
+    def __init__(self, name, type, tokenized=False, **kwargs):
+        Field.__init__(self, name, numericType=self.types.get(type, type), tokenized=tokenized, **kwargs)
 
     def range(self, start, stop, lower=True, upper=False):
         """Return lucene NumericRangeQuery."""
-        step = self.numericPrecisionStep()
+        step = self.numericPrecisionStep
         if isinstance(start, float) or isinstance(stop, float):
             start, stop = (value if value is None else Double(value) for value in (start, stop))
             return search.NumericRangeQuery.newDoubleRange(self.name, step, start, stop, lower, upper)
