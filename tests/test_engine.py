@@ -9,7 +9,6 @@ import lucene
 from java.io import StringReader
 from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
-from org.apache.pylucene.search import PythonFilter
 from lupyne import engine
 
 
@@ -17,12 +16,6 @@ class typeAsPayload(engine.TokenFilter):
     "Custom implementation of lucene TypeAsPayloadTokenFilter."
     def setattrs(self):
         self.payload = self.type
-
-
-class Filter(PythonFilter):
-    "Broken filter to test errors are raised."
-    def getDocIdSet(self, *args):
-        assert False
 
 
 tokenizer = analysis.standard.StandardTokenizer
@@ -252,10 +245,6 @@ def test_basic(tempdir, constitution):
     hits = indexer.search('text:right')
     query = engine.Query.term('text', 'right', boost=2.0)
     assert query.boost == 2.0
-    hits = indexer.search('text:people', filter=query.filter())
-    assert len(hits) == 4
-    hit, = indexer.search('date:192*')
-    assert hit['amendment'] == '19'
     hits = indexer.search('date:[1919 TO 1921]')
     amendments = ['18', '19']
     assert sorted(hit['amendment'] for hit in hits) == amendments
@@ -390,8 +379,6 @@ def test_advanced(tempdir, zipcodes):
     assert not hits and (hits.count is hits.maxscore is None)
     hits = indexer.search(query, timeout=10)
     assert len(hits) == hits.count == indexer.count(query) and hits.maxscore == 1.0
-    with pytest.raises(lucene.JavaError):
-        indexer.search(filter=Filter())
     directory = store.RAMDirectory()
     query = engine.Query.term('state', 'CA')
     size = indexer.copy(directory, query)
@@ -461,6 +448,9 @@ def test_spatial(tempdir, zipcodes):
 def test_fields(tempdir, constitution):
     with pytest.raises(lucene.InvalidArgsError):
         engine.Field('', stored='invalid')
+    with pytest.raises(lucene.JavaError):
+        with engine.queries.suppress(search.TimeLimitingCollector.TimeExceededException):
+            document.Field('name', 'value', document.FieldType())
     settings = {'indexed': False, 'docValueType': 'NUMERIC', 'indexOptions': 'DOCS_ONLY'}
     field = engine.Field('', **settings)
     assert field.settings == engine.Field('', **field.settings).settings == settings

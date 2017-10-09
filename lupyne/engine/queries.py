@@ -21,8 +21,6 @@ class Query(object):
 
     Uses class methods and operator overloading for convenient query construction.
     """
-    filter = method(search.QueryWrapperFilter)
-
     def __new__(cls, base, *args, **attrs):
         return base.__new__(type(base.__name__, (cls, base), {}))
 

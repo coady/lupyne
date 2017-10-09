@@ -492,7 +492,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             return self.docFreq(index.Term(*query))
         query = self.parse(*query, **options) if query else Query.alldocs()
         collector = search.TotalHitCountCollector()
-        search.IndexSearcher.search(self, query, options.get('filter'), collector)
+        search.IndexSearcher.search(self, query, collector)
         return collector.totalHits
 
     def collector(self, query, count=None, sort=None, reverse=False, scores=False, maxscore=False):
@@ -508,13 +508,12 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             sort = search.Sort(sort)
         return search.TopFieldCollector.create(sort, count, True, scores, maxscore, inorder)
 
-    def search(self, query=None, filter=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
+    def search(self, query=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
 
         .. versionchanged:: 1.4 sort param for lucene only;  use Hits.sorted with a callable
 
         :param query: query string or lucene Query
-        :param filter: lucene Filter
         :param count: maximum number of hits to retrieve
         :param sort: lucene Sort parameters
         :param reverse: reverse flag used with sort
@@ -528,7 +527,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         counter = search.TimeLimitingCollector.getGlobalCounter()
         results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, long(timeout * 1000))
         with suppress(search.TimeLimitingCollector.TimeExceededException):
-            search.IndexSearcher.search(self, query, filter, results)
+            search.IndexSearcher.search(self, query, results)
             timeout = None
         if isinstance(cache, search.CachingCollector):
             collector = search.TotalHitCountCollector()

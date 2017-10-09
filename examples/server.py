@@ -30,7 +30,7 @@ if __name__ == '__main__':
         if 'amendment' in doc:
             root.indexer.add(doc)
     root.update()
-    # assign custom filter and sorter based on year
+    # assign custom facet queries based on year
     years = {date.split('-')[0] for date in root.searcher.terms('date')}
     root.query_map['year'] = {year: Q.prefix('date', year) for year in years}
     # start with pretty-printing

@@ -38,7 +38,7 @@ for hits in indexer.search(query).groupby(indexer.comparator('color').__getitem_
     hit, = hits
     assert hit['color'] == hits.value
 
-# facets use a GroupingSearch if no filters are registered
+# facets use a GroupingSearch when given fields
 assert indexer.facets(query, 'color')['color'] == facets
 
 # queries allow flexible customizations without any indexing changes
