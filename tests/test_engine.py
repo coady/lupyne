@@ -471,14 +471,14 @@ def test_fields(tempdir, constitution):
     attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
     assert all(getattr(field.fieldType(), attr)() for attr in attrs)
     indexer = engine.Indexer(tempdir)
-    indexer.set('amendment', engine.MapField, func='{0:02d}'.format, stored=True)
-    indexer.set('size', engine.MapField, func='{0:04d}'.format, stored=True)
+    indexer.set('amendment', stored=True)
+    indexer.set('size', stored=True)
     field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', stored=True)
     for doc in constitution:
         if 'amendment' in doc:
-            indexer.add(amendment=int(doc['amendment']), date=doc['date'], size=len(doc['text']))
+            indexer.add(amendment='{:02}'.format(int(doc['amendment'])), date=doc['date'], size='{:04}'.format(len(doc['text'])))
     indexer.commit()
-    query = engine.Query.range('amendment', '', indexer.fields['amendment'].func(10))
+    query = engine.Query.range('amendment', '', '10')
     assert indexer.count(query) == 9
     query = engine.Query.prefix('amendment', '0')
     assert indexer.count(query) == 9

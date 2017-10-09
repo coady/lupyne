@@ -3,7 +3,7 @@ engine
 .. automodule:: lupyne.engine
 
   * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_,
-  * `Document`_, `Field`_, `MapField`_, `NestedField`_, `NumericField`_, `DateTimeField`_
+  * `Document`_, `Field`_, `NestedField`_, `NumericField`_, `DateTimeField`_
   * `Query`_, `SortField`_,
   * `PointField`_, `PolygonField`_
 
@@ -139,12 +139,6 @@ Field
 ^^^^^^^^^^^^^
 .. versionchanged:: 1.6 lucene Field.{Store,Index,TermVector} dropped in favor of FieldType attributes
 .. autoclass:: Field
-  :members:
-
-MapField
-^^^^^^^^^^^^^
-.. autoclass:: MapField
-  :show-inheritance:
   :members:
 
 NestedField

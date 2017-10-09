@@ -81,20 +81,6 @@ class Field(FieldType):
                 yield field
 
 
-class MapField(Field):
-    """Field which applies a function across its values.
-
-    :param func: callable
-    """
-    def __init__(self, name, func, **kwargs):
-        Field.__init__(self, name, **kwargs)
-        self.func = func
-
-    def items(self, *values):
-        """Generate fields with mapped values."""
-        return Field.items(self, *map(self.func, values))
-
-
 class NestedField(Field):
     """Field which indexes every component into its own field.
 
