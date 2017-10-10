@@ -30,7 +30,7 @@ lucene.initVM()
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
 indexer = engine.Indexer()
-indexer.set('color', stored=True, tokenized=False)
+indexer.set('color', engine.Field.String, stored=True)
 for color in colors:
     indexer.add(color=color)
 indexer.commit()

@@ -29,8 +29,8 @@ def tempdir():
 
 @fixture
 class constitution(object):
-    fields = dict.fromkeys(['article', 'amendment', 'date'], {'stored': True, 'tokenized': False})
-    fields['text'] = {'storeTermVectors': True, 'storeTermVectorPositions': True, 'storeTermVectorOffsets': True}
+    fields = dict.fromkeys(['article', 'amendment', 'date'], {'stored': True, 'indexed': True, 'tokenized': False})
+    fields['text'] = {'indexed': True, 'storeTermVectors': True, 'storeTermVectorPositions': True, 'storeTermVectorOffsets': True}
 
     def __iter__(self):
         lines = open(os.path.join(os.path.dirname(__file__), 'constitution.txt'))
@@ -48,8 +48,8 @@ class constitution(object):
 
 @fixture
 class zipcodes(object):
-    fields = dict.fromkeys(['city', 'county', 'state', 'latitude', 'longitude'], {'stored': True, 'indexed': False})
-    fields['zipcode'] = {'stored': True, 'tokenized': False}
+    fields = dict.fromkeys(['city', 'county', 'state', 'latitude', 'longitude'], {'stored': True})
+    fields['zipcode'] = {'stored': True, 'indexed': True, 'tokenized': False}
 
     def __iter__(self):
         lines = open(os.path.join(os.path.dirname(__file__), 'zipcodes.txt'))

@@ -41,10 +41,10 @@ directory.close()
 # # # lupyne # # #
 
 # Store the index in memory:
-indexer = engine.Indexer()              # Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults
-indexer.set('fieldname', stored=True)   # settings for all documents of indexer; indexed and tokenized is the default
-indexer.add(fieldname=text)             # add document
-indexer.commit()                        # commit changes and refresh searcher
+indexer = engine.Indexer()                                  # Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults
+indexer.set('fieldname', engine.Field.Text, stored=True)    # default indexed text settings for documents
+indexer.add(fieldname=text)                                 # add document
+indexer.commit()                                            # commit changes and refresh searcher
 
 # Now search the index:
 hits = indexer.search('text', field='fieldname')    # parsing handled if necessary

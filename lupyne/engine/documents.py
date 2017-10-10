@@ -22,7 +22,6 @@ class Field(FieldType):
     :param boost: boost factor
     :param stored, indexed, settings: lucene FieldType attributes
     """
-    types = {int: 'long', float: 'double'}
     docValueType = property(FieldType.docValueType, FieldType.setDocValueType)
     indexed = property(FieldType.indexed, FieldType.setIndexed)
     indexOptions = property(FieldType.indexOptions, FieldType.setIndexOptions)
@@ -36,10 +35,12 @@ class Field(FieldType):
     storeTermVectors = property(FieldType.storeTermVectors, FieldType.setStoreTermVectors)
     tokenized = property(FieldType.tokenized, FieldType.setTokenized)
 
-    def __init__(self, name, indexed=True, boost=1.0, docValueType='', indexOptions='', numericType='', **settings):
+    properties = {name for name in locals() if not name.startswith('__')}
+    types = {int: 'long', float: 'double'}
+
+    def __init__(self, name, boost=1.0, docValueType='', indexOptions='', numericType='', **settings):
         super(Field, self).__init__()
         self.name, self.boost = name, boost
-        self.indexed = indexed
         if docValueType:
             self.docValueType = getattr(index.FieldInfo.DocValuesType, docValueType.upper())
         if indexOptions:
@@ -50,16 +51,25 @@ class Field(FieldType):
             setattr(self, name, settings[name])
         assert self.stored or self.indexed or self.docValueType or self.numericType
 
+    @classmethod
+    def String(cls, name, indexed=True, tokenized=False, omitNorms=True, indexOptions='DOCS_ONLY', **settings):
+        """Return Field with default settings for strings."""
+        return cls(name, indexed=indexed, tokenized=tokenized, omitNorms=omitNorms, indexOptions=indexOptions, **settings)
+
+    @classmethod
+    def Text(cls, name, indexed=True, **settings):
+        """Return Field with default settings for text."""
+        return cls(name, indexed=indexed, **settings)
+
     @property
     def settings(self):
         """dict representation of settings"""
         defaults = FieldType()
-        result = {'indexed': self.indexed}
-        for name in dir(Field):
-            if isinstance(getattr(Field, name), property) and name != 'settings':
-                value = getattr(self, name)
-                if value != getattr(defaults, name)():
-                    result[name] = value if isinstance(value, int) else str(value)
+        result = {}
+        for name in Field.properties:
+            value = getattr(self, name)
+            if value != getattr(defaults, name)():
+                result[name] = value if isinstance(value, int) else str(value)
         return result
 
     def items(self, *values):
@@ -88,8 +98,8 @@ class NestedField(Field):
 
     :param sep: field separator used on name and values
     """
-    def __init__(self, name, sep='.', tokenized=False, **kwargs):
-        Field.__init__(self, name, tokenized=tokenized, **kwargs)
+    def __init__(self, name, sep='.', **settings):
+        Field.__init__(self, name, **Field.String(name, **settings).settings)
         self.sep = sep
         self.names = tuple(self.values(name))
 
@@ -122,8 +132,9 @@ class NumericField(Field):
     :param name: name of field
     :param type: optional int, float, or lucene NumericType string
     """
-    def __init__(self, name, type, tokenized=False, **kwargs):
-        Field.__init__(self, name, numericType=self.types.get(type, type), tokenized=tokenized, **kwargs)
+    def __init__(self, name, numericType, indexed=True, omitNorms=True, indexOptions='DOCS_ONLY', **settings):
+        settings['numericType'] = self.types.get(numericType, numericType)
+        Field.__init__(self, name, indexed=indexed, omitNorms=omitNorms, indexOptions=indexOptions, **settings)
 
     def range(self, start, stop, lower=True, upper=False):
         """Return lucene NumericRangeQuery."""
@@ -147,8 +158,8 @@ class DateTimeField(NumericField):
 
     Supports datetimes, dates, and any prefix of time tuples.
     """
-    def __init__(self, name, **kwargs):
-        NumericField.__init__(self, name, type=float, **kwargs)
+    def __init__(self, name, **settings):
+        NumericField.__init__(self, name, float, **settings)
 
     @classmethod
     def timestamp(cls, date):

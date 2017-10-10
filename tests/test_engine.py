@@ -39,9 +39,9 @@ def test_interface(tempdir):
     assert indexer.config.writeLockTimeout == 100
     with pytest.raises(lucene.JavaError):
         engine.Indexer(indexer.directory)
-    indexer.set('text')
-    indexer.set('name', stored=True, indexed=False)
-    indexer.set('tag', stored=True, tokenized=False, boost=2.0)
+    indexer.set('text', engine.Field.Text)
+    indexer.set('name', stored=True)
+    indexer.set('tag', engine.Field.Text, stored=True, boost=2.0)
     for field in indexer.fields['tag'].items('sample'):
         assert isinstance(field, document.Field) and field.boost() == 2.0
     searcher = indexer.indexSearcher
@@ -399,7 +399,7 @@ def test_spatial(tempdir, zipcodes):
     for name, params in zipcodes.fields.items():
         indexer.set(name, **params)
     for name in ('longitude', 'latitude'):
-        indexer.set(name, engine.NumericField, type=float, stored=True)
+        indexer.set(name, engine.NumericField, numericType=float, stored=True)
     field = indexer.set('tile', engine.PointField, precision=15, numericPrecisionStep=2, stored=True)
     points = []
     for doc in zipcodes:
@@ -451,18 +451,22 @@ def test_fields(tempdir, constitution):
     with pytest.raises(lucene.JavaError):
         with engine.queries.suppress(search.TimeLimitingCollector.TimeExceededException):
             document.Field('name', 'value', document.FieldType())
-    settings = {'indexed': False, 'docValueType': 'NUMERIC', 'indexOptions': 'DOCS_ONLY'}
+    assert str(engine.Field.String('')) == str(document.StringField('', '', document.Field.Store.NO).fieldType())
+    assert str(engine.Field.Text('')) == str(document.TextField('', '', document.Field.Store.NO).fieldType())
+    assert str(engine.NumericField('', int)) == str(document.LongField('', 0L, document.Field.Store.NO).fieldType())
+    assert str(engine.DateTimeField('')) == str(document.DoubleField('', 0.0, document.Field.Store.NO).fieldType())
+    settings = {'docValueType': 'NUMERIC', 'indexOptions': 'DOCS_ONLY'}
     field = engine.Field('', **settings)
     assert field.settings == engine.Field('', **field.settings).settings == settings
     field = engine.NestedField('', stored=True)
-    assert field.settings == {'indexed': True, 'tokenized': False, 'stored': True}
-    field = engine.Field('', omitNorms=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
+    assert field.settings == {'stored': True, 'indexed': True, 'tokenized': False, 'omitNorms': True, 'indexOptions': 'DOCS_ONLY'}
+    field = engine.Field('', indexed=True, omitNorms=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
     field, = field.items(' ')
     attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
     assert all(getattr(field.fieldType(), attr)() for attr in attrs)
     indexer = engine.Indexer(tempdir)
-    indexer.set('amendment', stored=True)
-    indexer.set('size', stored=True)
+    indexer.set('amendment', engine.Field.String, stored=True)
+    indexer.set('size', engine.Field.String, stored=True)
     field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', stored=True)
     for doc in constitution:
         if 'amendment' in doc:
@@ -497,9 +501,9 @@ def test_fields(tempdir, constitution):
 
 def test_numeric(tempdir, constitution):
     indexer = engine.Indexer(tempdir)
-    indexer.set('amendment', engine.NumericField, type=int, stored=True)
+    indexer.set('amendment', engine.NumericField, numericType=int, stored=True)
     field = indexer.set('date', engine.DateTimeField, stored=True)
-    indexer.set('size', engine.NumericField, type=int, stored=True, numericPrecisionStep=5)
+    indexer.set('size', engine.NumericField, numericType=int, stored=True, numericPrecisionStep=5)
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
@@ -544,7 +548,7 @@ def test_numeric(tempdir, constitution):
 
 def test_highlighting(constitution):
     indexer = engine.Indexer()
-    indexer.set('text', stored=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
+    indexer.set('text', engine.Field.Text, stored=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(text=doc['text'])
@@ -605,9 +609,9 @@ def test_multi(tempdir):
 
 def test_docvalues():
     indexer = engine.Indexer()
-    indexer.set('id')
-    indexer.set('votes', docValueType='numeric', indexed=False)
-    indexer.set('tag', docValueType='binary', indexed=False)
+    indexer.set('id', engine.Field.String)
+    indexer.set('votes', docValueType='numeric')
+    indexer.set('tag', docValueType='binary')
     assert not indexer.comparator('tag')
     indexer.add(id='0', votes=1, tag='low')
     indexer.commit()

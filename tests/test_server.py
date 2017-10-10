@@ -65,7 +65,7 @@ def test_docs(resource):
     assert sorted(fields) == ['amendment', 'article', 'date', 'text']
     for field in fields:
         assert resource.fields(field)['indexed']
-    assert resource.client.put('fields/' + field, {}).status_code == httplib.OK
+    assert resource.client.put('fields/' + field, {'stored': True}).status_code == httplib.OK
     assert resource.docs('0', **{'fields.indexed': 'amendment:int'}) == {'amendment': 0, 'article': 'Preamble'}
     doc = resource.docs('0', **{'fields.vector': 'text,missing'})
     assert doc['missing'] == [] and doc['text'].index('states') < doc['text'].index('united')
@@ -212,7 +212,7 @@ def test_facets(tempdir, servers, zipcodes):
     writer = engine.IndexWriter(tempdir)
     writer.commit()
     resource = servers.start(servers.ports[0], '-r', tempdir)
-    writer.set('zipcode', engine.NumericField, type=int, stored=True)
+    writer.set('zipcode', engine.NumericField, numericType=int, stored=True)
     writer.fields['location'] = engine.NestedField('county.city')
     for doc in zipcodes:
         if doc['state'] == 'CA':
