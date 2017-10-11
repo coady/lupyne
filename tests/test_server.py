@@ -49,10 +49,10 @@ def servers(request):
 
 
 @pytest.fixture
-def resource(tempdir, servers, constitution):
+def resource(tempdir, servers, fields, constitution):
     resource = servers.start(servers.ports[0], tempdir)
-    for name, settings in constitution.fields.items():
-        assert resource.client.put('fields/' + name, settings).status_code == httplib.CREATED
+    for field in fields:
+        assert resource.client.put('fields/' + field.name, field.settings).status_code == httplib.CREATED
     assert resource.post('docs', list(constitution)) is None
     assert resource.post('update', {'spellcheckers': True, 'merge': 1})
     return resource

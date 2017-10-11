@@ -11,6 +11,8 @@ from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
 from lupyne import engine
 
+tokenizer = analysis.standard.StandardTokenizer
+
 
 class typeAsPayload(engine.TokenFilter):
     "Custom implementation of lucene TypeAsPayloadTokenFilter."
@@ -18,7 +20,13 @@ class typeAsPayload(engine.TokenFilter):
         self.payload = self.type
 
 
-tokenizer = analysis.standard.StandardTokenizer
+@pytest.fixture
+def indexer(tempdir):
+    with engine.Indexer(tempdir) as indexer:
+        for name in ('city', 'county', 'state', 'latitude', 'longitude'):
+            indexer.set(name, stored=True)
+        indexer.set('zipcode', engine.Field.String, stored=True)
+        yield indexer
 
 
 def test_interface(tempdir):
@@ -163,12 +171,11 @@ def test_interface(tempdir):
         indexer.search
 
 
-def test_basic(tempdir, constitution):
+def test_basic(tempdir, fields, constitution):
     with pytest.raises(lucene.JavaError):
         engine.Indexer(tempdir, 'r')
     indexer = engine.Indexer(tempdir)
-    for name, params in constitution.fields.items():
-        indexer.set(name, **params)
+    indexer.fields = {field.name: field for field in fields}
     for doc in constitution:
         indexer.add(doc)
     indexer.commit()
@@ -332,10 +339,7 @@ def test_basic(tempdir, constitution):
     assert not engine.IndexWriter.check(tempdir, fix=True).numBadSegments
 
 
-def test_advanced(tempdir, zipcodes):
-    indexer = engine.Indexer(tempdir)
-    for name, params in zipcodes.fields.items():
-        indexer.set(name, **params)
+def test_grouping(tempdir, indexer, zipcodes):
     field = indexer.fields['location'] = engine.NestedField('state.county.city')
     for doc in zipcodes:
         if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
@@ -392,12 +396,9 @@ def test_advanced(tempdir, zipcodes):
     directory.close()
 
 
-def test_spatial(tempdir, zipcodes):
+def test_spatial(indexer, zipcodes):
     point = engine.spatial.Point(-120, 39)
     assert point.coords == (-120, 39) and not list(point.within(1, 0))
-    indexer = engine.Indexer(tempdir, 'w')
-    for name, params in zipcodes.fields.items():
-        indexer.set(name, **params)
     for name in ('longitude', 'latitude'):
         indexer.set(name, engine.NumericField, numericType=float, stored=True)
     field = indexer.set('tile', engine.PointField, precision=15, numericPrecisionStep=2, stored=True)
@@ -445,7 +446,7 @@ def test_spatial(tempdir, zipcodes):
     assert 0 == distances[ids[-1]] < distances[ids[0]] < 10 ** 4
 
 
-def test_fields(tempdir, constitution):
+def test_fields(indexer, constitution):
     with pytest.raises(lucene.InvalidArgsError):
         engine.Field('', stored='invalid')
     with pytest.raises(lucene.JavaError):
@@ -464,7 +465,6 @@ def test_fields(tempdir, constitution):
     field, = field.items(' ')
     attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
     assert all(getattr(field.fieldType(), attr)() for attr in attrs)
-    indexer = engine.Indexer(tempdir)
     indexer.set('amendment', engine.Field.String, stored=True)
     indexer.set('size', engine.Field.String, stored=True)
     field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', stored=True)
@@ -499,8 +499,7 @@ def test_fields(tempdir, constitution):
         indexer.comparator('size', type='score')
 
 
-def test_numeric(tempdir, constitution):
-    indexer = engine.Indexer(tempdir)
+def test_numeric(indexer, constitution):
     indexer.set('amendment', engine.NumericField, numericType=int, stored=True)
     field = indexer.set('date', engine.DateTimeField, stored=True)
     indexer.set('size', engine.NumericField, numericType=int, stored=True, numericPrecisionStep=5)

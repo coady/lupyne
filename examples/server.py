@@ -14,7 +14,7 @@ Example queries:
 
 import lucene
 from lupyne import engine, server
-from tests import fixtures
+from tests import conftest
 Q = engine.Query
 
 
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     root.indexer.set('date', engine.Field.String, stored=True)
     root.indexer.set('text', engine.Field.Text)
     # populate index
-    for doc in fixtures.constitution():
+    for doc in conftest.constitution():
         if 'amendment' in doc:
             root.indexer.add(doc)
     root.update()
