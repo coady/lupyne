@@ -11,6 +11,7 @@ from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
 from lupyne import engine
 
+Q = engine.Query
 tokenizer = analysis.standard.StandardTokenizer
 
 
@@ -101,32 +102,14 @@ def test_interface(tempdir):
     assert not indexer.search('hello') and indexer.search('hello', field='text')
     assert indexer.search('text:hello hi') and not indexer.search('text:hello hi', op='and')
     assert indexer.search('text:*hello', allowLeadingWildcard=True)
-    query = engine.Query.multiphrase('text', ('hello', 'hi'), None, 'world')
-    assert str(query).startswith('text:"(hello hi) ') and list(query.positions) == [0, 2]
-    query = engine.Query.wildcard('text', '*')
-    assert str(query) == 'text:*' and isinstance(query, search.WildcardQuery)
-    assert str(search.MatchAllDocsQuery() | query) == '*:* text:*'
-    assert str(search.MatchAllDocsQuery() - query) == '*:* -text:*'
-    assert str(+query) == '+text:*'
-    assert str(engine.Query.fuzzy('text', 'hello')) == 'text:hello~2'
-    query = engine.Query.regexp('text', '.*')
-    assert str(query) == 'text:/.*/'
-    assert str(query.constant()) == 'ConstantScore(text:/.*/)'
-    query = engine.Query.span('text', 'world')
-    assert str(query.mask('name')) == 'mask(text:world) as name'
-    assert str(query.payload()) == 'spanPayCheck(text:world, payloadRef: )'
-    query = engine.Query.disjunct(0.1, query, name='sample')
-    assert str(query) == '(text:world | name:sample)~0.1'
-    query = engine.Query.near('text', 'hello', ('tag', 'python'), slop=-1, inOrder=False)
-    assert str(query) == 'spanNear([text:hello, mask(tag:python) as text], -1, false)' and indexer.count(query) == 1
-    query = engine.Query.near('text', 'hello', 'world')
+    query = Q.near('text', 'hello', 'world')
     (doc, items), = indexer.spans(query, payloads=True)
     (start, stop, payloads), = items
     assert doc == 0 and start == 0 and stop == 2 and payloads == ['<ALPHANUM>', '<ALPHANUM>']
     (doc, count), = indexer.spans(query.payload('<ALPHANUM>', '<ALPHANUM>'))
     assert doc == 0 and count == 1
     assert not indexer.search(query.payload('<>'))
-    query = engine.Query.near('text', 'hello', 'world', collectPayloads=False)
+    query = Q.near('text', 'hello', 'world', collectPayloads=False)
     (doc, items), = indexer.spans(query, payloads=True)
     assert doc == 0 and items == []
     indexer.delete('name:sample')
@@ -183,7 +166,7 @@ def test_basic(tempdir, fields, constitution):
     engine.IndexSearcher.load(searcher.directory)  # ensure directory isn't closed
     assert len(indexer) == len(searcher) and store.RAMDirectory.instance_(searcher.directory)
     assert indexer.spellcheckers == {}
-    assert indexer.facets(engine.Query.alldocs(), 'amendment')
+    assert indexer.facets(Q.alldocs(), 'amendment')
     assert indexer.suggest('amendment', '')
     assert list(indexer.spellcheckers) == ['amendment']
     indexer.delete('amendment', doc['amendment'])
@@ -250,42 +233,28 @@ def test_basic(tempdir, fields, constitution):
     assert hit['amendment'] == '1'
     assert sorted(hit.dict()) == ['__id__', '__score__', 'amendment', 'date']
     hits = indexer.search('text:right')
-    query = engine.Query.term('text', 'right', boost=2.0)
-    assert query.boost == 2.0
     hits = indexer.search('date:[1919 TO 1921]')
     amendments = ['18', '19']
     assert sorted(hit['amendment'] for hit in hits) == amendments
-    query = engine.Query.range('date', '1919', '1921')
-    hits = indexer.search(query | engine.Query.term('text', 'vote'))
+    query = Q.range('date', '1919', '1921')
+    hits = indexer.search(query | Q.term('text', 'vote'))
     assert {hit.get('amendment') for hit in hits} > set(amendments)
-    hit, = indexer.search(query & engine.Query.term('text', 'vote'))
+    hit, = indexer.search(query & Q.term('text', 'vote'))
     assert hit['amendment'] == '19'
-    hit, = indexer.search(query - engine.Query.all(text='vote'))
+    hit, = indexer.search(query - Q.all(text='vote'))
     assert hit['amendment'] == '18'
-    hit, = indexer.search(engine.Query.all(text=['persons', 'papers']))
+    hit, = indexer.search(Q.all(text=['persons', 'papers']))
     assert hit['amendment'] == '4'
-    hit, = indexer.search(engine.Query.phrase('text', 'persons', None, 'papers', slop=1))
+    hit, = indexer.search(Q.phrase('text', 'persons', None, 'papers', slop=1))
     assert hit['amendment'] == '4'
-    hit, = indexer.search(engine.Query.multiphrase('text', 'persons', ['houses', 'papers']))
+    hit, = indexer.search(Q.multiphrase('text', 'persons', ['houses', 'papers']))
     assert hit['amendment'] == '4'
-    query = engine.Query.term('text', 'persons')
-    assert str(-query) == '-text:persons'
-    query = +query
-    query -= engine.Query.term('text', 'papers')
-    assert ('text', 'persons') in engine.Query.terms(query)
-    assert len(list(query)) == 2
-    span = engine.Query.span('text', 'persons')
+    span = Q.span('text', 'persons')
     count = indexer.count(span)
-    assert indexer.count(engine.Query.span(engine.Query.prefix('text', 'person'))) > count
-    near = engine.Query.near('text', 'persons', 'papers', slop=1, inOrder=False)
-    assert indexer.count(span - near) == count
-    near = span.near(engine.Query.span('text', 'papers') | engine.Query.span('text', 'things'), slop=1)
-    assert indexer.count(span - near) == count - 1
-    assert 0 < indexer.count(span[:100]) < count
-    assert 0 < indexer.count(span[50:100]) == indexer.count(span[:100] - span[:50]) < indexer.count(span[:100])
+    near = span.near(Q.span('text', 'papers') | Q.span('text', 'things'), slop=1)
     spans = dict(indexer.spans(span))
     assert len(spans) == count and spans == dict(indexer.docs('text', 'persons', counts=True))
-    near = engine.Query.near('text', 'persons', 'papers', slop=2)
+    near = Q.near('text', 'persons', 'papers', slop=2)
     (id, positions), = indexer.spans(near, positions=True)
     assert indexer[id]['amendment'] == '4' and positions in ([(3, 6)], [(10, 13)])
     assert 'persons' in indexer.termvector(id, 'text')
@@ -295,7 +264,7 @@ def test_basic(tempdir, fields, constitution):
     analyzer = analysis.core.WhitespaceAnalyzer()
     query = indexer.morelikethis(0, analyzer=analyzer)
     assert set(str(query).split()) == {'text:united', 'text:states'}
-    hits = indexer.search(query & engine.Query.prefix('article', ''))
+    hits = indexer.search(query & Q.prefix('article', ''))
     assert len(hits) == 8 and hits[0]['article'] == 'Preamble'
     assert str(indexer.morelikethis(0, 'article', analyzer=analyzer)) == ''
     query = indexer.morelikethis(0, minDocFreq=3, analyzer=analyzer)
@@ -339,6 +308,56 @@ def test_basic(tempdir, fields, constitution):
     assert not engine.IndexWriter.check(tempdir, fix=True).numBadSegments
 
 
+def test_queries():
+    alldocs = search.MatchAllDocsQuery()
+    term = Q.term('text', 'lucene')
+    assert str(term) == 'text:lucene'
+    assert set(term) == {('text', 'lucene')}
+    assert list(Q.iter(alldocs)) == []
+    assert str(term.constant()) == 'ConstantScore(text:lucene)'
+    assert str(+term) == '+text:lucene'
+    assert str(-term) == '-text:lucene'
+    assert str(term & alldocs) == '+text:lucene +*:*'
+    assert str(alldocs & term) == '+*:* +text:lucene'
+    assert str(term | alldocs) == 'text:lucene *:*'
+    assert str(alldocs | term) == '*:* text:lucene'
+    assert str(term - alldocs) == 'text:lucene -*:*'
+    assert str(alldocs - term) == '*:* -text:lucene'
+
+    assert str(Q.term('text', 'lucene', boost=2.0)) == 'text:lucene^2.0'
+    assert str(Q.any(term, text='search')) == 'text:lucene text:search'
+    assert str(Q.any(text=['search', 'engine'])) == 'text:search text:engine'
+    assert str(Q.all(term, text='search')) == '+text:lucene +text:search'
+    assert str(Q.all(text=['search', 'engine'])) == '+text:search +text:engine'
+    assert str(Q.disjunct(0.0, term, text='search')) == '(text:lucene | text:search)'
+    assert str(Q.disjunct(0.1, text=['search', 'engine'])) == '(text:search | text:engine)~0.1'
+    assert str(Q.prefix('text', 'lucene')) == 'text:lucene*'
+    assert str(Q.range('text', 'start', 'stop')) == 'text:[start TO stop}'
+    assert str(Q.range('text', 'start', 'stop', lower=False, upper=True)) == 'text:{start TO stop]'
+    assert str(Q.phrase('text', 'search', 'engine', slop=2)) == 'text:"search engine"~2'
+    assert str(Q.phrase('text', 'search', None, 'engine')) == 'text:"search ? engine"'
+    assert str(Q.multiphrase('text', 'lucene', None, ('search', 'engine'))) == 'text:"lucene ? (search engine)"'
+    wildcard = Q.wildcard('text', '*')
+    assert str(wildcard) == 'text:*' and isinstance(wildcard, search.WildcardQuery)
+    assert str(Q.fuzzy('text', 'lucene')) == 'text:lucene~2'
+    assert str(Q.fuzzy('text', 'lucene', 1)) == 'text:lucene~1'
+    assert str(Q.alldocs()) == '*:*'
+    assert str(Q.regexp('text', '.*')) == 'text:/.*/'
+
+    span = Q.span('text', 'lucene')
+    assert str(span) == 'text:lucene'
+    assert str(span[10:]) == 'spanPosRange(text:lucene, 10, 2147483647)'
+    assert str(span[:10]) == 'spanPosRange(text:lucene, 0, 10)'
+    assert str(Q.span(wildcard)) == 'SpanMultiTermQueryWrapper(text:*)'
+    near = Q.near('text', 'lucene', ('alias', 'search'), slop=-1, inOrder=False)
+    assert str(near) == 'spanNear([text:lucene, mask(alias:search) as text], -1, false)'
+    assert str(span - near) == 'spanNot(text:lucene, spanNear([text:lucene, mask(alias:search) as text], -1, false), 0, 0)'
+    assert str(span | near) == 'spanOr([text:lucene, spanNear([text:lucene, mask(alias:search) as text], -1, false)])'
+    assert str(span.mask('alias')) == 'mask(text:lucene) as alias'
+    assert str(span.payload('')) == 'spanPayCheck(text:lucene, payloadRef: ;)'
+    assert str(near.payload()) == 'spanPayCheck(spanNear([text:lucene, mask(alias:search) as text], -1, false), payloadRef: )'
+
+
 def test_grouping(tempdir, indexer, zipcodes):
     field = indexer.fields['location'] = engine.NestedField('state.county.city')
     for doc in zipcodes:
@@ -361,22 +380,22 @@ def test_grouping(tempdir, indexer, zipcodes):
     assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
     hit, = indexer.search('zipcode:90210')
     assert hit['state'] == 'CA' and hit['county'] == 'Los Angeles' and hit['city'] == 'Beverly Hills' and hit['longitude'] == '-118.406'
-    query = engine.Query.prefix('zipcode', '90')
+    query = Q.prefix('zipcode', '90')
     (field, facets), = indexer.facets(query, 'state.county').items()
     assert field == 'state.county'
     la, orange = sorted(filter(facets.get, facets))
     assert la == 'CA.Los Angeles' and facets[la] > 100
     assert orange == 'CA.Orange' and facets[orange] > 10
-    queries = {term: engine.Query.term(field, term) for term in indexer.terms(field, 'CA.')}
+    queries = {term: Q.term(field, term) for term in indexer.terms(field, 'CA.')}
     (field, facets), = indexer.facets(query, **{field: queries}).items()
     assert all(value.startswith('CA.') for value in facets) and set(facets) == set(queries)
     assert facets['CA.Los Angeles'] == 264
-    groups = indexer.groupby(field, engine.Query.term('state', 'CA'), count=1)
+    groups = indexer.groupby(field, Q.term('state', 'CA'), count=1)
     assert len(groups) == 1 < groups.count
     hits, = groups
     assert hits.value == 'CA.Los Angeles' and len(hits) == 1 and hits.count > 100
     grouping = engine.documents.GroupingSearch(field, sort=search.Sort(engine.SortField(field)), cache=False, allGroups=True)
-    assert all(grouping.search(indexer.indexSearcher, engine.Query.alldocs()).facets.values())
+    assert all(grouping.search(indexer.indexSearcher, Q.alldocs()).facets.values())
     assert len(grouping) == len(list(grouping)) > 100
     assert set(grouping) > set(facets)
     hits = indexer.search(query, timeout=-1)
@@ -384,7 +403,7 @@ def test_grouping(tempdir, indexer, zipcodes):
     hits = indexer.search(query, timeout=10)
     assert len(hits) == hits.count == indexer.count(query) and hits.maxscore == 1.0
     directory = store.RAMDirectory()
-    query = engine.Query.term('state', 'CA')
+    query = Q.term('state', 'CA')
     size = indexer.copy(directory, query)
     searcher = engine.IndexSearcher(directory)
     assert len(searcher) == size and list(searcher.terms('state')) == ['CA']
@@ -472,9 +491,9 @@ def test_fields(indexer, constitution):
         if 'amendment' in doc:
             indexer.add(amendment='{:02}'.format(int(doc['amendment'])), date=doc['date'], size='{:04}'.format(len(doc['text'])))
     indexer.commit()
-    query = engine.Query.range('amendment', '', '10')
+    query = Q.range('amendment', '', '10')
     assert indexer.count(query) == 9
-    query = engine.Query.prefix('amendment', '0')
+    query = Q.prefix('amendment', '0')
     assert indexer.count(query) == 9
     query = field.prefix('1791-12-15')
     assert indexer.count(query) == 10
@@ -488,12 +507,12 @@ def test_fields(indexer, constitution):
     assert [hit['Y-m-d'].split('-')[0] for hit in hits] == ['1919', '1920']
     sizes = {id: int(indexer[id]['size']) for id in indexer}
     ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
-    query = engine.Query.range('size', '1000', None)
+    query = Q.range('size', '1000', None)
     hits = indexer.search(query).sorted(sizes.get)
     assert list(hits.ids) == ids
     hits = indexer.search(query, count=3, sort=engine.SortField('size', type=long))
     assert list(hits.ids) == ids[:len(hits)]
-    query = engine.Query.range('size', None, '1000')
+    query = Q.range('size', None, '1000')
     assert indexer.count(query) == len(sizes) - len(ids)
     with pytest.raises(AttributeError):
         indexer.comparator('size', type='score')
@@ -574,6 +593,10 @@ def test_highlighting(constitution):
     highlighter = indexer.highlighter(query, 'text', fragListBuilder=vectorhighlight.SingleFragListBuilder())
     text, = highlighter.fragments(id)
     assert fragment in text and len(text) > len(fragment)
+    query = indexer.parse(query, field=text)
+    highlighter = engine.queries.Highlighter(indexer.indexSearcher, query, 'text', terms=True, fields=True, tag='em')
+    fragment, = highlighter.fragments(id)
+    assert fragment and '<em>' in fragment
 
 
 def test_nrt():

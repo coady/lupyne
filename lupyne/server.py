@@ -486,7 +486,7 @@ class WebSearcher(object):
                     facets[name] = {term: counts[term] for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__)}
         if spellcheck:
             terms = result['spellcheck'] = collections.defaultdict(dict)
-            for name, value in engine.Query.terms(q):
+            for name, value in engine.Query.iter(q):
                 terms[name][value] = list(itertools.islice(searcher.correct(name, value), spellcheck))
         return result
 

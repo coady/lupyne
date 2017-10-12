@@ -29,12 +29,12 @@ class Query(object):
         for name in attrs:
             setattr(self, name, attrs[name])
 
-    @method
-    def terms(self):
+    def __iter__(self):
         """Generate set of query term items."""
         terms = HashSet().of_(index.Term)
         self.extractTerms(terms)
         return ((term.field(), term.text()) for term in terms)
+    iter = method(__iter__)
 
     @classmethod
     def term(cls, name, value, **attrs):
@@ -160,6 +160,7 @@ class Query(object):
     def __ror__(self, other):
         return Query.any(other, self)
 
+    @method
     def __sub__(self, other):
         """self -other"""
         query = Query.any(self)
@@ -167,9 +168,7 @@ class Query(object):
         return query
 
     def __rsub__(self, other):
-        query = Query.any(other)
-        query.add(self, search.BooleanClause.Occur.MUST_NOT)
-        return query
+        return Query.__sub__(other, self)
 
 
 class SpanQuery(Query):
