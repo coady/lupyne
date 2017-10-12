@@ -496,9 +496,7 @@ class WebSearcher(object):
         """Return data about indexed terms.
 
         **GET** /terms?
-            Return field names, with optional selection.
-
-            &indexed=true|false
+            Return field names.
 
             :return: [*string*,... ]
 
@@ -540,7 +538,7 @@ class WebSearcher(object):
         """
         searcher = self.searcher
         if not name:
-            return sorted(searcher.names(**options))
+            return sorted(fieldinfo.name for fieldinfo in searcher.fieldinfos.values())
         if ':' in name:
             with cherrypy.HTTPError.handle((ValueError, AttributeError), httplib.BAD_REQUEST):
                 name, type = name.split(':')

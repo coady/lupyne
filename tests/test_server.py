@@ -361,7 +361,7 @@ def test_replication(tempdir, servers):
     servers.stop(servers.ports[0])
     assert secondary.docs()
     assert secondary.client.post('docs', []).status_code == httplib.METHOD_NOT_ALLOWED
-    assert secondary.terms(option='indexed') == []
+    assert secondary.terms() == []
     assert root.update() == 2
     assert len(root.urls) == 1
     servers.stop(servers.ports[1])

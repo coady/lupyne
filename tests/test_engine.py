@@ -75,9 +75,6 @@ def test_interface(tempdir):
     assert indexer.get(0, 'name').dict() == {'name': 'sample'}
     assert not list(indexer.termvector(0, 'tag'))
     assert indexer.count('text', 'hello') == indexer.count('text:hello') == 1
-    assert sorted(indexer.names()) == ['name', 'tag', 'text']
-    assert sorted(indexer.names(indexed=True)) == ['tag', 'text']
-    assert indexer.names(indexed=False) == ['name']
     assert list(indexer.terms('text')) == ['hello', 'world']
     assert list(indexer.terms('text', 'h', 'v')) == ['hello']
     assert dict(indexer.terms('text', 'w', counts=True)) == {'world': 1}
@@ -180,7 +177,6 @@ def test_basic(tempdir, fields, constitution):
     scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
     assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
     assert len(indexer) == len(indexer.search()) == 35
-    assert sorted(indexer.names()) == ['amendment', 'article', 'date', 'text']
     articles = list(indexer.terms('article'))
     articles.remove('Preamble')
     assert sorted(map(int, articles)) == range(1, 8)
@@ -366,8 +362,6 @@ def test_grouping(tempdir, indexer, zipcodes):
             location = '.'.join(doc[name] for name in ['state', 'county', 'city'])
             indexer.add(doc, latitude=lat, longitude=lng, location=location)
     indexer.commit()
-    assert sorted(indexer.names(indexed=True)) == ['state', 'state.county', 'state.county.city', 'zipcode']
-    assert sorted(indexer.names(indexed=False)) == ['city', 'county', 'latitude', 'longitude']
     states = list(indexer.terms('state'))
     assert states[0] == 'AK' and states[-1] == 'WY'
     counties = [term.split('.')[-1] for term in indexer.terms('state.county', 'CA', 'CA~')]
@@ -491,6 +485,8 @@ def test_fields(indexer, constitution):
         if 'amendment' in doc:
             indexer.add(amendment='{:02}'.format(int(doc['amendment'])), date=doc['date'], size='{:04}'.format(len(doc['text'])))
     indexer.commit()
+    assert set(indexer.fieldinfos) == {'amendment', 'Y', 'Y-m', 'Y-m-d', 'size'}
+    assert str(indexer.fieldinfos['amendment'].indexOptions) == 'DOCS_ONLY'
     query = Q.range('amendment', '', '10')
     assert indexer.count(query) == 9
     query = Q.prefix('amendment', '0')

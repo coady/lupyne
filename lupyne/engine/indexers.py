@@ -276,6 +276,12 @@ class IndexReader(object):
         """segment filenames with document counts"""
         return {reader.segmentName: reader.numDocs() for reader in self.readers}
 
+    @property
+    def fieldinfos(self):
+        """mapping of field names to lucene FieldInfos"""
+        fieldinfos = index.MultiFields.getMergedFieldInfos(self.indexReader)
+        return {fieldinfo.name: fieldinfo for fieldinfo in fieldinfos.iterator()}
+
     def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.
 
@@ -297,14 +303,6 @@ class IndexReader(object):
             if merge:
                 writer.forceMerge(merge)
             return len(writer)
-
-    def names(self, **attrs):
-        """Return field names, given option description.
-
-        .. versionchanged:: 1.2 lucene requires FieldInfo filter attributes instead of option
-        """
-        fieldinfos = index.MultiFields.getMergedFieldInfos(self.indexReader).iterator()
-        return [fieldinfo.name for fieldinfo in fieldinfos if all(getattr(fieldinfo, name) == attrs[name] for name in attrs)]
 
     def terms(self, name, value='', stop=None, counts=False, distance=0):
         """Generate a slice of term values, optionally with frequency counts.
@@ -478,7 +476,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def highlighter(self, query, field, **kwargs):
         """Return `Highlighter`_ or if applicable `FastVectorHighlighter`_ specific to searcher and query."""
         query = self.parse(query, field=field)
-        fieldinfo = index.MultiFields.getMergedFieldInfos(self.indexReader).fieldInfo(field)
+        fieldinfo = self.fieldinfos.get(field)
         vector = fieldinfo and fieldinfo.hasVectors()
         return (FastVectorHighlighter if vector else Highlighter)(self, query, field, **kwargs)
 
