@@ -37,6 +37,7 @@ class Field(FieldType):
 
     properties = {name for name in locals() if not name.startswith('__')}
     types = {int: 'long', float: 'double'}
+    types.update(NUMERIC='long', BINARY='bytes', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string')
 
     def __init__(self, name, boost=1.0, docValueType='', indexOptions='', numericType='', **settings):
         super(Field, self).__init__()
@@ -74,14 +75,14 @@ class Field(FieldType):
 
     def items(self, *values):
         """Generate lucene Fields suitable for adding to a document."""
+        types = {str: util.BytesRef, int: long, float: util.NumericUtils.doubleToSortableLong}
         if self.docValueType:
             cls = getattr(document, str(self.docValueType).title().replace('_', '') + 'DocValuesField')
-            func = long if 'NUMERIC' in str(self.docValueType) else util.BytesRef
             for value in values:
-                yield cls(self.name, func(value))
+                yield cls(self.name, types[type(value)](value))
         if self.numericType:
             cls = getattr(document, str(self.numericType).title() + 'Field')
-            func = long if self.numericType == FieldType.NumericType.LONG else lambda v: v
+            func = long if self.numericType == FieldType.NumericType.LONG else float
             for value in values:
                 yield cls(self.name, func(value), self)
         elif self.stored or self.indexed:

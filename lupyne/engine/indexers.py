@@ -17,7 +17,7 @@ from java.util import Arrays, HashMap, HashSet
 from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
-from .queries import suppress, Query, SortField, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
+from .queries import suppress, Query, SortField, DocValues, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import DistanceComparator
 from ..utils import Atomic, method
@@ -281,6 +281,30 @@ class IndexReader(object):
         """mapping of field names to lucene FieldInfos"""
         fieldinfos = index.MultiFields.getMergedFieldInfos(self.indexReader)
         return {fieldinfo.name: fieldinfo for fieldinfo in fieldinfos.iterator()}
+
+    def sortfield(self, name, type=None, reverse=False):
+        """Return lucene SortField, deriving the the type from FieldInfos if necessary.
+
+        :param name: field name
+        :param type: int, float, or name compatible with SortField constants
+        :param reverse: reverse flag used with sort
+        """
+        if type is None:
+            type = self.fieldinfos[name].docValuesType.toString()
+        type = Field.types.get(type, type).upper()
+        return search.SortField(name, getattr(search.SortField.Type, type), reverse)
+
+    def docvalues(self, name, type=str):
+        """Return chained lucene DocValues, suitable for custom sorting or grouping.
+
+        :param name: field name
+        :param type: str, int, or float for converting values
+        """
+        types = {str: util.BytesRef.utf8ToString, int: int, float: util.NumericUtils.sortableLongToDouble}
+        docValuesType = self.fieldinfos[name].docValuesType.toString().title().replace('_', '')
+        Array = getattr(DocValues, docValuesType)
+        method = getattr(DocValues, 'get' + docValuesType)
+        return DocValues(Array(method(reader, name), reader.maxDoc(), types[type]) for reader in self.readers)
 
     def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.

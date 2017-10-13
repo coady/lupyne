@@ -214,30 +214,33 @@ def suppress(exception):
             raise
 
 
-class Array(object):
-    def __init__(self, array, size):
-        self.array, self.size = array, size
-
-    def __iter__(self):
-        return map(self.__getitem__, xrange(self.size))
-
-    def __getitem__(self, id):
-        return self.array.get(id)
-
-
-class TextArray(Array):
-    def __getitem__(self, id):
-        return self.array.get(id).utf8ToString()
-
-
-class MultiArray(TextArray):
-    def __getitem__(self, id):
-        self.array.document = id
-        return tuple(self.array.lookupOrd(id).utf8ToString() for id in iter(self.array.nextOrd, self.array.NO_MORE_ORDS))
-
-
-class Comparator(object):
+class DocValues(index.DocValues):
     """Chained arrays with bisection lookup."""
+    class Numeric(object):
+        def __init__(self, array, size, type=int):
+            self.array, self.size, self.type = array, size, type
+
+        def __iter__(self):
+            return map(self.__getitem__, xrange(self.size))
+
+        def __getitem__(self, id):
+            return self.type(self.array.get(id))
+
+    class Binary(Numeric):
+        def __init__(self, array, size, type=util.BytesRef.utf8ToString):
+            super(DocValues.Binary, self).__init__(array, size, type)
+    Sorted = Binary
+
+    class SortedNumeric(Numeric):
+        def __getitem__(self, id):
+            self.array.document = id
+            return tuple(self.type(self.array.valueAt(index)) for index in xrange(self.array.count()))
+
+    class SortedSet(Sorted):
+        def __getitem__(self, id):
+            self.array.document = id
+            return tuple(self.type(self.array.lookupOrd(ord)) for ord in iter(self.array.nextOrd, self.array.NO_MORE_ORDS))
+
     def __init__(self, arrays):
         self.arrays, self.offsets = list(arrays), [0]
         for array in self.arrays:
@@ -268,18 +271,19 @@ class SortField(search.SortField):
     def array(self, reader, multi=False):
         size = reader.maxDoc()
         if multi:
-            return MultiArray(search.FieldCache.DEFAULT.getDocTermOrds(reader, self.field), size)
+            return DocValues.SortedSet(search.FieldCache.DEFAULT.getDocTermOrds(reader, self.field), size)
         if self.typename == 'String':
-            return TextArray(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field), size)
+            return DocValues.Sorted(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field), size)
         if self.typename == 'Bytes':
-            return TextArray(search.FieldCache.DEFAULT.getTerms(reader, self.field, True), size)
+            return DocValues.Binary(search.FieldCache.DEFAULT.getTerms(reader, self.field, True), size)
         method = getattr(search.FieldCache.DEFAULT, 'get{}s'.format(self.typename))
-        return Array(method(reader, self.field, self.parser, False), size)
+        type = float if self.typename == 'Double' else int
+        return DocValues.Numeric(method(reader, self.field, self.parser, False), size, type)
 
     def comparator(self, searcher, multi=False):
         """Return indexed values from default FieldCache using the given searcher."""
         assert not multi or self.typename == 'String'
-        return Comparator(self.array(reader, multi) for reader in searcher.readers)
+        return DocValues(self.array(reader, multi) for reader in searcher.readers)
 
 
 class Highlighter(highlight.Highlighter):

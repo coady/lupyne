@@ -628,21 +628,53 @@ def test_multi(tempdir):
 def test_docvalues():
     indexer = engine.Indexer()
     indexer.set('id', engine.Field.String)
-    indexer.set('votes', docValueType='numeric')
-    indexer.set('tag', docValueType='binary')
+    indexer.set('title', docValueType='binary')
+    indexer.set('size', docValueType='numeric')
+    indexer.set('point', docValueType='numeric')
+    indexer.set('priority', docValueType='sorted')
+    indexer.set('tags', docValueType='sorted_set')
+    indexer.set('sizes', docValueType='sorted_numeric')
+    indexer.set('points', docValueType='sorted_numeric')
     assert not indexer.comparator('tag')
-    indexer.add(id='0', votes=1, tag='low')
+    indexer.add(id='0', title='zero', size=0, point=0.5, priority='low', tags=['red'], sizes=[0], points=[0.5])
     indexer.commit()
+
+    with pytest.raises(AttributeError):
+        indexer.sortfield('id')
+    sortfield = indexer.sortfield('id', type='string', reverse=True)
+    assert sortfield.field == 'id' and sortfield.reverse and sortfield.type == search.SortField.Type.STRING
+    sortfield = indexer.sortfield('title')
+    assert sortfield.field == 'title' and not sortfield.reverse and sortfield.type == search.SortField.Type.BYTES
+    assert indexer.sortfield('size', type=int).type == search.SortField.Type.LONG
+    assert indexer.sortfield('point', type=float).type == search.SortField.Type.DOUBLE
+    assert indexer.sortfield('priority').type == search.SortField.Type.STRING
+    assert indexer.sortfield('tags').type == search.SortField.Type.STRING
+    assert indexer.sortfield('sizes').type == search.SortField.Type.LONG
+    assert indexer.sortfield('points', type=float).type == search.SortField.Type.DOUBLE
+
     segments = indexer.segments
-    indexer.update('id', id='0', votes=2, tag='medium')
+    indexer.update('id', id='0', title='one', size=1, point=1.5, priority='high', tags=['blue'], sizes=[1], points=[1.5])
     indexer.commit()
     assert indexer.segments != segments
     segments = indexer.segments
-    assert list(indexer.comparator('votes', type=int)) == [2]
-    assert list(indexer.comparator('tag', type='bytes')) == ['medium']
-    indexer.update('id', '0', votes=3, tag='high')
+    assert list(indexer.comparator('size', type=int)) == [1]
+    assert list(indexer.comparator('title', type='bytes')) == ['one']
+    docvalues = indexer.docvalues('title')
+    assert len(docvalues) == 1 and docvalues[0] == 'one'
+    assert list(indexer.docvalues('size', type=int)) == [1]
+    assert list(indexer.docvalues('point', type=float)) == [1.5]
+    assert list(indexer.docvalues('priority')) == ['high']
+    assert list(indexer.docvalues('tags')) == [('blue',)]
+    assert list(indexer.docvalues('sizes', type=int)) == [(1,)]
+    assert list(indexer.docvalues('points', type=float)) == [(1.5,)]
+    indexer.update('id', '0', title='two', size=2, point=2.5)
     indexer.update('id', '0')
     indexer.commit()
     assert indexer.segments == segments
-    assert list(indexer.comparator('votes', type=int)) == [3]
-    assert list(indexer.comparator('tag', type='bytes')) == ['high']
+    assert list(indexer.comparator('size', type=int)) == [2]
+    assert list(indexer.comparator('title', type='bytes')) == ['two']
+    assert list(indexer.docvalues('title')) == ['two']
+    assert list(indexer.docvalues('size', type=int)) == [2]
+    assert list(indexer.docvalues('point', type=float)) == [2.5]
+    with pytest.raises(AttributeError):
+        indexer.docvalues('id')
