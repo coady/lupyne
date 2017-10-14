@@ -19,7 +19,7 @@ from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from .queries import suppress, Query, SortField, DocValues, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
-from .spatial import DistanceComparator
+from .spatial import Distances
 from ..utils import Atomic, method
 
 for cls in (analysis.TokenStream, lucene.JArray_byte):
@@ -297,6 +297,8 @@ class IndexReader(object):
     def docvalues(self, name, type=None):
         """Return chained lucene DocValues, suitable for custom sorting or grouping.
 
+        Note multi-valued DocValues aren't thread-safe.
+
         :param name: field name
         :param type: str, int, or float for converting values
         """
@@ -305,6 +307,11 @@ class IndexReader(object):
         Array = getattr(DocValues, docValuesType)
         method = getattr(DocValues, 'get' + docValuesType)
         return DocValues(Array(method(reader, name), reader.maxDoc(), type) for reader in self.readers)
+
+    def distances(self, lng, lat, lngfield, latfield):
+        """Return distance calculator from given point and DocValue lng/lat fields."""
+        arrays = (self.docvalues(field, float) for field in (lngfield, latfield))
+        return Distances(lng, lat, *arrays)
 
     def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.
@@ -578,24 +585,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def groupby(self, field, query, count=None, start=0, **attrs):
         """Return `Hits`_ grouped by field using a `GroupingSearch`_."""
         return GroupingSearch(field, **attrs).search(self, self.parse(query), count, start)
-
-    def comparator(self, field, type='string', multi=False):
-        """Return cache of field values suitable for sorting, using a cached `SortField`_ if available.
-
-        Parsing values into an array is memory optimized.
-        Map values into a list for speed optimization.
-        Comparators are not thread-safe.
-
-        :param name: field name
-        :param type: type object or name compatible with FieldCache
-        :param multi: retrieve multi-valued string terms as a tuple
-        """
-        return SortField(field, type).comparator(self, multi)
-
-    def distances(self, lng, lat, lngfield, latfield):
-        """Return distance comparator computed from cached lat/lng fields."""
-        arrays = (self.comparator(field, 'double') for field in (lngfield, latfield))
-        return DistanceComparator(lng, lat, *arrays)
 
     def spellchecker(self, field):
         """Return and cache spellchecker for given field."""

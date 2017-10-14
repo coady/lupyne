@@ -159,8 +159,7 @@ class PolygonField(PointField):
         return NumericField.items(self, *map(int, tiles))
 
 
-class DistanceComparator(object):
-    """Distance comparator computed from cached lat/lngs."""
+class Distances(object):
     def __init__(self, lng, lat, lngs, lats):
         self.point = Point(lng, lat)
         self.lngs, self.lats = lngs, lats

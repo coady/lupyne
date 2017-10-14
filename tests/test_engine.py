@@ -221,11 +221,6 @@ def test_basic(tempdir, fields, constitution):
     assert math.isnan(hits.maxscore)
     hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
     assert hits.maxscore > max(hits.scores)
-    with pytest.raises(AssertionError):
-        indexer.comparator('amendment', type=int, multi=True)
-    comparator = list(zip(*map(indexer.comparator, ['article', 'amendment'])))
-    hits = indexer.search('text:people').sorted(comparator.__getitem__)
-    assert sorted(hits.ids) != list(hits.ids)
     hits = indexer.search('text:people', count=5, sort='amendment', reverse=True)
     assert [hit['amendment'] for hit in hits] == ['9', '4', '2', '17', '10']
     hit, = indexer.search('freedom', field='text')
@@ -416,7 +411,7 @@ def test_spatial(indexer, zipcodes):
     point = engine.spatial.Point(-120, 39)
     assert point.coords == (-120, 39) and not list(point.within(1, 0))
     for name in ('longitude', 'latitude'):
-        indexer.set(name, engine.NumericField, numericType=float, stored=True)
+        indexer.set(name, engine.NumericField, numericType=float, stored=True, docValueType='numeric')
     field = indexer.set('tile', engine.PointField, precision=15, numericPrecisionStep=2, stored=True)
     points = []
     for doc in zipcodes:
@@ -513,8 +508,6 @@ def test_fields(indexer, constitution):
     assert list(hits.ids) == ids[:len(hits)]
     query = Q.range('size', None, '1000')
     assert indexer.count(query) == len(sizes) - len(ids)
-    with pytest.raises(AttributeError):
-        indexer.comparator('size', type='score')
 
 
 def test_numeric(indexer, constitution):
@@ -638,7 +631,6 @@ def test_docvalues():
     indexer.set('tags', docValueType='sorted_set')
     indexer.set('sizes', docValueType='sorted_numeric')
     indexer.set('points', docValueType='sorted_numeric')
-    assert not indexer.comparator('tag')
     indexer.add(id='0', title='zero', size=0, point=0.5, priority='low', tags=['red'], sizes=[0], points=[0.5])
     indexer.commit()
 
@@ -660,8 +652,6 @@ def test_docvalues():
     indexer.commit()
     assert indexer.segments != segments
     segments = indexer.segments
-    assert list(indexer.comparator('size', type=int)) == [1]
-    assert list(indexer.comparator('title', type='bytes')) == ['one']
     docvalues = indexer.docvalues('title')
     assert len(docvalues) == 1 and docvalues[0] == 'one'
     assert list(indexer.docvalues('size', type=int)) == [1]
@@ -674,8 +664,6 @@ def test_docvalues():
     indexer.update('id', '0')
     indexer.commit()
     assert indexer.segments == segments
-    assert list(indexer.comparator('size', type=int)) == [2]
-    assert list(indexer.comparator('title', type='bytes')) == ['two']
     assert list(indexer.docvalues('title')) == ['two']
     assert list(indexer.docvalues('size', type=int)) == [2]
     assert list(indexer.docvalues('point', type=float)) == [2.5]

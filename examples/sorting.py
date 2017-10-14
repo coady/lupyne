@@ -16,21 +16,21 @@ Internally a CachingCollector is used when all docs are requested.
 
 The search method allows lucene Sort parameters to be passed through, since that's still optimal.
 Additionally the hits themselves can be sorted afterwards with any python callable key.
-The IndexSearcher.comparator method is convenient for creating a sort key table from indexed fields.
+The IndexReader.docvalues method is convenient for creating a sort key table from fields with docvalues.
 The upshot is custom sorting and sorting large results are both easier and faster.
 
 Custom sorting isn't necessary in the below example of course, just there for demonstration.
 """
 
 import lucene
-from org.apache.lucene import search
+from org.apache.lucene import index, search
 from org.apache.pylucene.search import PythonFieldComparator, PythonFieldComparatorSource
 from lupyne import engine
 lucene.initVM()
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
 indexer = engine.Indexer()
-indexer.set('color', engine.Field.String, stored=True)
+indexer.set('color', engine.Field.String, stored=True, docValueType='sorted')
 for color in colors:
     indexer.add(color=color)
 indexer.commit()
@@ -52,7 +52,7 @@ class ComparatorSource(PythonFieldComparatorSource):
             self.value = self.values.__getitem__
 
         def setNextReader(self, context):
-            self.comparator = search.FieldCache.DEFAULT.getTermsIndex(context.reader(), self.name)
+            self.docvalues = index.DocValues.getSorted(context.reader(), self.name)
             return self
 
         def compare(self, slot1, slot2):
@@ -62,10 +62,10 @@ class ComparatorSource(PythonFieldComparatorSource):
             self._bottom = self.values[slot]
 
         def compareBottom(self, doc):
-            return cmp(self._bottom, self.comparator.get(doc).utf8ToString())
+            return cmp(self._bottom, self.docvalues.get(doc).utf8ToString())
 
         def copy(self, slot, doc):
-            self.values[slot] = self.comparator.get(doc).utf8ToString()
+            self.values[slot] = self.docvalues.get(doc).utf8ToString()
 
 
 sorter = search.Sort(search.SortField('color', ComparatorSource()))
@@ -77,7 +77,7 @@ assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] =
 
 hits = indexer.search(sort='color')
 assert [hit['color'] for hit in hits] == sorted(colors)
-comparator = indexer.comparator('color')
-assert list(comparator) == list(colors)
-hits = indexer.search().sorted(comparator.__getitem__)
+docvalues = indexer.docvalues('color')
+assert list(docvalues) == list(colors)
+hits = indexer.search().sorted(docvalues.__getitem__)
 assert [hit['color'] for hit in hits] == sorted(colors)

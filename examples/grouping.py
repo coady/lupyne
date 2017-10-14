@@ -19,7 +19,7 @@ lucene.initVM()
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
 facets = dict(zip(colors, itertools.count(1)))
 indexer = engine.Indexer()
-indexer.set('color', engine.Field.String, stored=True)
+indexer.set('color', engine.Field.String, stored=True, docValueType='sorted')
 for color in facets:
     for index in range(facets[color]):
         indexer.add(color=color)
@@ -33,7 +33,7 @@ for hits in indexer.groupby('color', query):
     assert hit['color'] == hits.value
 
 # group using Hits interface
-for hits in indexer.search(query).groupby(indexer.comparator('color').__getitem__, docs=1):
+for hits in indexer.search(query).groupby(indexer.docvalues('color').__getitem__, docs=1):
     assert facets[hits.value] == hits.count
     hit, = hits
     assert hit['color'] == hits.value

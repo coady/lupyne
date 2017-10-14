@@ -268,21 +268,6 @@ class SortField(search.SortField):
         type = self.typename = getattr(type, '__name__', type).capitalize()
         search.SortField.__init__(self, name, getattr(self.Type, type.upper()), reverse)
 
-    def array(self, reader, multi=False):
-        size = reader.maxDoc()
-        if self.typename == 'String':
-            return DocValues.Sorted(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field), size)
-        if self.typename == 'Bytes':
-            return DocValues.Binary(search.FieldCache.DEFAULT.getTerms(reader, self.field, True), size)
-        method = getattr(search.FieldCache.DEFAULT, 'get{}s'.format(self.typename))
-        type = float if self.typename == 'Double' else int
-        return DocValues.Numeric(method(reader, self.field, self.parser, False), size, type)
-
-    def comparator(self, searcher, multi=False):
-        """Return indexed values from default FieldCache using the given searcher."""
-        assert not multi or self.typename == 'String'
-        return DocValues(self.array(reader, multi) for reader in searcher.readers)
-
 
 class Highlighter(highlight.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
