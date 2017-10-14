@@ -112,10 +112,6 @@ def test_terms(resource):
 def test_search(resource):
     doc, = resource.search(q='amendment:1', fields='', **{'fields.docvalues': 'date,year:int'})['docs']
     assert doc['date'] == '1791-12-15' and doc['year'] == 1791
-    result = resource.search(**{'q.field': 'text', 'q': 'write "hello world"', 'spellcheck': 3})
-    terms = result['spellcheck'].pop('text')
-    assert result['docs'] == [] and result['spellcheck'] == {}
-    assert terms == {'write': ['writs', 'writ', 'crime'], 'world': ['would', 'hold', 'gold'], 'hello': ['held', 'well']}
     result = resource.search(**{'q.field': 'text', 'q': 'write "hello world"', 'q.spellcheck': 'true'})
     assert result['query'] == 'text:writs text:"held would"'
     assert result['count'] == len(result['docs']) == resource.get('/terms/text/writs') == 2

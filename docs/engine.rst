@@ -203,12 +203,6 @@ FastVectorHighlighter
   :show-inheritance:
   :members:
 
-SpellChecker
-^^^^^^^^^^^^^
-.. autoclass:: SpellChecker
-  :show-inheritance:
-  :members:
-
 SpellParser
 ^^^^^^^^^^^^^
 .. autoclass:: SpellParser

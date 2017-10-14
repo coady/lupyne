@@ -40,6 +40,7 @@ Contents
 
    engine
    server
+   utils
 
 .. toctree::
    :hidden:

@@ -362,18 +362,18 @@ class WebSearcher(object):
         return result
 
     @cherrypy.expose
-    @cherrypy.tools.params(count=int, start=int, fields=multi, sort=multi, facets=multi, hl=multi, mlt=int, spellcheck=int, timeout=float, **{
+    @cherrypy.tools.params(count=int, start=int, fields=multi, sort=multi, facets=multi, hl=multi, mlt=int, timeout=float, **{
                            'fields.multi': multi, 'fields.docvalues': multi, 'facets.count': int, 'facets.min': int,
                            'group.count': int, 'hl.count': int, 'mlt.fields': multi,
                            })
-    def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
+    def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, timeout=None, **options):
         """Run query and return documents.
 
         **GET** /search?
             Return array of document objects and total doc count.
 
-            &q=\ *chars*\ &q.type=[term|prefix|wildcard]&q.\ *chars*\ =...,
-                query, optional type to skip parsing, and optional parser settings: q.field, q.op,...
+            &q=\ *chars*\ &q.type=[term|prefix|wildcard]&q.spellcheck=true&q.\ *chars*\ =...,
+                query, optional type to skip parsing, spellcheck, and parser settings: q.field, q.op,...
 
             &count=\ *int*\ &start=0
                 maximum number of docs to return and offset to start at
@@ -404,10 +404,6 @@ class WebSearcher(object):
                 | optional document fields to match
                 | optional MoreLikeThis settings: mlt.minTermFreq, mlt.minDocFreq,...
 
-            &spellcheck=\ *int*
-                | maximum number of spelling corrections to return for each query term, grouped by field
-                | original query is still run; use q.spellcheck=true to affect query parsing
-
             &timeout=\ *number*
                 timeout search after elapsed number of seconds
 
@@ -420,7 +416,6 @@ class WebSearcher(object):
                     "__highlights__": {*string*: *array*,... }, *string*: *value*,... },... ],
                 | "facets": {*string*: {*string*: *int*,... },... },
                 | "groups": [{"count": *int*, "value": *value*, "docs": [*object*,... ]},... ]
-                | "spellcheck": {*string*: {*string*: [*string*,... ],... },... },
                 | }
         """
         searcher = self.searcher
@@ -491,10 +486,6 @@ class WebSearcher(object):
             if 'facets.count' in options:
                 for name, counts in facets.items():
                     facets[name] = {term: counts[term] for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__)}
-        if spellcheck:
-            terms = result['spellcheck'] = collections.defaultdict(dict)
-            for name, value in engine.Query.iter(q):
-                terms[name][value] = list(itertools.islice(searcher.correct(name, value), spellcheck))
         return result
 
     @cherrypy.expose

@@ -258,7 +258,7 @@ def test_basic(tempdir, fields, constitution):
     assert indexer.suggest('missing', '') == list(indexer.correct('missing', '')) == []
     assert indexer.suggest('text', '')[:8] == ['shall', 'states', 'any', 'have', 'united', 'congress', 'state', 'constitution']
     assert indexer.suggest('text', 'con')[:2] == ['congress', 'constitution']
-    assert indexer.suggest('text', 'congress') == ['congress']
+    assert indexer.suggest('text', 'congress') == indexer.suggest('text', 'con', count=1) == ['congress']
     assert indexer.suggest('text', 'congresses') == []
     assert list(indexer.correct('text', 'writ', distance=0)) == ['writ']
     assert list(indexer.correct('text', 'write', distance=0)) == []
@@ -294,8 +294,6 @@ def test_queries():
     alldocs = search.MatchAllDocsQuery()
     term = Q.term('text', 'lucene')
     assert str(term) == 'text:lucene'
-    assert set(term) == {('text', 'lucene')}
-    assert list(Q.iter(alldocs)) == []
     assert str(term.constant()) == 'ConstantScore(text:lucene)'
     assert str(+term) == '+text:lucene'
     assert str(-term) == '-text:lucene'
