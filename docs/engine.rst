@@ -4,7 +4,7 @@ engine
 
   * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_,
   * `Document`_, `Field`_, `NestedField`_, `NumericField`_, `DateTimeField`_
-  * `Query`_, `SortField`_,
+  * `Query`_,
   * `PointField`_, `PolygonField`_
 
 
@@ -190,12 +190,6 @@ SpanQuery
   .. automethod:: __or__
 
     <SpanOrQuery: spanOr(spans)>
-
-SortField
-^^^^^^^^^^^^^
-.. autoclass:: SortField
-  :show-inheritance:
-  :members:
 
 Highlighter
 ^^^^^^^^^^^^^

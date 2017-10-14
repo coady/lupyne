@@ -146,11 +146,9 @@ def test_search(resource):
     assert maxscore == result['maxscore'] and maxscore not in (doc['__score__'] for doc in result['docs'])
     result = resource.search(q='text:people', count=5, sort='-date,year:int')
     assert result['docs'][0]['__keys__'] == ['1913-04-08', 1913] and result['docs'][-1]['__keys__'] == ['1791-12-15', 1791]
-    result = resource.search(q='text:people', start=2, count=2, facets='article,amendment')
+    result = resource.search(q='text:people', start=2, count=2, facets='date')
     assert [doc['amendment'] for doc in result['docs']] == ['10', '1']
-    assert result['count'] == sum(sum(facets.values()) for facets in result['facets'].values())
-    for name, keys in [('article', ['1', 'Preamble']), ('amendment', ['1', '10', '17', '2', '4', '9'])]:
-        assert sorted(key for key, value in result['facets'][name].items() if value) == keys
+    assert result['count'] == 8 and result['facets']['date'] == {'1791-12-15': 5, '1913-04-08': 1}
     result = resource.search(q='text:president', facets='date')
     assert len(result['facets']['date']) == sum(result['facets']['date'].values()) == 7
     result = resource.search(q='text:freedom')
@@ -220,7 +218,7 @@ def test_facets(tempdir, servers, zipcodes):
     writer.commit()
     resource = servers.start(servers.ports[0], '-r', tempdir)
     writer.set('zipcode', engine.NumericField, numericType=int, stored=True)
-    writer.fields['location'] = engine.NestedField('county.city')
+    writer.fields['location'] = engine.NestedField('county.city', docValueType='sorted')
     for doc in zipcodes:
         if doc['state'] == 'CA':
             writer.add(zipcode=int(doc['zipcode']), location='{}.{}'.format(doc['county'], doc['city']))

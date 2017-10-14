@@ -211,18 +211,6 @@ def test_basic(tempdir, fields, constitution):
     assert hits.maxscore == max(hits.scores)
     hits = indexer.search('text:people', count=5, sort=search.Sort.INDEXORDER)
     assert sorted(hits.ids) == list(hits.ids)
-    sort = engine.SortField('amendment', type=int)
-    hits = indexer.search('text:people', count=5, sort=sort)
-    assert [hit.get('amendment') for hit in hits] == [None, None, '1', '2', '4']
-    assert [key for hit in hits for key in hit.keys] == [0, 0, 1, 2, 4]
-    assert all(map(math.isnan, hits.scores))
-    hits = indexer.search('text:right', count=10 ** 7, sort=sort, scores=True)
-    assert not any(map(math.isnan, hits.scores)) and sorted(hits.scores, reverse=True) != hits.scores
-    assert math.isnan(hits.maxscore)
-    hits = indexer.search('text:right', count=2, sort=sort, maxscore=True)
-    assert hits.maxscore > max(hits.scores)
-    hits = indexer.search('text:people', count=5, sort='amendment', reverse=True)
-    assert [hit['amendment'] for hit in hits] == ['9', '4', '2', '17', '10']
     hit, = indexer.search('freedom', field='text')
     assert hit['amendment'] == '1'
     assert sorted(hit.dict()) == ['__id__', '__score__', 'amendment', 'date']
@@ -353,7 +341,7 @@ def test_queries():
 
 
 def test_grouping(tempdir, indexer, zipcodes):
-    field = indexer.fields['location'] = engine.NestedField('state.county.city')
+    field = indexer.fields['location'] = engine.NestedField('state.county.city', docValueType='sorted')
     for doc in zipcodes:
         if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
             lat, lng = ('{0:08.3f}'.format(doc.pop(l)) for l in ['latitude', 'longitude'])
@@ -386,7 +374,7 @@ def test_grouping(tempdir, indexer, zipcodes):
     assert len(groups) == 1 < groups.count
     hits, = groups
     assert hits.value == 'CA.Los Angeles' and len(hits) == 1 and hits.count > 100
-    grouping = engine.documents.GroupingSearch(field, sort=search.Sort(engine.SortField(field)), cache=False, allGroups=True)
+    grouping = engine.documents.GroupingSearch(field, sort=search.Sort(indexer.sortfield(field)), cache=False, allGroups=True)
     assert all(grouping.search(indexer.indexSearcher, Q.alldocs()).facets.values())
     assert len(grouping) == len(list(grouping)) > 100
     assert set(grouping) > set(facets)
@@ -477,7 +465,7 @@ def test_fields(indexer, constitution):
     attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
     assert all(getattr(field.fieldType(), attr)() for attr in attrs)
     indexer.set('amendment', engine.Field.String, stored=True)
-    indexer.set('size', engine.Field.String, stored=True)
+    indexer.set('size', engine.Field.String, stored=True, docValueType='sorted')
     field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', stored=True)
     for doc in constitution:
         if 'amendment' in doc:
@@ -504,7 +492,7 @@ def test_fields(indexer, constitution):
     query = Q.range('size', '1000', None)
     hits = indexer.search(query).sorted(sizes.get)
     assert list(hits.ids) == ids
-    hits = indexer.search(query, count=3, sort=engine.SortField('size', type=long))
+    hits = indexer.search(query, count=3, sort='size')
     assert list(hits.ids) == ids[:len(hits)]
     query = Q.range('size', None, '1000')
     assert indexer.count(query) == len(sizes) - len(ids)
@@ -513,7 +501,7 @@ def test_fields(indexer, constitution):
 def test_numeric(indexer, constitution):
     indexer.set('amendment', engine.NumericField, numericType=int, stored=True)
     field = indexer.set('date', engine.DateTimeField, stored=True)
-    indexer.set('size', engine.NumericField, numericType=int, stored=True, numericPrecisionStep=5)
+    indexer.set('size', engine.NumericField, numericType=int, stored=True, numericPrecisionStep=5, docValueType='numeric')
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
@@ -538,12 +526,10 @@ def test_numeric(indexer, constitution):
     query = field.range(1000, None)
     hits = indexer.search(query).sorted(sizes.get)
     assert list(hits.ids) == ids
-    hits = indexer.search(query, count=3, sort=engine.SortField('size', type=long))
+    hits = indexer.search(query, count=3, sort=indexer.sortfield('size', type=int))
     assert list(hits.ids) == ids[:len(hits)]
     query = field.range(None, 1000)
     assert indexer.count(query) == len(sizes) - len(ids)
-    with pytest.raises(KeyError):
-        list(field.items(-2 ** 64))
     assert str(field.range(-2 ** 64, 0)) == 'size:[* TO 0}'
     assert str(field.range(0, 2 ** 64)) == 'size:[0 TO *}'
     assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'

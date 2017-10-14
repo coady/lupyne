@@ -117,9 +117,12 @@ class NestedField(Field):
 
     def items(self, *values):
         """Generate indexed component fields."""
+        field = getattr(self, 'docValueLess', self)
         for value in values:
-            for index, text in enumerate(self.values(value)):
-                yield document.Field(self.names[index], text, self)
+            for name, text in zip(self.names, self.values(value)):
+                yield document.Field(name, text, field)
+                if self.docValueType:
+                    yield self.docValueClass(name, util.BytesRef(text))
 
     def prefix(self, value):
         """Return prefix query of the closest possible prefixed field."""
@@ -400,6 +403,6 @@ class GroupingSearch(grouping.GroupingSearch):
     def search(self, searcher, query, count=None, start=0):
         """Run query and return `Groups`_."""
         if count is None:
-            count = sum(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field).valueCount for reader in searcher.readers)
+            count = sum(index.DocValues.getSorted(reader, self.field).valueCount for reader in searcher.readers) or 1
         topgroups = grouping.GroupingSearch.search(self, searcher, query, start, count - start)
         return Groups(searcher, topgroups.groups, topgroups.totalHitCount, topgroups.maxScore)

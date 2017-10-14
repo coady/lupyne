@@ -257,18 +257,6 @@ class DocValues(index.DocValues):
         return self.arrays[index][id - self.offsets[index]]
 
 
-class SortField(search.SortField):
-    """Inherited lucene SortField used for caching FieldCache parsers.
-
-    :param name: field name
-    :param type: type object or name compatible with SortField constants
-    :param reverse: reverse flag used with sort
-    """
-    def __init__(self, name, type='string', reverse=False):
-        type = self.typename = getattr(type, '__name__', type).capitalize()
-        search.SortField.__init__(self, name, getattr(self.Type, type.upper()), reverse)
-
-
 class Highlighter(highlight.Highlighter):
     """Inherited lucene Highlighter with stored analysis options.
 

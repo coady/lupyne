@@ -17,7 +17,7 @@ from java.util import Arrays, HashMap, HashSet
 from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
-from .queries import suppress, Query, SortField, DocValues, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
+from .queries import suppress, Query, DocValues, Highlighter, FastVectorHighlighter, SpellChecker, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import Distances
 from ..utils import Atomic, method
@@ -532,7 +532,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if sort is None:
             return search.TopScoreDocCollector.create(count, inorder)
         if isinstance(sort, basestring):
-            sort = SortField(sort, reverse=reverse)
+            sort = self.sortfield(sort, reverse=reverse)
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
         return search.TopFieldCollector.create(sort, count, True, scores, maxscore, inorder)
