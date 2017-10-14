@@ -294,17 +294,17 @@ class IndexReader(object):
         type = Field.types.get(type, type).upper()
         return search.SortField(name, getattr(search.SortField.Type, type), reverse)
 
-    def docvalues(self, name, type=str):
+    def docvalues(self, name, type=None):
         """Return chained lucene DocValues, suitable for custom sorting or grouping.
 
         :param name: field name
         :param type: str, int, or float for converting values
         """
-        types = {str: util.BytesRef.utf8ToString, int: int, float: util.NumericUtils.sortableLongToDouble}
+        type = {int: int, float: util.NumericUtils.sortableLongToDouble}.get(type, util.BytesRef.utf8ToString)
         docValuesType = self.fieldinfos[name].docValuesType.toString().title().replace('_', '')
         Array = getattr(DocValues, docValuesType)
         method = getattr(DocValues, 'get' + docValuesType)
-        return DocValues(Array(method(reader, name), reader.maxDoc(), types[type]) for reader in self.readers)
+        return DocValues(Array(method(reader, name), reader.maxDoc(), type) for reader in self.readers)
 
     def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.

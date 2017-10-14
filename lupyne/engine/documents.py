@@ -42,14 +42,20 @@ class Field(FieldType):
     def __init__(self, name, boost=1.0, docValueType='', indexOptions='', numericType='', **settings):
         super(Field, self).__init__()
         self.name, self.boost = name, boost
-        if docValueType:
-            self.docValueType = getattr(index.FieldInfo.DocValuesType, docValueType.upper())
+        for name in settings:
+            setattr(self, name, settings[name])
         if indexOptions:
             self.indexOptions = getattr(index.FieldInfo.IndexOptions, indexOptions.upper())
         if numericType:
             self.numericType = getattr(FieldType.NumericType, numericType.upper())
-        for name in settings:
-            setattr(self, name, settings[name])
+            self.numericClass = getattr(document, numericType.title() + 'Field')
+        if docValueType:
+            self.docValueType = getattr(index.FieldInfo.DocValuesType, docValueType.upper())
+            self.docValueClass = getattr(document, docValueType.title().replace('_', '') + 'DocValuesField')
+            if (self.stored or self.indexed or self.numericType):
+                settings = self.settings
+                del settings['docValueType']
+                self.docValueLess = Field(self.name, **settings)
         assert self.stored or self.indexed or self.docValueType or self.numericType
 
     @classmethod
@@ -75,16 +81,15 @@ class Field(FieldType):
 
     def items(self, *values):
         """Generate lucene Fields suitable for adding to a document."""
-        types = {str: util.BytesRef, int: long, float: util.NumericUtils.doubleToSortableLong}
         if self.docValueType:
-            cls = getattr(document, str(self.docValueType).title().replace('_', '') + 'DocValuesField')
+            types = {int: long, float: util.NumericUtils.doubleToSortableLong}
             for value in values:
-                yield cls(self.name, types[type(value)](value))
+                yield self.docValueClass(self.name, types.get(type(value), util.BytesRef)(value))
+            self = getattr(self, 'docValueLess', self)
         if self.numericType:
-            cls = getattr(document, str(self.numericType).title() + 'Field')
-            func = long if self.numericType == FieldType.NumericType.LONG else float
+            types = {int: long, float: float}
             for value in values:
-                yield cls(self.name, func(value), self)
+                yield self.numericClass(self.name, types[type(value)](value), self)
         elif self.stored or self.indexed:
             for value in values:
                 field = document.Field(self.name, value, self)

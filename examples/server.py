@@ -28,7 +28,7 @@ if __name__ == '__main__':
     # populate index
     for doc in conftest.constitution():
         if 'amendment' in doc:
-            root.indexer.add(doc)
+            root.indexer.add(amendment=doc['amendment'], date=doc['date'], text=doc['text'])
     root.update()
     # assign custom facet queries based on year
     years = {date.split('-')[0] for date in root.searcher.terms('date')}

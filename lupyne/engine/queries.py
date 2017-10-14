@@ -270,8 +270,6 @@ class SortField(search.SortField):
 
     def array(self, reader, multi=False):
         size = reader.maxDoc()
-        if multi:
-            return DocValues.SortedSet(search.FieldCache.DEFAULT.getDocTermOrds(reader, self.field), size)
         if self.typename == 'String':
             return DocValues.Sorted(search.FieldCache.DEFAULT.getTermsIndex(reader, self.field), size)
         if self.typename == 'Bytes':

@@ -172,8 +172,11 @@ def test_basic(tempdir, fields, constitution):
     indexer.commit(spellcheckers=True)
     assert reader.refCount == 0
     assert list(indexer.spellcheckers) == ['amendment']
-    doc['amendment'] = engine.Analyzer(tokenizer).tokens(doc['amendment'])
-    doc['date'] = engine.Analyzer(tokenizer).tokens(doc['date']), 2.0
+    doc = {
+        'text': doc['text'],
+        'amendment': engine.Analyzer(tokenizer).tokens(doc['amendment']),
+        'date': (engine.Analyzer(tokenizer).tokens(doc['date']), 2.0),
+    }
     scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
     assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
     assert len(indexer) == len(indexer.search()) == 35
@@ -546,7 +549,7 @@ def test_numeric(indexer, constitution):
     assert list(hits.ids) == ids[:len(hits)]
     query = field.range(None, 1000)
     assert indexer.count(query) == len(sizes) - len(ids)
-    with pytest.raises(OverflowError):
+    with pytest.raises(KeyError):
         list(field.items(-2 ** 64))
     assert str(field.range(-2 ** 64, 0)) == 'size:[* TO 0}'
     assert str(field.range(0, 2 ** 64)) == 'size:[0 TO *}'

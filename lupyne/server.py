@@ -169,9 +169,14 @@ class parse:
         if fields is not None:
             fields = dict.fromkeys(fields)
         multi = set(options.get('fields.multi', ()))
-        indexed = (field.split(':') for field in options.get('fields.indexed', ()))
-        indexed = {item[0]: searcher.comparator(*item, multi=item[0] in multi) for item in indexed}
-        return fields, multi.difference(indexed), indexed
+        docvalues = dict(parse.docvalues(searcher, field) for field in options.get('fields.docvalues', ()))
+        return fields, multi, docvalues
+
+    @staticmethod
+    def docvalues(searcher, field):
+        name, type = field.split(':') if ':' in field else (field, '')
+        with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
+            return name, searcher.docvalues(name, getattr(__builtins__, type, None))
 
 
 def json_error(version, **body):
@@ -321,7 +326,7 @@ class WebSearcher(object):
         return len(self.searcher)
 
     @cherrypy.expose
-    @cherrypy.tools.params(**dict.fromkeys(['fields', 'fields.multi', 'fields.indexed', 'fields.vector', 'fields.vector.counts'], multi))
+    @cherrypy.tools.params(**dict.fromkeys(['fields', 'fields.multi', 'fields.docvalues', 'fields.vector', 'fields.vector.counts'], multi))
     def docs(self, name=None, value='', **options):
         """Return ids or documents.
 
@@ -333,8 +338,8 @@ class WebSearcher(object):
         **GET** /docs/[*int*\|\ *chars*/*chars*]?
             Return document mapping from id or unique name and value.
 
-            &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
-                optionally select stored, multi-valued, and cached indexed fields
+            &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.docvalues=\ *chars*\ [:*chars*],...
+                optionally select stored, multi-valued, and docvalues
 
             &fields.vector=\ *chars*,... &fields.vector.counts=\ *chars*,...
                 optionally select term vectors with term counts
@@ -346,18 +351,19 @@ class WebSearcher(object):
             return list(searcher)
         with cherrypy.HTTPError.handle(ValueError, httplib.NOT_FOUND):
             id, = searcher.docs(name, value) if value else [int(name)]
-        fields, multi, indexed = parse.fields(searcher, **options)
+        fields, multi, docvalues = parse.fields(searcher, **options)
         with cherrypy.HTTPError.handle(lucene.JavaError, httplib.NOT_FOUND):
             doc = searcher[id] if fields is None else searcher.get(id, *itertools.chain(fields, multi))
         result = doc.dict(*multi, **(fields or {}))
-        result.update((name, indexed[name][id]) for name in indexed)
+        with cherrypy.HTTPError.handle(TypeError, httplib.BAD_REQUEST):
+            result.update((name, docvalues[name][id]) for name in docvalues)
         result.update((field, list(searcher.termvector(id, field))) for field in options.get('fields.vector', ()))
         result.update((field, dict(searcher.termvector(id, field, counts=True))) for field in options.get('fields.vector.counts', ()))
         return result
 
     @cherrypy.expose
     @cherrypy.tools.params(count=int, start=int, fields=multi, sort=multi, facets=multi, hl=multi, mlt=int, spellcheck=int, timeout=float, **{
-                           'fields.multi': multi, 'fields.indexed': multi, 'facets.count': int, 'facets.min': int,
+                           'fields.multi': multi, 'fields.docvalues': multi, 'facets.count': int, 'facets.min': int,
                            'group.count': int, 'hl.count': int, 'mlt.fields': multi,
                            })
     def search(self, q=None, count=None, start=0, fields=None, sort=None, facets='', group='', hl='', mlt=None, spellcheck=0, timeout=None, **options):
@@ -372,8 +378,8 @@ class WebSearcher(object):
             &count=\ *int*\ &start=0
                 maximum number of docs to return and offset to start at
 
-            &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.indexed=\ *chars*\ [:*chars*],...
-                only include selected stored fields; multi-valued fields returned in an array; indexed fields with optional type are cached
+            &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.docvalues=\ *chars*\ [:*chars*],...
+                only include selected stored fields; multi-valued fields returned in an array; docvalues fields
 
             &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores[=max]
                 | field name, optional type, minus sign indicates descending
@@ -420,9 +426,8 @@ class WebSearcher(object):
         searcher = self.searcher
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort)
-            sort = [(name, (type or 'string'), (reverse == '-')) for reverse, name, type in sort]
             with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
-                sort = [engine.SortField(name, type, reverse=reverse) for name, type, reverse in sort]
+                sort = [searcher.sortfield(name, getattr(__builtins__, type, None), (reverse == '-')) for reverse, name, type in sort]
         q = parse.q(searcher, q, **options)
         if mlt is not None:
             if q is not None:
@@ -440,8 +445,9 @@ class WebSearcher(object):
         scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
         if ':' in group:
             hits = searcher.search(q, sort=sort, timeout=timeout, **scores)
-            with cherrypy.HTTPError.handle(AttributeError, httplib.BAD_REQUEST):
-                groups = hits.groupby(searcher.comparator(*group.split(':')).__getitem__, count=count, docs=gcount)
+            name, docvalues = parse.docvalues(searcher, group)
+            with cherrypy.HTTPError.handle(TypeError, httplib.BAD_REQUEST):
+                groups = hits.groupby(docvalues.__getitem__, count=count, docs=gcount)
             groups.groupdocs = groups.groupdocs[start:]
         elif group:
             scores = {'includeScores': scores['scores'], 'includeMaxScore': scores['maxscore']}
@@ -454,7 +460,7 @@ class WebSearcher(object):
         hlcount = options.get('hl.count', 1)
         if hl:
             hl = {name: searcher.highlighter(q, name, terms='terms' in enable, fields='fields' in enable, tag=tag) for name in hl}
-        fields, multi, indexed = parse.fields(searcher, fields, **options)
+        fields, multi, docvalues = parse.fields(searcher, fields, **options)
         if fields is None:
             fields = {}
         else:
@@ -464,7 +470,8 @@ class WebSearcher(object):
             docs = []
             for hit in hits:
                 doc = hit.dict(*multi, **fields)
-                doc.update((name, indexed[name][hit.id]) for name in indexed)
+                with cherrypy.HTTPError.handle(TypeError, httplib.BAD_REQUEST):
+                    doc.update((name, docvalues[name][hit.id]) for name in docvalues)
                 fragments = (hl[name].fragments(hit.id, hlcount) for name in hl)  # pragma: no branch
                 if hl:
                     doc['__highlights__'] = {name: value for name, value in zip(hl, fragments) if value is not None}

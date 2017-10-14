@@ -62,25 +62,28 @@ def test_docs(resource):
     (directory, size), = resource().items()
     assert 'Directory@' in directory and size == 35
     fields = resource.get('/fields')
-    assert sorted(fields) == ['amendment', 'article', 'date', 'text']
-    for field in fields:
-        assert resource.fields(field)['indexed']
+    assert sorted(fields) == ['amendment', 'article', 'date', 'text', 'year']
+    for field in ('amendment', 'article', 'date'):
+        assert not resource.fields(field)['tokenized']
+    assert resource.fields('text')['storeTermVectors']
+    assert resource.fields('year')['docValueType'] == 'NUMERIC'
     assert resource.client.put('fields/' + field, {'stored': True}).status_code == httplib.OK
-    assert resource.docs('0', **{'fields.indexed': 'amendment:int'}) == {'amendment': 0, 'article': 'Preamble'}
+    assert resource.docs('8', **{'fields.docvalues': 'date'}) == {'amendment': '1', 'date': '1791-12-15'}
+    assert resource.docs('8', fields='', **{'fields.docvalues': 'year:int'}) == {'year': 1791}
+    assert resource.client.get('docs/8', params={'fields.docvalues': 'year'}).status_code == httplib.BAD_REQUEST
+    assert resource.client.get('docs/8', params={'fields.docvalues': 'year:invalid'}).status_code == httplib.BAD_REQUEST
     doc = resource.docs('0', **{'fields.vector': 'text,missing'})
     assert doc['missing'] == [] and doc['text'].index('states') < doc['text'].index('united')
     doc = resource.docs('0', **{'fields.vector.counts': 'text'})
     resource.client.patch('docs/amendment/1', {'amendment': '1'}).status_code == httplib.CONFLICT
     assert not resource.patch('docs/amendment/1')
     assert sorted(term for term, count in doc['text'].items() if count > 1) == ['establish', 'states', 'united']
-    doc = resource.docs('amendment/1', **{'fields.multi': 'text', 'fields.indexed': 'text'})
-    assert doc['text'][:3] == ['abridging', 'assemble', 'congress']
     assert resource.client.put('docs/article/0', {'article': '-1'}).status_code == httplib.BAD_REQUEST
     assert resource.delete('docs/article/0') is None
 
 
 def test_terms(resource):
-    assert resource.terms() == ['amendment', 'article', 'date', 'text']
+    assert resource.terms() == ['amendment', 'article', 'date', 'text', 'year']
     articles = resource.terms('article')
     articles.remove('Preamble')
     assert sorted(map(int, articles)) == range(1, 8)
@@ -107,8 +110,8 @@ def test_terms(resource):
 
 
 def test_search(resource):
-    doc, = resource.search(q='amendment:1', fields='', **{'fields.indexed': 'article,amendment:int'})['docs']
-    assert doc['amendment'] == 1 and not doc['article']
+    doc, = resource.search(q='amendment:1', fields='', **{'fields.docvalues': 'date,year:int'})['docs']
+    assert doc['date'] == '1791-12-15' and doc['year'] == 1791
     result = resource.search(**{'q.field': 'text', 'q': 'write "hello world"', 'spellcheck': 3})
     terms = result['spellcheck'].pop('text')
     assert result['docs'] == [] and result['spellcheck'] == {}
@@ -132,18 +135,17 @@ def test_search(resource):
     result = resource.search(q='text:people', count=5)
     maxscore = result['maxscore']
     assert docs[:5] == result['docs'] and result['count'] == len(docs)
-    result = resource.search(q='text:people', count=5, sort='-amendment:int')
+    result = resource.search(q='text:people', count=5, sort='-year:int')
     assert math.isnan(result['maxscore']) and all(math.isnan(doc['__score__']) for doc in result['docs'])
-    assert [doc['amendment'] for doc in result['docs']] == ['17', '10', '9', '4', '2']
-    result = resource.search(q='text:people', sort='-amendment:int')
-    assert [doc.get('amendment') for doc in result['docs']] == ['17', '10', '9', '4', '2', '1', None, None]
-    result = resource.search(q='text:people', count=5, sort='-amendment:int', **{'sort.scores': ''})
+    assert result['docs'][0]['__keys__'] == [1913] and result['docs'][-1]['__keys__'] == [1791]
+    result = resource.search(q='text:people', sort='-year:int')
+    assert result['docs'][0]['__keys__'] == [1913] and result['docs'][-1]['__keys__'] == [0]
+    result = resource.search(q='text:people', count=5, sort='-year:int', **{'sort.scores': ''})
     assert math.isnan(result['maxscore']) and maxscore in (doc['__score__'] for doc in result['docs'])
-    result = resource.search(q='text:people', count=1, sort='-amendment:int', **{'sort.scores': 'max'})
+    result = resource.search(q='text:people', count=1, sort='-year:int', **{'sort.scores': 'max'})
     assert maxscore == result['maxscore'] and maxscore not in (doc['__score__'] for doc in result['docs'])
-    result = resource.search(q='text:people', count=5, sort='-article,amendment:int')
-    assert [doc.get('amendment') for doc in result['docs']] == [None, None, '1', '2', '4']
-    assert [doc['__keys__'] for doc in result['docs']] == [['Preamble', 0], ['1', 0], [None, 1], [None, 2], [None, 4]]
+    result = resource.search(q='text:people', count=5, sort='-date,year:int')
+    assert result['docs'][0]['__keys__'] == ['1913-04-08', 1913] and result['docs'][-1]['__keys__'] == ['1791-12-15', 1791]
     result = resource.search(q='text:people', start=2, count=2, facets='article,amendment')
     assert [doc['amendment'] for doc in result['docs']] == ['10', '1']
     assert result['count'] == sum(sum(facets.values()) for facets in result['facets'].values())
@@ -191,6 +193,10 @@ def test_highlights(resource):
     assert result['count'] in (None, 8) and (result['maxscore'] is None or result['maxscore'] > 0)
     result = resource.search(q='+text:right +text:people')
     assert result['count'] == 4 and 0 < result['maxscore'] < 1.0
+    assert resource.search(q='hello', **{'q.field': 'body.title^2.0'})['query'] == 'body.title:hello^2.0'
+
+
+def test_groups(resource):
     result = resource.search(q='text:right', group='date', count=2, **{'group.count': 2})
     assert 'docs' not in result and len(result['groups']) == 2
     assert sum(map(operator.itemgetter('count'), result['groups'])) < result['count'] == 13
@@ -201,11 +207,12 @@ def test_highlights(resource):
     assert sorted(group) == ['count', 'docs', 'value'] and group['count'] == 5
     assert len(group['docs']) == 2 and group['docs'][0]['amendment'] == '2'
     assert len(result['groups'][1]['docs']) == 1 and all(group['docs'] == [] for group in result['groups'][2:])
-    result = resource.search(q='text:right', group='amendment:int')
-    assert set(map(operator.itemgetter('count'), result['groups'])) == {1}
-    assert all(int(doc.get('amendment', 0)) == group['value'] for group in result['groups'] for doc in group['docs'])
-    assert result['groups'][0]['value'] == 2 and result['groups'][-1]['value'] == 0
-    assert resource.search(q='hello', **{'q.field': 'body.title^2.0'})['query'] == 'body.title:hello^2.0'
+    result = resource.search(q='text:right', group='year:int')
+    groups = {group['value']: group['count'] for group in result['groups']}
+    assert len(groups) == result['count'] == 9 < sum(groups.values())
+    group = result['groups'][0]
+    assert group['value'] == 1791 and group['count'] == 5
+    assert resource.client.get('search', params={'q': 'text:right', 'group': 'date:int'}).status_code == httplib.BAD_REQUEST
 
 
 def test_facets(tempdir, servers, zipcodes):
@@ -216,7 +223,7 @@ def test_facets(tempdir, servers, zipcodes):
     writer.fields['location'] = engine.NestedField('county.city')
     for doc in zipcodes:
         if doc['state'] == 'CA':
-            writer.add(zipcode=doc['zipcode'], location='{}.{}'.format(doc['county'], doc['city']))
+            writer.add(zipcode=int(doc['zipcode']), location='{}.{}'.format(doc['county'], doc['city']))
     writer.commit()
     assert resource.post('update') == resource().popitem()[1] == len(writer)
     terms = resource.terms(urllib.quote('zipcode:int'))

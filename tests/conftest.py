@@ -30,11 +30,15 @@ def fixture(gen):
     return pytest.fixture(lambda: gen())
 
 
-@fixture
+@pytest.fixture
 def fields():
-    yield engine.Field.Text('text', storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
-    for name in ('article', 'amendment', 'date'):
-        yield engine.Field.String(name, stored=True)
+    return [
+        engine.Field.Text('text', storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True),
+        engine.Field.String('article', stored=True),
+        engine.Field.String('amendment', stored=True),
+        engine.Field.String('date', stored=True, docValueType='sorted'),
+        engine.Field('year', docValueType='numeric'),
+    ]
 
 
 @fixture
@@ -48,7 +52,7 @@ def constitution():
         if header == 'Amendment':
             num, date = num.split()
             date = datetime.strptime(date, '%m/%d/%Y').date()
-            fields.update({header.lower(): num, 'date': str(date)})
+            fields.update({header.lower(): num, 'date': str(date), 'year': date.year})
         yield fields
 
 
