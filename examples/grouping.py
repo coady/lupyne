@@ -19,7 +19,7 @@ lucene.initVM()
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
 facets = dict(zip(colors, itertools.count(1)))
 indexer = engine.Indexer()
-indexer.set('color', engine.Field.String, stored=True, docValueType='sorted')
+indexer.set('color', engine.Field.String, stored=True, docValuesType='sorted')
 for color in facets:
     for index in range(facets[color]):
         indexer.add(color=color)

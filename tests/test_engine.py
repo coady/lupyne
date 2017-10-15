@@ -5,7 +5,6 @@ import math
 import bisect
 import pytest
 import lucene
-from java.io import StringReader
 from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
 from lupyne import engine
@@ -42,9 +41,9 @@ def test_interface(tempdir):
         token.term = token.type = ''
         token.offset, token.positionIncrement = (0, 0), 0
     assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
-    assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == 'body:hello title:hello^2.0'
-    indexer = engine.Indexer(analyzer=stemmer, writeLockTimeout=100L)
-    assert indexer.config.writeLockTimeout == 100
+    assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == '(body:hello)^1.0 (title:hello)^2.0'
+    indexer = engine.Indexer(analyzer=stemmer, useCompoundFile=False)
+    assert not indexer.config.useCompoundFile
     with pytest.raises(lucene.JavaError):
         engine.Indexer(indexer.directory)
     indexer.set('text', engine.Field.Text)
@@ -94,16 +93,6 @@ def test_interface(tempdir):
     assert not indexer.search('hello') and indexer.search('hello', field='text')
     assert indexer.search('text:hello hi') and not indexer.search('text:hello hi', op='and')
     assert indexer.search('text:*hello', allowLeadingWildcard=True)
-    query = Q.near('text', 'hello', 'world')
-    (doc, items), = indexer.spans(query, payloads=True)
-    (start, stop, payloads), = items
-    assert doc == 0 and start == 0 and stop == 2 and payloads == ['<ALPHANUM>', '<ALPHANUM>']
-    (doc, count), = indexer.spans(query.payload('<ALPHANUM>', '<ALPHANUM>'))
-    assert doc == 0 and count == 1
-    assert not indexer.search(query.payload('<>'))
-    query = Q.near('text', 'hello', 'world', collectPayloads=False)
-    (doc, items), = indexer.spans(query, payloads=True)
-    assert doc == 0 and items == []
     indexer.delete('name:sample')
     indexer.delete('tag', 'python')
     assert 0 in indexer and len(indexer) == 1 and indexer.segments == {'_0': 1}
@@ -129,7 +118,8 @@ def test_interface(tempdir):
     for other in (temp, temp.directory, tempdir):
         indexer += other
     assert len(indexer) == 3
-    indexer.add(text=analysis.core.WhitespaceTokenizer(StringReader('?')), name=util.BytesRef('{}'))
+    analyzer = engine.Analyzer(analysis.core.WhitespaceTokenizer)
+    indexer.add(text=analyzer.tokens('?'), name=util.BytesRef('{}'))
     indexer.commit()
     assert indexer[next(indexer.docs('text', '?'))]['name'] == '{}'
     indexer.delete('text', '?')
@@ -155,10 +145,8 @@ def test_basic(tempdir, fields, constitution):
         indexer.add(doc)
     indexer.commit()
     searcher = engine.IndexSearcher.load(tempdir)
-    engine.IndexSearcher.load(searcher.directory)  # ensure directory isn't closed
     assert len(indexer) == len(searcher) and store.RAMDirectory.instance_(searcher.directory)
     assert indexer.spellcheckers == {}
-    assert indexer.facets(Q.alldocs(), 'amendment')
     assert indexer.suggest('amendment', '')
     assert list(indexer.spellcheckers) == ['amendment']
     indexer.delete('amendment', doc['amendment'])
@@ -244,15 +232,11 @@ def test_basic(tempdir, fields, constitution):
     analyzer = analysis.core.WhitespaceAnalyzer()
     query = indexer.morelikethis(0, analyzer=analyzer)
     assert set(str(query).split()) == {'text:united', 'text:states'}
-    hits = indexer.search(query & Q.prefix('article', ''))
-    assert len(hits) == 8 and hits[0]['article'] == 'Preamble'
     assert str(indexer.morelikethis(0, 'article', analyzer=analyzer)) == ''
     query = indexer.morelikethis(0, minDocFreq=3, analyzer=analyzer)
     assert set(str(query).split()) == {'text:establish', 'text:united', 'text:states'}
     assert str(indexer.morelikethis('jury', 'text', minDocFreq=4, minTermFreq=1, analyzer=analyzer)) == 'text:jury'
     assert str(indexer.morelikethis('jury', 'article', analyzer=analyzer)) == ''
-    with pytest.raises(lucene.JavaError):
-        indexer.morelikethis('jury')
     assert indexer.suggest('missing', '') == list(indexer.correct('missing', '')) == []
     assert indexer.suggest('text', '')[:8] == ['shall', 'states', 'any', 'have', 'united', 'congress', 'state', 'constitution']
     assert indexer.suggest('text', 'con')[:2] == ['congress', 'constitution']
@@ -279,7 +263,7 @@ def test_basic(tempdir, fields, constitution):
         open(filepath, 'w').close()
         with pytest.raises(OSError):
             engine.indexers.copy(commit, path)
-    with pytest.raises(AssertionError):
+    with pytest.raises(lucene.JavaError):
         indexer.check(tempdir)
     del indexer
     assert engine.Indexer(tempdir)
@@ -302,7 +286,7 @@ def test_queries():
     assert str(term - alldocs) == 'text:lucene -*:*'
     assert str(alldocs - term) == '*:* -text:lucene'
 
-    assert str(Q.term('text', 'lucene', boost=2.0)) == 'text:lucene^2.0'
+    assert Q.term('text', 'lucene', boost=2.0).boost == 2.0
     assert str(Q.any(term, text='search')) == 'text:lucene text:search'
     assert str(Q.any(text=['search', 'engine'])) == 'text:search text:engine'
     assert str(Q.all(term, text='search')) == '+text:lucene +text:search'
@@ -332,12 +316,10 @@ def test_queries():
     assert str(span - near) == 'spanNot(text:lucene, spanNear([text:lucene, mask(alias:search) as text], -1, false), 0, 0)'
     assert str(span | near) == 'spanOr([text:lucene, spanNear([text:lucene, mask(alias:search) as text], -1, false)])'
     assert str(span.mask('alias')) == 'mask(text:lucene) as alias'
-    assert str(span.payload('')) == 'spanPayCheck(text:lucene, payloadRef: ;)'
-    assert str(near.payload()) == 'spanPayCheck(spanNear([text:lucene, mask(alias:search) as text], -1, false), payloadRef: )'
 
 
 def test_grouping(tempdir, indexer, zipcodes):
-    field = indexer.fields['location'] = engine.NestedField('state.county.city', docValueType='sorted')
+    field = indexer.fields['location'] = engine.NestedField('state.county.city', docValuesType='sorted')
     for doc in zipcodes:
         if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
             lat, lng = ('{0:08.3f}'.format(doc.pop(l)) for l in ['latitude', 'longitude'])
@@ -395,7 +377,7 @@ def test_spatial(indexer, zipcodes):
     point = engine.spatial.Point(-120, 39)
     assert point.coords == (-120, 39) and not list(point.within(1, 0))
     for name in ('longitude', 'latitude'):
-        indexer.set(name, engine.NumericField, numericType=float, stored=True, docValueType='numeric')
+        indexer.set(name, engine.NumericField, numericType=float, stored=True, docValuesType='numeric')
     field = indexer.set('tile', engine.PointField, precision=15, numericPrecisionStep=2, stored=True)
     points = []
     for doc in zipcodes:
@@ -449,26 +431,26 @@ def test_fields(indexer, constitution):
             document.Field('name', 'value', document.FieldType())
     assert str(engine.Field.String('')) == str(document.StringField('', '', document.Field.Store.NO).fieldType())
     assert str(engine.Field.Text('')) == str(document.TextField('', '', document.Field.Store.NO).fieldType())
-    assert str(engine.NumericField('', int)) == str(document.LongField('', 0L, document.Field.Store.NO).fieldType())
-    assert str(engine.DateTimeField('')) == str(document.DoubleField('', 0.0, document.Field.Store.NO).fieldType())
-    settings = {'docValueType': 'NUMERIC', 'indexOptions': 'DOCS_ONLY'}
+    assert str(engine.NumericField('', int)) == str(document.LegacyLongField('', 0L, document.Field.Store.NO).fieldType())
+    assert str(engine.DateTimeField('')) == str(document.LegacyDoubleField('', 0.0, document.Field.Store.NO).fieldType())
+    settings = {'docValuesType': 'NUMERIC', 'indexOptions': 'DOCS'}
     field = engine.Field('', **settings)
     assert field.settings == engine.Field('', **field.settings).settings == settings
     field = engine.NestedField('', stored=True)
-    assert field.settings == {'stored': True, 'indexed': True, 'tokenized': False, 'omitNorms': True, 'indexOptions': 'DOCS_ONLY'}
-    field = engine.Field('', indexed=True, omitNorms=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
+    assert field.settings == {'stored': True, 'tokenized': False, 'omitNorms': True, 'indexOptions': 'DOCS'}
+    attrs = 'stored', 'omitNorms', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets'
+    field = engine.Field('', **dict.fromkeys(attrs, True))
     field, = field.items(' ')
-    attrs = 'indexed', 'tokenized', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets', 'omitNorms'
     assert all(getattr(field.fieldType(), attr)() for attr in attrs)
     indexer.set('amendment', engine.Field.String, stored=True)
-    indexer.set('size', engine.Field.String, stored=True, docValueType='sorted')
+    indexer.set('size', engine.Field.String, stored=True, docValuesType='sorted')
     field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', stored=True)
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(amendment='{:02}'.format(int(doc['amendment'])), date=doc['date'], size='{:04}'.format(len(doc['text'])))
     indexer.commit()
     assert set(indexer.fieldinfos) == {'amendment', 'Y', 'Y-m', 'Y-m-d', 'size'}
-    assert str(indexer.fieldinfos['amendment'].indexOptions) == 'DOCS_ONLY'
+    assert str(indexer.fieldinfos['amendment'].indexOptions) == 'DOCS'
     query = Q.range('amendment', '', '10')
     assert indexer.count(query) == 9
     query = Q.prefix('amendment', '0')
@@ -497,7 +479,7 @@ def test_fields(indexer, constitution):
 def test_numeric(indexer, constitution):
     indexer.set('amendment', engine.NumericField, numericType=int, stored=True)
     field = indexer.set('date', engine.DateTimeField, stored=True)
-    indexer.set('size', engine.NumericField, numericType=int, stored=True, numericPrecisionStep=5, docValueType='numeric')
+    indexer.set('size', engine.NumericField, numericType=int, stored=True, numericPrecisionStep=5, docValuesType='numeric')
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
@@ -606,13 +588,13 @@ def test_multi(tempdir):
 def test_docvalues():
     indexer = engine.Indexer()
     indexer.set('id', engine.Field.String)
-    indexer.set('title', docValueType='binary')
-    indexer.set('size', docValueType='numeric')
-    indexer.set('point', docValueType='numeric')
-    indexer.set('priority', docValueType='sorted')
-    indexer.set('tags', docValueType='sorted_set')
-    indexer.set('sizes', docValueType='sorted_numeric')
-    indexer.set('points', docValueType='sorted_numeric')
+    indexer.set('title', docValuesType='binary')
+    indexer.set('size', docValuesType='numeric')
+    indexer.set('point', docValuesType='numeric')
+    indexer.set('priority', docValuesType='sorted')
+    indexer.set('tags', docValuesType='sorted_set')
+    indexer.set('sizes', docValuesType='sorted_numeric')
+    indexer.set('points', docValuesType='sorted_numeric')
     indexer.add(id='0', title='zero', size=0, point=0.5, priority='low', tags=['red'], sizes=[0], points=[0.5])
     indexer.commit()
 
@@ -621,7 +603,7 @@ def test_docvalues():
     sortfield = indexer.sortfield('id', type='string', reverse=True)
     assert sortfield.field == 'id' and sortfield.reverse and sortfield.type == search.SortField.Type.STRING
     sortfield = indexer.sortfield('title')
-    assert sortfield.field == 'title' and not sortfield.reverse and sortfield.type == search.SortField.Type.BYTES
+    assert sortfield.field == 'title' and not sortfield.reverse and sortfield.type == search.SortField.Type.STRING
     assert indexer.sortfield('size', type=int).type == search.SortField.Type.LONG
     assert indexer.sortfield('point', type=float).type == search.SortField.Type.DOUBLE
     assert indexer.sortfield('priority').type == search.SortField.Type.STRING

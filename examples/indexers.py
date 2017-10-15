@@ -3,7 +3,7 @@ Basic indexing and searching example adapted from http://lucene.apache.org/core/
 """
 
 import lucene
-from org.apache.lucene import analysis, document, index, queryparser, search, store, util
+from org.apache.lucene import analysis, document, index, queryparser, search, store
 from lupyne import engine
 lucene.initVM()
 
@@ -15,7 +15,7 @@ analyzer = analysis.standard.StandardAnalyzer()
 directory = store.RAMDirectory()
 # To store an index on disk, use this instead:
 # Directory directory = FSDirectory.open(File("/tmp/testindex"))
-config = index.IndexWriterConfig(util.Version.LUCENE_CURRENT, analyzer)
+config = index.IndexWriterConfig(analyzer)
 iwriter = index.IndexWriter(directory, config)
 doc = document.Document()
 text = "This is the text to be indexed."
@@ -29,7 +29,7 @@ isearcher = search.IndexSearcher(ireader)
 # Parse a simple query that searches for "text":
 parser = queryparser.classic.QueryParser('fieldname', analyzer)
 query = parser.parse('text')
-hits = isearcher.search(query, None, 1000).scoreDocs
+hits = isearcher.search(query, 1000).scoreDocs
 assert len(hits) == 1
 # Iterate through the results:
 for hit in hits:

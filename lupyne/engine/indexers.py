@@ -44,7 +44,7 @@ class closing(set):
             directory = store.RAMDirectory()
             self.add(directory)
         elif isinstance(directory, basestring):
-            directory = store.FSDirectory.open(File(directory))
+            directory = store.FSDirectory.open(File(directory).toPath())
             self.add(directory)
         return directory
 
@@ -52,7 +52,7 @@ class closing(set):
         if isinstance(reader, index.IndexReader):
             reader.incRef()
         elif isinstance(reader, index.IndexWriter):
-            reader = index.DirectoryReader.open(reader, True)
+            reader = index.DirectoryReader.open(reader)
         elif isinstance(reader, Atomic):
             reader = index.DirectoryReader.open(self.directory(reader))
         else:
@@ -73,7 +73,7 @@ def copy(commit, dest):
     """
     if isinstance(dest, store.Directory):
         for filename in commit.fileNames:
-            commit.directory.copy(dest, filename, filename, store.IOContext.DEFAULT)
+            dest.copyFrom(commit.directory, filename, filename, store.IOContext.DEFAULT)
     else:
         src = IndexSearcher.path.fget(commit)
         os.path.isdir(dest) or os.makedirs(dest)
@@ -170,21 +170,23 @@ class TokenFilter(PythonTokenFilter, TokenStream):
 class Analyzer(PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
 
-    :param tokenizer: lucene Analyzer or Tokenizer factory
+    :param tokenizer: lucene Tokenizer class
     :param filters: lucene TokenFilters
     """
     def __init__(self, tokenizer, *filters):
         PythonAnalyzer.__init__(self)
         self.tokenizer, self.filters = tokenizer, filters
 
-    def components(self, field, reader):
-        source = tokens = self.tokenizer.tokenStream(field, reader) if isinstance(self.tokenizer, analysis.Analyzer) else self.tokenizer(reader)
+    def components(self, field, reader=None):
+        source = tokens = self.tokenizer()
+        if reader is not None:
+            source.reader = reader
         for filter in self.filters:
             tokens = filter(tokens)
         return source, tokens
 
-    def createComponents(self, field, reader):
-        return analysis.Analyzer.TokenStreamComponents(*self.components(field, reader))
+    def createComponents(self, field):
+        return analysis.Analyzer.TokenStreamComponents(*self.components(field))
 
     def tokens(self, text, field=None):
         """Return lucene TokenStream from text."""
@@ -208,7 +210,7 @@ class Analyzer(PythonAnalyzer):
             for key in field:
                 boosts.put(key, Float(field[key]))
             args = list(field), self, boosts
-        parser = parser(util.Version.LATEST, *args) if parser else cls(*args)
+        parser = (parser or cls)(*args)
         if op:
             parser.defaultOperator = getattr(queryparser.classic.QueryParser.Operator, op.upper())
         for name, value in attrs.items():
@@ -259,13 +261,12 @@ class IndexReader(object):
     @property
     def path(self):
         """FSDirectory path"""
-        return store.FSDirectory.cast_(self.directory).directory.path
+        return str(store.FSDirectory.cast_(self.directory).directory)
 
     @property
     def timestamp(self):
         """timestamp of reader's last commit"""
-        directory = store.FSDirectory.cast_(self.directory).directory
-        return File(directory, self.indexCommit.segmentsFileName).lastModified() * 0.001
+        return File(self.path, self.indexCommit.segmentsFileName).lastModified() * 0.001
 
     @property
     def readers(self):
@@ -349,7 +350,7 @@ class IndexReader(object):
         terms = index.MultiFields.getTerms(self.indexReader, name)
         if not terms:
             return iter([])
-        term, termsenum = index.Term(name, value), terms.iterator(None)
+        term, termsenum = index.Term(name, value), terms.iterator()
         if distance:
             terms = termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, float(distance), prefix, False)
         else:
@@ -370,24 +371,24 @@ class IndexReader(object):
         :param counts: include frequency counts
         """
         convert = util.NumericUtils.sortableLongToDouble if issubclass(type, float) else int
-        termsenum = index.MultiFields.getTerms(self.indexReader, name).iterator(None)
+        termsenum = index.MultiFields.getTerms(self.indexReader, name).iterator()
         prefix = ord(' ') + step
         termsenum.seekCeil(util.BytesRef(chr(prefix)))
         terms = itertools.chain([termsenum.term()], util.BytesRefIterator.cast_(termsenum))
         terms = itertools.takewhile(lambda br: br.bytes[0] == prefix, terms)
-        values = map(convert, map(util.NumericUtils.prefixCodedToLong, terms))
+        values = map(convert, map(util.LegacyNumericUtils.prefixCodedToLong, terms))
         return ((value, termsenum.docFreq()) for value in values) if counts else values
 
     def docs(self, name, value, counts=False):
         """Generate doc ids which contain given term, optionally with frequency counts."""
-        docsenum = index.MultiFields.getTermDocsEnum(self.indexReader, self.bits, name, util.BytesRef(value))
-        docs = iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS) if docsenum else ()
+        docsenum = index.MultiFields.getTermDocsEnum(self.indexReader, name, util.BytesRef(value))
+        docs = iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()
         return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)
 
     def positions(self, name, value, payloads=False, offsets=False):
         """Generate doc ids and positions which contain given term, optionally with offsets, or only ones with payloads."""
-        docsenum = index.MultiFields.getTermPositionsEnum(self.indexReader, self.bits, name, util.BytesRef(value))
-        for doc in (iter(docsenum.nextDoc, index.DocsEnum.NO_MORE_DOCS) if docsenum else ()):
+        docsenum = index.MultiFields.getTermPositionsEnum(self.indexReader, name, util.BytesRef(value))
+        for doc in (iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()):
             positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
             if payloads:
                 positions = ((position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload)
@@ -395,30 +396,9 @@ class IndexReader(object):
                 positions = ((docsenum.startOffset(), docsenum.endOffset()) for position in positions)
             yield doc, list(positions)
 
-    def spans(self, query, positions=False, payloads=False):
-        """Generate docs with occurrence counts for a span query.
-
-        :param query: lucene SpanQuery
-        :param positions: optionally include slice positions instead of counts
-        :param payloads: optionally only include slice positions with payloads
-        """
-        offset = 0
-        for reader in self.readers:
-            spans = itertools.repeat(query.getSpans(reader.context, reader.liveDocs, HashMap()))
-            for doc, spans in itertools.groupby(itertools.takewhile(search.spans.Spans.next, spans), key=search.spans.Spans.doc):
-                if payloads:
-                    values = [(span.start(), span.end(), [lucene.JArray_byte.cast_(data).string_ for data in span.payload])
-                              for span in spans if span.payloadAvailable]
-                elif positions:
-                    values = [(span.start(), span.end()) for span in spans]
-                else:
-                    values = sum(1 for span in spans)
-                yield (doc + offset), values
-            offset += reader.maxDoc()
-
     def vector(self, id, field):
         terms = self.getTermVector(id, field)
-        termsenum = terms.iterator(None) if terms else index.TermsEnum.EMPTY
+        termsenum = terms.iterator() if terms else index.TermsEnum.EMPTY
         return termsenum, map(operator.methodcaller('utf8ToString'), util.BytesRefIterator.cast_(termsenum))
 
     def termvector(self, id, field, counts=False):
@@ -430,11 +410,11 @@ class IndexReader(object):
         """Generate terms and positions for given doc id and field, optionally with character offsets."""
         termsenum, terms = self.vector(id, field)
         for term in terms:
-            docsenum = termsenum.docsAndPositions(None, None)
+            docsenum = termsenum.postings(None)
             assert 0 <= docsenum.nextDoc() < docsenum.NO_MORE_DOCS
-            positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
+            positions = (docsenum.nextPosition() for _ in xrange(docsenum.freq()))
             if offsets:
-                positions = ((docsenum.startOffset(), docsenum.endOffset()) for position in positions)
+                positions = ((docsenum.startOffset(), docsenum.endOffset()) for _ in positions)
             yield term, list(positions)
 
     def morelikethis(self, doc, *fields, **attrs):
@@ -448,7 +428,7 @@ class IndexReader(object):
         mlt.fieldNames = fields or None
         for name, value in attrs.items():
             setattr(mlt, name, value)
-        return mlt.like(StringReader(doc), '') if isinstance(doc, basestring) else mlt.like(doc)
+        return mlt.like(fields[0], StringReader(doc)) if isinstance(doc, basestring) else mlt.like(doc)
 
 
 class IndexSearcher(search.IndexSearcher, IndexReader):
@@ -504,6 +484,29 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """Return `Document`_ with only selected fields loaded."""
         return Document(self.document(id, HashSet(Arrays.asList(fields))))
 
+    def spans(self, query, positions=False):
+        """Generate docs with occurrence counts for a span query.
+
+        :param query: lucene SpanQuery
+        :param positions: optionally include slice positions instead of counts
+        """
+        offset = 0
+        weight = query.createWeight(self, False)
+        postings = search.spans.SpanWeight.Postings.POSITIONS
+        for reader in self.readers:
+            try:
+                spans = weight.getSpans(reader.context, postings)
+            except lucene.JavaError:  # EOF
+                continue
+            for doc in iter(spans.nextDoc, spans.NO_MORE_DOCS):
+                starts = iter(spans.nextStartPosition, spans.NO_MORE_POSITIONS)
+                if positions:
+                    values = [(start, spans.endPosition()) for start in starts]
+                else:
+                    values = sum(1 for _ in starts)
+                yield (doc + offset), values
+            offset += reader.maxDoc()
+
     def parse(self, query, spellcheck=False, **kwargs):
         if isinstance(query, search.Query):
             return query
@@ -532,17 +535,16 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return collector.totalHits
 
     def collector(self, query, count=None, sort=None, reverse=False, scores=False, maxscore=False):
-        inorder = not self.createNormalizedWeight(query).scoresDocsOutOfOrder()
         if count is None:
-            return search.CachingCollector.create(not inorder, True, float('inf'))
+            return search.CachingCollector.create(True, float('inf'))
         count = min(count, self.maxDoc() or 1)
         if sort is None:
-            return search.TopScoreDocCollector.create(count, inorder)
+            return search.TopScoreDocCollector.create(count)
         if isinstance(sort, basestring):
             sort = self.sortfield(sort, reverse=reverse)
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
-        return search.TopFieldCollector.create(sort, count, True, scores, maxscore, inorder)
+        return search.TopFieldCollector.create(sort, count, True, scores, maxscore)
 
     def search(self, query=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
         """Run query and return `Hits`_.
@@ -665,7 +667,7 @@ class IndexWriter(index.IndexWriter):
 
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
         self.shared = closing()
-        config = index.IndexWriterConfig(version or util.Version.LATEST, self.shared.analyzer(analyzer))
+        config = index.IndexWriterConfig(self.shared.analyzer(analyzer))
         config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
         for name, value in attrs.items():
             setattr(config, name, value)
@@ -681,13 +683,10 @@ class IndexWriter(index.IndexWriter):
     def check(cls, directory, fix=False):
         """Check and optionally fix unlocked index, returning lucene CheckIndex.Status."""
         with closing.store(directory) as directory:
-            checkindex = index.CheckIndex(directory)
-            lock = directory.makeLock(cls.WRITE_LOCK_NAME)
-            assert lock.obtain(), "index must not be opened by any writer"
-            with contextlib.closing(lock):
+            with contextlib.closing(index.CheckIndex(directory)) as checkindex:
                 status = checkindex.checkIndex()
                 if fix:
-                    checkindex.fixIndex(status)
+                    checkindex.exorciseIndex(status)
         return status
 
     def set(self, name, cls=Field, **settings):
@@ -722,7 +721,8 @@ class IndexWriter(index.IndexWriter):
         doc = self.document(document, **terms)
         term = index.Term(name, *[value] if value else doc.getValues(name))
         fields = list(doc.iterator())
-        if not all(field.fieldType().docValueType() for field in fields):
+        types = [Field.cast_(field.fieldType()) for field in fields]
+        if any(type.stored() or type.indexOptions() != index.IndexOptions.NONE or type.numericType() for type in types):
             self.updateDocument(term, doc)
         elif fields:
             self.updateDocValues(term, *fields)

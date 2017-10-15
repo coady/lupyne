@@ -13,12 +13,14 @@ lucene.initVM()
 # # # lucene # # #
 
 q1 = search.TermQuery(index.Term('text', 'lucene'))
-q2 = search.PhraseQuery()
-q2.add(index.Term('text', 'search'))
-q2.add(index.Term('text', 'engine'))
-q3 = search.BooleanQuery()
-q3.add(q1, search.BooleanClause.Occur.MUST)
-q3.add(q2, search.BooleanClause.Occur.MUST)
+builder = search.PhraseQuery.Builder()
+builder.add(index.Term('text', 'search'))
+builder.add(index.Term('text', 'engine'))
+q2 = builder.build()
+builder = search.BooleanQuery.Builder()
+builder.add(q1, search.BooleanClause.Occur.MUST)
+builder.add(q2, search.BooleanClause.Occur.MUST)
+q3 = builder.build()
 assert str(q3) == '+text:lucene +text:"search engine"'
 
 q1 = spans.SpanTermQuery(index.Term('text', 'hello'))

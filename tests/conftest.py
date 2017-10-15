@@ -36,8 +36,8 @@ def fields():
         engine.Field.Text('text', storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True),
         engine.Field.String('article', stored=True),
         engine.Field.String('amendment', stored=True),
-        engine.Field.String('date', stored=True, docValueType='sorted'),
-        engine.Field('year', docValueType='numeric'),
+        engine.Field.String('date', stored=True, docValuesType='sorted'),
+        engine.Field('year', docValuesType='numeric'),
     ]
 
 

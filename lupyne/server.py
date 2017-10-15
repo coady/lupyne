@@ -489,7 +489,7 @@ class WebSearcher(object):
         return result
 
     @cherrypy.expose
-    @cherrypy.tools.params(count=int, step=int, indexed=json.loads)
+    @cherrypy.tools.params(count=int, step=int)
     def terms(self, name='', value='*', *path, **options):
         """Return data about indexed terms.
 
@@ -737,7 +737,7 @@ class WebIndexer(WebSearcher):
                     assert doc.setdefault(name, value) == value, 'multiple values for unique field'
             else:
                 with cherrypy.HTTPError.handle((KeyError, AssertionError), httplib.CONFLICT):
-                    assert all(self.indexer.fields[name].docValueType for name in doc)
+                    assert all(self.indexer.fields[name].docvalues for name in doc)
             self.indexer.update(name, value, doc)
         self.refresh()
     docs._cp_config.update(WebSearcher.docs._cp_config)
@@ -775,11 +775,11 @@ class WebIndexer(WebSearcher):
         **GET, PUT** /fields/*chars*
             Set and return settings for given field name.
 
-            {"stored"|"indexed"\|...: *string*\|true|false,... }
+            {"stored"|"indexOptions"\|...: *string*\|true|false,... }
 
             .. versionchanged:: 1.6 lucene FieldType attributes used as settings
 
-            :return: {"stored"|"indexed"\|...: *string*\|true|false,... }
+            :return: {"stored"|"indexOptions"\|...: *string*\|true|false,... }
         """
         if not name:
             return sorted(self.indexer.fields)

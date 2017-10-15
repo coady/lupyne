@@ -22,8 +22,7 @@ class Field(FieldType):
     :param boost: boost factor
     :param stored, indexed, settings: lucene FieldType attributes
     """
-    docValueType = property(FieldType.docValueType, FieldType.setDocValueType)
-    indexed = property(FieldType.indexed, FieldType.setIndexed)
+    docValuesType = property(FieldType.docValuesType, FieldType.setDocValuesType)
     indexOptions = property(FieldType.indexOptions, FieldType.setIndexOptions)
     numericPrecisionStep = property(FieldType.numericPrecisionStep, FieldType.setNumericPrecisionStep)
     numericType = property(FieldType.numericType, FieldType.setNumericType)
@@ -37,36 +36,44 @@ class Field(FieldType):
 
     properties = {name for name in locals() if not name.startswith('__')}
     types = {int: 'long', float: 'double'}
-    types.update(NUMERIC='long', BINARY='bytes', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string')
+    types.update(NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string')
 
-    def __init__(self, name, boost=1.0, docValueType='', indexOptions='', numericType='', **settings):
+    def __init__(self, name, boost=1.0, docValuesType='', indexOptions='', numericType='', **settings):
         super(Field, self).__init__()
         self.name, self.boost = name, boost
         for name in settings:
             setattr(self, name, settings[name])
         if indexOptions:
-            self.indexOptions = getattr(index.FieldInfo.IndexOptions, indexOptions.upper())
+            self.indexOptions = getattr(index.IndexOptions, indexOptions.upper())
         if numericType:
-            self.numericType = getattr(FieldType.NumericType, numericType.upper())
-            self.numericClass = getattr(document, numericType.title() + 'Field')
-        if docValueType:
-            self.docValueType = getattr(index.FieldInfo.DocValuesType, docValueType.upper())
-            self.docValueClass = getattr(document, docValueType.title().replace('_', '') + 'DocValuesField')
+            self.numericType = getattr(FieldType.LegacyNumericType, numericType.upper())
+            self.numericClass = getattr(document, 'Legacy{}Field'.format(numericType.title()))
+        if docValuesType:
+            self.docValuesType = getattr(index.DocValuesType, docValuesType.upper())
+            self.docValueClass = getattr(document, docValuesType.title().replace('_', '') + 'DocValuesField')
             if (self.stored or self.indexed or self.numericType):
                 settings = self.settings
-                del settings['docValueType']
+                del settings['docValuesType']
                 self.docValueLess = Field(self.name, **settings)
-        assert self.stored or self.indexed or self.docValueType or self.numericType
+        assert self.stored or self.indexed or self.docvalues or self.numericType
 
     @classmethod
-    def String(cls, name, indexed=True, tokenized=False, omitNorms=True, indexOptions='DOCS_ONLY', **settings):
+    def String(cls, name, tokenized=False, omitNorms=True, indexOptions='DOCS', **settings):
         """Return Field with default settings for strings."""
-        return cls(name, indexed=indexed, tokenized=tokenized, omitNorms=omitNorms, indexOptions=indexOptions, **settings)
+        return cls(name, tokenized=tokenized, omitNorms=omitNorms, indexOptions=indexOptions, **settings)
 
     @classmethod
-    def Text(cls, name, indexed=True, **settings):
+    def Text(cls, name, indexOptions='DOCS_AND_FREQS_AND_POSITIONS', **settings):
         """Return Field with default settings for text."""
-        return cls(name, indexed=indexed, **settings)
+        return cls(name, indexOptions=indexOptions, **settings)
+
+    @property
+    def indexed(self):
+        return self.indexOptions != index.IndexOptions.NONE
+
+    @property
+    def docvalues(self):
+        return self.docValuesType != index.DocValuesType.NONE
 
     @property
     def settings(self):
@@ -81,7 +88,7 @@ class Field(FieldType):
 
     def items(self, *values):
         """Generate lucene Fields suitable for adding to a document."""
-        if self.docValueType:
+        if self.docvalues:
             types = {int: long, float: util.NumericUtils.doubleToSortableLong}
             for value in values:
                 yield self.docValueClass(self.name, types.get(type(value), util.BytesRef)(value))
@@ -121,7 +128,7 @@ class NestedField(Field):
         for value in values:
             for name, text in zip(self.names, self.values(value)):
                 yield document.Field(name, text, field)
-                if self.docValueType:
+                if self.docvalues:
                     yield self.docValueClass(name, util.BytesRef(text))
 
     def prefix(self, value):
@@ -141,21 +148,21 @@ class NumericField(Field):
     :param name: name of field
     :param type: optional int, float, or lucene NumericType string
     """
-    def __init__(self, name, numericType, indexed=True, omitNorms=True, indexOptions='DOCS_ONLY', **settings):
+    def __init__(self, name, numericType, omitNorms=True, indexOptions='DOCS', **settings):
         settings['numericType'] = self.types.get(numericType, numericType)
-        Field.__init__(self, name, indexed=indexed, omitNorms=omitNorms, indexOptions=indexOptions, **settings)
+        Field.__init__(self, name, omitNorms=omitNorms, indexOptions=indexOptions, **settings)
 
     def range(self, start, stop, lower=True, upper=False):
         """Return lucene NumericRangeQuery."""
         step = self.numericPrecisionStep
         if isinstance(start, float) or isinstance(stop, float):
             start, stop = (value if value is None else Double(value) for value in (start, stop))
-            return search.NumericRangeQuery.newDoubleRange(self.name, step, start, stop, lower, upper)
+            return search.LegacyNumericRangeQuery.newDoubleRange(self.name, step, start, stop, lower, upper)
         if start is not None:
             start = None if start < Long.MIN_VALUE else Long(long(start))
         if stop is not None:
             stop = None if stop > Long.MAX_VALUE else Long(long(stop))
-        return search.NumericRangeQuery.newLongRange(self.name, step, start, stop, lower, upper)
+        return search.LegacyNumericRangeQuery.newLongRange(self.name, step, start, stop, lower, upper)
 
     def term(self, value):
         """Return range query to match single term."""

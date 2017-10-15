@@ -23,7 +23,7 @@ if __name__ == '__main__':
     root = server.WebIndexer()
     # assign field settings
     root.indexer.set('amendment', engine.Field.String, stored=True)
-    root.indexer.set('date', engine.Field.String, stored=True, docValueType='sorted')
+    root.indexer.set('date', engine.Field.String, stored=True, docValuesType='sorted')
     root.indexer.set('text', engine.Field.Text)
     # populate index
     for doc in conftest.constitution():

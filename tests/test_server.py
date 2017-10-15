@@ -66,7 +66,7 @@ def test_docs(resource):
     for field in ('amendment', 'article', 'date'):
         assert not resource.fields(field)['tokenized']
     assert resource.fields('text')['storeTermVectors']
-    assert resource.fields('year')['docValueType'] == 'NUMERIC'
+    assert resource.fields('year')['docValuesType'] == 'NUMERIC'
     assert resource.client.put('fields/' + field, {'stored': True}).status_code == httplib.OK
     assert resource.docs('8', **{'fields.docvalues': 'date'}) == {'amendment': '1', 'date': '1791-12-15'}
     assert resource.docs('8', fields='', **{'fields.docvalues': 'year:int'}) == {'year': 1791}
@@ -119,11 +119,11 @@ def test_search(resource):
     result = resource.search(q='Preamble', **{'q.field': 'article', 'q.type': 'prefix'})
     assert result['count'] == 1 and result['query'] == 'article:Preamble*'
     result = resource.search(q='text:"We the People"', **{'q.phraseSlop': 3})
-    assert 0 < result['maxscore'] < 1 and result['count'] == 1
+    assert 0 < result['maxscore'] and result['count'] == 1
     assert result['query'] == 'text:"we ? people"~3'
     doc, = result['docs']
     assert sorted(doc) == ['__id__', '__score__', 'article']
-    assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__'] < 1
+    assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__']
     result = resource.search(q='text:people')
     docs = result['docs']
     assert sorted(docs, key=operator.itemgetter('__score__'), reverse=True) == docs
@@ -177,7 +177,6 @@ def test_highlights(resource):
     assert highlight == ['<strong>1</strong>']
     result = resource.search(mlt=0)
     assert result['count'] == 25 and set(result['query'].split()) == {'text:united', 'text:states'}
-    assert [doc['amendment'] for doc in result['docs'][:4]] == ['10', '11', '15', '19']
     result = resource.search(q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})
     assert result['count'] == 11 and set(result['query'].split()) == {'text:necessary', 'text:people'}
     assert [doc['amendment'] for doc in result['docs'][:4]] == ['2', '9', '10', '1']
@@ -186,8 +185,8 @@ def test_highlights(resource):
     result = resource.search(q='text:people', timeout=0.01)
     assert result['count'] in (None, 8) and (result['maxscore'] is None or result['maxscore'] > 0)
     result = resource.search(q='+text:right +text:people')
-    assert result['count'] == 4 and 0 < result['maxscore'] < 1.0
-    assert resource.search(q='hello', **{'q.field': 'body.title^2.0'})['query'] == 'body.title:hello^2.0'
+    assert result['count'] == 4 and 0 < result['maxscore']
+    assert resource.search(q='hello', **{'q.field': 'body.title^2.0'})['query'] == '(body.title:hello)^2.0'
 
 
 def test_groups(resource):
@@ -214,7 +213,7 @@ def test_facets(tempdir, servers, zipcodes):
     writer.commit()
     resource = servers.start(servers.ports[0], '-r', tempdir)
     writer.set('zipcode', engine.NumericField, numericType=int, stored=True)
-    writer.fields['location'] = engine.NestedField('county.city', docValueType='sorted')
+    writer.fields['location'] = engine.NestedField('county.city', docValuesType='sorted')
     for doc in zipcodes:
         if doc['state'] == 'CA':
             writer.add(zipcode=int(doc['zipcode']), location='{}.{}'.format(doc['county'], doc['city']))

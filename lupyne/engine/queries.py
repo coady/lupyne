@@ -35,13 +35,13 @@ class Query(object):
 
     @classmethod
     def boolean(cls, occur, *queries, **terms):
-        self = search.BooleanQuery()
+        builder = search.BooleanQuery.Builder()
         for query in queries:
-            self.add(query, occur)
+            builder.add(query, occur)
         for name, values in terms.items():
             for value in ([values] if isinstance(values, basestring) else values):
-                self.add(cls.term(name, value), occur)
-        return self
+                builder.add(cls.term(name, value), occur)
+        return builder.build()
 
     @classmethod
     def any(cls, *queries, **terms):
@@ -56,11 +56,9 @@ class Query(object):
     @classmethod
     def disjunct(cls, multiplier, *queries, **terms):
         """Return lucene DisjunctionMaxQuery from queries and terms."""
-        self = cls(search.DisjunctionMaxQuery, Arrays.asList(queries), multiplier)
-        for name, values in terms.items():
-            for value in ([values] if isinstance(values, basestring) else values):
-                self.add(cls.term(name, value))
-        return self
+        terms = tuple(cls.term(name, value) for name, values in terms.items()
+                      for value in ([values] if isinstance(values, basestring) else values))
+        return cls(search.DisjunctionMaxQuery, Arrays.asList(queries + terms), multiplier)
 
     @classmethod
     def span(cls, *term):
@@ -90,22 +88,24 @@ class Query(object):
     @classmethod
     def phrase(cls, name, *values, **attrs):
         """Return lucene PhraseQuery.  None may be used as a placeholder."""
-        self = cls(search.PhraseQuery, **attrs)
+        builder = search.PhraseQuery.Builder()
+        for attr in attrs:
+            setattr(builder, attr, attrs[attr])
         for idx, value in enumerate(values):
             if value is not None:
-                self.add(index.Term(name, value), idx)
-        return self
+                builder.add(index.Term(name, value), idx)
+        return builder.build()
 
     @classmethod
     def multiphrase(cls, name, *values):
         """Return lucene MultiPhraseQuery.  None may be used as a placeholder."""
-        self = cls(search.MultiPhraseQuery)
+        builder = search.MultiPhraseQuery.Builder()
         for idx, words in enumerate(values):
             if isinstance(words, basestring):
                 words = [words]
             if words is not None:
-                self.add([index.Term(name, word) for word in words], idx)
-        return self
+                builder.add([index.Term(name, word) for word in words], idx)
+        return builder.build()
 
     @classmethod
     def wildcard(cls, name, value):
@@ -155,9 +155,10 @@ class Query(object):
     @method
     def __sub__(self, other):
         """self -other"""
-        query = Query.any(self)
-        query.add(other, search.BooleanClause.Occur.MUST_NOT)
-        return query
+        builder = search.BooleanQuery.Builder()
+        builder.add(self, search.BooleanClause.Occur.SHOULD)
+        builder.add(other, search.BooleanClause.Occur.MUST_NOT)
+        return builder.build()
 
     def __rsub__(self, other):
         return Query.__sub__(other, self)
@@ -183,17 +184,12 @@ class SpanQuery(Query):
         :param inOrder: default True
         :param collectPayloads: default True
         """
-        args = map(kwargs.get, ('slop', 'inOrder', 'collectPayloads'), (0, True, True))
+        args = map(kwargs.get, ('slop', 'inOrder'), (0, True))
         return SpanQuery(spans.SpanNearQuery, spans_, *args)
 
     def mask(self, name):
         """Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."""
         return SpanQuery(spans.FieldMaskingSpanQuery, self, name)
-
-    def payload(self, *values):
-        """Return lucene SpanPayloadCheckQuery from payload values."""
-        base = spans.SpanNearPayloadCheckQuery if spans.SpanNearQuery.instance_(self) else spans.SpanPayloadCheckQuery
-        return SpanQuery(base, self, Arrays.asList(list(map(lucene.JArray_byte, values))))
 
 
 @contextlib.contextmanager
@@ -330,10 +326,10 @@ class SpellParser(PythonQueryParser):
             term = search.TermQuery.cast_(query).term
             return search.TermQuery(self.correct(term))
         query = search.PhraseQuery.cast_(query)
-        phrase = search.PhraseQuery()
+        builder = search.PhraseQuery.Builder()
         for position, term in zip(query.positions, query.terms):
-            phrase.add(self.correct(term), position)
-        return phrase
+            builder.add(self.correct(term), position)
+        return builder.build()
 
     def getFieldQuery_quoted(self, *args):
         return self.rewrite(self.getFieldQuery_quoted_super(*args))
