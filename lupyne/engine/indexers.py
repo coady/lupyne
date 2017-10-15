@@ -10,6 +10,7 @@ import itertools
 import operator
 import contextlib
 import collections
+from functools import partial
 import lucene
 from java.io import File, StringReader
 from java.lang import Float
@@ -51,9 +52,9 @@ class closing(set):
         if isinstance(reader, index.IndexReader):
             reader.incRef()
         elif isinstance(reader, index.IndexWriter):
-            reader = index.IndexReader.open(reader, True)
+            reader = index.DirectoryReader.open(reader, True)
         elif isinstance(reader, Atomic):
-            reader = index.IndexReader.open(self.directory(reader))
+            reader = index.DirectoryReader.open(self.directory(reader))
         else:
             reader = index.MultiReader(list(map(self.reader, reader)))
         return reader
@@ -335,26 +336,29 @@ class IndexReader(object):
                 writer.forceMerge(merge)
             return len(writer)
 
-    def terms(self, name, value='', stop=None, counts=False, distance=0):
+    def terms(self, name, value='', stop='', counts=False, distance=0, prefix=0):
         """Generate a slice of term values, optionally with frequency counts.
 
-        Supports a range of terms, wildcard terms, or fuzzy terms.
-
         :param name: field name
-        :param value: term prefix or lower bound for range terms
+        :param value: term prefix, start value (given stop), or fuzzy value (given distance)
         :param stop: optional upper bound for range terms
         :param counts: include frequency counts
         :param distance: maximum edit distance for fuzzy terms
+        :param prefix: prefix length for fuzzy terms
         """
         terms = index.MultiFields.getTerms(self.indexReader, name)
-        termsenum = terms.iterator(None) if terms else index.TermsEnum.EMPTY
-        if terms and distance:
-            termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), index.Term(name, value), float(distance), 0, False)
-        elif stop is not None:
-            termsenum = search.TermRangeTermsEnum(termsenum, util.BytesRef(value), util.BytesRef(stop), True, False)
+        if not terms:
+            return iter([])
+        term, termsenum = index.Term(name, value), terms.iterator(None)
+        if distance:
+            terms = termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, float(distance), prefix, False)
         else:
-            termsenum = search.PrefixTermsEnum(termsenum, util.BytesRef(value))
-        terms = map(operator.methodcaller('utf8ToString'), termsenum)
+            termsenum.seekCeil(util.BytesRef(value))
+            terms = itertools.chain([termsenum.term()], util.BytesRefIterator.cast_(termsenum))
+        terms = map(operator.methodcaller('utf8ToString'), terms)
+        predicate = partial(operator.gt, stop) if stop else operator.methodcaller('startswith', value)
+        if not distance:
+            terms = itertools.takewhile(predicate, terms)
         return ((term, termsenum.docFreq()) for term in terms) if counts else terms
 
     def numbers(self, name, step=0, type=int, counts=False):
@@ -367,8 +371,11 @@ class IndexReader(object):
         """
         convert = util.NumericUtils.sortableLongToDouble if issubclass(type, float) else int
         termsenum = index.MultiFields.getTerms(self.indexReader, name).iterator(None)
-        termsenum = search.PrefixTermsEnum(termsenum, util.BytesRef(chr(ord(' ') + step)))
-        values = map(convert, map(util.NumericUtils.prefixCodedToLong, termsenum))
+        prefix = ord(' ') + step
+        termsenum.seekCeil(util.BytesRef(chr(prefix)))
+        terms = itertools.chain([termsenum.term()], util.BytesRefIterator.cast_(termsenum))
+        terms = itertools.takewhile(lambda br: br.bytes[0] == prefix, terms)
+        values = map(convert, map(util.NumericUtils.prefixCodedToLong, terms))
         return ((value, termsenum.docFreq()) for value in values) if counts else values
 
     def docs(self, name, value, counts=False):

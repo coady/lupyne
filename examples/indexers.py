@@ -24,7 +24,7 @@ iwriter.addDocument(doc)
 iwriter.close()
 
 # Now search the index:
-ireader = index.IndexReader.open(directory)
+ireader = index.DirectoryReader.open(directory)
 isearcher = search.IndexSearcher(ireader)
 # Parse a simple query that searches for "text":
 parser = queryparser.classic.QueryParser('fieldname', analyzer)

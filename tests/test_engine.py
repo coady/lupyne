@@ -1,6 +1,5 @@
 from future_builtins import map, zip
 import os
-import itertools
 import datetime
 import math
 import bisect
@@ -75,10 +74,6 @@ def test_interface(tempdir):
     assert indexer.get(0, 'name').dict() == {'name': 'sample'}
     assert not list(indexer.termvector(0, 'tag'))
     assert indexer.count('text', 'hello') == indexer.count('text:hello') == 1
-    assert list(indexer.terms('text')) == ['hello', 'world']
-    assert list(indexer.terms('text', 'h', 'v')) == ['hello']
-    assert dict(indexer.terms('text', 'w', counts=True)) == {'world': 1}
-    assert list(indexer.terms('test')) == []
     assert list(indexer.docs('text', 'hello')) == [0]
     assert list(indexer.docs('text', 'hi')) == []
     assert list(indexer.docs('text', 'world', counts=True)) == [(0, 1)]
@@ -184,9 +179,12 @@ def test_basic(tempdir, fields, constitution):
     articles.remove('Preamble')
     assert sorted(map(int, articles)) == range(1, 8)
     assert sorted(map(int, indexer.terms('amendment'))) == range(1, 28)
-    assert list(itertools.islice(indexer.terms('text', 'right'), 2)) == ['right', 'rights']
     assert list(indexer.terms('text', 'right')) == ['right', 'rights']
+    assert dict(indexer.terms('text', 'right', counts=True)) == {'right': 13, 'rights': 1}
+    assert list(indexer.terms('text', 'right', 'right_')) == ['right']
+    assert dict(indexer.terms('text', 'right', 'right_', counts=True)) == {'right': 13}
     assert list(indexer.terms('text', 'right', distance=1)) == ['eight', 'right', 'rights']
+    assert dict(indexer.terms('text', 'right', distance=1, counts=True)) == {'eight': 3, 'right': 13, 'rights': 1}
     assert list(indexer.terms('text', 'senite', distance=2)) == ['senate', 'sent']
     word, count = next(indexer.terms('text', 'people', counts=True))
     assert word == 'people' and count == 8
@@ -348,11 +346,11 @@ def test_grouping(tempdir, indexer, zipcodes):
     indexer.commit()
     states = list(indexer.terms('state'))
     assert states[0] == 'AK' and states[-1] == 'WY'
-    counties = [term.split('.')[-1] for term in indexer.terms('state.county', 'CA', 'CA~')]
+    counties = [term.split('.')[-1] for term in indexer.terms('state.county', 'CA')]
     hits = indexer.search(field.prefix('CA'))
     assert sorted({hit['county'] for hit in hits}) == counties
     assert counties[0] == 'Alameda' and counties[-1] == 'Yuba'
-    cities = [term.split('.')[-1] for term in indexer.terms('state.county.city', 'CA.Los Angeles', 'CA.Los Angeles~')]
+    cities = [term.split('.')[-1] for term in indexer.terms('state.county.city', 'CA.Los Angeles')]
     hits = indexer.search(field.prefix('CA.Los Angeles'))
     assert sorted({hit['city'] for hit in hits}) == cities
     assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
