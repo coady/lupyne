@@ -1,5 +1,5 @@
 """
-Common utilities with no outside dependencies.
+Common utilities with no lucene dependencies.
 """
 
 import abc
@@ -9,10 +9,12 @@ import contextlib
 import heapq
 import itertools
 import types
+import six
 try:
     import simplejson as json
 except ImportError:
     import json  # noqa
+long = int if six.PY3 else long  # noqa
 
 
 @contextlib.contextmanager
@@ -24,16 +26,15 @@ def suppress(*exceptions):
         pass
 
 
-class Atomic(object):
+class Atomic(six.with_metaclass(abc.ABCMeta)):
     """Abstract base class to distinguish singleton values from other iterables."""
-    __metaclass__ = abc.ABCMeta
-
     @classmethod
     def __subclasshook__(cls, other):
         return not issubclass(other, collections.Iterable) or NotImplemented
 
 
-Atomic.register(basestring)
+for string in six.string_types:
+    Atomic.register(string)
 
 
 class method(staticmethod):

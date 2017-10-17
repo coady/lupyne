@@ -1,5 +1,4 @@
 import calendar
-import httplib
 import json
 import math
 import operator
@@ -8,12 +7,12 @@ import signal
 import subprocess
 import sys
 import time
-import urllib
 from email.utils import parsedate
 import cherrypy
 import clients
 import portend
 import pytest
+from six.moves import http_client, urllib
 from lupyne import engine, server
 
 
@@ -52,7 +51,7 @@ def servers(request):
 def resource(tempdir, servers, fields, constitution):
     resource = servers.start(servers.ports[0], tempdir)
     for field in fields:
-        assert resource.client.put('fields/' + field.name, field.settings).status_code == httplib.CREATED
+        assert resource.client.put('fields/' + field.name, field.settings).status_code == http_client.CREATED
     assert resource.post('docs', list(constitution)) is None
     assert resource.post('update', {'spellcheckers': True, 'merge': 1})
     return resource
@@ -67,18 +66,18 @@ def test_docs(resource):
         assert not resource.fields(field)['tokenized']
     assert resource.fields('text')['storeTermVectors']
     assert resource.fields('year')['docValuesType'] == 'NUMERIC'
-    assert resource.client.put('fields/' + field, {'stored': True}).status_code == httplib.OK
+    assert resource.client.put('fields/' + field, {'stored': True}).status_code == http_client.OK
     assert resource.docs('8', **{'fields.docvalues': 'date'}) == {'amendment': '1', 'date': '1791-12-15'}
     assert resource.docs('8', fields='', **{'fields.docvalues': 'year:int'}) == {'year': 1791}
-    assert resource.client.get('docs/8', params={'fields.docvalues': 'year'}).status_code == httplib.BAD_REQUEST
-    assert resource.client.get('docs/8', params={'fields.docvalues': 'year:invalid'}).status_code == httplib.BAD_REQUEST
+    assert resource.client.get('docs/8', params={'fields.docvalues': 'year'}).status_code == http_client.BAD_REQUEST
+    assert resource.client.get('docs/8', params={'fields.docvalues': 'year:invalid'}).status_code == http_client.BAD_REQUEST
     doc = resource.docs('0', **{'fields.vector': 'text,missing'})
     assert doc['missing'] == [] and doc['text'].index('states') < doc['text'].index('united')
     doc = resource.docs('0', **{'fields.vector.counts': 'text'})
-    resource.client.patch('docs/amendment/1', {'amendment': '1'}).status_code == httplib.CONFLICT
+    resource.client.patch('docs/amendment/1', {'amendment': '1'}).status_code == http_client.CONFLICT
     assert not resource.patch('docs/amendment/1')
     assert sorted(term for term, count in doc['text'].items() if count > 1) == ['establish', 'states', 'united']
-    assert resource.client.put('docs/article/0', {'article': '-1'}).status_code == httplib.BAD_REQUEST
+    assert resource.client.put('docs/article/0', {'article': '-1'}).status_code == http_client.BAD_REQUEST
     assert resource.delete('docs/article/0') is None
 
 
@@ -105,8 +104,8 @@ def test_terms(resource):
     assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
     positions = dict(resource.terms('text/people/docs/positions'))
     assert sorted(positions) == docs and list(map(len, positions.values())) == counts.values()
-    assert resource.client.get('terms/text/people/missing').status_code == httplib.NOT_FOUND
-    assert resource.client.get('terms/text/people/docs/missing').status_code == httplib.NOT_FOUND
+    assert resource.client.get('terms/text/people/missing').status_code == http_client.NOT_FOUND
+    assert resource.client.get('terms/text/people/docs/missing').status_code == http_client.NOT_FOUND
 
 
 def test_search(resource):
@@ -205,7 +204,7 @@ def test_groups(resource):
     assert len(groups) == result['count'] == 9 < sum(groups.values())
     group = result['groups'][0]
     assert group['value'] == 1791 and group['count'] == 5
-    assert resource.client.get('search', params={'q': 'text:right', 'group': 'date:int'}).status_code == httplib.BAD_REQUEST
+    assert resource.client.get('search', params={'q': 'text:right', 'group': 'date:int'}).status_code == http_client.BAD_REQUEST
 
 
 def test_facets(tempdir, servers, zipcodes):
@@ -219,9 +218,9 @@ def test_facets(tempdir, servers, zipcodes):
             writer.add(zipcode=int(doc['zipcode']), location='{}.{}'.format(doc['county'], doc['city']))
     writer.commit()
     assert resource.post('update') == resource().popitem()[1] == len(writer)
-    terms = resource.terms(urllib.quote('zipcode:int'))
+    terms = resource.terms(urllib.parse.quote('zipcode:int'))
     assert len(terms) == len(writer) and terms[0] == 90001
-    terms = resource.terms(urllib.quote('zipcode:int'), step=16)
+    terms = resource.terms(urllib.parse.quote('zipcode:int'), step=16)
     assert terms == [65536]
     result = resource.search(count=0, facets='county')
     facets = result['facets']['county']
@@ -242,14 +241,14 @@ def test_queries(servers):
     resource = servers.start(servers.ports[0], **{'tools.validate.etag': False})
     resource.headers['content-length'] = '0'
     assert resource.queries() == []
-    resource.client.get('queries/default').status_code == httplib.NOT_FOUND
-    resource.client.put('queries/default/alpha', '*:*').status_code == httplib.CREATED
+    resource.client.get('queries/default').status_code == http_client.NOT_FOUND
+    resource.client.put('queries/default/alpha', '*:*').status_code == http_client.CREATED
     assert resource.put('queries/default/alpha', 'name:alpha') == 'name:alpha'
     assert resource.put('queries/default/bravo', 'name:bravo') == 'name:bravo'
     assert resource.queries() == ['default']
     assert resource.queries('default') == {'alpha': 0.0, 'bravo': 0.0}
     assert resource.queries('default/alpha') == 'name:alpha'
-    resource.client.get('queries/charlie').status_code == httplib.NOT_FOUND
+    resource.client.get('queries/charlie').status_code == http_client.NOT_FOUND
     queries = resource.post('queries/default', {'name': 'alpha'})
     assert queries['alpha'] > 0.0 and queries['bravo'] == 0.0
     queries = resource.post('queries/default', {'name': 'alpha bravo alpha'})
@@ -271,12 +270,12 @@ def test_realtime(tempdir, servers):
     response = client.get('docs')
     version, modified, expires = map(response.headers.get, ('etag', 'last-modified', 'expires'))
     assert response.ok and modified is None and response.json() == []
-    assert client.post('docs', [{}]).status_code == httplib.OK
+    assert client.post('docs', [{}]).status_code == http_client.OK
     assert resource.docs() == [0]
-    assert client.delete('search').status_code == httplib.OK
+    assert client.delete('search').status_code == http_client.OK
     assert resource.docs() == []
     time.sleep(max(0, calendar.timegm(parsedate(expires)) + 1 - time.time()))
-    assert client.post(json=[tempdir]).status_code == httplib.OK
+    assert client.post(json=[tempdir]).status_code == http_client.OK
     response = client.get('docs')
     assert response.ok and response.json() == [0] and expires != response.headers['expires']
     assert client.post('update').ok
@@ -342,9 +341,9 @@ def test_replication(tempdir, servers):
         assert subprocess.call((sys.executable, '-m', 'lupyne.server', sync) + args, stderr=subprocess.PIPE)
     primary.post('docs', [{}])
     assert primary.post('update') == 1
-    assert primary.client.put('update/0').status_code == httplib.NOT_FOUND
+    assert primary.client.put('update/0').status_code == http_client.NOT_FOUND
     response = resource.client.post(json={'url': primary.url})
-    assert response.status_code == httplib.ACCEPTED and sum(response.json().values()) == 0
+    assert response.status_code == http_client.ACCEPTED and sum(response.json().values()) == 0
     assert resource.post('update') == 1
     assert resource.post(json={'url': primary.url})
     assert resource.post('update') == 1
@@ -360,7 +359,7 @@ def test_replication(tempdir, servers):
     assert len(root.urls) == 2
     servers.stop(servers.ports[0])
     assert secondary.docs()
-    assert secondary.client.post('docs', []).status_code == httplib.METHOD_NOT_ALLOWED
+    assert secondary.client.post('docs', []).status_code == http_client.METHOD_NOT_ALLOWED
     assert secondary.terms() == []
     assert root.update() == 2
     assert len(root.urls) == 1

@@ -16,7 +16,7 @@ dist: html
 
 check:
 	python setup.py $@ -mrs
-	flake8-2.7
-	python2 -m examples
+	flake8
+	python -m examples
 	pytest-2.7 --cov --cov-fail-under=100
 	pytest-2.7 -vk example

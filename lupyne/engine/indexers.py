@@ -4,12 +4,11 @@ Wrappers for lucene Index{Read,Search,Writ}ers.
 The final `Indexer`_ classes exposes a high-level Searcher and Writer.
 """
 
-from future_builtins import filter, map, zip
-import os
+import collections
+import contextlib
 import itertools
 import operator
-import contextlib
-import collections
+import os
 from functools import partial
 import lucene
 from java.io import File, StringReader
@@ -18,10 +17,12 @@ from java.util import Arrays, HashMap, HashSet
 from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
+from six import string_types
+from six.moves import filter, map, range, zip
 from .queries import suppress, Query, DocValues, Highlighter, FastVectorHighlighter, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import Distances
-from ..utils import method, Atomic, SpellChecker
+from ..utils import long, method, Atomic, SpellChecker
 
 for cls in (analysis.TokenStream, lucene.JArray_byte):
     Atomic.register(cls)
@@ -43,7 +44,7 @@ class closing(set):
         if directory is None:
             directory = store.RAMDirectory()
             self.add(directory)
-        elif isinstance(directory, basestring):
+        elif isinstance(directory, string_types):
             directory = store.FSDirectory.open(File(directory).toPath())
             self.add(directory)
         return directory
@@ -92,10 +93,11 @@ class TokenStream(analysis.TokenStream):
         self.reset()
         return self
 
-    def next(self):
+    def __next__(self):
         if self.incrementToken():
             return self
         raise StopIteration
+    next = __next__
 
     def __getattr__(self, name):
         cls = getattr(analysis.tokenattributes, name + 'Attribute').class_
@@ -203,7 +205,7 @@ class Analyzer(PythonAnalyzer):
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        cls = queryparser.classic.QueryParser if isinstance(field, basestring) else queryparser.classic.MultiFieldQueryParser
+        cls = queryparser.classic.QueryParser if isinstance(field, string_types) else queryparser.classic.MultiFieldQueryParser
         args = field, self
         if isinstance(field, collections.Mapping):
             boosts = HashMap()
@@ -245,7 +247,7 @@ class IndexReader(object):
         return (0 <= id < self.maxDoc()) and (not bits or bits.get(id))
 
     def __iter__(self):
-        ids = xrange(self.maxDoc())
+        ids = range(self.maxDoc())
         bits = self.bits
         return filter(bits.get, ids) if bits else iter(ids)
 
@@ -389,7 +391,7 @@ class IndexReader(object):
         """Generate doc ids and positions which contain given term, optionally with offsets, or only ones with payloads."""
         docsenum = index.MultiFields.getTermPositionsEnum(self.indexReader, name, util.BytesRef(value))
         for doc in (iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()):
-            positions = (docsenum.nextPosition() for n in xrange(docsenum.freq()))
+            positions = (docsenum.nextPosition() for _ in range(docsenum.freq()))
             if payloads:
                 positions = ((position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload)
             elif offsets:
@@ -412,7 +414,7 @@ class IndexReader(object):
         for term in terms:
             docsenum = termsenum.postings(None)
             assert 0 <= docsenum.nextDoc() < docsenum.NO_MORE_DOCS
-            positions = (docsenum.nextPosition() for _ in xrange(docsenum.freq()))
+            positions = (docsenum.nextPosition() for _ in range(docsenum.freq()))
             if offsets:
                 positions = ((docsenum.startOffset(), docsenum.endOffset()) for _ in positions)
             yield term, list(positions)
@@ -428,7 +430,7 @@ class IndexReader(object):
         mlt.fieldNames = fields or None
         for name, value in attrs.items():
             setattr(mlt, name, value)
-        return mlt.like(fields[0], StringReader(doc)) if isinstance(doc, basestring) else mlt.like(doc)
+        return mlt.like(fields[0], StringReader(doc)) if isinstance(doc, string_types) else mlt.like(doc)
 
 
 class IndexSearcher(search.IndexSearcher, IndexReader):
@@ -540,7 +542,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         count = min(count, self.maxDoc() or 1)
         if sort is None:
             return search.TopScoreDocCollector.create(count)
-        if isinstance(sort, basestring):
+        if isinstance(sort, string_types):
             sort = self.sortfield(sort, reverse=reverse)
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
@@ -619,7 +621,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """Generate scores for all queries against a given document mapping."""
         searcher = index.memory.MemoryIndex()
         for name, value in document.items():
-            if isinstance(value, basestring):
+            if isinstance(value, string_types):
                 value = value, self.analyzer
             elif isinstance(value, analysis.TokenStream):
                 value = value,

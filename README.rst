@@ -61,6 +61,7 @@ Changes
 dev
 
 * PyLucene 6 required
+* Python 3 support
 
 1.9
 

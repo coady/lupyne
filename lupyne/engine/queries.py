@@ -2,16 +2,17 @@
 Query wrappers and search utilities.
 """
 
-from future_builtins import filter, map
-import itertools
 import bisect
 import contextlib
+import itertools
 import lucene
 from java.lang import Integer
 from java.util import Arrays, HashSet
 from org.apache.lucene import index, search, util
 from org.apache.lucene.search import highlight, spans, vectorhighlight
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
+from six import string_types
+from six.moves import filter, map, range
 from ..utils import method
 
 
@@ -39,7 +40,7 @@ class Query(object):
         for query in queries:
             builder.add(query, occur)
         for name, values in terms.items():
-            for value in ([values] if isinstance(values, basestring) else values):
+            for value in ([values] if isinstance(values, string_types) else values):
                 builder.add(cls.term(name, value), occur)
         return builder.build()
 
@@ -57,7 +58,7 @@ class Query(object):
     def disjunct(cls, multiplier, *queries, **terms):
         """Return lucene DisjunctionMaxQuery from queries and terms."""
         terms = tuple(cls.term(name, value) for name, values in terms.items()
-                      for value in ([values] if isinstance(values, basestring) else values))
+                      for value in ([values] if isinstance(values, string_types) else values))
         return cls(search.DisjunctionMaxQuery, Arrays.asList(queries + terms), multiplier)
 
     @classmethod
@@ -71,7 +72,7 @@ class Query(object):
     def near(cls, name, *values, **kwargs):
         """Return :meth:`SpanNearQuery <SpanQuery.near>` from terms.
         Term values which supply another field name will be masked."""
-        spans = (cls.span(name, value) if isinstance(value, basestring) else cls.span(*value).mask(name) for value in values)
+        spans = (cls.span(name, value) if isinstance(value, string_types) else cls.span(*value).mask(name) for value in values)
         return SpanQuery.near(*spans, **kwargs)
 
     @classmethod
@@ -101,7 +102,7 @@ class Query(object):
         """Return lucene MultiPhraseQuery.  None may be used as a placeholder."""
         builder = search.MultiPhraseQuery.Builder()
         for idx, words in enumerate(values):
-            if isinstance(words, basestring):
+            if isinstance(words, string_types):
                 words = [words]
             if words is not None:
                 builder.add([index.Term(name, word) for word in words], idx)
@@ -209,7 +210,7 @@ class DocValues(index.DocValues):
             self.array, self.size, self.type = array, size, type
 
         def __iter__(self):
-            return map(self.__getitem__, xrange(self.size))
+            return map(self.__getitem__, range(self.size))
 
         def __getitem__(self, id):
             return self.type(self.array.get(id))
@@ -222,7 +223,7 @@ class DocValues(index.DocValues):
     class SortedNumeric(Numeric):
         def __getitem__(self, id):
             self.array.document = id
-            return tuple(self.type(self.array.valueAt(index)) for index in xrange(self.array.count()))
+            return tuple(self.type(self.array.valueAt(index)) for index in range(self.array.count()))
 
     class SortedSet(Sorted):
         def __getitem__(self, id):
@@ -271,7 +272,7 @@ class Highlighter(highlight.Highlighter):
         :param doc: text string or doc id to be highlighted
         :param count: maximum number of fragments
         """
-        if not isinstance(doc, basestring):
+        if not isinstance(doc, string_types):
             doc = self.searcher.doc(doc, self.selector)[self.field]
         return doc and list(self.getBestFragments(self.searcher.analyzer, self.field, doc, count))
 

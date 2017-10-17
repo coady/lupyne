@@ -2,16 +2,18 @@
 Wrappers for lucene Fields and Documents.
 """
 
-from future_builtins import map
-import datetime
 import calendar
+import collections
+import datetime
 import operator
 import lucene  # noqa
 from java.lang import Double, Float, Long, Number, Object
 from java.util import Arrays, HashSet
 from org.apache.lucene import document, index, search, util
 from org.apache.lucene.search import grouping
+from six.moves import map, range
 from .queries import Query
+from ..utils import long
 FieldType = document.FieldType
 
 
@@ -306,9 +308,7 @@ class Hits(object):
 
     def __getitem__(self, index):
         if isinstance(index, slice):
-            start, stop, step = index.indices(len(self))
-            assert step == 1, 'slice step is not supported'
-            scoredocs = self.scoredocs[start:stop] if stop - start < len(self) else self.scoredocs
+            scoredocs = list(map(self.scoredocs.__getitem__, range(*index.indices(len(self)))))
             return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
         scoredoc = self.scoredocs[index]
         keys = search.FieldDoc.cast_(scoredoc).fields if search.FieldDoc.instance_(scoredoc) else ()
@@ -330,16 +330,16 @@ class Hits(object):
     def groupby(self, func, count=None, docs=None):
         """Return ordered list of `Hits`_ grouped by value of function applied to doc ids.
         Optionally limit the number of groups and docs per group."""
-        groups = {}
+        groups = collections.OrderedDict()
         for scoredoc in self.scoredocs:
             value = func(scoredoc.doc)
             try:
                 group = groups[value]
             except KeyError:
                 group = groups[value] = type(self)(self.searcher, [], fields=self.fields)
-                group.index, group.value = len(groups), value
+                group.value = value
             group.scoredocs.append(scoredoc)
-        groups = sorted(groups.values(), key=lambda group: group.__dict__.pop('index'))
+        groups = list(groups.values())
         for group in groups:
             group.count, group.maxscore = len(group), max(group.scores)
             group.scoredocs = group.scoredocs[:docs]

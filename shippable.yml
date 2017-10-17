@@ -6,6 +6,6 @@ build:
     image_tag: 6.4
     pull: true
   ci:
-    - pip install cherrypy clients pytest-cov
+    - pip install cherrypy clients pytest-cov six
     - pytest -v --cov --cov-fail-under=100
     - coverage xml -o shippable/codecoverage/coverage.xml

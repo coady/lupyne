@@ -43,7 +43,7 @@ class Point(tuple):
     def within(self, distance, zoom):
         """Generate sets of tiles with increasing zoom which are within distance of point."""
         tiles = [str.__new__(Tile, '')]
-        for i in xrange(zoom):
+        for i in range(zoom):
             tiles = [subtile for tile in tiles for subtile in tile.subtiles if subtile.distance(self) <= distance]
             yield tiles
 
@@ -86,7 +86,7 @@ class Tile(str):
         """Generate all tiles between corners."""
         assert len(self) == len(other)
         (left, right), (bottom, top) = map(sorted, zip(self.coords, other.coords))
-        for x, y in itertools.product(xrange(left, right + 1), xrange(bottom, top + 1)):
+        for x, y in itertools.product(range(left, right + 1), range(bottom, top + 1)):
             yield type(self)(x, y, len(self))
 
 

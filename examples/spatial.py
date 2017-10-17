@@ -7,6 +7,7 @@ final number of grouped tiles, and the ratio of extra area searched.
 Experiment with different tile limits to see search accuracy.
 """
 
+from __future__ import print_function
 import argparse
 import itertools
 import math
@@ -49,7 +50,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     sets = Point(args.lng, args.lat).within(args.distance, 30)
     tiles = list(itertools.takewhile(lambda tiles: len(tiles) <= args.tiles, sets))[-1]
-    print >>sys.stderr, len(tiles), 'tiles at precision', len(tiles[0])
+    print(len(tiles), 'tiles at precision', len(tiles[0]), file=sys.stderr)
 
     grouped = []
     while tiles:
@@ -71,5 +72,5 @@ if __name__ == '__main__':
         (west, south), (east, north) = (point.coords for point in points)
         overlays.append(overlay.format(north, south, east, west))
     area /= math.pi * (args.distance) ** 2
-    print >>sys.stderr, len(grouped), 'grouped tiles covering', area, 'times the circle area'
-    print document.format(args.lng, args.lat, os.linesep.join(overlays))
+    print(len(grouped), 'grouped tiles covering', area, 'times the circle area', file=sys.stderr)
+    print(document.format(args.lng, args.lat, os.linesep.join(overlays)))

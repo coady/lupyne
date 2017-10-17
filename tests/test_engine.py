@@ -1,13 +1,14 @@
-from future_builtins import map, zip
-import os
+import bisect
 import datetime
 import math
-import bisect
+import os
 import pytest
 import lucene
 from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
+from six.moves import map, zip
 from lupyne import engine
+from lupyne.utils import long
 
 Q = engine.Query
 tokenizer = analysis.standard.StandardTokenizer
@@ -81,9 +82,7 @@ def test_interface(tempdir):
     assert list(indexer.positions('text', 'world', offsets=True)) == [(0, [(-1, -1)])]
     hits = indexer.search('text:hello')
     assert len(hits) == hits.count == 1
-    with pytest.raises(AssertionError):
-        hits[slice(None, None, 2)]
-    assert hits.scoredocs is hits[:1].scoredocs and not hits[1:]
+    assert hits.scoredocs == hits[:1].scoredocs and not hits[1:]
     assert list(hits.ids) == [0]
     score, = hits.scores
     assert 0 < score < 1
@@ -165,8 +164,8 @@ def test_basic(tempdir, fields, constitution):
     assert len(indexer) == len(indexer.search()) == 35
     articles = list(indexer.terms('article'))
     articles.remove('Preamble')
-    assert sorted(map(int, articles)) == range(1, 8)
-    assert sorted(map(int, indexer.terms('amendment'))) == range(1, 28)
+    assert sorted(map(int, articles)) == list(range(1, 8))
+    assert sorted(map(int, indexer.terms('amendment'))) == list(range(1, 28))
     assert list(indexer.terms('text', 'right')) == ['right', 'rights']
     assert dict(indexer.terms('text', 'right', counts=True)) == {'right': 13, 'rights': 1}
     assert list(indexer.terms('text', 'right', 'right_')) == ['right']
@@ -177,7 +176,7 @@ def test_basic(tempdir, fields, constitution):
     word, count = next(indexer.terms('text', 'people', counts=True))
     assert word == 'people' and count == 8
     docs = dict(indexer.docs('text', 'people', counts=True))
-    counts = docs.values()
+    counts = list(docs.values())
     assert len(docs) == count and all(counts) and sum(counts) > count
     positions = dict(indexer.positions('text', 'people'))
     assert list(map(len, positions.values())) == counts
@@ -431,7 +430,7 @@ def test_fields(indexer, constitution):
             document.Field('name', 'value', document.FieldType())
     assert str(engine.Field.String('')) == str(document.StringField('', '', document.Field.Store.NO).fieldType())
     assert str(engine.Field.Text('')) == str(document.TextField('', '', document.Field.Store.NO).fieldType())
-    assert str(engine.NumericField('', int)) == str(document.LegacyLongField('', 0L, document.Field.Store.NO).fieldType())
+    assert str(engine.NumericField('', int)) == str(document.LegacyLongField('', long(0), document.Field.Store.NO).fieldType())
     assert str(engine.DateTimeField('')) == str(document.LegacyDoubleField('', 0.0, document.Field.Store.NO).fieldType())
     settings = {'docValuesType': 'NUMERIC', 'indexOptions': 'DOCS'}
     field = engine.Field('', **settings)
