@@ -12,4 +12,4 @@ from .indexers import TokenFilter, Analyzer, IndexSearcher, MultiSearcher, Index
 from .spatial import PointField, PolygonField
 
 version = tuple(map(int, lucene.VERSION.split('.')))
-assert version >= (4, 10)
+assert version >= (6,), version

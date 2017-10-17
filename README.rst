@@ -9,8 +9,6 @@ About Lupyne
 .. image:: https://api.shippable.com/projects/56059e3e1895ca4474182ec3/coverageBadge?branch=master
    :target: https://app.shippable.com/github/coady/lupyne
 
-:Note: Although lupyne is maintained, its dependency `PyLucene is dormant`_ for lack of interest.
-
 The core engine is a high level interface to `PyLucene`_, which is a Python extension for accessing the popular Java Lucene search engine.
 Lucene has a reputation for being a relatively low-level toolkit, and the goal of PyLucene is to wrap it through automatic code generation.
 So although PyLucene transforms Java idioms to Python idioms where possible, the resulting interface is far from Pythonic.
@@ -60,6 +58,10 @@ Tests
 
 Changes
 ==================
+dev
+
+* PyLucene 6 required
+
 1.9
 
 * Python 2.6 dropped
