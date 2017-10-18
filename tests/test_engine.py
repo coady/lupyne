@@ -471,6 +471,10 @@ def test_fields(indexer, constitution):
     assert list(hits.ids) == ids
     hits = indexer.search(query, count=3, sort='size')
     assert list(hits.ids) == ids[:len(hits)]
+    hits.select('amendment')
+    hit = hits[0].dict()
+    assert math.isnan(hit.pop('__score__'))
+    assert hit == {'amendment': '20', '__id__': 19, '__keys__': ('1923',)}
     query = Q.range('size', None, '1000')
     assert indexer.count(query) == len(sizes) - len(ids)
 

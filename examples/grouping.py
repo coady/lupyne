@@ -14,7 +14,7 @@ It also has no limitations on multiple values, and can be fully customized witho
 import itertools
 import lucene
 from lupyne import engine
-lucene.initVM()
+assert lucene.getVMEnv() or lucene.initVM()
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
 facets = dict(zip(colors, itertools.count(1)))

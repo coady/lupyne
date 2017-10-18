@@ -18,6 +18,6 @@ check:
 	python setup.py $@ -mrs
 	flake8
 	python -m examples
-	pytest-2.7 tests/test_engine.py --cov=lupyne.engine
+	pytest-2.7 tests/test_engine.py --cov=lupyne.engine  --cov-fail-under=100
 	pytest --cov --cov-fail-under=100
 	pytest -vk example

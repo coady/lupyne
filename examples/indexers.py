@@ -5,7 +5,7 @@ Basic indexing and searching example adapted from http://lucene.apache.org/core/
 import lucene
 from org.apache.lucene import analysis, document, index, queryparser, search, store
 from lupyne import engine
-lucene.initVM()
+assert lucene.getVMEnv() or lucene.initVM()
 
 # # # lucene # # #
 

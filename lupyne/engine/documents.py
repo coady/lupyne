@@ -312,7 +312,7 @@ class Hits(object):
             return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
         scoredoc = self.scoredocs[index]
         keys = search.FieldDoc.cast_(scoredoc).fields if search.FieldDoc.instance_(scoredoc) else ()
-        doc = self.searcher.doc(scoredoc.doc, self.fields)
+        doc = self.searcher.doc(scoredoc.doc, *([self.fields] * bool(self.fields)))
         return Hit(doc, scoredoc.doc, scoredoc.score, keys)
 
     @property

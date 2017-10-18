@@ -19,7 +19,7 @@ Q = engine.Query
 
 
 if __name__ == '__main__':
-    lucene.initVM(vmargs='-Xrs')
+    assert lucene.getVMEnv() or lucene.initVM(vmargs='-Xrs')
     root = server.WebIndexer()
     # assign field settings
     root.indexer.set('amendment', engine.Field.String, stored=True)

@@ -16,7 +16,7 @@ def pytest_report_header(config):
 
 
 def pytest_configure(config):
-    assert lucene.initVM(vmargs='-Djava.awt.headless=true')
+    assert lucene.initVM()
 
 
 @pytest.fixture

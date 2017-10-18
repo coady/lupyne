@@ -21,7 +21,7 @@ Custom sorting isn't necessary in the below example of course, just there for de
 import lucene
 from org.apache.lucene import search
 from lupyne import engine
-lucene.initVM()
+assert lucene.getVMEnv() or lucene.initVM()
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
 indexer = engine.Indexer()

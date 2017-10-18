@@ -798,9 +798,7 @@ class WebIndexer(WebSearcher):
 
 def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
     """Callback to initialize VM and app roots after daemonizing."""
-    if vmargs:
-        kwargs['vmargs'] = vmargs
-    lucene.initVM(**kwargs)
+    assert lucene.getVMEnv() or lucene.initVM(vmargs=vmargs, **kwargs)
     for app in cherrypy.tree.apps.values():
         if isinstance(app.root, WebSearcher):
             app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))
