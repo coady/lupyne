@@ -22,6 +22,8 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Internet :: WWW/HTTP :: HTTP Servers',
         'Topic :: Internet :: WWW/HTTP :: Indexing/Search',
         'Topic :: Software Development :: Libraries :: Python Modules',

@@ -42,8 +42,9 @@ Installation
 
 Dependencies
 ==================
-* Python 2.7
-* PyLucene 4.10      (installed separately)
+* Python 2.7, 3.6
+* PyLucene 6+     (installed separately)
+* six
 
 Optional server extras
 
