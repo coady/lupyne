@@ -6,9 +6,9 @@ clean:
 	rm -rf dist lupyne.egg-info
 
 html:
-	make -C docs $@ SPHINXOPTS=-W SPHINXBUILD=sphinx-build-2.7
+	make -C docs $@ SPHINXOPTS=-W SPHINXBUILD=sphinx-build
 	rst2$@.py README.rst docs/_build/README.$@
-	python2 -m examples.spatial > docs/_build/spatial.kml
+	python -m examples.spatial > docs/_build/spatial.kml
 
 dist: html
 	python setup.py sdist
@@ -18,5 +18,6 @@ check:
 	python setup.py $@ -mrs
 	flake8
 	python -m examples
-	pytest-2.7 --cov --cov-fail-under=100
-	pytest-2.7 -vk example
+	pytest-2.7 tests/test_engine.py --cov=lupyne.engine
+	pytest --cov --cov-fail-under=100
+	pytest -vk example

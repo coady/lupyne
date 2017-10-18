@@ -85,8 +85,8 @@ def test_terms(resource):
     assert resource.terms() == ['amendment', 'article', 'date', 'text', 'year']
     articles = resource.terms('article')
     articles.remove('Preamble')
-    assert sorted(map(int, articles)) == range(1, 8)
-    assert sorted(map(int, resource.terms('amendment'))) == range(1, 28)
+    assert sorted(map(int, articles)) == list(range(1, 8))
+    assert sorted(map(int, resource.terms('amendment'))) == list(range(1, 28))
     assert resource.terms('text/:0') == []
     assert resource.terms('text/right:right~') == resource.terms('text/right*') == ['right', 'rights']
     assert resource.terms('text/writ*') == ['writ', 'writing', 'writings', 'writs', 'written']
@@ -103,7 +103,7 @@ def test_terms(resource):
     counts = dict(resource.terms('text/people/docs/counts'))
     assert sorted(counts) == docs and all(counts.values()) and sum(counts.values()) > len(counts)
     positions = dict(resource.terms('text/people/docs/positions'))
-    assert sorted(positions) == docs and list(map(len, positions.values())) == counts.values()
+    assert sorted(positions) == docs and list(map(len, positions.values())) == list(counts.values())
     assert resource.client.get('terms/text/people/missing').status_code == http_client.NOT_FOUND
     assert resource.client.get('terms/text/people/docs/missing').status_code == http_client.NOT_FOUND
 
