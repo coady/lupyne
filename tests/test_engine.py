@@ -214,8 +214,6 @@ def test_basic(tempdir, fields, constitution):
     assert hit['amendment'] == '4'
     hit, = indexer.search(Q.phrase('text', 'persons', None, 'papers', slop=1))
     assert hit['amendment'] == '4'
-    hit, = indexer.search(Q.multiphrase('text', 'persons', ['houses', 'papers']))
-    assert hit['amendment'] == '4'
     span = Q.span('text', 'persons')
     count = indexer.count(span)
     near = span.near(Q.span('text', 'papers') | Q.span('text', 'things'), slop=1)
@@ -276,6 +274,7 @@ def test_queries():
     term = Q.term('text', 'lucene')
     assert str(term) == 'text:lucene'
     assert str(term.constant()) == 'ConstantScore(text:lucene)'
+    assert str(term.boost(2.0)) == '(text:lucene)^2.0'
     assert str(+term) == '+text:lucene'
     assert str(-term) == '-text:lucene'
     assert str(term & alldocs) == '+text:lucene +*:*'
@@ -285,11 +284,12 @@ def test_queries():
     assert str(term - alldocs) == 'text:lucene -*:*'
     assert str(alldocs - term) == '*:* -text:lucene'
 
-    assert Q.term('text', 'lucene', boost=2.0).boost == 2.0
     assert str(Q.any(term, text='search')) == 'text:lucene text:search'
     assert str(Q.any(text=['search', 'engine'])) == 'text:search text:engine'
     assert str(Q.all(term, text='search')) == '+text:lucene +text:search'
     assert str(Q.all(text=['search', 'engine'])) == '+text:search +text:engine'
+    assert str(Q.filter(term, text='search')) == '#text:lucene #text:search'
+    assert str(Q.filter(text=['search', 'engine'])) == '#text:search #text:engine'
     assert str(Q.disjunct(0.0, term, text='search')) == '(text:lucene | text:search)'
     assert str(Q.disjunct(0.1, text=['search', 'engine'])) == '(text:search | text:engine)~0.1'
     assert str(Q.prefix('text', 'lucene')) == 'text:lucene*'
@@ -297,7 +297,7 @@ def test_queries():
     assert str(Q.range('text', 'start', 'stop', lower=False, upper=True)) == 'text:{start TO stop]'
     assert str(Q.phrase('text', 'search', 'engine', slop=2)) == 'text:"search engine"~2'
     assert str(Q.phrase('text', 'search', None, 'engine')) == 'text:"search ? engine"'
-    assert str(Q.multiphrase('text', 'lucene', None, ('search', 'engine'))) == 'text:"lucene ? (search engine)"'
+    assert str(Q.phrase('text', 'lucene', ('search', 'engine'))) == 'text:"lucene (search engine)"'
     wildcard = Q.wildcard('text', '*')
     assert str(wildcard) == 'text:*' and isinstance(wildcard, search.WildcardQuery)
     assert str(Q.fuzzy('text', 'lucene')) == 'text:lucene~2'

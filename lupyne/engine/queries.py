@@ -21,18 +21,16 @@ class Query(object):
 
     Uses class methods and operator overloading for convenient query construction.
     """
-    def __new__(cls, base, *args, **attrs):
+    def __new__(cls, base, *args):
         return base.__new__(type(base.__name__, (cls, base), {}))
 
-    def __init__(self, base, *args, **attrs):
+    def __init__(self, base, *args):
         base.__init__(self, *args)
-        for name in attrs:
-            setattr(self, name, attrs[name])
 
     @classmethod
-    def term(cls, name, value, **attrs):
+    def term(cls, name, value):
         """Return lucene TermQuery."""
-        return cls(search.TermQuery, index.Term(name, value), **attrs)
+        return cls(search.TermQuery, index.Term(name, value))
 
     @classmethod
     def boolean(cls, occur, *queries, **terms):
@@ -46,13 +44,18 @@ class Query(object):
 
     @classmethod
     def any(cls, *queries, **terms):
-        """Return lucene BooleanQuery (OR) from queries and terms."""
+        """Return lucene BooleanQuery with SHOULD clauses from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.SHOULD, *queries, **terms)
 
     @classmethod
     def all(cls, *queries, **terms):
-        """Return lucene BooleanQuery (AND) from queries and terms."""
+        """Return lucene BooleanQuery with MUST clauses from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.MUST, *queries, **terms)
+
+    @classmethod
+    def filter(cls, *queries, **terms):
+        """Return lucene BooleanQuery with FILTER clauses from queries and terms."""
+        return cls.boolean(search.BooleanClause.Occur.FILTER, *queries, **terms)
 
     @classmethod
     def disjunct(cls, multiplier, *queries, **terms):
@@ -89,18 +92,9 @@ class Query(object):
     @classmethod
     def phrase(cls, name, *values, **attrs):
         """Return lucene PhraseQuery.  None may be used as a placeholder."""
-        builder = search.PhraseQuery.Builder()
+        builder = search.MultiPhraseQuery.Builder()
         for attr in attrs:
             setattr(builder, attr, attrs[attr])
-        for idx, value in enumerate(values):
-            if value is not None:
-                builder.add(index.Term(name, value), idx)
-        return builder.build()
-
-    @classmethod
-    def multiphrase(cls, name, *values):
-        """Return lucene MultiPhraseQuery.  None may be used as a placeholder."""
-        builder = search.MultiPhraseQuery.Builder()
         for idx, words in enumerate(values):
             if isinstance(words, string_types):
                 words = [words]
@@ -129,7 +123,11 @@ class Query(object):
 
     def constant(self):
         """Return lucene ConstantScoreQuery."""
-        return search.ConstantScoreQuery(self)
+        return Query(search.ConstantScoreQuery, self)
+
+    def boost(self, value):
+        """Return lucene ConstantScoreQuery."""
+        return Query(search.BoostQuery, self, value)
 
     def __pos__(self):
         """+self"""
