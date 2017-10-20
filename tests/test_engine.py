@@ -284,6 +284,7 @@ def test_queries():
     assert str(term - alldocs) == 'text:lucene -*:*'
     assert str(alldocs - term) == '*:* -text:lucene'
 
+    assert set(str(Q.terms('text', ['search', 'engine'])).split()) == {'text:search', 'text:engine'}
     assert str(Q.any(term, text='search')) == 'text:lucene text:search'
     assert str(Q.any(text=['search', 'engine'])) == 'text:search text:engine'
     assert str(Q.all(term, text='search')) == '+text:lucene +text:search'
@@ -303,6 +304,7 @@ def test_queries():
     assert str(Q.fuzzy('text', 'lucene')) == 'text:lucene~2'
     assert str(Q.fuzzy('text', 'lucene', 1)) == 'text:lucene~1'
     assert str(Q.alldocs()) == '*:*'
+    assert str(Q.nodocs()) == 'MatchNoDocsQuery("")'
     assert str(Q.regexp('text', '.*')) == 'text:/.*/'
 
     span = Q.span('text', 'lucene')

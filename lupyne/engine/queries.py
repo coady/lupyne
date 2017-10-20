@@ -33,6 +33,11 @@ class Query(object):
         return cls(search.TermQuery, index.Term(name, value))
 
     @classmethod
+    def terms(cls, name, values):
+        """Return lucene TermInSetQuery, optimizing a SHOULD BooleanQuery of many terms."""
+        return cls(search.TermInSetQuery, name, list(map(util.BytesRef, values)))
+
+    @classmethod
     def boolean(cls, occur, *queries, **terms):
         builder = search.BooleanQuery.Builder()
         for query in queries:
@@ -91,7 +96,7 @@ class Query(object):
 
     @classmethod
     def phrase(cls, name, *values, **attrs):
-        """Return lucene PhraseQuery.  None may be used as a placeholder."""
+        """Return lucene MultiPhraseQuery.  None may be used as a placeholder."""
         builder = search.MultiPhraseQuery.Builder()
         for attr in attrs:
             setattr(builder, attr, attrs[attr])
@@ -114,7 +119,13 @@ class Query(object):
 
     @classmethod
     def alldocs(cls):
+        """Return lucene MatchAllDocsQuery."""
         return cls(search.MatchAllDocsQuery)
+
+    @classmethod
+    def nodocs(cls):
+        """Return lucene MatchNoDocsQuery."""
+        return cls(search.MatchNoDocsQuery)
 
     @classmethod
     def regexp(cls, name, value, *args):
