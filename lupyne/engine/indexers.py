@@ -11,7 +11,7 @@ import operator
 import os
 from functools import partial
 import lucene
-from java.io import File, StringReader
+from java.io import File, IOException, StringReader
 from java.lang import Float
 from java.util import Arrays, HashMap, HashSet
 from org.apache.lucene import analysis, document, index, queries, queryparser, search, store, util
@@ -532,9 +532,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if len(query) > 1:
             return self.docFreq(index.Term(*query))
         query = self.parse(*query, **options) if query else Query.alldocs()
-        collector = search.TotalHitCountCollector()
-        search.IndexSearcher.search(self, query, collector)
-        return collector.totalHits
+        return super(IndexSearcher, self).count(query)
 
     def collector(self, query, count=None, sort=None, reverse=False, scores=False, maxscore=False):
         if count is None:
@@ -679,7 +677,8 @@ class IndexWriter(index.IndexWriter):
 
     def __del__(self):
         if hash(self):
-            self.close()
+            with suppress(IOException):
+                self.close()
 
     @classmethod
     def check(cls, directory, fix=False):
