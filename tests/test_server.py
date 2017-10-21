@@ -220,8 +220,6 @@ def test_facets(tempdir, servers, zipcodes):
     assert resource.post('update') == resource().popitem()[1] == len(writer)
     terms = resource.terms(urllib.parse.quote('zipcode:int'))
     assert len(terms) == len(writer) and terms[0] == 90001
-    terms = resource.terms(urllib.parse.quote('zipcode:int'), step=16)
-    assert terms == [65536]
     result = resource.search(count=0, facets='county')
     facets = result['facets']['county']
     assert result['count'] == sum(facets.values()) and 'Los Angeles' in facets

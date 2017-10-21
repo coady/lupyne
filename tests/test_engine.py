@@ -6,7 +6,7 @@ import pytest
 import lucene
 from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
-from six.moves import map, zip
+from six.moves import map
 from lupyne import engine
 from lupyne.utils import long
 
@@ -377,7 +377,7 @@ def test_spatial(indexer, zipcodes):
     assert point.coords == (-120, 39) and not list(point.within(1, 0))
     for name in ('longitude', 'latitude'):
         indexer.set(name, engine.NumericField, numericType=float, stored=True, docValuesType='numeric')
-    field = indexer.set('tile', engine.PointField, precision=15, numericPrecisionStep=2, stored=True)
+    field = indexer.set('tile', engine.PointField, precision=15, stored=True)
     points = []
     for doc in zipcodes:
         if doc['state'] == 'CA':
@@ -484,7 +484,7 @@ def test_fields(indexer, constitution):
 def test_numeric(indexer, constitution):
     indexer.set('amendment', engine.NumericField, numericType=int, stored=True)
     field = indexer.set('date', engine.DateTimeField, stored=True)
-    indexer.set('size', engine.NumericField, numericType=int, stored=True, numericPrecisionStep=5, docValuesType='numeric')
+    indexer.set('size', engine.NumericField, numericType=int, stored=True, docValuesType='numeric')
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
@@ -516,7 +516,7 @@ def test_numeric(indexer, constitution):
     assert str(field.range(-2 ** 64, 0)) == 'size:[* TO 0}'
     assert str(field.range(0, 2 ** 64)) == 'size:[0 TO *}'
     assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
-    for step, count in zip(range(0, 20, field.numericPrecisionStep), (26, 19, 3, 1)):
+    for step, count in [(0, 26), (32, 1)]:
         sizes = list(indexer.numbers('size', step))
         assert len(sizes) == count and all(isinstance(size, int) for size in sizes)
         numbers = dict(indexer.numbers('size', step, type=float, counts=True))

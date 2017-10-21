@@ -493,7 +493,7 @@ class WebSearcher(object):
         return result
 
     @cherrypy.expose
-    @cherrypy.tools.params(count=int, step=int)
+    @cherrypy.tools.params(count=int)
     def terms(self, name='', value='*', *path, **options):
         """Return data about indexed terms.
 
@@ -502,8 +502,8 @@ class WebSearcher(object):
 
             :return: [*string*,... ]
 
-        **GET** /terms/*chars*\[:int|float\]?step=0
-            Return term values for given field name, with optional type and step for numeric encoded values.
+        **GET** /terms/*chars*\[:int|float\]
+            Return term values for given field name, with optional type for numeric encoded values.
 
             :return: [*string*,... ]
 
@@ -545,7 +545,7 @@ class WebSearcher(object):
             with HTTPError((ValueError, AttributeError)):
                 name, type = name.split(':')
                 type = getattr(__builtins__, type)
-            return list(searcher.numbers(name, step=options.get('step', 0), type=type))
+            return list(searcher.numbers(name, type=type))
         if ':' in value:
             return list(searcher.terms(name, *value.split(':')))
         if value.endswith('*'):

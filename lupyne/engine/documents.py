@@ -26,7 +26,6 @@ class Field(FieldType):
     """
     docValuesType = property(FieldType.docValuesType, FieldType.setDocValuesType)
     indexOptions = property(FieldType.indexOptions, FieldType.setIndexOptions)
-    numericPrecisionStep = property(FieldType.numericPrecisionStep, FieldType.setNumericPrecisionStep)
     numericType = property(FieldType.numericType, FieldType.setNumericType)
     omitNorms = property(FieldType.omitNorms, FieldType.setOmitNorms)
     stored = property(FieldType.stored, FieldType.setStored)
@@ -156,15 +155,14 @@ class NumericField(Field):
 
     def range(self, start, stop, lower=True, upper=False):
         """Return lucene NumericRangeQuery."""
-        step = self.numericPrecisionStep
         if isinstance(start, float) or isinstance(stop, float):
             start, stop = (value if value is None else Double(value) for value in (start, stop))
-            return search.LegacyNumericRangeQuery.newDoubleRange(self.name, step, start, stop, lower, upper)
+            return search.LegacyNumericRangeQuery.newDoubleRange(self.name, start, stop, lower, upper)
         if start is not None:
             start = None if start < Long.MIN_VALUE else Long(long(start))
         if stop is not None:
             stop = None if stop > Long.MAX_VALUE else Long(long(stop))
-        return search.LegacyNumericRangeQuery.newLongRange(self.name, step, start, stop, lower, upper)
+        return search.LegacyNumericRangeQuery.newLongRange(self.name, start, stop, lower, upper)
 
     def term(self, value):
         """Return range query to match single term."""
