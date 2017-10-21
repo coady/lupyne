@@ -49,9 +49,7 @@ def test_interface(tempdir):
         engine.Indexer(indexer.directory)
     indexer.set('text', engine.Field.Text)
     indexer.set('name', stored=True)
-    indexer.set('tag', engine.Field.Text, stored=True, boost=2.0)
-    for field in indexer.fields['tag'].items('sample'):
-        assert isinstance(field, document.Field) and field.boost() == 2.0
+    indexer.set('tag', engine.Field.Text, stored=True)
     searcher = indexer.indexSearcher
     indexer.commit()
     assert searcher is indexer.indexSearcher
@@ -427,6 +425,8 @@ def test_spatial(indexer, zipcodes):
 def test_fields(indexer, constitution):
     with pytest.raises(lucene.InvalidArgsError):
         engine.Field('', stored='invalid')
+    with pytest.raises(AttributeError):
+        engine.Field('', invalid=None)
     with pytest.raises(lucene.JavaError):
         with engine.queries.suppress(search.TimeLimitingCollector.TimeExceededException):
             document.Field('name', 'value', document.FieldType())

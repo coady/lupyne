@@ -40,11 +40,13 @@ class Field(FieldType):
     types = {int: 'long', float: 'double'}
     types.update(NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string')
 
-    def __init__(self, name, boost=1.0, docValuesType='', indexOptions='', numericType='', **settings):
+    def __init__(self, name, docValuesType='', indexOptions='', numericType='', **settings):
         super(Field, self).__init__()
-        self.name, self.boost = name, boost
+        self.name = name
+        for name in self.properties.intersection(settings):
+            setattr(self, name, settings.pop(name))
         for name in settings:
-            setattr(self, name, settings[name])
+            raise AttributeError("'Field' object has not property '{}".format(name))
         if indexOptions:
             self.indexOptions = getattr(index.IndexOptions, indexOptions.upper())
         if numericType:
@@ -101,9 +103,7 @@ class Field(FieldType):
                 yield self.numericClass(self.name, types[type(value)](value), self)
         elif self.stored or self.indexed:
             for value in values:
-                field = document.Field(self.name, value, self)
-                field.setBoost(self.boost)
-                yield field
+                yield document.Field(self.name, value, self)
 
 
 class NestedField(Field):
