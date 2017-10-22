@@ -9,15 +9,15 @@ from org.apache.lucene.search import highlight, vectorhighlight
 from six.moves import map
 from lupyne import engine
 from lupyne.utils import long
-
 Q = engine.Query
-tokenizer = analysis.standard.StandardTokenizer
 
 
 class typeAsPayload(engine.TokenFilter):
     "Custom implementation of lucene TypeAsPayloadTokenFilter."
-    def setattrs(self):
+    def incrementToken(self):
+        result = self.input.incrementToken()
         self.payload = self.type
+        return result
 
 
 @pytest.fixture
@@ -29,21 +29,32 @@ def indexer(tempdir):
         yield indexer
 
 
+def test_analyzers():
+    stemmer = engine.Analyzer.standard(analysis.en.PorterStemFilter, typeAsPayload)
+    for token in stemmer.tokens('Search'):
+        assert token.positionIncrement == 1
+        assert engine.TokenFilter(analysis.miscellaneous.EmptyTokenStream()).payload is None
+        assert token.charTerm == 'search'
+        assert token.type == token.payload == '<ALPHANUM>'
+        assert token.offset == (0, 6)
+        token.charTerm = token.type = ''
+        token.offset, token.positionIncrement = (0, 0), 0
+    assert str(stemmer.parse('searches', field=['body', 'title'])) == 'body:search title:search'
+    assert str(stemmer.parse('searches', field={'body': 1.0, 'title': 2.0})) == '(body:search)^1.0 (title:search)^2.0'
+    indexer = engine.Indexer(analyzer=stemmer)
+    indexer.set('text', engine.Field.Text)
+    indexer.add(text='searches')
+    indexer.commit()
+    item, = indexer.positions('text', 'search', payloads=True)
+    assert item == (0, [(0, '<ALPHANUM>')])
+    analyzer = engine.Analyzer.whitespace(engine.TokenFilter)
+    assert [token.charTerm for token in analyzer.tokens('Search Engine')] == ['Search', 'Engine']
+
+
 def test_interface(tempdir):
     with pytest.raises(TypeError):
         engine.IndexSearcher()
-    stemmer = engine.Analyzer(tokenizer, analysis.en.PorterStemFilter, typeAsPayload)
-    for token in stemmer.tokens('hello'):
-        assert token.positionIncrement == 1
-        assert engine.TokenFilter(analysis.miscellaneous.EmptyTokenStream()).payload is None
-        assert token.term == 'hello'
-        assert token.type == token.payload == '<ALPHANUM>'
-        assert token.offset == (0, 5)
-        token.term = token.type = ''
-        token.offset, token.positionIncrement = (0, 0), 0
-    assert str(stemmer.parse('hellos', field=['body', 'title'])) == 'body:hello title:hello'
-    assert str(stemmer.parse('hellos', field={'body': 1.0, 'title': 2.0})) == '(body:hello)^1.0 (title:hello)^2.0'
-    indexer = engine.Indexer(analyzer=stemmer, useCompoundFile=False)
+    indexer = engine.Indexer(useCompoundFile=False)
     assert not indexer.config.useCompoundFile
     with pytest.raises(lucene.JavaError):
         engine.Indexer(indexer.directory)
@@ -54,7 +65,7 @@ def test_interface(tempdir):
     indexer.commit()
     assert searcher is indexer.indexSearcher
     assert not searcher.search(count=1)
-    indexer.add(text='hello worlds', name='sample', tag=['python', 'search'])
+    indexer.add(text='hello world', name='sample', tag=['python', 'search'])
     assert len(indexer) == 1 and list(indexer) == []
     indexer.commit()
     assert searcher is not indexer.indexSearcher
@@ -76,7 +87,6 @@ def test_interface(tempdir):
     assert list(indexer.docs('text', 'hi')) == []
     assert list(indexer.docs('text', 'world', counts=True)) == [(0, 1)]
     assert list(indexer.positions('text', 'world')) == [(0, [1])]
-    assert list(indexer.positions('text', 'world', payloads=True)) == [(0, [(1, '<ALPHANUM>')])]
     assert list(indexer.positions('text', 'world', offsets=True)) == [(0, [(-1, -1)])]
     hits = indexer.search('text:hello')
     assert len(hits) == hits.count == 1
@@ -152,10 +162,11 @@ def test_basic(tempdir, fields, constitution):
     indexer.commit(spellcheckers=True)
     assert reader.refCount == 0
     assert list(indexer.spellcheckers) == ['amendment']
+    analyzer = engine.Analyzer.standard()
     doc = {
         'text': doc['text'],
-        'amendment': engine.Analyzer(tokenizer).tokens(doc['amendment']),
-        'date': (engine.Analyzer(tokenizer).tokens(doc['date']), 2.0),
+        'amendment': analyzer.tokens(doc['amendment']),
+        'date': (analyzer.tokens(doc['date']), 2.0),
     }
     scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
     assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0

@@ -2,15 +2,16 @@ engine
 ======
 .. automodule:: lupyne.engine
 
-  * `TokenFilter`_, `Analyzer`_, `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_,
+  * `TokenFilter`_, `Analyzer`_
+  * `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_
   * `Document`_, `Field`_, `NestedField`_, `NumericField`_, `DateTimeField`_
-  * `Query`_,
+  * `Query`_
   * `PointField`_, `PolygonField`_
 
 
-indexers
+analyzers
 ---------
-.. automodule:: lupyne.engine.indexers
+.. automodule:: lupyne.engine.analyzers
 
 TokenStream
 ^^^^^^^^^^^^^
@@ -27,6 +28,10 @@ Analyzer
 ^^^^^^^^^^^^^
 .. autoclass:: Analyzer
   :members:
+
+indexers
+---------
+.. automodule:: lupyne.engine.indexers
 
 IndexReader
 ^^^^^^^^^^^^^
