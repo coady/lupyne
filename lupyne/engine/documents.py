@@ -26,7 +26,6 @@ class Field(FieldType):
     """
     docValuesType = property(FieldType.docValuesType, FieldType.setDocValuesType)
     indexOptions = property(FieldType.indexOptions, FieldType.setIndexOptions)
-    numericType = property(FieldType.numericType, FieldType.setNumericType)
     omitNorms = property(FieldType.omitNorms, FieldType.setOmitNorms)
     stored = property(FieldType.stored, FieldType.setStored)
     storeTermVectorOffsets = property(FieldType.storeTermVectorOffsets, FieldType.setStoreTermVectorOffsets)
@@ -38,27 +37,27 @@ class Field(FieldType):
     properties = {name for name in locals() if not name.startswith('__')}
     types = {int: 'long', float: 'double'}
     types.update(NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string')
+    dimensions = property(FieldType.pointDimensionCount, lambda self, count: self.setDimensions(count, Long.BYTES))
 
-    def __init__(self, name, docValuesType='', indexOptions='', numericType='', **settings):
+    def __init__(self, name, docValuesType='', indexOptions='', dimensions=0, **settings):
         super(Field, self).__init__()
         self.name = name
         for name in self.properties.intersection(settings):
             setattr(self, name, settings.pop(name))
         for name in settings:
             raise AttributeError("'Field' object has not property '{}".format(name))
+        if dimensions:
+            self.dimensions = dimensions
         if indexOptions:
             self.indexOptions = getattr(index.IndexOptions, indexOptions.upper())
-        if numericType:
-            self.numericType = getattr(FieldType.LegacyNumericType, numericType.upper())
-            self.numericClass = getattr(document, 'Legacy{}Field'.format(numericType.title()))
         if docValuesType:
             self.docValuesType = getattr(index.DocValuesType, docValuesType.upper())
             self.docValueClass = getattr(document, docValuesType.title().replace('_', '') + 'DocValuesField')
-            if (self.stored or self.indexed or self.numericType):
+            if (self.stored or self.indexed or self.dimensions):
                 settings = self.settings
                 del settings['docValuesType']
                 self.docValueLess = Field(self.name, **settings)
-        assert self.stored or self.indexed or self.docvalues or self.numericType
+        assert self.stored or self.indexed or self.docvalues or self.dimensions
 
     @classmethod
     def String(cls, name, tokenized=False, omitNorms=True, indexOptions='DOCS', **settings):
@@ -82,7 +81,7 @@ class Field(FieldType):
     def settings(self):
         """dict representation of settings"""
         defaults = FieldType()
-        result = {}
+        result = {'dimensions': self.dimensions} if self.dimensions else {}
         for name in Field.properties:
             value = getattr(self, name)
             if value != getattr(defaults, name)():
@@ -96,13 +95,18 @@ class Field(FieldType):
             for value in values:
                 yield self.docValueClass(self.name, types.get(type(value), util.BytesRef)(value))
             self = getattr(self, 'docValueLess', self)
-        if self.numericType:
-            types = {int: long, float: float}
+        if self.dimensions:
             for value in values:
-                yield self.numericClass(self.name, types[type(value)](value), self)
-        elif self.stored or self.indexed:
+                if isinstance(value, int):
+                    yield document.LongPoint(self.name, long(value))
+                else:
+                    yield document.DoublePoint(self.name, value)
+        if self.indexed:
             for value in values:
                 yield document.Field(self.name, value, self)
+        elif self.stored:
+            for value in values:
+                yield document.StoredField(self.name, value)
 
 
 class NestedField(Field):
@@ -149,20 +153,30 @@ class NumericField(Field):
     :param name: name of field
     :param type: optional int, float, or lucene NumericType string
     """
-    def __init__(self, name, numericType, omitNorms=True, indexOptions='DOCS', **settings):
-        settings['numericType'] = self.types.get(numericType, numericType)
-        Field.__init__(self, name, omitNorms=omitNorms, indexOptions=indexOptions, **settings)
+    def __init__(self, name, dimensions=1, **settings):
+        Field.__init__(self, name, dimensions=dimensions, **settings)
 
     def range(self, start, stop, lower=True, upper=False):
         """Return lucene NumericRangeQuery."""
         if isinstance(start, float) or isinstance(stop, float):
-            start, stop = (value if value is None else Double(value) for value in (start, stop))
-            return search.LegacyNumericRangeQuery.newDoubleRange(self.name, start, stop, lower, upper)
-        if start is not None:
-            start = None if start < Long.MIN_VALUE else Long(long(start))
-        if stop is not None:
-            stop = None if stop > Long.MAX_VALUE else Long(long(stop))
-        return search.LegacyNumericRangeQuery.newLongRange(self.name, start, stop, lower, upper)
+            if start is None:
+                start = Double.NEGATIVE_INFINITY
+            elif not lower:
+                start = document.DoublePoint.nextUp(start)
+            if stop is None:
+                stop = Double.POSITIVE_INFINITY
+            elif not upper:
+                stop = document.DoublePoint.nextDown(stop)
+            return document.DoublePoint.newRangeQuery(self.name, start, stop)
+        if start is None:
+            start = Long.MIN_VALUE
+        elif not lower:
+            start += 1
+        if stop is None:
+            stop = Long.MAX_VALUE
+        elif not upper:
+            stop -= 1
+        return document.LongPoint.newRangeQuery(self.name, long(start), long(stop))
 
     def term(self, value):
         """Return range query to match single term."""
@@ -174,9 +188,6 @@ class DateTimeField(NumericField):
 
     Supports datetimes, dates, and any prefix of time tuples.
     """
-    def __init__(self, name, **settings):
-        NumericField.__init__(self, name, float, **settings)
-
     @classmethod
     def timestamp(cls, date):
         """Return utc timestamp from date or time tuple."""

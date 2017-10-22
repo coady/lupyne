@@ -376,7 +376,7 @@ def test_spatial(indexer, zipcodes):
     point = engine.spatial.Point(-120, 39)
     assert point.coords == (-120, 39) and not list(point.within(1, 0))
     for name in ('longitude', 'latitude'):
-        indexer.set(name, engine.NumericField, numericType=float, stored=True, docValuesType='numeric')
+        indexer.set(name, engine.NumericField, stored=True, docValuesType='numeric')
     field = indexer.set('tile', engine.PointField, precision=15, stored=True)
     points = []
     for doc in zipcodes:
@@ -419,7 +419,7 @@ def test_spatial(indexer, zipcodes):
     assert 0 < len(hits) < sum(counts.values())
     hits = hits.sorted(distances.__getitem__, reverse=True)
     ids = list(hits.ids)
-    assert 0 == distances[ids[-1]] < distances[ids[0]] < 10 ** 4
+    assert 0 <= distances[ids[-1]] < distances[ids[0]] < 10 ** 4
 
 
 def test_fields(indexer, constitution):
@@ -432,15 +432,15 @@ def test_fields(indexer, constitution):
             document.Field('name', 'value', document.FieldType())
     assert str(engine.Field.String('')) == str(document.StringField('', '', document.Field.Store.NO).fieldType())
     assert str(engine.Field.Text('')) == str(document.TextField('', '', document.Field.Store.NO).fieldType())
-    assert str(engine.NumericField('', int)) == str(document.LegacyLongField('', long(0), document.Field.Store.NO).fieldType())
-    assert str(engine.DateTimeField('')) == str(document.LegacyDoubleField('', 0.0, document.Field.Store.NO).fieldType())
+    assert str(engine.NumericField('')) == str(document.LongPoint('', long(0)).fieldType())
+    assert str(engine.DateTimeField('')) == str(document.DoublePoint('', 0.0).fieldType())
     settings = {'docValuesType': 'NUMERIC', 'indexOptions': 'DOCS'}
     field = engine.Field('', **settings)
     assert field.settings == engine.Field('', **field.settings).settings == settings
     field = engine.NestedField('', stored=True)
     assert field.settings == {'stored': True, 'tokenized': False, 'omitNorms': True, 'indexOptions': 'DOCS'}
     attrs = 'stored', 'omitNorms', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets'
-    field = engine.Field('', **dict.fromkeys(attrs, True))
+    field = engine.Field('', indexOptions='docs', **dict.fromkeys(attrs, True))
     field, = field.items(' ')
     assert all(getattr(field.fieldType(), attr)() for attr in attrs)
     indexer.set('amendment', engine.Field.String, stored=True)
@@ -482,9 +482,9 @@ def test_fields(indexer, constitution):
 
 
 def test_numeric(indexer, constitution):
-    indexer.set('amendment', engine.NumericField, numericType=int, stored=True)
+    indexer.set('amendment', engine.NumericField, stored=True)
     field = indexer.set('date', engine.DateTimeField, stored=True)
-    indexer.set('size', engine.NumericField, numericType=int, stored=True, docValuesType='numeric')
+    indexer.set('size', engine.NumericField, stored=True, docValuesType='numeric')
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
@@ -503,7 +503,6 @@ def test_numeric(indexer, constitution):
     query = field.duration([2009], days=-100 * 365)
     assert indexer.count(query) == 12
     field = indexer.fields['size']
-    assert len(list(indexer.terms('size'))) > len(indexer)
     sizes = {id: int(indexer[id]['size']) for id in indexer}
     ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
     query = field.range(1000, None)
@@ -513,14 +512,11 @@ def test_numeric(indexer, constitution):
     assert list(hits.ids) == ids[:len(hits)]
     query = field.range(None, 1000)
     assert indexer.count(query) == len(sizes) - len(ids)
-    assert str(field.range(-2 ** 64, 0)) == 'size:[* TO 0}'
-    assert str(field.range(0, 2 ** 64)) == 'size:[0 TO *}'
-    assert str(field.range(0.5, None, upper=True)) == 'size:[0.5 TO *]'
-    for step, count in [(0, 26), (32, 1)]:
-        sizes = list(indexer.numbers('size', step))
-        assert len(sizes) == count and all(isinstance(size, int) for size in sizes)
-        numbers = dict(indexer.numbers('size', step, type=float, counts=True))
-        assert sum(numbers.values()) == len(indexer) and all(isinstance(number, float) for number in numbers)
+    assert str(field.range(0, None)) == 'size:[0 TO 9223372036854775807]'
+    assert str(field.range(0, 10, lower=False)) == 'size:[1 TO 9]'
+    assert str(field.range(0.0, None, lower=False)) == 'size:[4.9E-324 TO Infinity]'
+    assert str(field.range(None, 0)) == 'size:[-9223372036854775808 TO -1]'
+    assert str(field.range(None, 0.0, upper=True)) == 'size:[-Infinity TO 0.0]'
     hit, = indexer.search(indexer.fields['amendment'].term(1))
     assert hit['amendment'] == 1
 

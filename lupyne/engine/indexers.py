@@ -364,23 +364,6 @@ class IndexReader(object):
             terms = itertools.takewhile(predicate, terms)
         return ((term, termsenum.docFreq()) for term in terms) if counts else terms
 
-    def numbers(self, name, step=0, type=int, counts=False):
-        """Generate decoded numeric term values, optionally with frequency counts.
-
-        :param name: field name
-        :param step: precision step to select terms
-        :param type: int or float
-        :param counts: include frequency counts
-        """
-        convert = util.NumericUtils.sortableLongToDouble if issubclass(type, float) else int
-        termsenum = index.MultiFields.getTerms(self.indexReader, name).iterator()
-        prefix = ord(' ') + step
-        termsenum.seekCeil(util.BytesRef(chr(prefix)))
-        terms = itertools.chain([termsenum.term()], util.BytesRefIterator.cast_(termsenum))
-        terms = itertools.takewhile(lambda br: br.bytes[0] == prefix, terms)
-        values = map(convert, map(util.LegacyNumericUtils.prefixCodedToLong, terms))
-        return ((value, termsenum.docFreq()) for value in values) if counts else values
-
     def docs(self, name, value, counts=False):
         """Generate doc ids which contain given term, optionally with frequency counts."""
         docsenum = index.MultiFields.getTermDocsEnum(self.indexReader, name, util.BytesRef(value))
@@ -723,7 +706,7 @@ class IndexWriter(index.IndexWriter):
         term = index.Term(name, *[value] if value else doc.getValues(name))
         fields = list(doc.iterator())
         types = [Field.cast_(field.fieldType()) for field in fields]
-        if any(type.stored() or type.indexOptions() != index.IndexOptions.NONE or type.numericType() for type in types):
+        if any(type.stored() or type.indexOptions() != index.IndexOptions.NONE or type.pointDimensionCount() for type in types):
             self.updateDocument(term, doc)
         elif fields:
             self.updateDocValues(term, *fields)

@@ -39,7 +39,7 @@ indexer.set('state', stored=True)
 # set method supports custom field types inheriting their default settings
 indexer.set('incorporated', engine.DateTimeField)
 indexer.set('year-month-day', engine.NestedField, sep='-')
-indexer.set('population', engine.NumericField, numericType=int)
+indexer.set('population', engine.NumericField)
 indexer.set('point', engine.PointField, precision=10)
 # assigned fields can have a different key from their underlying field name
 indexer.fields['location'] = engine.NestedField('state.city')
@@ -53,10 +53,8 @@ for doc in docs:
 indexer.commit()
 
 query = indexer.fields['incorporated'].prefix([1850])
-assert query.max.doubleValue() - query.min.doubleValue() == 60 * 60 * 24 * 365
 assert [hit['city'] for hit in indexer.search(query)] == ['San Francisco', 'Los Angeles']
 query = indexer.fields['incorporated'].range(date(1850, 4, 10), None)
-assert query.max is None
 assert [hit['city'] for hit in indexer.search(query)] == ['San Francisco', 'Portland']
 
 query = indexer.fields['year-month-day'].prefix('1850')
@@ -67,7 +65,7 @@ assert str(query) == 'year-month-day:[1850-04-10 TO *}'
 assert [hit['city'] for hit in indexer.search(query)] == ['San Francisco', 'Portland']
 
 query = indexer.fields['population'].range(0, 1000000)
-assert str(query) == 'population:[0 TO 1000000}'
+assert str(query) == 'population:[0 TO 999999]'
 assert [hit['city'] for hit in indexer.search(query)] == ['San Francisco', 'Portland']
 
 cities = ['San Francisco', 'Los Angeles', 'Portland']

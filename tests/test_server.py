@@ -12,7 +12,7 @@ import cherrypy
 import clients
 import portend
 import pytest
-from six.moves import http_client, urllib
+from six.moves import http_client
 from lupyne import engine, server
 
 
@@ -211,15 +211,13 @@ def test_facets(tempdir, servers, zipcodes):
     writer = engine.IndexWriter(tempdir)
     writer.commit()
     resource = servers.start(servers.ports[0], '-r', tempdir)
-    writer.set('zipcode', engine.NumericField, numericType=int, stored=True)
+    writer.set('zipcode', engine.NumericField, stored=True)
     writer.fields['location'] = engine.NestedField('county.city', docValuesType='sorted')
     for doc in zipcodes:
         if doc['state'] == 'CA':
             writer.add(zipcode=int(doc['zipcode']), location='{}.{}'.format(doc['county'], doc['city']))
     writer.commit()
     assert resource.post('update') == resource().popitem()[1] == len(writer)
-    terms = resource.terms(urllib.parse.quote('zipcode:int'))
-    assert len(terms) == len(writer) and terms[0] == 90001
     result = resource.search(count=0, facets='county')
     facets = result['facets']['county']
     assert result['count'] == sum(facets.values()) and 'Los Angeles' in facets

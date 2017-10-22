@@ -502,8 +502,8 @@ class WebSearcher(object):
 
             :return: [*string*,... ]
 
-        **GET** /terms/*chars*\[:int|float\]
-            Return term values for given field name, with optional type for numeric encoded values.
+        **GET** /terms/*chars*
+            Return term values for given field name.
 
             :return: [*string*,... ]
 
@@ -541,11 +541,6 @@ class WebSearcher(object):
         searcher = self.searcher
         if not name:
             return sorted(fieldinfo.name for fieldinfo in searcher.fieldinfos.values())
-        if ':' in name:
-            with HTTPError((ValueError, AttributeError)):
-                name, type = name.split(':')
-                type = getattr(__builtins__, type)
-            return list(searcher.numbers(name, type=type))
         if ':' in value:
             return list(searcher.terms(name, *value.split(':')))
         if value.endswith('*'):

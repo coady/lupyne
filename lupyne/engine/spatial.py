@@ -98,7 +98,7 @@ class PointField(NumericField):
     :param precision: zoom level, i.e., length of encoded value
     """
     def __init__(self, name, precision=30, **settings):
-        NumericField.__init__(self, name, int, **settings)
+        NumericField.__init__(self, name, **settings)
         self.precision = precision
 
     def tile(self, lng, lat):
