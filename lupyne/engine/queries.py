@@ -137,7 +137,7 @@ class Query(object):
         return Query(search.ConstantScoreQuery, self)
 
     def boost(self, value):
-        """Return lucene ConstantScoreQuery."""
+        """Return lucene BoostQuery."""
         return Query(search.BoostQuery, self, value)
 
     def __pos__(self):
@@ -192,7 +192,6 @@ class SpanQuery(Query):
 
         :param slop: default 0
         :param inOrder: default True
-        :param collectPayloads: default True
         """
         args = map(kwargs.get, ('slop', 'inOrder'), (0, True))
         return SpanQuery(spans.SpanNearQuery, spans_, *args)
@@ -200,6 +199,18 @@ class SpanQuery(Query):
     def mask(self, name):
         """Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."""
         return SpanQuery(spans.FieldMaskingSpanQuery, self, name)
+
+    def boost(self, value):
+        """Return lucene SpanBoostQuery."""
+        return SpanQuery(spans.SpanBoostQuery, self, value)
+
+    def containing(self, other):
+        """Return lucene SpanContainingQuery."""
+        return SpanQuery(spans.SpanContainingQuery, self, other)
+
+    def within(self, other):
+        """Return lucene SpanWithinQuery."""
+        return SpanQuery(spans.SpanWithinQuery, self, other)
 
 
 @contextlib.contextmanager

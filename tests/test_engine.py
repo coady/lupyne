@@ -315,6 +315,9 @@ def test_queries():
     assert str(span - near) == 'spanNot(text:lucene, spanNear([text:lucene, mask(alias:search) as text], -1, false), 0, 0)'
     assert str(span | near) == 'spanOr([text:lucene, spanNear([text:lucene, mask(alias:search) as text], -1, false)])'
     assert str(span.mask('alias')) == 'mask(text:lucene) as alias'
+    assert str(span.boost(2.0)) == '(text:lucene)^2.0'
+    assert str(span.containing(span)) == 'SpanContaining(text:lucene, text:lucene)'
+    assert str(span.within(span)) == 'SpanWithin(text:lucene, text:lucene)'
 
 
 def test_grouping(tempdir, indexer, zipcodes):
