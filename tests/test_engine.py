@@ -8,7 +8,7 @@ from org.apache.lucene import analysis, document, search, store, util
 from org.apache.lucene.search import highlight, vectorhighlight
 from six.moves import map
 from lupyne import engine
-from lupyne.utils import long
+from lupyne.utils import long, suppress
 Q = engine.Query
 
 
@@ -51,9 +51,7 @@ def test_analyzers():
     assert [token.charTerm for token in analyzer.tokens('Search Engine')] == ['Search', 'Engine']
 
 
-def test_interface(tempdir):
-    with pytest.raises(TypeError):
-        engine.IndexSearcher()
+def test_writer(tempdir):
     indexer = engine.Indexer(useCompoundFile=False)
     assert not indexer.config.useCompoundFile
     with pytest.raises(lucene.JavaError):
@@ -112,40 +110,9 @@ def test_interface(tempdir):
     indexer.update('tag', 'test', {'name': 'new'})
     indexer.commit()
     assert [indexer[id].dict() for id in indexer] == [{'name': 'new'}]
-    indexer.deleteAll()
-    indexer.commit()
-    with engine.Indexer(tempdir) as temp:
-        temp.add()
-    try:
-        with engine.Indexer(tempdir) as temp:
-            temp.add()
-            temp.add(missing='')
-    except KeyError:
-        pass
-    for other in (temp, temp.directory, tempdir):
-        indexer += other
-    assert len(indexer) == 3
-    analyzer = engine.Analyzer(analysis.core.WhitespaceTokenizer)
-    indexer.add(text=analyzer.tokens('?'), name=util.BytesRef('{}'))
-    indexer.commit()
-    assert indexer[next(indexer.docs('text', '?'))]['name'] == '{}'
-    indexer.delete('text', '?')
-    indexer.commit(merge=True)
-    assert not indexer.hasDeletions()
-    indexer.commit(merge=1)
-    assert len(list(indexer.readers)) == 1
-    reader = engine.indexers.IndexReader(indexer.indexReader)
-    del reader.indexReader
-    with pytest.raises(AttributeError):
-        reader.maxDoc
-    del indexer.indexSearcher
-    with pytest.raises(AttributeError):
-        indexer.search
 
 
-def test_basic(tempdir, fields, constitution):
-    with pytest.raises(lucene.JavaError):
-        engine.Indexer(tempdir, 'r')
+def test_searcher(tempdir, fields, constitution):
     indexer = engine.Indexer(tempdir)
     indexer.fields = {field.name: field for field in fields}
     for doc in constitution:
@@ -208,24 +175,12 @@ def test_basic(tempdir, fields, constitution):
     hit, = indexer.search('freedom', field='text')
     assert hit['amendment'] == '1'
     assert sorted(hit.dict()) == ['__id__', '__score__', 'amendment', 'date']
-    hits = indexer.search('text:right')
     hits = indexer.search('date:[1919 TO 1921]')
     amendments = ['18', '19']
     assert sorted(hit['amendment'] for hit in hits) == amendments
     query = Q.range('date', '1919', '1921')
-    hits = indexer.search(query | Q.term('text', 'vote'))
-    assert {hit.get('amendment') for hit in hits} > set(amendments)
-    hit, = indexer.search(query & Q.term('text', 'vote'))
-    assert hit['amendment'] == '19'
-    hit, = indexer.search(query - Q.all(text='vote'))
-    assert hit['amendment'] == '18'
-    hit, = indexer.search(Q.all(text=['persons', 'papers']))
-    assert hit['amendment'] == '4'
-    hit, = indexer.search(Q.phrase('text', 'persons', None, 'papers', slop=1))
-    assert hit['amendment'] == '4'
     span = Q.span('text', 'persons')
     count = indexer.count(span)
-    near = span.near(Q.span('text', 'papers') | Q.span('text', 'things'), slop=1)
     spans = dict(indexer.spans(span))
     assert len(spans) == count and spans == dict(indexer.docs('text', 'persons', counts=True))
     near = Q.near('text', 'persons', 'papers', slop=2)
@@ -257,6 +212,44 @@ def test_basic(tempdir, fields, constitution):
     query = indexer.parse('"hello world"', field='text', spellcheck=True)
     assert search.PhraseQuery.instance_(query) and str(query) == 'text:"held would"'
     assert str(indexer.parse('vwxyz', field='text', spellcheck=True)) == 'text:vwxyz'
+
+
+def test_indexes(tempdir):
+    with pytest.raises(TypeError):
+        engine.IndexSearcher()
+    with pytest.raises(lucene.JavaError):
+        engine.Indexer(tempdir, 'r')
+    indexer = engine.Indexer()
+    indexer.set('name', engine.Field.String, stored=True)
+    indexer.set('text', engine.Field.Text)
+    with engine.Indexer(tempdir) as temp:
+        temp.add()
+    with suppress(KeyError), engine.Indexer(tempdir) as temp:
+        temp.add()
+        temp.add(missing='')
+    for other in (temp, temp.directory, tempdir):
+        indexer += other
+    assert len(indexer) == 3
+    analyzer = engine.Analyzer.whitespace()
+    indexer.add(text=analyzer.tokens('?'), name=util.BytesRef('{}'))
+    indexer.commit()
+    assert indexer[next(indexer.docs('text', '?'))]['name'] == '{}'
+    indexer.delete('text', '?')
+    indexer.commit(merge=True)
+    assert not indexer.hasDeletions()
+    indexer.commit(merge=1)
+    assert len(list(indexer.readers)) == 1
+    reader = engine.indexers.IndexReader(indexer.indexReader)
+    del reader.indexReader
+    with pytest.raises(AttributeError):
+        reader.maxDoc
+    del indexer.indexSearcher
+    with pytest.raises(AttributeError):
+        indexer.search
+
+    indexer = engine.Indexer(tempdir)
+    indexer.add()
+    indexer.commit()
     files = set(os.listdir(tempdir))
     path = os.path.join(tempdir, 'temp')
     with indexer.snapshot() as commit:
