@@ -624,8 +624,7 @@ def test_docvalues():
     indexer.commit()
     assert indexer.segments != segments
     segments = indexer.segments
-    docvalues = indexer.docvalues('title')
-    assert len(docvalues) == 1 and docvalues[0] == 'one'
+    assert list(indexer.docvalues('title')) == ['one']
     assert list(indexer.docvalues('size', type=int)) == [1]
     assert list(indexer.docvalues('point', type=float)) == [1.5]
     assert list(indexer.docvalues('priority')) == ['high']

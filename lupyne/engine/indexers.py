@@ -166,9 +166,8 @@ class IndexReader(object):
         """
         type = {int: int, float: util.NumericUtils.sortableLongToDouble}.get(type, util.BytesRef.utf8ToString)
         docValuesType = self.fieldinfos[name].docValuesType.toString().title().replace('_', '')
-        Array = getattr(DocValues, docValuesType)
-        method = getattr(DocValues, 'get' + docValuesType)
-        return DocValues(Array(method(reader, name), reader.maxDoc(), type) for reader in self.readers)
+        method = getattr(index.MultiDocValues, 'get{}Values'.format(docValuesType))
+        return getattr(DocValues, docValuesType)(method(self.indexReader, name), len(self), type)
 
     def distances(self, lng, lat, lngfield, latfield):
         """Return distance calculator from given point and DocValue lng/lat fields."""

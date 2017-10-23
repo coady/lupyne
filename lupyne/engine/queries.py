@@ -2,9 +2,7 @@
 Query wrappers and search utilities.
 """
 
-import bisect
 import contextlib
-import itertools
 import lucene
 from java.lang import Integer
 from java.util import Arrays, HashSet
@@ -223,47 +221,30 @@ def suppress(exception):
             raise
 
 
-class DocValues(index.DocValues):
-    """Chained arrays with bisection lookup."""
+class DocValues:
+    """DocValues with type conversion."""
     class Numeric(object):
-        def __init__(self, array, size, type=int):
-            self.array, self.size, self.type = array, size, type
+        def __init__(self, docvalues, size, type):
+            self.docvalues, self.size, self.type = docvalues, size, type
 
         def __iter__(self):
             return map(self.__getitem__, range(self.size))
 
         def __getitem__(self, id):
-            return self.type(self.array.get(id))
+            return self.type(self.docvalues.get(id))
 
-    class Binary(Numeric):
-        def __init__(self, array, size, type=util.BytesRef.utf8ToString):
-            super(DocValues.Binary, self).__init__(array, size, type)
-    Sorted = Binary
+    Binary = Sorted = Numeric
 
     class SortedNumeric(Numeric):
         def __getitem__(self, id):
-            self.array.document = id
-            return tuple(self.type(self.array.valueAt(index)) for index in range(self.array.count()))
+            self.docvalues.document = id
+            return tuple(self.type(self.docvalues.valueAt(index)) for index in range(self.docvalues.count()))
 
     class SortedSet(Sorted):
         def __getitem__(self, id):
-            self.array.document = id
-            return tuple(self.type(self.array.lookupOrd(ord)) for ord in iter(self.array.nextOrd, self.array.NO_MORE_ORDS))
-
-    def __init__(self, arrays):
-        self.arrays, self.offsets = list(arrays), [0]
-        for array in self.arrays:
-            self.offsets.append(len(self) + array.size)
-
-    def __iter__(self):
-        return itertools.chain.from_iterable(self.arrays)
-
-    def __len__(self):
-        return self.offsets[-1]
-
-    def __getitem__(self, id):
-        index = bisect.bisect_right(self.offsets, id) - 1
-        return self.arrays[index][id - self.offsets[index]]
+            self.docvalues.document = id
+            ords = iter(self.docvalues.nextOrd, self.docvalues.NO_MORE_ORDS)
+            return tuple(self.type(self.docvalues.lookupOrd(ord)) for ord in ords)
 
 
 class Highlighter(highlight.Highlighter):
