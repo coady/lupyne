@@ -640,3 +640,4 @@ def test_docvalues():
     assert list(indexer.docvalues('point', type=float)) == [2.5]
     with pytest.raises(AttributeError):
         indexer.docvalues('id')
+    assert indexer.search().docvalues('title') == {0: 'two'}

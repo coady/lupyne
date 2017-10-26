@@ -159,10 +159,10 @@ class IndexReader(object):
     def docvalues(self, name, type=None):
         """Return chained lucene DocValues, suitable for custom sorting or grouping.
 
-        Note multi-valued DocValues aren't thread-safe.
+        Note multi-valued DocValues aren't thread-safe and only supported ordered iteration.
 
         :param name: field name
-        :param type: str, int, or float for converting values
+        :param type: int or float for converting values
         """
         type = {int: int, float: util.NumericUtils.sortableLongToDouble}.get(type, util.BytesRef.utf8ToString)
         docValuesType = self.fieldinfos[name].docValuesType.toString().title().replace('_', '')

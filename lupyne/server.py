@@ -446,7 +446,7 @@ class WebSearcher(object):
             hits = searcher.search(q, sort=sort, timeout=timeout, **scores)
             name, docvalues = parse.docvalues(searcher, group)
             with HTTPError(TypeError):
-                groups = hits.groupby(docvalues.__getitem__, count=count, docs=gcount)
+                groups = hits.groupby(docvalues.select(hits.ids).__getitem__, count=count, docs=gcount)
             groups.groupdocs = groups.groupdocs[start:]
         elif group:
             scores = {'includeScores': scores['scores'], 'includeMaxScore': scores['maxscore']}

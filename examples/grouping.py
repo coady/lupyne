@@ -33,7 +33,8 @@ for hits in indexer.groupby('color', query):
     assert hit['color'] == hits.value
 
 # group using Hits interface
-for hits in indexer.search(query).groupby(indexer.docvalues('color').__getitem__, docs=1):
+hits = indexer.search(query)
+for hits in hits.groupby(hits.docvalues('color').__getitem__, docs=1):
     assert facets[hits.value] == hits.count
     hit, = hits
     assert hit['color'] == hits.value

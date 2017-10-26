@@ -233,6 +233,10 @@ class DocValues:
         def __getitem__(self, id):
             return self.type(self.docvalues.get(id))
 
+        def select(self, ids):
+            """Return mapping of doc ids to values."""
+            return {id: self[id] for id in sorted(ids)}
+
     Binary = Sorted = Numeric
 
     class SortedNumeric(Numeric):

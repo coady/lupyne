@@ -336,6 +336,10 @@ class Hits(object):
         """Generate zipped ids and scores."""
         return map(operator.attrgetter('doc', 'score'), self.scoredocs)
 
+    def docvalues(self, field, type=None):
+        """Return mappoing of docs to docvalues."""
+        return self.searcher.docvalues(field, type).select(self.ids)
+
     def groupby(self, func, count=None, docs=None):
         """Return ordered list of `Hits`_ grouped by value of function applied to doc ids.
         Optionally limit the number of groups and docs per group."""

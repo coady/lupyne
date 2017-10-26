@@ -41,7 +41,7 @@ assert [searcher.doc(scoredoc.doc)['color'] for scoredoc in topdocs.scoreDocs] =
 
 hits = indexer.search(sort='color')
 assert [hit['color'] for hit in hits] == sorted(colors)
-docvalues = indexer.docvalues('color')
-assert list(docvalues) == list(colors)
+docvalues = hits.docvalues('color')
+assert docvalues == dict(enumerate(colors))
 hits = indexer.search().sorted(docvalues.__getitem__)
 assert [hit['color'] for hit in hits] == sorted(colors)
