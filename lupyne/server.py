@@ -835,7 +835,9 @@ def start(root=None, path='', config=None, pidfile='', daemonize=False, autorelo
         cherrypy.config['log.screen'] = False
         cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
     if autoreload:
-        Autoreloader(cherrypy.engine, autoreload).subscribe()
+        reloader = Autoreloader(cherrypy.engine, autoreload, match='lupyne.*')
+        reloader.files.add(__file__)
+        reloader.subscribe()
     if callback:
         priority = (cherrypy.process.plugins.Daemonizer.start.priority + cherrypy.process.plugins.Monitor.start.priority) // 2
         cherrypy.engine.subscribe('start', callback, priority)
