@@ -82,13 +82,6 @@ class Tile(str):
         """Return euclidean distance between tile and point in meters."""
         return sum(max(0, l - m, m - u) ** 2 for m, l, u in zip(point, *self.points)) ** 0.5
 
-    def walk(self, other):
-        """Generate all tiles between corners."""
-        assert len(self) == len(other)
-        (left, right), (bottom, top) = map(sorted, zip(self.coords, other.coords))
-        for x, y in itertools.product(range(left, right + 1), range(bottom, top + 1)):
-            yield type(self)(x, y, len(self))
-
 
 class PointField(NumericField):
     """Geospatial points, which create a tiered index of tiles.
@@ -123,14 +116,6 @@ class PointField(NumericField):
             stop = tile + step
         yield self.range(start, stop)
 
-    def prefix(self, tile):
-        """Return range query which is equivalent to the prefix of the tile."""
-        return next(self.ranges([tile]))
-
-    def near(self, lng, lat, precision=None):
-        """Return prefix query for point at given precision."""
-        return self.prefix(self.tile(lng, lat)[:precision])
-
     def within(self, lng, lat, distance, limit=4):
         """Return range queries for any tiles which could be within distance of given point.
 
@@ -141,22 +126,6 @@ class PointField(NumericField):
         sets = Point(lng, lat).within(distance, self.precision)
         tiles = list(itertools.takewhile(lambda tiles: len(tiles) <= limit, sets))[-1]
         return Query.any(*self.ranges(tiles))
-
-
-class PolygonField(PointField):
-    """PointField which implicitly supports polygons (technically linear rings of points).
-
-    Differs from points in that all necessary tiles are included to match the points' boundary.
-    As with PointField, the tiered tiles are a search optimization, not a distance calculator.
-    """
-    def items(self, *polygons):
-        """Generate all covered tiles from polygons."""
-        tiles = set()
-        for points in polygons:
-            lngs, lats = zip(*points)
-            lower, upper = self.tile(min(lngs), min(lats)), self.tile(max(lngs), max(lats))
-            tiles.update(lower.walk(upper))
-        return NumericField.items(self, *map(int, tiles))
 
 
 class Distances(object):

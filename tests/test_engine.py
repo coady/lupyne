@@ -385,28 +385,18 @@ def test_spatial(indexer, zipcodes):
     for name in ('longitude', 'latitude'):
         indexer.set(name, engine.NumericField, stored=True, docValuesType='numeric')
     field = indexer.set('tile', engine.PointField, precision=15, stored=True)
-    points = []
     for doc in zipcodes:
         if doc['state'] == 'CA':
             point = doc['longitude'], doc['latitude']
             indexer.add(doc, tile=[point])
-            if doc['city'] == 'Los Angeles':
-                points.append(point)
-    assert len(list(engine.PolygonField('', precision=15).items(points))) > len(points)
     indexer.commit()
     city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
     hit, = indexer.search('zipcode:' + zipcode)
     assert hit['tile'] == int(tile, 4) and hit['city'] == city
-    hit, = indexer.search(field.prefix(tile))
+    hit, = indexer.search(*field.ranges([tile]))
     assert hit['zipcode'] == zipcode and hit['city'] == city
     x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
     assert engine.spatial.Tile(2, 9, 4) == tile[:4]
-    hits = indexer.search(field.near(x, y))
-    cities = {hit['city'] for hit in hits}
-    assert {city} == cities
-    hits = indexer.search(field.near(x, y, precision=10))
-    cities = {hit['city'] for hit in hits}
-    assert city in cities and len(cities) > 10
     query = field.within(x, y, 10 ** 4)
     assert len(list(query)) == 3
     distances = indexer.distances(x, y, 'longitude', 'latitude')

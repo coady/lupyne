@@ -6,7 +6,7 @@ engine
   * `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_
   * `Document`_, `Field`_, `NestedField`_, `NumericField`_, `DateTimeField`_
   * `Query`_
-  * `PointField`_, `PolygonField`_
+  * `PointField`_
 
 
 analyzers
@@ -237,11 +237,5 @@ Tile
 PointField
 ^^^^^^^^^^^^^
 .. autoclass:: PointField
-  :show-inheritance:
-  :members:
-
-PolygonField
-^^^^^^^^^^^^^
-.. autoclass:: PolygonField
   :show-inheritance:
   :members:
