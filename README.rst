@@ -1,7 +1,7 @@
 About Lupyne
 ==================
 .. image:: https://img.shields.io/pypi/v/lupyne.svg
-   :target: https://pypi.python.org/pypi/lupyne/
+   :target: https://pypi.org/project/lupyne/
 .. image:: https://img.shields.io/pypi/pyversions/lupyne.svg
 .. image:: https://img.shields.io/pypi/status/lupyne.svg
 .. image:: https://api.shippable.com/projects/56059e3e1895ca4474182ec3/badge?branch=master
@@ -32,7 +32,7 @@ Advanced search features:
 * Spellchecking.
 * Near real-time indexing.
 
-See `documentation`_ for example usage.
+Read the `documentation`_.
 
 Installation
 ==================
@@ -42,14 +42,13 @@ Installation
 
 Dependencies
 ==================
-* Python 2.7, 3.6
-* PyLucene 6+     (installed separately)
+* PyLucene >=6     (installed separately)
 * six
 
 Optional server extras
 
-* CherryPy 10+
-* clients 0.2+
+* CherryPy >=10
+* clients >=0.2
 
 Tests
 ==================
@@ -79,7 +78,6 @@ dev
 * Comparator iteration optimized
 * Support for string based FieldCacheRangeFilters
 
-.. _PyLucene is dormant: http://mail-archives.apache.org/mod_mbox/lucene-pylucene-dev/201506.mbox/%3calpine.OSX.2.01.1506010952020.53725@yuzu.local%3e
 .. _PyLucene: http://lucene.apache.org/pylucene/
 .. _CherryPy: http://cherrypy.org
-.. _documentation: http://pythonhosted.org/lupyne/
+.. _documentation: http://lupyne.surge.sh

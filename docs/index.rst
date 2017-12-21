@@ -54,7 +54,7 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-.. _Lupyne: https://pypi.python.org/pypi/lupyne
+.. _Lupyne: https://pypi.org/project/lupyne/
 .. _PyLucene: http://lucene.apache.org/pylucene/
 .. _RESTful: http://en.wikipedia.org/wiki/Representational_State_Transfer
 .. _JSON: http://json.org/

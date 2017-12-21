@@ -13,6 +13,7 @@ setup(
     packages=['lupyne', 'lupyne.engine'],
     install_requires=['six'],
     extras_require={'server': ['cherrypy>=10', 'clients>=0.2']},
+    python_requires='>=2.7',
     tests_require=['pytest-cov'],
     classifiers=[
         'Development Status :: 6 - Mature',
@@ -23,6 +24,8 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Topic :: Internet :: WWW/HTTP :: HTTP Servers',
         'Topic :: Internet :: WWW/HTTP :: Indexing/Search',

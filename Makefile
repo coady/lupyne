@@ -8,16 +8,15 @@ clean:
 html:
 	make -C docs $@ SPHINXOPTS=-W SPHINXBUILD=sphinx-build
 	rst2$@.py README.rst docs/_build/README.$@
-	python -m examples.spatial > docs/_build/spatial.kml
+	python3 -m examples.spatial > docs/_build/spatial.kml
 
 dist: html
-	python setup.py sdist
-	cd docs/_build/html && zip -r ../../../$@/docs.zip .
+	python3 setup.py sdist bdist_wheel
 
 check:
-	python setup.py $@ -mrs
+	python3 setup.py $@ -mrs
 	flake8
-	python -m examples
+	python3 -m examples
 	pytest-2.7 tests/test_engine.py --cov=lupyne.engine  --cov-fail-under=100
 	pytest --cov --cov-fail-under=100
 	pytest -vk example
