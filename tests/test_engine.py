@@ -5,7 +5,6 @@ import os
 import pytest
 import lucene
 from org.apache.lucene import analysis, document, search, store, util
-from org.apache.lucene.search import highlight, vectorhighlight
 from six.moves import map
 from lupyne import engine
 from lupyne.utils import long, suppress
@@ -525,32 +524,13 @@ def test_highlighting(constitution):
         if 'amendment' in doc:
             indexer.add(text=doc['text'])
     indexer.commit()
-    highlighter = indexer.highlighter('persons', 'text')
-    for id in indexer:
-        fragments = highlighter.fragments(id)
-        assert len(fragments) == ('persons' in indexer[id]['text'])
-        assert all('<b>persons</b>' in fragment.lower() for fragment in fragments)
-    id = 3
-    text = indexer[id]['text']
-    query = '"persons, houses, papers"'
-    highlighter = indexer.highlighter(query, '', terms=True, fields=True, formatter=highlight.SimpleHTMLFormatter('*', '*'))
-    fragments = highlighter.fragments(text, count=3)
-    assert len(fragments) == 2 and fragments[0].count('*') == 2 * 3 and '*persons*' in fragments[1]
-    highlighter = indexer.highlighter(query, '', terms=True)
-    highlighter.textFragmenter = highlight.SimpleFragmenter(200)
-    fragment, = highlighter.fragments(text, count=3)
-    assert len(fragment) > len(text) and fragment.count('<B>persons</B>') == 2
-    fragment, = indexer.highlighter(query, 'text', tag='em').fragments(id, count=3)
-    assert len(fragment) < len(text) and fragment.index('<em>persons') < fragment.index('papers</em>')
-    fragment, = indexer.highlighter(query, 'text').fragments(id)
-    assert fragment.count('<b>') == fragment.count('</b>') == 1
-    highlighter = indexer.highlighter(query, 'text', fragListBuilder=vectorhighlight.SingleFragListBuilder())
-    text, = highlighter.fragments(id)
-    assert fragment in text and len(text) > len(fragment)
-    query = indexer.parse(query, field=text)
-    highlighter = engine.queries.Highlighter(indexer.indexSearcher, query, 'text', terms=True, fields=True, tag='em')
-    fragment, = highlighter.fragments(id)
-    assert fragment and '<em>' in fragment
+    query = Q.term('text', 'right')
+    assert engine.Analyzer.highlight(indexer.analyzer, query, 'text', "word right word") == "word <b>right</b> word"
+    hits = indexer.search(query)
+    highlights = list(hits.highlights(query, text=1))
+    assert len(hits) == len(highlights)
+    for highlight in highlights:
+        assert '<b>right</b>' in highlight.pop('text') and not highlight
 
 
 def test_nrt():

@@ -398,10 +398,9 @@ class WebSearcher(object):
 
             .. versionchanged:: 1.6 grouping searches use count and start options
 
-            &hl=\ *chars*,... &hl.count=1&hl.tag=strong&hl.enable=[fields|terms]
+            &hl=\ *chars*,... &hl.count=1
                 | stored fields to return highlighted
-                | optional maximum fragment count and html tag name
-                | optionally enable matching any field or any term
+                | optional maximum fragment count
 
             &mlt=\ *int*\ &mlt.fields=\ *chars*,... &mlt.\ *chars*\ =...,
                 | doc index (or id without a query) to find MoreLikeThis
@@ -455,25 +454,22 @@ class WebSearcher(object):
             hits = searcher.search(q, sort=sort, count=count, timeout=timeout, **scores)
             groups = engine.documents.Groups(searcher, [hits[start:]], hits.count, hits.maxscore)
         result = {'query': q and str(q), 'count': groups.count, 'maxscore': groups.maxscore}
-        tag, enable = options.get('hl.tag', 'strong'), options.get('hl.enable', '')
-        hlcount = options.get('hl.count', 1)
-        if hl:
-            hl = {name: searcher.highlighter(q, name, terms='terms' in enable, fields='fields' in enable, tag=tag) for name in hl}
         fields, multi, docvalues = parse.fields(searcher, fields, **options)
         if fields is None:
             fields = {}
         else:
             groups.select(*itertools.chain(fields, multi))
+        hl = dict.fromkeys(hl, options.get('hl.count', 1))
         result['groups'] = []
         for hits in groups:
             docs = []
-            for hit in hits:
+            highlights = hits.highlights(q, **hl) if hl else ([{}] * len(hits))
+            for hit, highlight in zip(hits, highlights):
                 doc = hit.dict(*multi, **fields)
                 with HTTPError(TypeError):
                     doc.update((name, docvalues[name][hit.id]) for name in docvalues)
-                fragments = (hl[name].fragments(hit.id, hlcount) for name in hl)  # pragma: no branch
-                if hl:
-                    doc['__highlights__'] = {name: value for name, value in zip(hl, fragments) if value is not None}
+                if highlight:
+                    doc['__highlights__'] = highlight
                 docs.append(doc)
             result['groups'].append({'docs': docs, 'count': hits.count, 'value': getattr(hits, 'value', None)})
         if not group:

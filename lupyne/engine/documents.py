@@ -336,13 +336,25 @@ class Hits(object):
         """Generate zipped ids and scores."""
         return map(operator.attrgetter('doc', 'score'), self.scoredocs)
 
+    def highlights(self, query, **fields):
+        """Generate highlighted fields for each hit.
+
+        :param query: lucene Query
+        :param field: mapping of fields to maxinum number of passages
+        """
+        mapping = self.searcher.highlighter.highlightFields(list(fields), query, list(self.ids), list(fields.values()))
+        mapping = {field: lucene.JArray_string.cast_(mapping.get(field)) for field in fields}
+        return (dict(zip(mapping, values)) for values in zip(*mapping.values()))
+
     def docvalues(self, field, type=None):
-        """Return mappoing of docs to docvalues."""
+        """Return mapping of docs to docvalues."""
         return self.searcher.docvalues(field, type).select(self.ids)
 
     def groupby(self, func, count=None, docs=None):
         """Return ordered list of `Hits`_ grouped by value of function applied to doc ids.
-        Optionally limit the number of groups and docs per group."""
+
+        Optionally limit the number of groups and docs per group.
+        """
         groups = collections.OrderedDict()
         for scoredoc in self.scoredocs:
             value = func(scoredoc.doc)

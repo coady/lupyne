@@ -5,12 +5,12 @@ Query wrappers and search utilities.
 import contextlib
 import lucene
 from java.lang import Integer
-from java.util import Arrays, HashSet
+from java.util import Arrays
 from org.apache.lucene import index, search, util
-from org.apache.lucene.search import highlight, spans, vectorhighlight
+from org.apache.lucene.search import spans
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from six import string_types
-from six.moves import filter, map, range
+from six.moves import map, range
 from ..utils import method
 
 
@@ -249,69 +249,6 @@ class DocValues:
             self.docvalues.document = id
             ords = iter(self.docvalues.nextOrd, self.docvalues.NO_MORE_ORDS)
             return tuple(self.type(self.docvalues.lookupOrd(ord)) for ord in ords)
-
-
-class Highlighter(highlight.Highlighter):
-    """Inherited lucene Highlighter with stored analysis options.
-
-    :param searcher: `IndexSearcher`_ used for analysis, scoring, and optionally text retrieval
-    :param query: lucene Query
-    :param field: field name of text
-    :param terms: highlight any matching term in query regardless of position
-    :param fields: highlight matching terms from any field
-    :param tag: optional html tag name
-    :param formatter: optional lucene Formatter
-    :param encoder: optional lucene Encoder
-    """
-    def __init__(self, searcher, query, field, terms=False, fields=False, tag='', formatter=None, encoder=None):
-        if tag:
-            formatter = highlight.SimpleHTMLFormatter('<{}>'.format(tag), '</{}>'.format(tag))
-        scorer = (highlight.QueryTermScorer if terms else highlight.QueryScorer)(query, *(searcher.indexReader, field) * (not fields))
-        highlight.Highlighter.__init__(self, *filter(None, [formatter, encoder, scorer]))
-        self.searcher, self.field = searcher, field
-        self.selector = HashSet(Arrays.asList([field]))
-
-    def fragments(self, doc, count=1):
-        """Return highlighted text fragments.
-
-        :param doc: text string or doc id to be highlighted
-        :param count: maximum number of fragments
-        """
-        if not isinstance(doc, string_types):
-            doc = self.searcher.doc(doc, self.selector)[self.field]
-        return doc and list(self.getBestFragments(self.searcher.analyzer, self.field, doc, count))
-
-
-class FastVectorHighlighter(vectorhighlight.FastVectorHighlighter):
-    """Inherited lucene FastVectorHighlighter with stored query.
-
-    Fields must be stored and have term vectors with offsets and positions.
-
-    :param searcher: `IndexSearcher`_ with stored term vectors
-    :param query: lucene Query
-    :param field: field name of text
-    :param terms: highlight any matching term in query regardless of position
-    :param fields: highlight matching terms from any field
-    :param tag: optional html tag name
-    :param fragListBuilder: optional lucene FragListBuilder
-    :param fragmentsBuilder: optional lucene FragmentsBuilder
-    """
-    def __init__(self, searcher, query, field, terms=False, fields=False, tag='', fragListBuilder=None, fragmentsBuilder=None):
-        if tag:
-            fragmentsBuilder = vectorhighlight.SimpleFragmentsBuilder(['<{}>'.format(tag)], ['</{}>'.format(tag)])
-        args = fragListBuilder or vectorhighlight.SimpleFragListBuilder(), fragmentsBuilder or vectorhighlight.SimpleFragmentsBuilder()
-        vectorhighlight.FastVectorHighlighter.__init__(self, not terms, not fields, *args)
-        self.searcher, self.field = searcher, field
-        self.query = self.getFieldQuery(query)
-
-    def fragments(self, id, count=1, size=100):
-        """Return highlighted text fragments.
-
-        :param id: document id
-        :param count: maximum number of fragments
-        :param size: maximum number of characters in fragment
-        """
-        return list(self.getBestFragments(self.query, self.searcher.indexReader, id, self.field, size, count))
 
 
 class SpellParser(PythonQueryParser):

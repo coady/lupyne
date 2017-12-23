@@ -7,6 +7,7 @@ from java.io import StringReader
 from java.lang import Float
 from java.util import HashMap
 from org.apache.lucene import analysis, queryparser, util
+from org.apache.lucene.search import uhighlight
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from six import string_types
@@ -160,3 +161,14 @@ class Analyzer(PythonAnalyzer):
         finally:
             if isinstance(parser, PythonQueryParser):
                 parser.finalize()
+
+    @method
+    def highlight(self, query, field, content, count=1):
+        """Return highlighted content.
+
+        :param query: lucene Query
+        :param field: field name
+        :param content: text
+        :param count: optional maximum number of passages
+        """
+        return uhighlight.UnifiedHighlighter(None, self).highlightWithoutSearcher(field, query, content, count).toString()

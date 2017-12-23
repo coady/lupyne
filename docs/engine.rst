@@ -196,18 +196,6 @@ SpanQuery
 
     <SpanOrQuery: spanOr(spans)>
 
-Highlighter
-^^^^^^^^^^^^^
-.. autoclass:: Highlighter
-  :show-inheritance:
-  :members:
-
-FastVectorHighlighter
-^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: FastVectorHighlighter
-  :show-inheritance:
-  :members:
-
 SpellParser
 ^^^^^^^^^^^^^
 .. autoclass:: SpellParser

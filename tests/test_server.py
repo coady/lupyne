@@ -157,23 +157,10 @@ def test_search(resource):
 
 def test_highlights(resource):
     doc, = resource.search(q='amendment:1', hl='amendment', fields='article')['docs']
-    assert doc['__highlights__'] == {'amendment': ['<strong>1</strong>']}
-    doc, = resource.search(q='amendment:1', hl='amendment,article', **{'hl.count': 2, 'hl.tag': 'em'})['docs']
-    assert doc['__highlights__'] == {'amendment': ['<em>1</em>']}
+    assert doc['__highlights__'] == {'amendment': '<b>1</b>'}
     result = resource.search(q='text:1', hl='amendment,article')
     highlights = [doc['__highlights__'] for doc in result['docs']]
-    assert all(highlight and not any(highlight.values()) for highlight in highlights)
-    result = resource.search(q='text:1', hl='article', **{'hl.enable': 'fields'})
-    highlights = [doc['__highlights__'] for doc in result['docs']]
-    highlight, = [highlight['article'] for highlight in highlights if highlight.get('article')]
-    assert highlight == ['<strong>1</strong>']
-    result = resource.search(q='text:"section 1"', hl='amendment,article', **{'hl.enable': 'fields'})
-    highlights = [doc['__highlights__'] for doc in result['docs']]
-    assert all(highlight and not any(highlight.values()) for highlight in highlights)
-    result = resource.search(q='text:"section 1"', hl='amendment,article', **{'hl.enable': ['fields', 'terms']})
-    highlights = [doc['__highlights__'] for doc in result['docs']]
-    highlight, = [highlight['article'] for highlight in highlights if highlight.get('article')]
-    assert highlight == ['<strong>1</strong>']
+    assert all(highlight['amendment'] or highlight['article'] for highlight in highlights)
     result = resource.search(mlt=0)
     assert result['count'] == 25 and set(result['query'].split()) == {'text:united', 'text:states'}
     result = resource.search(q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})

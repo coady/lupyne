@@ -13,10 +13,11 @@ import lucene
 from java.io import File, IOException, StringReader
 from java.util import Arrays, HashSet
 from org.apache.lucene import analysis, document, index, queries, search, store, util
+from org.apache.lucene.search import uhighlight
 from six import string_types
 from six.moves import filter, map, range, zip
 from .analyzers import Analyzer
-from .queries import suppress, Query, DocValues, Highlighter, FastVectorHighlighter, SpellParser
+from .queries import suppress, Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .spatial import Distances
 from ..utils import long, Atomic, SpellChecker
@@ -356,12 +357,10 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             kwargs['parser'], kwargs['searcher'] = SpellParser, self
         return Analyzer.parse(self.analyzer, query, **kwargs)
 
-    def highlighter(self, query, field, **kwargs):
-        """Return `Highlighter`_ or if applicable `FastVectorHighlighter`_ specific to searcher and query."""
-        query = self.parse(query, field=field)
-        fieldinfo = self.fieldinfos.get(field)
-        vector = fieldinfo and fieldinfo.hasVectors()
-        return (FastVectorHighlighter if vector else Highlighter)(self, query, field, **kwargs)
+    @property
+    def highlighter(self):
+        """lucene UnifiedHighlighter"""
+        return uhighlight.UnifiedHighlighter(self, self.analyzer)
 
     def count(self, *query, **options):
         """Return number of hits for given query or term.
@@ -374,7 +373,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         query = self.parse(*query, **options) if query else Query.alldocs()
         return super(IndexSearcher, self).count(query)
 
-    def collector(self, query, count=None, sort=None, reverse=False, scores=False, maxscore=False):
+    def collector(self, count=None, sort=None, reverse=False, scores=False, maxscore=False):
         if count is None:
             return search.CachingCollector.create(True, float('inf'))
         count = min(count, self.maxDoc() or 1)
@@ -401,7 +400,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param parser: :meth:`Analyzer.parse` options
         """
         query = Query.alldocs() if query is None else self.parse(query, **parser)
-        cache = collector = self.collector(query, count, sort, reverse, scores, maxscore)
+        cache = collector = self.collector(count, sort, reverse, scores, maxscore)
         counter = search.TimeLimitingCollector.getGlobalCounter()
         results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, long(timeout * 1000))
         with suppress(search.TimeLimitingCollector.TimeExceededException):
@@ -410,7 +409,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if isinstance(cache, search.CachingCollector):
             collector = search.TotalHitCountCollector()
             cache.replay(collector)
-            collector = self.collector(query, collector.totalHits or 1, sort, reverse, scores, maxscore)
+            collector = self.collector(collector.totalHits or 1, sort, reverse, scores, maxscore)
             cache.replay(collector)
         topdocs = collector.topDocs()
         stats = (topdocs.totalHits, topdocs.maxScore) * (timeout is None)
