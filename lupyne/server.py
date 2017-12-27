@@ -542,14 +542,14 @@ class WebSearcher(object):
         if value.endswith('*'):
             value = value.rstrip('*')
             if 'count' in options:
-                return searcher.suggest(name, value, options['count'])
+                return searcher.complete(name, value, options['count'])
             return list(searcher.terms(name, value))
         if '~' in value:
             with HTTPError(ValueError):
                 value, distance = value.split('~')
                 distance = int(distance or 2)
             if 'count' in options:
-                return list(itertools.islice(searcher.correct(name, value, distance), options['count']))
+                return searcher.suggest(name, value, options['count'], maxEdits=distance)
             return list(searcher.terms(name, value, distance=distance))
         if not path:
             return searcher.count(name, value)

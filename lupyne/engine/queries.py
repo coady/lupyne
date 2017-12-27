@@ -256,22 +256,21 @@ class SpellParser(PythonQueryParser):
 
     Assign a searcher attribute or override :meth:`correct` implementation.
     """
-    def correct(self, term):
+    def suggest(self, term):
         """Return term with text replaced as necessary."""
         field = term.field()
-        for text in self.searcher.correct(field, term.text()):
-            return index.Term(field, text)
-        return term
+        words = self.searcher.suggest(field, term.text())
+        return index.Term(field, *words) if words else term
 
     def rewrite(self, query):
         """Return term or phrase query with corrected terms substituted."""
         if search.TermQuery.instance_(query):
             term = search.TermQuery.cast_(query).term
-            return search.TermQuery(self.correct(term))
+            return search.TermQuery(self.suggest(term))
         query = search.PhraseQuery.cast_(query)
         builder = search.PhraseQuery.Builder()
         for position, term in zip(query.positions, query.terms):
-            builder.add(self.correct(term), position)
+            builder.add(self.suggest(term), position)
         return builder.build()
 
     def getFieldQuery_quoted(self, *args):

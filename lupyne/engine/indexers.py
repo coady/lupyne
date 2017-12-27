@@ -13,7 +13,7 @@ import lucene
 from java.io import File, IOException, StringReader
 from java.util import Arrays, HashSet
 from org.apache.lucene import analysis, document, index, queries, search, store, util
-from org.apache.lucene.search import uhighlight
+from org.apache.lucene.search import spell, uhighlight
 from six import string_types
 from six.moves import filter, map, range, zip
 from .analyzers import Analyzer
@@ -144,6 +144,19 @@ class IndexReader(object):
         """mapping of field names to lucene FieldInfos"""
         fieldinfos = index.MultiFields.getMergedFieldInfos(self.indexReader)
         return {fieldinfo.name: fieldinfo for fieldinfo in fieldinfos.iterator()}
+
+    def suggest(self, name, value, count=1, **attrs):
+        """Return spelling suggestions from DirectSpellChecker.
+
+        :param name: field name
+        :param value: term
+        :param count: maximum number of suggestions
+        :param attrs: DirectSpellChecker options
+        """
+        checker = spell.DirectSpellChecker()
+        for attr in attrs:
+            setattr(checker, attr, attrs[attr])
+        return [word.string for word in checker.suggestSimilar(index.Term(name, value), count, self.indexReader)]
 
     def sortfield(self, name, type=None, reverse=False):
         """Return lucene SortField, deriving the the type from FieldInfos if necessary.
@@ -441,18 +454,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         except KeyError:
             return self.spellcheckers.setdefault(field, SpellChecker(self.terms(field, counts=True)))
 
-    def suggest(self, field, prefix, count=None):
+    def complete(self, field, prefix, count=None):
         """Return ordered suggested words for prefix."""
-        return self.spellchecker(field).suggest(prefix, count)
-
-    def correct(self, field, text, distance=2):
-        """Generate potential words ordered by increasing edit distance and decreasing frequency.
-
-        For optimal performance only iterate the required slice size of corrections.
-
-        :param distance: the maximum edit distance to consider for enumeration
-        """
-        return itertools.chain.from_iterable(itertools.islice(self.spellchecker(field).correct(text), distance + 1))
+        return self.spellchecker(field).complete(prefix, count)
 
     def match(self, document, *queries):
         """Generate scores for all queries against a given document mapping."""

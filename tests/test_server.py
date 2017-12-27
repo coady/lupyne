@@ -95,9 +95,8 @@ def test_terms(resource):
     assert resource.terms('text/writ*?count=3') == ['writs', 'writ', 'writing']
     assert resource.terms('text/right~1') == ['eight', 'right', 'rights']
     assert resource.terms('text/right~') == ['eight', 'high', 'right', 'rights']
-    assert resource.terms('text/right~?count=3') == ['right', 'eight', 'rights']
-    assert resource.terms('text/right~?count=5') == ['right', 'eight', 'rights', 'high']
-    assert resource.terms('text/write~?count=5') == ['writs', 'writ', 'crime', 'written']
+    assert resource.terms('text/right~?count=3') == []
+    assert resource.terms('text/write~?count=5') == ['writs', 'writ', 'written']
     docs = resource.terms('text/people/docs')
     assert resource.terms('text/people') == len(docs) == 8
     counts = dict(resource.terms('text/people/docs/counts'))

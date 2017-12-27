@@ -120,7 +120,7 @@ def test_searcher(tempdir, fields, constitution):
     searcher = engine.IndexSearcher.load(tempdir)
     assert len(indexer) == len(searcher) and store.RAMDirectory.instance_(searcher.directory)
     assert indexer.spellcheckers == {}
-    assert indexer.suggest('amendment', '')
+    assert indexer.complete('amendment', '')
     assert list(indexer.spellcheckers) == ['amendment']
     indexer.delete('amendment', doc['amendment'])
     indexer.add(doc)
@@ -197,15 +197,22 @@ def test_searcher(tempdir, fields, constitution):
     assert set(str(query).split()) == {'text:establish', 'text:united', 'text:states'}
     assert str(indexer.morelikethis('jury', 'text', minDocFreq=4, minTermFreq=1, analyzer=analyzer)) == 'text:jury'
     assert str(indexer.morelikethis('jury', 'article', analyzer=analyzer)) == ''
-    assert indexer.suggest('missing', '') == list(indexer.correct('missing', '')) == []
-    assert indexer.suggest('text', '')[:8] == ['shall', 'states', 'any', 'have', 'united', 'congress', 'state', 'constitution']
-    assert indexer.suggest('text', 'con')[:2] == ['congress', 'constitution']
-    assert indexer.suggest('text', 'congress') == indexer.suggest('text', 'con', count=1) == ['congress']
-    assert indexer.suggest('text', 'congresses') == []
-    assert list(indexer.correct('text', 'writ', distance=0)) == ['writ']
-    assert list(indexer.correct('text', 'write', distance=0)) == []
-    assert list(indexer.correct('text', 'write', distance=1)) == ['writs', 'writ']
-    assert list(indexer.correct('text', 'write')) == ['writs', 'writ', 'crime', 'written']
+
+
+def test_spellcheck(fields, constitution):
+    indexer = engine.Indexer()
+    indexer.fields = {field.name: field for field in fields}
+    for doc in constitution:
+        indexer.add(doc)
+    indexer.commit()
+    assert indexer.complete('missing', '') == []
+    assert indexer.complete('text', '')[:8] == ['shall', 'states', 'any', 'have', 'united', 'congress', 'state', 'constitution']
+    assert indexer.complete('text', 'con')[:2] == ['congress', 'constitution']
+    assert indexer.complete('text', 'congress') == indexer.complete('text', 'con', count=1) == ['congress']
+    assert indexer.complete('text', 'congresses') == []
+    assert indexer.suggest('text', 'write') == ['writs']
+    assert indexer.suggest('text', 'write', 3) == ['writs', 'writ', 'written']
+    assert indexer.suggest('text', 'write', 3, maxEdits=1) == ['writs', 'writ']
     query = indexer.parse('text:write', spellcheck=True)
     assert search.TermQuery.instance_(query) and str(query) == 'text:writs'
     query = indexer.parse('"hello world"', field='text', spellcheck=True)
