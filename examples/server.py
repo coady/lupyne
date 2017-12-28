@@ -33,5 +33,5 @@ if __name__ == '__main__':
     # assign custom facet queries based on year
     years = {date.split('-')[0] for date in root.searcher.terms('date')}
     root.query_map['year'] = {year: Q.prefix('date', year) for year in years}
-    # start with pretty-printing
-    server.start(root, config={'global': {'tools.json_out.indent': 2}})
+    # start server
+    server.start(root)

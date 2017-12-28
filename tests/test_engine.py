@@ -7,7 +7,7 @@ import lucene
 from org.apache.lucene import analysis, document, index, search, store, util
 from six.moves import map
 from lupyne import engine
-from lupyne.utils import long, suppress
+from lupyne.utils import long
 Q = engine.Query
 
 
@@ -230,9 +230,9 @@ def test_indexes(tempdir):
     indexer.set('text', engine.Field.Text)
     with engine.Indexer(tempdir) as temp:
         temp.add()
-    with suppress(KeyError), engine.Indexer(tempdir) as temp:
-        temp.add()
-        temp.add(missing='')
+    with pytest.raises(KeyError), engine.Indexer(tempdir) as temp:
+            temp.add()
+            temp.add(missing='')
     for other in (temp, temp.directory, tempdir):
         indexer += other
     assert len(indexer) == 3

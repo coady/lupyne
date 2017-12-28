@@ -5,25 +5,11 @@ Common utilities with no lucene dependencies.
 import abc
 import bisect
 import collections
-import contextlib
 import heapq
 import itertools
 import types
 import six
-try:
-    import simplejson as json
-except ImportError:
-    import json  # noqa
 long = int if six.PY3 else long  # noqa
-
-
-@contextlib.contextmanager
-def suppress(*exceptions):
-    """Backport of contextlib.suppress."""
-    try:
-        yield
-    except exceptions:  # pragma: no cover
-        pass
 
 
 class Atomic(six.with_metaclass(abc.ABCMeta)):

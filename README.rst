@@ -47,6 +47,7 @@ Dependencies
 
 Optional server extras
 
+* Python >=3.4
 * CherryPy >=10
 * clients >=0.2
 

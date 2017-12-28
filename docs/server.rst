@@ -1,6 +1,6 @@
 server
 ======
-.. program-output:: python -m lupyne.server -h
+.. program-output:: python3 -m lupyne.server -h
   :cwd: ..
 .. automodule:: lupyne.server
 .. note:: Lucene doc ids are ephemeral;  only use doc ids across requests for the same index version.
