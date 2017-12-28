@@ -25,7 +25,3 @@ grouping
 server
 ---------
 .. literalinclude:: ../examples/server.py
-
-spatial
----------
-.. literalinclude:: ../examples/spatial.py

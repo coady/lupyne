@@ -238,6 +238,29 @@ class DateTimeField(NumericField):
         return self.duration(date, days, weeks=weeks, **delta)
 
 
+class SpatialField(NumericField):
+    """Geospatial points, indexed with optional docvalues."""
+    def items(self, *points):
+        """Generate lucene LatLon fields from points (lng, lat)."""
+        for lng, lat in points:
+            yield document.LatLonPoint(self.name, lat, lng)
+        if self.docvalues:
+            for lng, lat in points:
+                yield document.LatLonDocValuesField(self.name, lat, lng)
+
+    def within(self, lng, lat, distance):
+        """Return range queries for any tiles which could be within distance of given point.
+
+        :param lng,lat: point
+        :param distance: search radius in meters
+        """
+        return document.LatLonPoint.newDistanceQuery(self.name, lat, lng, distance)
+
+    def distances(self, lng, lat):
+        """Return distance SortField."""
+        return document.LatLonDocValuesField.newDistanceSort(self.name, lat, lng)
+
+
 class Document(dict):
     """Multimapping of field names to values, but default getters return the first value."""
     def __init__(self, doc):

@@ -4,9 +4,8 @@ engine
 
   * `TokenFilter`_, `Analyzer`_
   * `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_
-  * `Document`_, `Field`_, `NestedField`_, `NumericField`_, `DateTimeField`_
+  * `Document`_, `Field`_, `NestedField`_, `NumericField`_, `DateTimeField`_, `SpatialField`_
   * `Query`_
-  * `PointField`_
 
 
 analyzers
@@ -166,6 +165,12 @@ DateTimeField
   :show-inheritance:
   :members:
 
+SpatialField
+^^^^^^^^^^^^^
+.. autoclass:: SpatialField
+  :show-inheritance:
+  :members:
+
 
 queries
 ---------
@@ -204,26 +209,3 @@ SpellParser
   .. attribute:: searcher
 
     `IndexSearcher`_
-
-
-spatial
----------
-.. automodule:: lupyne.engine.spatial
-
-Point
-^^^^^^^^^^^^^
-.. autoclass:: Point
-  :show-inheritance:
-  :members:
-
-Tile
-^^^^^^^^^^^^^
-.. autoclass:: Tile
-  :show-inheritance:
-  :members:
-
-PointField
-^^^^^^^^^^^^^
-.. autoclass:: PointField
-  :show-inheritance:
-  :members:

@@ -9,21 +9,20 @@ But this may not be sufficient, or the datetimes may be necessary for other sear
 
 The general solution is to index the term values into a prefix tree.
 Then each query can expand to only values of the appropriate granularity.
-Lucene's NumericFields encode numbers to be sortable, so it is also able to cluster prefixes into the same field.
+Lucene's Point fields encode numbers to be sortable, so it is also able to cluster prefixes into the same field.
 Whereas Lupyne's NestedField assumes the value is already a sortable string, so different fields must be used to cluster the prefixes.
 There are trade-offs to each approach:
- * NumericFields support range queries natively, but must translate prefix queries.
+ * Point fields support range queries natively, but must translate prefix queries.
  * NestedFields support prefix queries optimally, but must translate range queries.
- * NumericFields only support numbers, and result in unreadable values in the index.
+ * Point fields only support numbers, and result in unreadable values in the index.
  * NestedFields support any searchable values, but pollute the field namespace.
 
-Lupyne PointFields and DateTimeFields are implemented as NumericFields since both are easily encoded as numbers.
+Lupyne SpatialFields and DateTimeFields are implemented as lucene Point fields.
 NestedFields could still be used however, as demonstrated on dates below.
 """
 
 from datetime import date
 import lucene
-from org.apache.lucene import search
 from lupyne import engine
 assert lucene.getVMEnv() or lucene.initVM()
 
@@ -40,7 +39,7 @@ indexer.set('state', stored=True)
 indexer.set('incorporated', engine.DateTimeField)
 indexer.set('year-month-day', engine.NestedField, sep='-')
 indexer.set('population', engine.NumericField)
-indexer.set('point', engine.PointField, precision=10)
+indexer.set('point', engine.SpatialField)
 # assigned fields can have a different key from their underlying field name
 indexer.fields['location'] = engine.NestedField('state.city')
 
@@ -69,9 +68,8 @@ assert str(query) == 'population:[0 TO 999999]'
 assert [hit['city'] for hit in indexer.search(query)] == ['San Francisco', 'Portland']
 
 cities = ['San Francisco', 'Los Angeles', 'Portland']
-for index, distance in enumerate([1e3, 1e5, 2e5, 1e6]):
+for index, distance in enumerate([1e3, 1e5, 7e5, 1e6]):
     query = indexer.fields['point'].within(-122.4, 37.7, distance=distance)
-    assert isinstance(query, search.BooleanQuery) and len(list(query)) <= 4
     assert {hit['city'] for hit in indexer.search(query)} == set(cities[:index])
 
 query = indexer.fields['location'].prefix('CA.San')

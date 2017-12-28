@@ -19,7 +19,6 @@ from six.moves import filter, map, range, zip
 from .analyzers import Analyzer
 from .queries import suppress, Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
-from .spatial import Distances
 from ..utils import long, Atomic, SpellChecker
 
 for cls in (analysis.TokenStream, lucene.JArray_byte):
@@ -182,11 +181,6 @@ class IndexReader(object):
         docValuesType = self.fieldinfos[name].docValuesType.toString().title().replace('_', '')
         method = getattr(index.MultiDocValues, 'get{}Values'.format(docValuesType))
         return getattr(DocValues, docValuesType)(method(self.indexReader, name), len(self), type)
-
-    def distances(self, lng, lat, lngfield, latfield):
-        """Return distance calculator from given point and DocValue lng/lat fields."""
-        arrays = (self.docvalues(field, float) for field in (lngfield, latfield))
-        return Distances(lng, lat, *arrays)
 
     def copy(self, dest, query=None, exclude=None, merge=0):
         """Copy the index to the destination directory.

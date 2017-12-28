@@ -4,7 +4,7 @@ import math
 import os
 import pytest
 import lucene
-from org.apache.lucene import analysis, document, search, store, util
+from org.apache.lucene import analysis, document, index, search, store, util
 from six.moves import map
 from lupyne import engine
 from lupyne.utils import long, suppress
@@ -386,43 +386,33 @@ def test_grouping(tempdir, indexer, zipcodes):
 
 
 def test_spatial(indexer, zipcodes):
-    point = engine.spatial.Point(-120, 39)
-    assert point.coords == (-120, 39) and not list(point.within(1, 0))
     for name in ('longitude', 'latitude'):
-        indexer.set(name, engine.NumericField, stored=True, docValuesType='numeric')
-    field = indexer.set('tile', engine.PointField, precision=15, stored=True)
+        indexer.set(name, engine.NumericField, stored=True)
+    field = indexer.set('location', engine.SpatialField, docValuesType='numeric')
     for doc in zipcodes:
         if doc['state'] == 'CA':
-            point = doc['longitude'], doc['latitude']
-            indexer.add(doc, tile=[point])
+            indexer.add(doc, location=[(doc['longitude'], doc['latitude'])])
     indexer.commit()
-    city, zipcode, tile = 'Beverly Hills', '90210', '023012311120332'
+    city, zipcode = 'Beverly Hills', '90210'
     hit, = indexer.search('zipcode:' + zipcode)
-    assert hit['tile'] == int(tile, 4) and hit['city'] == city
-    hit, = indexer.search(*field.ranges([tile]))
-    assert hit['zipcode'] == zipcode and hit['city'] == city
+    assert hit['city'] == city
     x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
-    assert engine.spatial.Tile(2, 9, 4) == tile[:4]
-    query = field.within(x, y, 10 ** 4)
-    assert len(list(query)) == 3
-    distances = indexer.distances(x, y, 'longitude', 'latitude')
-    hits = indexer.search(query).sorted(distances.__getitem__)
-    assert hits[0]['zipcode'] == zipcode and distances[hits[0].id] < 10
+    query = field.within(x, y, 1e4)
+    hits = indexer.search(query, sort=field.distances(x, y))
+    distances = {hit.id: hit.keys[0] for hit in hits}
+    assert hits[0]['zipcode'] == zipcode and hits[0].keys < (1,)
     cities = {hit['city'] for hit in hits}
-    assert city in cities and len(cities) == 37
-    hits = indexer.search(field.within(x, y, 10 ** 5, limit=100))
-    cities = {hit['city'] for hit in hits}
-    assert city in cities and len(cities) > 100
-    ranges = 10 ** 2, 10 ** 5
-    groups = hits.groupby(lambda id: bisect.bisect_left(ranges, distances[id]))
+    assert city in cities and len(cities) == 12
+    groups = hits.groupby(lambda id: bisect.bisect_left([100, 5000], distances[id]))
     counts = {hits.value: len(hits) for hits in groups}
-    assert 1 == counts[0] < counts[2] < counts[1]
-    assert len(list(field.within(x, y, 10 ** 8))) == 1
-    hits = hits.filter(lambda id: distances[id] < 10 ** 4)
+    assert counts == {0: 1, 1: 12, 2: 37}
+    hits = hits.filter(lambda id: distances[id] < 5000)
     assert 0 < len(hits) < sum(counts.values())
     hits = hits.sorted(distances.__getitem__, reverse=True)
     ids = list(hits.ids)
-    assert 0 <= distances[ids[-1]] < distances[ids[0]] < 10 ** 4
+    assert 0 <= distances[ids[-1]] < distances[ids[0]] < 1e4
+    field.docValuesType = index.DocValuesType.NONE
+    indexer.add(location=[(0.0, 0.0)])
 
 
 def test_fields(indexer, constitution):
