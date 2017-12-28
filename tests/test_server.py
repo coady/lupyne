@@ -140,7 +140,6 @@ def test_search(resource):
     result = resource.search(q='text:people', count=5, sort='-date,year:int')
     assert result['docs'][0]['__keys__'] == ['1913-04-08', 1913] and result['docs'][-1]['__keys__'] == ['1791-12-15', 1791]
     result = resource.search(q='text:people', start=2, count=2, facets='date')
-    assert [doc['amendment'] for doc in result['docs']] == ['10', '1']
     assert result['count'] == 8 and result['facets']['date'] == {'1791-12-15': 5, '1913-04-08': 1}
     result = resource.search(q='text:president', facets='date')
     assert len(result['facets']['date']) == sum(result['facets']['date'].values()) == 7
@@ -163,7 +162,7 @@ def test_highlights(resource):
     assert result['count'] == 25 and set(result['query'].split()) == {'text:united', 'text:states'}
     result = resource.search(q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})
     assert result['count'] == 11 and set(result['query'].split()) == {'text:necessary', 'text:people'}
-    assert [doc['amendment'] for doc in result['docs'][:4]] == ['2', '9', '10', '1']
+    assert [doc['amendment'] for doc in result['docs'][:3]] == ['2', '9', '10']
     result = resource.search(q='text:people', count=1, timeout=-1)
     assert result == {'query': 'text:people', 'count': None, 'maxscore': None, 'docs': []}
     result = resource.search(q='text:people', timeout=0.01)

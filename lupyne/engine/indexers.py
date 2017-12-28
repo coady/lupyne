@@ -17,7 +17,7 @@ from org.apache.lucene.search import spell, uhighlight
 from six import string_types
 from six.moves import filter, map, range, zip
 from .analyzers import Analyzer
-from .queries import suppress, Query, DocValues, SpellParser
+from .queries import lucene6, suppress, Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from ..utils import long, Atomic, SpellChecker
 
@@ -219,7 +219,8 @@ class IndexReader(object):
             return iter([])
         term, termsenum = index.Term(name, value), terms.iterator()
         if distance:
-            terms = termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, float(distance), prefix, False)
+            distance = (float if lucene6 else int)(distance)
+            terms = termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, distance, prefix, False)
         else:
             termsenum.seekCeil(util.BytesRef(value))
             terms = itertools.chain([termsenum.term()], util.BytesRefIterator.cast_(termsenum))
@@ -341,7 +342,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param positions: optionally include slice positions instead of counts
         """
         offset = 0
-        weight = query.createWeight(self, False)
+        weight = query.createWeight(self, False, *([1.0] * (not lucene6)))
         postings = search.spans.SpanWeight.Postings.POSITIONS
         for reader in self.readers:
             try:
@@ -456,11 +457,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """Generate scores for all queries against a given document mapping."""
         searcher = index.memory.MemoryIndex()
         for name, value in document.items():
-            if isinstance(value, string_types):
-                value = value, self.analyzer
-            elif isinstance(value, analysis.TokenStream):
-                value = value,
-            searcher.addField(name, *value)
+            args = [self.analyzer] * isinstance(value, string_types)
+            searcher.addField(name, value, *args)
         return (searcher.search(self.parse(query)) for query in queries)
 
 

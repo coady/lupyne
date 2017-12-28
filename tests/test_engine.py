@@ -129,13 +129,9 @@ def test_searcher(tempdir, fields, constitution):
     assert reader.refCount == 0
     assert list(indexer.spellcheckers) == ['amendment']
     analyzer = engine.Analyzer.standard()
-    doc = {
-        'text': doc['text'],
-        'amendment': analyzer.tokens(doc['amendment']),
-        'date': (analyzer.tokens(doc['date']), 2.0),
-    }
-    scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27', 'date:19*'))
-    assert 0.0 == scores[0] < scores[1] < scores[2] < scores[3] == 1.0
+    doc = {'text': doc['text'], 'amendment': analyzer.tokens(doc['amendment'])}
+    scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27'))
+    assert 0.0 == scores[0] < scores[1] <= scores[2] < 1.0
     assert len(indexer) == len(indexer.search()) == 35
     articles = list(indexer.terms('article'))
     articles.remove('Preamble')
