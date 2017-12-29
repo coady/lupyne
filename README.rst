@@ -54,7 +54,7 @@ Installation
 
 Dependencies
 ==================
-* PyLucene >=6     (installed separately)
+* PyLucene >=6.5  (installed separately)
 * six
 
 Optional server extras
@@ -71,10 +71,11 @@ Tests
 
 Changes
 ==================
-dev
+2.0
 
 * PyLucene >=6 required
 * Python 3 support
+* client moved to external package
 
 1.9
 

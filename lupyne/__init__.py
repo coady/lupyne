@@ -2,4 +2,4 @@ import warnings
 
 warnings.filterwarnings('default', category=DeprecationWarning, module='lupyne')
 
-__version__ = '1.9'
+__version__ = '2.0'
