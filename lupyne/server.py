@@ -34,6 +34,7 @@ Custom servers should create and mount WebSearchers and WebIndexers as needed.
 WebSearchers and WebIndexers can of course also be subclassed for custom interfaces.
 
 CherryPy and Lucene VM integration issues:
+
  * Monitors (such as autoreload) are not compatible with the VM unless threads are attached.
  * WorkerThreads must be also attached to the VM.
  * VM initialization must occur after daemonizing.
@@ -49,6 +50,7 @@ import itertools
 import os
 import re
 import time
+import warnings
 import lucene
 import cherrypy
 import clients
@@ -858,6 +860,7 @@ if __name__ == '__main__':
         kwargs['urls'] = args.autosync.split(',')
         if not (args.autoupdate and len(args.directories) == 1):
             parser.error('autosync requires autoupdate and a single directory')
+        warnings.warn('autosync is not recommended for production usage')
     if args.config and not os.path.exists(args.config):
         args.config = {'global': json.loads(args.config)}
     cls = WebSearcher if read_only else WebIndexer

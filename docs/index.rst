@@ -8,7 +8,6 @@ Lupyne's documentation
 Lupyne_ is:
  * a high-level Pythonic search `engine <engine.html>`_ library, built on PyLucene_
  * a RESTful_ JSON_ search `server <server.html>`_, built on CherryPy_
- * a simple Python `client <client.html>`_ for interacting with the server
 
 Quickstart
 ^^^^^^^^^^

@@ -1,5 +1,3 @@
-About Lupyne
-==================
 .. image:: https://img.shields.io/pypi/v/lupyne.svg
    :target: https://pypi.org/project/lupyne/
 .. image:: https://img.shields.io/pypi/pyversions/lupyne.svg
@@ -9,28 +7,42 @@ About Lupyne
 .. image:: https://api.shippable.com/projects/56059e3e1895ca4474182ec3/coverageBadge?branch=master
    :target: https://app.shippable.com/github/coady/lupyne
 
-The core engine is a high level interface to `PyLucene`_, which is a Python extension for accessing the popular Java Lucene search engine.
-Lucene has a reputation for being a relatively low-level toolkit, and the goal of PyLucene is to wrap it through automatic code generation.
-So although PyLucene transforms Java idioms to Python idioms where possible, the resulting interface is far from Pythonic.
+Lupyne is a search engine based on `PyLucene`_, the Python extension for accessing Java Lucene.
+Lucene is a relatively low-level toolkit, and PyLucene wraps it through automatic code generation.
+So although Java idioms are translated to Python idioms where possible, the resulting interface is far from Pythonic.
 See ``./examples`` for comparisons with the Lucene API.
 
-A RESTful JSON search server, based on `CherryPy`_.
-Many python applications which require better search capabilities are migrating from using conventional client-server databases,
-whereas Lucene is an embedded search library.  Solr and Elasticsearch are popular options for remote searching and advanced features,
-but then any customization beyond the REST API is difficult and coupled to Java.
-Using a python web framework instead can provide the best of both worlds, e.g., batch indexing offline and remote searching live.
+Lupyne also provides a RESTful JSON search server, based on `CherryPy`_.
+Note Solr and Elasticsearch are popular options for Lucene-based search, if no further (Python) customization is needed.
+So while the server is suitable for production usage, its primary motivation is to be an extensible example.
 
-A simple client to make interacting with the server as convenient as an RPC interface.
-It handles all of the HTTP interactions, with support for compression, json, and connection reuse.
+Not having to initially choose between an embedded library and a server not only provides greater flexibility,
+it can provide better performance, e.g., batch indexing offline and remote searching live.
+Additionally only lightweight wrappers with extended behavior are used wherever possible,
+so falling back to using PyLucene directly is always an option, but should never necessary for performance.
 
-Advanced search features:
+Usage
+==================
+PyLucene requries initializing the VM.
 
-* Automatic updating and syncing to support replication.
-* Optimized faceted and grouped search.
-* Optimized prefix and range queries.
-* Geospatial support.
-* Spellchecking.
-* Near real-time indexing.
+.. code-block:: python
+
+   import lucene
+
+   lucene.initVM()
+
+Indexes are accessed through an `IndexSearcher` (read-only), `IndexWriter`, or the combined `Indexer`.
+
+.. code-block:: python
+
+   from lupyne import engine
+
+   searcher = engine.IndexSearcher('index/path')
+   hits = searcher.search('text:query')
+
+Run the server. ::
+
+   $ python -m lupyne.server
 
 Read the `documentation`_.
 
