@@ -429,7 +429,7 @@ def test_fields(indexer, constitution):
     with pytest.raises(AttributeError):
         engine.Field('', invalid=None)
     with pytest.raises(lucene.JavaError):
-        with engine.queries.suppress(search.TimeLimitingCollector.TimeExceededException):
+        with engine.utils.suppress(search.TimeLimitingCollector.TimeExceededException):
             document.Field('name', 'value', document.FieldType())
     assert str(engine.Field.String('')) == str(document.StringField('', '', document.Field.Store.NO).fieldType())
     assert str(engine.Field.Text('')) == str(document.TextField('', '', document.Field.Store.NO).fieldType())

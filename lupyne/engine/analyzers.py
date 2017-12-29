@@ -1,7 +1,3 @@
-"""
-Analyzers and tokenizers.
-"""
-
 import collections
 from java.io import StringReader
 from java.lang import Float
@@ -11,7 +7,7 @@ from org.apache.lucene.search import uhighlight
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from six import string_types
-from ..utils import method
+from .utils import method
 
 
 class TokenStream(analysis.TokenStream):

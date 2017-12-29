@@ -1,9 +1,3 @@
-"""
-Wrappers for lucene Index{Read,Search,Writ}ers.
-
-The final `Indexer`_ classes exposes a high-level Searcher and Writer.
-"""
-
 import contextlib
 import itertools
 import operator
@@ -17,12 +11,9 @@ from org.apache.lucene.search import spell, uhighlight
 from six import string_types
 from six.moves import filter, map, range, zip
 from .analyzers import Analyzer
-from .queries import lucene6, suppress, Query, DocValues, SpellParser
+from .queries import Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
-from ..utils import long, Atomic, SpellChecker
-
-for cls in (analysis.TokenStream, lucene.JArray_byte):
-    Atomic.register(cls)
+from .utils import long, lucene6, suppress, Atomic, SpellChecker
 
 
 class closing(set):

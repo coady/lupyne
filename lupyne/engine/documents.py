@@ -1,19 +1,15 @@
-"""
-Wrappers for lucene Fields and Documents.
-"""
-
 import calendar
 import collections
 import datetime
 import operator
 import lucene  # noqa
-from java.lang import Double, Float, Long, Number, Object
+from java.lang import Long
 from java.util import Arrays, HashSet
 from org.apache.lucene import document, index, search, util
 from org.apache.lucene.search import grouping
 from six.moves import map, range
 from .queries import Query
-from ..utils import long
+from .utils import convert, long
 FieldType = document.FieldType
 
 
@@ -257,16 +253,6 @@ class Document(dict):
         defaults.update((name, self[name]) for name in (defaults or self) if name in self)
         defaults.update((name, self.getlist(name)) for name in names)
         return defaults
-
-
-def convert(value):
-    """Return python object from java Object."""
-    if util.BytesRef.instance_(value):
-        return util.BytesRef.cast_(value).utf8ToString()
-    if not Number.instance_(value):
-        return value.toString() if Object.instance_(value) else value
-    value = Number.cast_(value)
-    return value.doubleValue() if Float.instance_(value) or Double.instance_(value) else int(value.longValue())
 
 
 class Hit(Document):

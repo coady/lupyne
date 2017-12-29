@@ -1,9 +1,4 @@
-"""
-Query wrappers and search utilities.
-"""
-
-import contextlib
-import lucene
+import lucene  # noqa
 from java.lang import Double, Integer, Long
 from java.util import Arrays
 from org.apache.lucene import document, index, search, util
@@ -11,9 +6,7 @@ from org.apache.lucene.search import spans
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from six import string_types
 from six.moves import map, range
-from ..utils import long, method
-
-lucene6 = lucene.VERSION.startswith('6.')
+from .utils import long, lucene6, method
 
 
 class Query(object):
@@ -249,16 +242,6 @@ class SpanQuery(Query):
     def within(self, other):
         """Return lucene SpanWithinQuery."""
         return SpanQuery(spans.SpanWithinQuery, self, other)
-
-
-@contextlib.contextmanager
-def suppress(exception):
-    """Suppress specific lucene exception."""
-    try:
-        yield
-    except lucene.JavaError as exc:
-        if not exception.instance_(exc.getJavaException()):
-            raise
 
 
 class Base(object):

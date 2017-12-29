@@ -20,13 +20,13 @@ TokenStream
 TokenFilter
 ^^^^^^^^^^^^^
 .. autoclass:: TokenFilter
-  :show-inheritance:
   :members:
 
 Analyzer
 ^^^^^^^^^^^^^
 .. autoclass:: Analyzer
   :members:
+
 
 indexers
 ---------
@@ -46,7 +46,6 @@ IndexReader
 IndexSearcher
 ^^^^^^^^^^^^^
 .. autoclass:: IndexSearcher
-  :show-inheritance:
   :members:
 
   .. automethod:: __getitem__
@@ -69,7 +68,6 @@ MultiSearcher
 IndexWriter
 ^^^^^^^^^^^^^
 .. autoclass:: IndexWriter
-  :show-inheritance:
   :members:
 
   .. attribute:: fields
