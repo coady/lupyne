@@ -195,7 +195,7 @@ def test_facets(tempdir, servers, zipcodes):
     writer = engine.IndexWriter(tempdir)
     writer.commit()
     resource = servers.start(servers.ports[0], '-r', tempdir)
-    writer.set('zipcode', engine.NumericField, stored=True)
+    writer.set('zipcode', dimensions=1, stored=True)
     writer.fields['location'] = engine.NestedField('county.city', docValuesType='sorted')
     for doc in zipcodes:
         if doc['state'] == 'CA':

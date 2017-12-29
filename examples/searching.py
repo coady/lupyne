@@ -25,6 +25,7 @@ from datetime import date
 import lucene
 from lupyne import engine
 assert lucene.getVMEnv() or lucene.initVM()
+Q = engine.Query
 
 docs = [
     {'city': 'San Francisco', 'state': 'CA', 'incorporated': '1850-04-15', 'population': 808976, 'longitude': -122.4192, 'latitude': 37.7752},
@@ -38,7 +39,7 @@ indexer.set('state', stored=True)
 # set method supports custom field types inheriting their default settings
 indexer.set('incorporated', engine.DateTimeField)
 indexer.set('year-month-day', engine.NestedField, sep='-')
-indexer.set('population', engine.NumericField)
+indexer.set('population', dimensions=1)
 indexer.set('point', engine.SpatialField)
 # assigned fields can have a different key from their underlying field name
 indexer.fields['location'] = engine.NestedField('state.city')
@@ -63,8 +64,7 @@ query = indexer.fields['year-month-day'].range('1850-04-10', None)
 assert str(query) == 'year-month-day:[1850-04-10 TO *}'
 assert [hit['city'] for hit in indexer.search(query)] == ['San Francisco', 'Portland']
 
-query = indexer.fields['population'].range(0, 1000000)
-assert str(query) == 'population:[0 TO 999999]'
+query = Q.ranges('population', (0, 1000000))
 assert [hit['city'] for hit in indexer.search(query)] == ['San Francisco', 'Portland']
 
 cities = ['San Francisco', 'Los Angeles', 'Portland']

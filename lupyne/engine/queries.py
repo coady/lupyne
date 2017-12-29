@@ -4,14 +4,14 @@ Query wrappers and search utilities.
 
 import contextlib
 import lucene
-from java.lang import Integer
+from java.lang import Double, Integer, Long
 from java.util import Arrays
-from org.apache.lucene import index, search, util
+from org.apache.lucene import document, index, search, util
 from org.apache.lucene.search import spans
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from six import string_types
 from six.moves import map, range
-from ..utils import method
+from ..utils import long, method
 
 lucene6 = lucene.VERSION.startswith('6.')
 
@@ -131,6 +131,44 @@ class Query(object):
     def regexp(cls, name, value, *args):
         """Return lucene RegexpQuery."""
         return cls(search.RegexpQuery, index.Term(name, value), *args)
+
+    @staticmethod
+    def points(name, *values):
+        """Return lucene set query of one dimensional points."""
+        if any(isinstance(value, float) for value in values):
+            return document.DoublePoint.newSetQuery(name, values)
+        return document.LongPoint.newSetQuery(name, tuple(map(long, values)))
+
+    @staticmethod
+    def ranges(name, *intervals, **inclusive):
+        """Return lucene multidimensional point range query, by default with half-open intervals."""
+        lower, upper = inclusive.pop('lower', True), inclusive.pop('upper', False)
+        starts, stops = [], []
+        for start, stop in intervals:
+            if isinstance(start, float) or isinstance(stop, float):
+                if start is None:
+                    start = Double.NEGATIVE_INFINITY
+                elif not lower:
+                    start = document.DoublePoint.nextUp(start)
+                if stop is None:
+                    stop = Double.POSITIVE_INFINITY
+                elif not upper:
+                    stop = document.DoublePoint.nextDown(stop)
+            else:
+                if start is None:
+                    start = Long.MIN_VALUE
+                elif not lower:
+                    start += 1
+                if stop is None:
+                    stop = Long.MAX_VALUE
+                elif not upper:
+                    stop -= 1
+                start, stop = long(start), long(stop)
+            starts.append(start)
+            stops.append(stop)
+        if any(isinstance(value, float) for value in starts):
+            return document.DoublePoint.newRangeQuery(name, starts, stops)
+        return document.LongPoint.newRangeQuery(name, starts, stops)
 
     def constant(self):
         """Return lucene ConstantScoreQuery."""

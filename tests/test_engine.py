@@ -7,7 +7,6 @@ import lucene
 from org.apache.lucene import analysis, document, index, search, store, util
 from six.moves import map
 from lupyne import engine
-from lupyne.utils import long
 Q = engine.Query
 
 
@@ -325,6 +324,19 @@ def test_queries():
     assert str(span.containing(span)) == 'SpanContaining(text:lucene, text:lucene)'
     assert str(span.within(span)) == 'SpanWithin(text:lucene, text:lucene)'
 
+    assert str(Q.points('point', 0.0)) == 'point:{0.0}'
+    assert str(Q.points('point', 0.0, 1.0)) == 'point:{0.0 1.0}'
+    assert str(Q.points('point', 0)) == 'point:{0}'
+    assert str(Q.points('point', 0, 1)) == 'point:{0 1}'
+    assert str(Q.ranges('point', (0.0, 1.0), (2.0, 3.0), upper=True)) == 'point:[0.0 TO 1.0],[2.0 TO 3.0]'
+    assert str(Q.ranges('point', (0.0, 1.0), lower=False)).startswith('point:[4.9E-324 TO 0.9999')
+    assert str(Q.ranges('point', (None, 0.0), upper=True)) == 'point:[-Infinity TO 0.0]'
+    assert str(Q.ranges('point', (0.0, None))) == 'point:[0.0 TO Infinity]'
+    assert str(Q.ranges('point', (0, 1), (2, 3), upper=True)) == 'point:[0 TO 1],[2 TO 3]'
+    assert str(Q.ranges('point', (0, 3), lower=False)) == 'point:[1 TO 2]'
+    assert str(Q.ranges('point', (None, 0), upper=True)) == 'point:[-9223372036854775808 TO 0]'
+    assert str(Q.ranges('point', (0, None))) == 'point:[0 TO 9223372036854775807]'
+
 
 def test_grouping(tempdir, indexer, zipcodes):
     field = indexer.fields['location'] = engine.NestedField('state.county.city', docValuesType='sorted')
@@ -383,7 +395,7 @@ def test_grouping(tempdir, indexer, zipcodes):
 
 def test_spatial(indexer, zipcodes):
     for name in ('longitude', 'latitude'):
-        indexer.set(name, engine.NumericField, stored=True)
+        indexer.set(name, dimensions=1, stored=True)
     field = indexer.set('location', engine.SpatialField, docValuesType='numeric')
     for doc in zipcodes:
         if doc['state'] == 'CA':
@@ -421,7 +433,6 @@ def test_fields(indexer, constitution):
             document.Field('name', 'value', document.FieldType())
     assert str(engine.Field.String('')) == str(document.StringField('', '', document.Field.Store.NO).fieldType())
     assert str(engine.Field.Text('')) == str(document.TextField('', '', document.Field.Store.NO).fieldType())
-    assert str(engine.NumericField('')) == str(document.LongPoint('', long(0)).fieldType())
     assert str(engine.DateTimeField('')) == str(document.DoublePoint('', 0.0).fieldType())
     settings = {'docValuesType': 'NUMERIC', 'indexOptions': 'DOCS'}
     field = engine.Field('', **settings)
@@ -471,9 +482,9 @@ def test_fields(indexer, constitution):
 
 
 def test_numeric(indexer, constitution):
-    indexer.set('amendment', engine.NumericField, stored=True)
+    indexer.set('amendment', dimensions=1, stored=True)
     field = indexer.set('date', engine.DateTimeField, stored=True)
-    indexer.set('size', engine.NumericField, stored=True, docValuesType='numeric')
+    indexer.set('size', dimensions=1, stored=True, docValuesType='numeric')
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
@@ -491,22 +502,16 @@ def test_numeric(indexer, constitution):
     assert indexer.count(field.within(seconds=100)) == indexer.count(field.within(weeks=1)) == 0
     query = field.duration([2009], days=-100 * 365)
     assert indexer.count(query) == 12
-    field = indexer.fields['size']
     sizes = {id: int(indexer[id]['size']) for id in indexer}
     ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
-    query = field.range(1000, None)
+    query = Q.ranges('size', (1000, None))
     hits = indexer.search(query).sorted(sizes.get)
     assert list(hits.ids) == ids
     hits = indexer.search(query, count=3, sort=indexer.sortfield('size', type=int))
     assert list(hits.ids) == ids[:len(hits)]
-    query = field.range(None, 1000)
+    query = Q.ranges('size', (None, 1000))
     assert indexer.count(query) == len(sizes) - len(ids)
-    assert str(field.range(0, None)) == 'size:[0 TO 9223372036854775807]'
-    assert str(field.range(0, 10, lower=False)) == 'size:[1 TO 9]'
-    assert str(field.range(0.0, None, lower=False)) == 'size:[4.9E-324 TO Infinity]'
-    assert str(field.range(None, 0)) == 'size:[-9223372036854775808 TO -1]'
-    assert str(field.range(None, 0.0, upper=True)) == 'size:[-Infinity TO 0.0]'
-    hit, = indexer.search(indexer.fields['amendment'].term(1))
+    hit, = indexer.search(Q.points('amendment', 1))
     assert hit['amendment'] == 1
 
 

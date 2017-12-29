@@ -4,7 +4,7 @@ engine
 
   * `TokenFilter`_, `Analyzer`_
   * `IndexSearcher`_, `MultiSearcher`_, `IndexWriter`_, `Indexer`_
-  * `Document`_, `Field`_, `NestedField`_, `NumericField`_, `DateTimeField`_, `SpatialField`_
+  * `Document`_, `Field`_, `NestedField`_, `DateTimeField`_, `SpatialField`_
   * `Query`_
 
 
@@ -148,14 +148,6 @@ Field
 NestedField
 ^^^^^^^^^^^^^
 .. autoclass:: NestedField
-  :show-inheritance:
-  :members:
-
-NumericField
-^^^^^^^^^^^^^
-.. versionchanged:: 1.5 recommended to specify initial int or float type
-.. versionchanged:: 1.6 custom step removed in favor of numericPrecisionStep
-.. autoclass:: NumericField
   :show-inheritance:
   :members:
 

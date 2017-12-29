@@ -147,47 +147,14 @@ class NestedField(Field):
         return Query.range(self.names[index], start, stop, lower, upper)
 
 
-class NumericField(Field):
-    """Field which indexes numbers in a prefix tree.
+class DateTimeField(Field):
+    """Field which indexes datetimes as Point fields of timestamps.
 
-    :param name: name of field
-    :param type: optional int, float, or lucene NumericType string
+    Supports datetimes, dates, and any prefix of time tuples.
     """
     def __init__(self, name, dimensions=1, **settings):
         Field.__init__(self, name, dimensions=dimensions, **settings)
 
-    def range(self, start, stop, lower=True, upper=False):
-        """Return lucene NumericRangeQuery."""
-        if isinstance(start, float) or isinstance(stop, float):
-            if start is None:
-                start = Double.NEGATIVE_INFINITY
-            elif not lower:
-                start = document.DoublePoint.nextUp(start)
-            if stop is None:
-                stop = Double.POSITIVE_INFINITY
-            elif not upper:
-                stop = document.DoublePoint.nextDown(stop)
-            return document.DoublePoint.newRangeQuery(self.name, start, stop)
-        if start is None:
-            start = Long.MIN_VALUE
-        elif not lower:
-            start += 1
-        if stop is None:
-            stop = Long.MAX_VALUE
-        elif not upper:
-            stop -= 1
-        return document.LongPoint.newRangeQuery(self.name, long(start), long(stop))
-
-    def term(self, value):
-        """Return range query to match single term."""
-        return self.range(value, value, upper=True)
-
-
-class DateTimeField(NumericField):
-    """Field which indexes datetimes as a NumericField of timestamps.
-
-    Supports datetimes, dates, and any prefix of time tuples.
-    """
     @classmethod
     def timestamp(cls, date):
         """Return utc timestamp from date or time tuple."""
@@ -197,12 +164,12 @@ class DateTimeField(NumericField):
 
     def items(self, *dates):
         """Generate lucene NumericFields of timestamps."""
-        return NumericField.items(self, *map(self.timestamp, dates))
+        return Field.items(self, *map(self.timestamp, dates))
 
-    def range(self, start, stop, lower=True, upper=False):
+    def range(self, start, stop, **inclusive):
         """Return NumericRangeQuery of timestamps."""
-        start, stop = (date and self.timestamp(date) for date in (start, stop))
-        return NumericField.range(self, start, stop, lower, upper)
+        interval = (date and self.timestamp(date) for date in (start, stop))
+        return Query.ranges(self.name, interval, **inclusive)
 
     def prefix(self, date):
         """Return range query which matches the date prefix."""
@@ -238,8 +205,11 @@ class DateTimeField(NumericField):
         return self.duration(date, days, weeks=weeks, **delta)
 
 
-class SpatialField(NumericField):
+class SpatialField(Field):
     """Geospatial points, indexed with optional docvalues."""
+    def __init__(self, name, dimensions=1, **settings):
+        Field.__init__(self, name, dimensions=dimensions, **settings)
+
     def items(self, *points):
         """Generate lucene LatLon fields from points (lng, lat)."""
         for lng, lat in points:

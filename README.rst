@@ -23,7 +23,7 @@ so falling back to using PyLucene directly is always an option, but should never
 
 Usage
 ==================
-PyLucene requries initializing the VM.
+PyLucene requires initializing the VM.
 
 .. code-block:: python
 
