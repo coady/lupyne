@@ -50,9 +50,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'lupyne'
-copyright = u'2017, Aric Coady'
-author = u'Aric Coady'
+project = 'lupyne'
+copyright = '2018, Aric Coady'
+author = 'Aric Coady'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

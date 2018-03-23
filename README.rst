@@ -19,7 +19,7 @@ So while the server is suitable for production usage, its primary motivation is 
 Not having to initially choose between an embedded library and a server not only provides greater flexibility,
 it can provide better performance, e.g., batch indexing offline and remote searching live.
 Additionally only lightweight wrappers with extended behavior are used wherever possible,
-so falling back to using PyLucene directly is always an option, but should never necessary for performance.
+so falling back to using PyLucene directly is always an option, but should never be necessary for performance.
 
 Usage
 ==================

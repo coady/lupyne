@@ -93,8 +93,8 @@ class TokenFilter(PythonTokenFilter, TokenStream):
 class Analyzer(PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
 
-    :param tokenizer: lucene Tokenizer class
-    :param filters: lucene TokenFilters
+    :param tokenizer: lucene Tokenizer class or callable, called with no args
+    :param filters: lucene TokenFilter classes or callables, successively called on input tokens
     """
     def __init__(self, tokenizer, *filters):
         PythonAnalyzer.__init__(self)
