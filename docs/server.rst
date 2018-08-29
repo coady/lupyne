@@ -11,7 +11,7 @@ The `autoupdate` and `autosync` features demonstrate this, but are not meant to 
 Autoupdating is considered production-ready; autosyncing is not.
 
 CherryPy was chosen because not only is it well suited to exposing APIs, but it includes a production multithreaded server.
-Lucene caches heavily, and the PyLucene is not bound by the `GIL`_ when in the Java VM.
+Lucene caches heavily, and PyLucene is not bound by the `GIL`_ when in the Java VM.
 So threads are a natural choice for a worker pool, even if a different concurrency model is used for HTTP.
 
 tools
