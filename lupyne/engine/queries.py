@@ -6,7 +6,7 @@ from org.apache.lucene.search import spans
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from six import string_types
 from six.moves import map, range
-from .utils import long, lucene6, method
+from .utils import long, method
 
 
 class Query(object):
@@ -244,62 +244,39 @@ class SpanQuery(Query):
         return SpanQuery(spans.SpanWithinQuery, self, other)
 
 
-class Base(object):
-    def __init__(self, docvalues, size, type):
-        self.docvalues, self.size, self.type = docvalues, size, type
-
-    def __iter__(self):
-        return map(self.__getitem__, range(self.size))
-
-    def select(self, ids):
-        """Return mapping of doc ids to values."""
-        return {id: self[id] for id in sorted(ids)}
-
-
-class DocValues:  # pragma: no cover
+class DocValues:
     """DocValues with type conversion."""
-    class Numeric(Base):
-        def __getitem__(self, id):
-            if self.docvalues.advanceExact(id):
-                return self.type(self.docvalues.longValue())
+    class Sorted(object):
+        def __init__(self, docvalues, size, type):
+            self.docvalues, self.size, self.type = docvalues, size, type
 
-    class Binary(Numeric):
+        def __iter__(self):
+            return map(self.__getitem__, range(self.size))
+
+        def select(self, ids):
+            """Return mapping of doc ids to values."""
+            return {id: self[id] for id in sorted(ids)}
+
         def __getitem__(self, id):
             if self.docvalues.advanceExact(id):
                 return self.type(self.docvalues.binaryValue())
 
-    Sorted = Binary
+    Binary = Sorted
 
-    class SortedNumeric(Base):
+    class Numeric(Sorted):
+        def __getitem__(self, id):
+            if self.docvalues.advanceExact(id):
+                return self.type(self.docvalues.longValue())
+
+    class SortedNumeric(Sorted):
         def __getitem__(self, id):
             if self.docvalues.advanceExact(id):
                 return tuple(self.type(self.docvalues.nextValue()) for _ in range(self.docvalues.docValueCount()))
 
-    class SortedSet(Base):
+    class SortedSet(Sorted):
         def __getitem__(self, id):
             ords = iter(self.docvalues.nextOrd, self.docvalues.NO_MORE_ORDS)
             if self.docvalues.advanceExact(id):
-                return tuple(self.type(self.docvalues.lookupOrd(ord)) for ord in ords)
-
-
-if lucene6:  # pragma: no cover
-    class DocValues:  # noqa
-        """DocValues with type conversion."""
-        class Numeric(Base):
-            def __getitem__(self, id):
-                return self.type(self.docvalues.get(id))
-
-        Binary = Sorted = Numeric
-
-        class SortedNumeric(Base):
-            def __getitem__(self, id):
-                self.docvalues.document = id
-                return tuple(self.type(self.docvalues.valueAt(index)) for index in range(self.docvalues.count()))
-
-        class SortedSet(Base):
-            def __getitem__(self, id):
-                self.docvalues.document = id
-                ords = iter(self.docvalues.nextOrd, self.docvalues.NO_MORE_ORDS)
                 return tuple(self.type(self.docvalues.lookupOrd(ord)) for ord in ords)
 
 

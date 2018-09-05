@@ -47,11 +47,11 @@ Read the [documentation](http://lupyne.surge.sh).
     $ pip install lupyne
 
 # Dependencies
-* PyLucene >=6.5 (installed separately)
+* PyLucene >=7 (installed separately)
 * six
 
 Optional server extras:
-* Python >=3.4
+* Python >=3.5
 * cherrypy >=10
 * clients >=0.2
 
@@ -61,6 +61,9 @@ Optional server extras:
     $ pytest [--cov]
 
 # Changes
+dev
+* PyLucene >=7 required
+
 2.0
 * PyLucene >=6 required
 * Python 3 support

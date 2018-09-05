@@ -10,7 +10,6 @@ import six
 from java.lang import Double, Float, Number, Object
 from org.apache.lucene import analysis, util
 long = int if six.PY3 else long  # noqa
-lucene6 = lucene.VERSION.startswith('6.')
 
 
 class Atomic(six.with_metaclass(abc.ABCMeta)):

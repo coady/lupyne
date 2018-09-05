@@ -13,7 +13,7 @@ from six.moves import filter, map, range, zip
 from .analyzers import Analyzer
 from .queries import Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
-from .utils import long, lucene6, suppress, Atomic, SpellChecker
+from .utils import long, suppress, Atomic, SpellChecker
 
 
 class closing(set):
@@ -210,7 +210,6 @@ class IndexReader(object):
             return iter([])
         term, termsenum = index.Term(name, value), terms.iterator()
         if distance:
-            distance = (float if lucene6 else int)(distance)
             terms = termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, distance, prefix, False)
         else:
             termsenum.seekCeil(util.BytesRef(value))
@@ -333,7 +332,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param positions: optionally include slice positions instead of counts
         """
         offset = 0
-        weight = query.createWeight(self, False, *([1.0] * (not lucene6)))
+        weight = query.createWeight(self, False, 1.0)
         postings = search.spans.SpanWeight.Postings.POSITIONS
         for reader in self.readers:
             try:

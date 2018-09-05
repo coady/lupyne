@@ -610,3 +610,10 @@ def test_docvalues():
     with pytest.raises(AttributeError):
         indexer.docvalues('id')
     assert indexer.search().docvalues('title') == {0: 'two'}
+
+    indexer.add()
+    indexer.commit()
+    assert None in indexer.docvalues('title')
+    assert None in indexer.docvalues('size', type=int)
+    assert None in indexer.docvalues('tags')
+    assert None in indexer.docvalues('sizes', type=int)
