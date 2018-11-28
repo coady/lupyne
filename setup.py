@@ -9,7 +9,10 @@ setup(
     long_description_content_type='text/markdown',
     author='Aric Coady',
     author_email='aric.coady@gmail.com',
-    url='https://bitbucket.org/coady/lupyne',
+    url='https://github.com/coady/lupyne',
+    project_urls={
+        'Documentation': 'https://lupyne.surge.sh',
+    },
     license='Apache Software License',
     packages=['lupyne', 'lupyne.engine'],
     install_requires=['six'],
