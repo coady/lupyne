@@ -23,11 +23,11 @@ Quickstart
   (1, 1)
   >>> hit, = hits
   >>> hit['name']                                     # hits support mapping interface for their stored fields
-  u'sample'
+  'sample'
   >>> hit.id, hit.score                               # plus internal doc number and score
-  (0, 0.19178301095962524)
+  (0, 0.28768208622932434)
   >>> hit.dict()                                      # dict representation of the hit document
-  {'__score__': 0.19178301095962524, u'name': u'sample', '__id__': 0}
+  {'name': 'sample', '__id__': 0, '__score__': 0.28768208622932434}
 
 See more `examples <examples.html>`_
 

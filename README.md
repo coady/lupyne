@@ -1,5 +1,6 @@
 [![image](https://img.shields.io/pypi/v/lupyne.svg)](https://pypi.org/project/lupyne/)
-![image](https://img.shields.io/pypi/pyversions/lupyne.svg)
+[![image](https://img.shields.io/pypi/pyversions/lupyne.svg)](https://python3statement.org)
+[![image](https://pepy.tech/badge/lupyne)](https://pepy.tech/project/lupyne)
 ![image](https://img.shields.io/pypi/status/lupyne.svg)
 [![image](https://api.shippable.com/projects/56059e3e1895ca4474182ec3/badge?branch=master)](https://app.shippable.com/github/coady/lupyne)
 [![image](https://api.shippable.com/projects/56059e3e1895ca4474182ec3/coverageBadge?branch=master)](https://app.shippable.com/github/coady/lupyne)
@@ -45,10 +46,15 @@ Read the [documentation](http://lupyne.surge.sh).
 
 # Installation
 
-    $ pip install lupyne
+    $ pip install lupyne[server]
+
+PyLucene is not `pip` installable.
+* [Install](http://lucene.apache.org/pylucene/install.html) instructions
+* [Docker](https://hub.docker.com) image: `$ docker pull coady/pylucene`
+* [Homebrew](https://brew.sh) formula: `$ brew install coady/tap/pylucene`
 
 # Dependencies
-* PyLucene >=7 (installed separately)
+* PyLucene >=7
 * six
 
 Optional server extras:
