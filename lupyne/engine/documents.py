@@ -33,7 +33,8 @@ class Field(FieldType):
     properties = {name for name in locals() if not name.startswith('__')}
     types = {int: 'long', float: 'double'}
     types.update(NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string')
-    dimensions = property(FieldType.pointDimensionCount, lambda self, count: self.setDimensions(count, Long.BYTES))
+    dimensions = property(getattr(FieldType, 'pointDataDimensionCount', getattr(FieldType, 'pointDimensionCount', None)),
+                          lambda self, count: self.setDimensions(count, Long.BYTES))
 
     def __init__(self, name, docValuesType='', indexOptions='', dimensions=0, **settings):
         super(Field, self).__init__()

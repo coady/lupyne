@@ -548,7 +548,7 @@ class IndexWriter(index.IndexWriter):
         term = index.Term(name, *[value] if value else doc.getValues(name))
         fields = list(doc.iterator())
         types = [Field.cast_(field.fieldType()) for field in fields]
-        if any(type.stored() or type.indexOptions() != index.IndexOptions.NONE or type.pointDimensionCount() for type in types):
+        if any(ft.stored() or ft.indexOptions() != index.IndexOptions.NONE or Field.dimensions.fget(ft) for ft in types):
             self.updateDocument(term, doc)
         elif fields:
             self.updateDocValues(term, *fields)
