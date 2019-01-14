@@ -26,7 +26,7 @@ if __name__ == '__main__':
     root.indexer.set('date', engine.Field.String, stored=True, docValuesType='sorted')
     root.indexer.set('text', engine.Field.Text)
     # populate index
-    for doc in conftest.constitution():
+    for doc in conftest.constitution.__wrapped__():
         if 'amendment' in doc:
             root.indexer.add(amendment=doc['amendment'], date=doc['date'], text=doc['text'])
     root.update()
