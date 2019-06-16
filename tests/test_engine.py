@@ -226,8 +226,8 @@ def test_indexes(tempdir):
     with engine.Indexer(tempdir) as temp:
         temp.add()
     with pytest.raises(KeyError), engine.Indexer(tempdir) as temp:
-            temp.add()
-            temp.add(missing='')
+        temp.add()
+        temp.add(missing='')
     for other in (temp, temp.directory, tempdir):
         indexer += other
     assert len(indexer) == 3

@@ -16,7 +16,7 @@ setup(
     license='Apache Software License',
     packages=['lupyne', 'lupyne.engine'],
     install_requires=['six'],
-    extras_require={'server': ['cherrypy>=10', 'clients>=0.2']},
+    extras_require={'server': ['cherrypy>=11', 'clients>=0.2']},
     python_requires='>=2.7',
     tests_require=['pytest-cov'],
     classifiers=[

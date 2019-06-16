@@ -54,12 +54,12 @@ PyLucene is not `pip` installable.
 * [Homebrew](https://brew.sh) formula: `$ brew install coady/tap/pylucene`
 
 # Dependencies
-* PyLucene >=7
+* PyLucene >=7.7
 * six
 
 Optional server extras:
 * Python >=3.5
-* cherrypy >=10
+* cherrypy >=11
 * clients >=0.2
 
 # Tests
@@ -68,6 +68,9 @@ Optional server extras:
     $ pytest [--cov]
 
 # Changes
+dev
+* PyLucene >=7.7 required
+
 2.2
 * PyLucene 7.6 supported
 

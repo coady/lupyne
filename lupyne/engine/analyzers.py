@@ -1,4 +1,3 @@
-import collections
 from java.io import StringReader
 from java.lang import Float
 from java.util import HashMap
@@ -8,6 +7,10 @@ from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from six import string_types
 from .utils import method
+try:
+    from typing import Mapping
+except ImportError:  # pragma: no cover
+    from collections import Mapping
 
 
 class TokenStream(analysis.TokenStream):
@@ -140,7 +143,7 @@ class Analyzer(PythonAnalyzer):
         # parsers aren't thread-safe (nor slow), so create one each time
         cls = queryparser.classic.QueryParser if isinstance(field, string_types) else queryparser.classic.MultiFieldQueryParser
         args = field, self
-        if isinstance(field, collections.Mapping):
+        if isinstance(field, Mapping):
             boosts = HashMap()
             for key in field:
                 boosts.put(key, Float(field[key]))

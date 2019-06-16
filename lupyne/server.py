@@ -61,7 +61,7 @@ cherrypy.tools.params._priority = 15  # fix for json_out compatibility
 
 
 def HTTPError(exception, status=http.client.BAD_REQUEST):
-    return cherrypy.HTTPError.handle(exception, int(status))
+    return cherrypy.HTTPError.handle(exception, status)
 
 
 @cherrypy.tools.register('before_request_body')

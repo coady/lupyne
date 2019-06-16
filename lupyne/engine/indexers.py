@@ -487,7 +487,6 @@ class IndexWriter(index.IndexWriter):
     :param version: lucene Version argument passed to IndexWriterConfig, default is latest
     :param attrs: additional attributes to set on IndexWriterConfig
     """
-    __len__ = index.IndexWriter.numDocs
     parse = IndexSearcher.__dict__['parse']
 
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
@@ -504,6 +503,9 @@ class IndexWriter(index.IndexWriter):
         if hash(self):
             with suppress(IOException):
                 self.close()
+
+    def __len__(self):
+        return self.docStats.numDocs
 
     @classmethod
     def check(cls, directory, fix=False):
