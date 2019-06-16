@@ -371,7 +371,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         query = self.parse(*query, **options) if query else Query.alldocs()
         return super(IndexSearcher, self).count(query)
 
-    def collector(self, count=None, sort=None, reverse=False, scores=False, maxscore=False):
+    def collector(self, count=None, sort=None, reverse=False, scores=False):
         if count is None:
             return search.CachingCollector.create(True, float('inf'))
         count = min(count, self.maxDoc() or 1)
@@ -381,24 +381,24 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             sort = self.sortfield(sort, reverse=reverse)
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
-        return search.TopFieldCollector.create(sort, count, True, scores, maxscore)
+        return search.TopFieldCollector.create(sort, count, True, scores, False)
 
-    def search(self, query=None, count=None, sort=None, reverse=False, scores=False, maxscore=False, timeout=None, **parser):
+    def search(self, query=None, count=None, sort=None, reverse=False, scores=False, timeout=None, **parser):
         """Run query and return `Hits`_.
 
-        .. versionchanged:: 1.4 sort param for lucene only;  use Hits.sorted with a callable
+        .. versionchanged:: 1.4 sort param for lucene only; use Hits.sorted with a callable
+        .. versionchanged:: 2.3 maxscore option removed; use Hits.maxscore property
 
         :param query: query string or lucene Query
         :param count: maximum number of hits to retrieve
         :param sort: lucene Sort parameters
         :param reverse: reverse flag used with sort
         :param scores: compute scores for candidate results when sorting
-        :param maxscore: compute maximum score of all results when sorting
         :param timeout: stop search after elapsed number of seconds
         :param parser: :meth:`Analyzer.parse` options
         """
         query = Query.alldocs() if query is None else self.parse(query, **parser)
-        cache = collector = self.collector(count, sort, reverse, scores, maxscore)
+        cache = collector = self.collector(count, sort, reverse, scores)
         counter = search.TimeLimitingCollector.getGlobalCounter()
         results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, long(timeout * 1000))
         with suppress(search.TimeLimitingCollector.TimeExceededException):
@@ -407,11 +407,10 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if isinstance(cache, search.CachingCollector):
             collector = search.TotalHitCountCollector()
             cache.replay(collector)
-            collector = self.collector(collector.totalHits or 1, sort, reverse, scores, maxscore)
+            collector = self.collector(collector.totalHits or 1, sort, reverse, scores)
             cache.replay(collector)
         topdocs = collector.topDocs()
-        stats = (topdocs.totalHits, topdocs.maxScore) * (timeout is None)
-        return Hits(self, topdocs.scoreDocs, *stats)
+        return Hits(self, topdocs.scoreDocs, topdocs.totalHits if timeout is None else None)
 
     def facets(self, query, *fields, **query_map):
         """Return mapping of document counts for the intersection with each facet.

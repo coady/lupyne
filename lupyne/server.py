@@ -366,6 +366,8 @@ class WebSearcher(object):
                facets: multi = '', group='', hl: multi = '', mlt: int = None, timeout: float = None, **options):
         """Run query and return documents.
 
+        .. versionchanged:: 2.3 maxscore option and result removed
+
         **GET** /search?
             Return array of document objects and total doc count.
 
@@ -378,9 +380,9 @@ class WebSearcher(object):
             &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.docvalues=\ *chars*\ [:*chars*],...
                 only include selected stored fields; multi-valued fields returned in an array; docvalues fields
 
-            &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores[=max]
+            &sort=\ [-]\ *chars*\ [:*chars*],... &sort.scores
                 | field name, optional type, minus sign indicates descending
-                | optionally score docs, additionally compute maximum score
+                | optionally score docs
 
             &facets=\ *chars*,... &facets.count=\ *int*\&facets.min=0
                 | include facet counts for given field names
@@ -407,7 +409,6 @@ class WebSearcher(object):
                 | {
                 | "query": *string*\|null,
                 | "count": *int*\|null,
-                | "maxscore": *number*\|null,
                 | "docs": [{"__id__": *int*, "__score__": *number*, "__keys__": *array*,
                     "__highlights__": {*string*: *array*,... }, *string*: *value*,... },... ],
                 | "facets": {*string*: {*string*: *int*,... },... },
@@ -431,22 +432,20 @@ class WebSearcher(object):
             count += start
         if count == 0:
             start = count = 1
-        scores = options.get('sort.scores')
+        scores = 'sort.scores' in options
         gcount = options.get('group.count', 1)
-        scores = {'scores': scores is not None, 'maxscore': scores == 'max'}
         if ':' in group:
-            hits = searcher.search(q, sort=sort, timeout=timeout, **scores)
+            hits = searcher.search(q, sort=sort, timeout=timeout, scores=scores)
             name, docvalues = parse.docvalues(searcher, group)
             with HTTPError(TypeError):
                 groups = hits.groupby(docvalues.select(hits.ids).__getitem__, count=count, docs=gcount)
             groups.groupdocs = groups.groupdocs[start:]
         elif group:
-            scores = {'includeScores': scores['scores'], 'includeMaxScore': scores['maxscore']}
-            groups = searcher.groupby(group, q, count, start=start, sort=sort, groupDocsLimit=gcount, **scores)
+            groups = searcher.groupby(group, q, count, start=start, sort=sort, groupDocsLimit=gcount, includeScores=scores)
         else:
-            hits = searcher.search(q, sort=sort, count=count, timeout=timeout, **scores)
-            groups = engine.documents.Groups(searcher, [hits[start:]], hits.count, hits.maxscore)
-        result = {'query': q and str(q), 'count': groups.count, 'maxscore': groups.maxscore}
+            hits = searcher.search(q, sort=sort, count=count, timeout=timeout, scores=scores)
+            groups = engine.documents.Groups(searcher, [hits[start:]], hits.count)
+        result = {'query': q and str(q), 'count': groups.count}
         fields, multi, docvalues = parse.fields(searcher, fields, **options)
         if fields is None:
             fields = {}

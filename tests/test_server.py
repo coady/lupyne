@@ -116,7 +116,7 @@ def test_search(resource):
     result = resource.search(q='Preamble', **{'q.field': 'article', 'q.type': 'prefix'})
     assert result['count'] == 1 and result['query'] == 'article:Preamble*'
     result = resource.search(q='text:"We the People"', **{'q.phraseSlop': 3})
-    assert 0 < result['maxscore'] and result['count'] == 1
+    assert result['count'] == 1
     assert result['query'] == 'text:"we ? people"~3'
     doc, = result['docs']
     assert sorted(doc) == ['__id__', '__score__', 'article']
@@ -126,17 +126,14 @@ def test_search(resource):
     assert sorted(docs, key=operator.itemgetter('__score__'), reverse=True) == docs
     assert len(docs) == result['count'] == 8
     result = resource.search(q='text:people', count=5)
-    maxscore = result['maxscore']
     assert docs[:5] == result['docs'] and result['count'] == len(docs)
     result = resource.search(q='text:people', count=5, sort='-year:int')
-    assert math.isnan(result['maxscore']) and all(math.isnan(doc['__score__']) for doc in result['docs'])
+    assert all(math.isnan(doc['__score__']) for doc in result['docs'])
     assert result['docs'][0]['__keys__'] == [1913] and result['docs'][-1]['__keys__'] == [1791]
     result = resource.search(q='text:people', sort='-year:int')
     assert result['docs'][0]['__keys__'] == [1913] and result['docs'][-1]['__keys__'] == [0]
     result = resource.search(q='text:people', count=5, sort='-year:int', **{'sort.scores': ''})
-    assert math.isnan(result['maxscore']) and maxscore in (doc['__score__'] for doc in result['docs'])
     result = resource.search(q='text:people', count=1, sort='-year:int', **{'sort.scores': 'max'})
-    assert maxscore == result['maxscore'] and maxscore not in (doc['__score__'] for doc in result['docs'])
     result = resource.search(q='text:people', count=5, sort='-date,year:int')
     assert result['docs'][0]['__keys__'] == ['1913-04-08', 1913] and result['docs'][-1]['__keys__'] == ['1791-12-15', 1791]
     result = resource.search(q='text:people', start=2, count=2, facets='date')
@@ -164,11 +161,11 @@ def test_highlights(resource):
     assert result['count'] == 11 and set(result['query'].split()) == {'text:necessary', 'text:people'}
     assert [doc['amendment'] for doc in result['docs'][:3]] == ['2', '9', '10']
     result = resource.search(q='text:people', count=1, timeout=-1)
-    assert result == {'query': 'text:people', 'count': None, 'maxscore': None, 'docs': []}
+    assert result == {'query': 'text:people', 'count': None, 'docs': []}
     result = resource.search(q='text:people', timeout=0.01)
-    assert result['count'] in (None, 8) and (result['maxscore'] is None or result['maxscore'] > 0)
+    assert result['count'] in (None, 8)
     result = resource.search(q='+text:right +text:people')
-    assert result['count'] == 4 and 0 < result['maxscore']
+    assert result['count'] == 4
     assert resource.search(q='hello', **{'q.field': 'body.title^2.0'})['query'] == '(body.title:hello)^2.0'
 
 

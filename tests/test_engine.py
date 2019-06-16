@@ -157,13 +157,13 @@ def test_searcher(tempdir, fields, constitution):
     assert 'Preamble' in (hit.get('article') for hit in hits)
     assert len(hits) == hits.count == 8
     assert set(map(type, hits.ids)) == {int} and set(map(type, hits.scores)) == {float}
-    assert hits.maxscore == max(hits.scores)
+    assert hits.maxscore == next(hits.scores)
     ids = list(hits.ids)
     hits = indexer.search('people', count=5, field='text')
     assert list(hits.ids) == ids[:len(hits)]
     assert len(hits) == 5 and hits.count == 8
     assert not any(map(math.isnan, hits.scores))
-    assert hits.maxscore == max(hits.scores)
+    assert hits.maxscore == next(hits.scores)
     hits = indexer.search('text:people', count=5, sort=search.Sort.INDEXORDER)
     assert sorted(hits.ids) == list(hits.ids)
     hit, = indexer.search('freedom', field='text')
@@ -378,7 +378,7 @@ def test_grouping(tempdir, indexer, zipcodes):
     assert len(grouping) == len(list(grouping)) > 100
     assert set(grouping) > set(facets)
     hits = indexer.search(query, timeout=-1)
-    assert not hits and (hits.count is hits.maxscore is None)
+    assert not hits and hits.count is None and math.isnan(hits.maxscore)
     hits = indexer.search(query, timeout=10)
     assert len(hits) == hits.count == indexer.count(query) and hits.maxscore == 1.0
     directory = store.RAMDirectory()

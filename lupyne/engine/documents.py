@@ -276,17 +276,16 @@ class Hits(object):
     """Search results: lazily evaluated and memory efficient.
 
     Provides a read-only sequence interface to hit objects.
+    .. versionchanged:: 2.3 maxscore option removed; computed property instead
 
     :param searcher: `IndexSearcher`_ which can retrieve documents
     :param scoredocs: lucene ScoreDocs
     :param count: total number of hits
-    :param maxscore: maximum score
     :param fields: optional field selectors
     """
-    def __init__(self, searcher, scoredocs, count=None, maxscore=None, fields=None):
+    def __init__(self, searcher, scoredocs, count=None, fields=None):
         self.searcher, self.scoredocs = searcher, scoredocs
-        self.count, self.maxscore = count, maxscore
-        self.fields = fields
+        self.count, self.fields = count, fields
 
     def select(self, *fields):
         """Only load selected fields."""
@@ -298,7 +297,7 @@ class Hits(object):
     def __getitem__(self, index):
         if isinstance(index, slice):
             scoredocs = list(map(self.scoredocs.__getitem__, range(*index.indices(len(self)))))
-            return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
+            return type(self)(self.searcher, scoredocs, self.count, self.fields)
         scoredoc = self.scoredocs[index]
         keys = search.FieldDoc.cast_(scoredoc).fields if search.FieldDoc.instance_(scoredoc) else ()
         doc = self.searcher.doc(scoredoc.doc, *([self.fields] * bool(self.fields)))
@@ -311,6 +310,11 @@ class Hits(object):
     @property
     def scores(self):
         return map(operator.attrgetter('score'), self.scoredocs)
+
+    @property
+    def maxscore(self):
+        """max score of present hits; not necessarily of all matches"""
+        return max(self.scores) if self else float('nan')
 
     def items(self):
         """Generate zipped ids and scores."""
@@ -346,9 +350,9 @@ class Hits(object):
             group.scoredocs.append(scoredoc)
         groups = list(groups.values())
         for group in groups:
-            group.count, group.maxscore = len(group), max(group.scores)
+            group.count = len(group)
             group.scoredocs = group.scoredocs[:docs]
-        return Groups(self.searcher, groups[:count], len(groups), self.maxscore, self.fields)
+        return Groups(self.searcher, groups[:count], len(groups), self.fields)
 
     def filter(self, func):
         """Return `Hits`_ filtered by function applied to doc ids."""
@@ -358,17 +362,16 @@ class Hits(object):
     def sorted(self, key, reverse=False):
         """Return `Hits`_ sorted by key function applied to doc ids."""
         scoredocs = sorted(self.scoredocs, key=lambda scoredoc: key(scoredoc.doc), reverse=reverse)
-        return type(self)(self.searcher, scoredocs, self.count, self.maxscore, self.fields)
+        return type(self)(self.searcher, scoredocs, self.count, self.fields)
 
 
 class Groups(object):
     """Sequence of grouped `Hits`_."""
     select = Hits.__dict__['select']
 
-    def __init__(self, searcher, groupdocs, count=None, maxscore=None, fields=None):
+    def __init__(self, searcher, groupdocs, count=None, fields=None):
         self.searcher, self.groupdocs = searcher, groupdocs
-        self.count, self.maxscore = count, maxscore
-        self.fields = fields
+        self.count, self.fields = count, fields
 
     def __len__(self):
         return len(self.groupdocs)
@@ -376,7 +379,7 @@ class Groups(object):
     def __getitem__(self, index):
         hits = groupdocs = self.groupdocs[index]
         if isinstance(groupdocs, grouping.GroupDocs):
-            hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits, groupdocs.maxScore)
+            hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits)
             hits.value = convert(groupdocs.groupValue)
         hits.fields = self.fields
         return hits
@@ -417,4 +420,4 @@ class GroupingSearch(grouping.GroupingSearch):
         if count is None:
             count = sum(index.DocValues.getSorted(reader, self.field).valueCount for reader in searcher.readers) or 1
         topgroups = grouping.GroupingSearch.search(self, searcher, query, start, count - start)
-        return Groups(searcher, topgroups.groups, topgroups.totalHitCount, topgroups.maxScore)
+        return Groups(searcher, topgroups.groups, topgroups.totalHitCount)
