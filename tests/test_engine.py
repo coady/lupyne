@@ -159,13 +159,14 @@ def test_searcher(tempdir, fields, constitution):
     assert set(map(type, hits.ids)) == {int} and set(map(type, hits.scores)) == {float}
     assert hits.maxscore == next(hits.scores)
     ids = list(hits.ids)
-    hits = indexer.search('people', count=5, field='text')
+    hits = indexer.search('people', count=5, mincount=5, field='text')
     assert list(hits.ids) == ids[:len(hits)]
     assert len(hits) == 5 and hits.count == 8
     assert not any(map(math.isnan, hits.scores))
     assert hits.maxscore == next(hits.scores)
-    hits = indexer.search('text:people', count=5, sort=search.Sort.INDEXORDER)
+    hits = indexer.search('text:people', count=5, sort=search.Sort.INDEXORDER, scores=True)
     assert sorted(hits.ids) == list(hits.ids)
+    assert all(score > 0 for score in hits.scores)
     hit, = indexer.search('freedom', field='text')
     assert hit['amendment'] == '1'
     assert sorted(hit.dict()) == ['__id__', '__score__', 'amendment', 'date']
@@ -186,10 +187,10 @@ def test_searcher(tempdir, fields, constitution):
     assert dict(indexer.positionvector(id, 'text', offsets=True))['persons'] == [(46, 53), (301, 308)]
     analyzer = analysis.core.WhitespaceAnalyzer()
     query = indexer.morelikethis(0, analyzer=analyzer)
-    assert set(str(query).split()) == {'text:united', 'text:states'}
+    assert {'text:united', 'text:states'} <= set(str(query).split())
     assert str(indexer.morelikethis(0, 'article', analyzer=analyzer)) == ''
     query = indexer.morelikethis(0, minDocFreq=3, analyzer=analyzer)
-    assert set(str(query).split()) == {'text:establish', 'text:united', 'text:states'}
+    assert {'text:establish', 'text:united', 'text:states'} <= set(str(query).split())
     assert str(indexer.morelikethis('jury', 'text', minDocFreq=4, minTermFreq=1, analyzer=analyzer)) == 'text:jury'
     assert str(indexer.morelikethis('jury', 'article', analyzer=analyzer)) == ''
 
@@ -201,7 +202,7 @@ def test_spellcheck(fields, constitution):
         indexer.add(doc)
     indexer.commit()
     assert indexer.complete('missing', '') == []
-    assert indexer.complete('text', '')[:8] == ['shall', 'states', 'any', 'have', 'united', 'congress', 'state', 'constitution']
+    assert {'shall', 'states'} <= set(indexer.complete('text', '')[:8])
     assert indexer.complete('text', 'con')[:2] == ['congress', 'constitution']
     assert indexer.complete('text', 'congress') == indexer.complete('text', 'con', count=1) == ['congress']
     assert indexer.complete('text', 'congresses') == []
@@ -378,7 +379,7 @@ def test_grouping(tempdir, indexer, zipcodes):
     assert len(grouping) == len(list(grouping)) > 100
     assert set(grouping) > set(facets)
     hits = indexer.search(query, timeout=-1)
-    assert not hits and hits.count is None and math.isnan(hits.maxscore)
+    assert not hits and not hits.count and math.isnan(hits.maxscore)
     hits = indexer.search(query, timeout=10)
     assert len(hits) == hits.count == indexer.count(query) and hits.maxscore == 1.0
     directory = store.RAMDirectory()

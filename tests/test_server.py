@@ -76,7 +76,7 @@ def test_docs(resource):
     doc = resource.docs('0', **{'fields.vector.counts': 'text'})
     resource.client.patch('docs/amendment/1', {'amendment': '1'}).status_code == http.client.CONFLICT
     assert not resource.patch('docs/amendment/1')
-    assert sorted(term for term, count in doc['text'].items() if count > 1) == ['establish', 'states', 'united']
+    assert {term for term, count in doc['text'].items() if count > 1} >= {'establish', 'states', 'united'}
     assert resource.client.put('docs/article/0', {'article': '-1'}).status_code == http.client.BAD_REQUEST
     assert resource.delete('docs/article/0') is None
 
@@ -95,7 +95,7 @@ def test_terms(resource):
     assert resource.terms('text/right~1') == ['eight', 'right', 'rights']
     assert resource.terms('text/right~') == ['eight', 'high', 'right', 'rights']
     assert resource.terms('text/right~?count=3') == []
-    assert resource.terms('text/write~?count=5') == ['writs', 'writ', 'written']
+    assert resource.terms('text/write~?count=3') == ['writs', 'writ', 'written']
     docs = resource.terms('text/people/docs')
     assert resource.terms('text/people') == len(docs) == 8
     counts = dict(resource.terms('text/people/docs/counts'))
@@ -117,7 +117,7 @@ def test_search(resource):
     assert result['count'] == 1 and result['query'] == 'article:Preamble*'
     result = resource.search(q='text:"We the People"', **{'q.phraseSlop': 3})
     assert result['count'] == 1
-    assert result['query'] == 'text:"we ? people"~3'
+    assert result['query'].startswith('text:"we ') and result['query'].endswith(' people"~3')
     doc, = result['docs']
     assert sorted(doc) == ['__id__', '__score__', 'article']
     assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__']
@@ -156,14 +156,14 @@ def test_highlights(resource):
     highlights = [doc['__highlights__'] for doc in result['docs']]
     assert all(highlight['amendment'] or highlight['article'] for highlight in highlights)
     result = resource.search(mlt=0)
-    assert result['count'] == 25 and set(result['query'].split()) == {'text:united', 'text:states'}
+    assert result['count'] >= 25 and set(result['query'].split()) >= {'text:united', 'text:states'}
     result = resource.search(q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})
     assert result['count'] == 11 and set(result['query'].split()) == {'text:necessary', 'text:people'}
     assert [doc['amendment'] for doc in result['docs'][:3]] == ['2', '9', '10']
     result = resource.search(q='text:people', count=1, timeout=-1)
-    assert result == {'query': 'text:people', 'count': None, 'docs': []}
+    assert result == {'query': 'text:people', 'count': 0, 'docs': []}
     result = resource.search(q='text:people', timeout=0.01)
-    assert result['count'] in (None, 8)
+    assert result['count'] in (0, 8)
     result = resource.search(q='+text:right +text:people')
     assert result['count'] == 4
     assert resource.search(q='hello', **{'q.field': 'body.title^2.0'})['query'] == '(body.title:hello)^2.0'
@@ -199,7 +199,7 @@ def test_facets(tempdir, servers, zipcodes):
             writer.add(zipcode=int(doc['zipcode']), location='{}.{}'.format(doc['county'], doc['city']))
     writer.commit()
     assert resource.post('update') == resource().popitem()[1] == len(writer)
-    result = resource.search(count=0, facets='county')
+    result = resource.search(count=0, facets='county', **{'count.min': 10000})
     facets = result['facets']['county']
     assert result['count'] == sum(facets.values()) and 'Los Angeles' in facets
     result = resource.search(q='Los Angeles', count=0, facets='county.city', **{'q.type': 'term', 'q.field': 'county'})

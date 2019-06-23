@@ -15,6 +15,8 @@ from .queries import Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .utils import long, suppress, Atomic, SpellChecker
 
+LU7 = lucene.VERSION < '8'
+
 
 class closing(set):
     """Manage lifespan of registered objects, similar to contextlib.closing."""
@@ -102,7 +104,8 @@ class IndexReader(object):
 
     @property
     def bits(self):
-        return index.MultiFields.getLiveDocs(self.indexReader)
+        cls = index.MultiFields if LU7 else index.MultiBits
+        return cls.getLiveDocs(self.indexReader)
 
     @property
     def directory(self):
@@ -132,7 +135,8 @@ class IndexReader(object):
     @property
     def fieldinfos(self):
         """mapping of field names to lucene FieldInfos"""
-        fieldinfos = index.MultiFields.getMergedFieldInfos(self.indexReader)
+        cls = index.MultiFields if LU7 else index.FieldInfos
+        fieldinfos = cls.getMergedFieldInfos(self.indexReader)
         return {fieldinfo.name: fieldinfo for fieldinfo in fieldinfos.iterator()}
 
     def suggest(self, name, value, count=1, **attrs):
@@ -205,7 +209,8 @@ class IndexReader(object):
         :param distance: maximum edit distance for fuzzy terms
         :param prefix: prefix length for fuzzy terms
         """
-        terms = index.MultiFields.getTerms(self.indexReader, name)
+        cls = index.MultiFields if LU7 else index.MultiTerms
+        terms = cls.getTerms(self.indexReader, name)
         if not terms:
             return iter([])
         term, termsenum = index.Term(name, value), terms.iterator()
@@ -222,13 +227,15 @@ class IndexReader(object):
 
     def docs(self, name, value, counts=False):
         """Generate doc ids which contain given term, optionally with frequency counts."""
-        docsenum = index.MultiFields.getTermDocsEnum(self.indexReader, name, util.BytesRef(value))
+        func = index.MultiFields.getTermDocsEnum if LU7 else index.MultiTerms.getTermPostingsEnum
+        docsenum = func(self.indexReader, name, util.BytesRef(value))
         docs = iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()
         return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)
 
     def positions(self, name, value, payloads=False, offsets=False):
         """Generate doc ids and positions which contain given term, optionally with offsets, or only ones with payloads."""
-        docsenum = index.MultiFields.getTermPositionsEnum(self.indexReader, name, util.BytesRef(value))
+        func = index.MultiFields.getTermPositionsEnum if LU7 else index.MultiTerms.getTermPostingsEnum
+        docsenum = func(self.indexReader, name, util.BytesRef(value))
         for doc in (iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()):
             positions = (docsenum.nextPosition() for _ in range(docsenum.freq()))
             if payloads:
@@ -332,7 +339,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param positions: optionally include slice positions instead of counts
         """
         offset = 0
-        weight = query.createWeight(self, False, 1.0)
+        scores = False if LU7 else search.ScoreMode.COMPLETE_NO_SCORES
+        weight = query.createWeight(self, scores, 1.0)
         postings = search.spans.SpanWeight.Postings.POSITIONS
         for reader in self.readers:
             try:
@@ -371,19 +379,22 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         query = self.parse(*query, **options) if query else Query.alldocs()
         return super(IndexSearcher, self).count(query)
 
-    def collector(self, count=None, sort=None, reverse=False, scores=False):
+    def collector(self, count=None, sort=None, reverse=False, scores=False, mincount=1000):
         if count is None:
             return search.CachingCollector.create(True, float('inf'))
         count = min(count, self.maxDoc() or 1)
+        mincount = max(count, mincount)
+        args = [] if LU7 else [mincount]
         if sort is None:
-            return search.TopScoreDocCollector.create(count)
+            return search.TopScoreDocCollector.create(count, *args)
         if isinstance(sort, string_types):
             sort = self.sortfield(sort, reverse=reverse)
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
-        return search.TopFieldCollector.create(sort, count, True, scores, False)
+        args = [True, scores, False] if LU7 else [mincount]
+        return search.TopFieldCollector.create(sort, count, *args)
 
-    def search(self, query=None, count=None, sort=None, reverse=False, scores=False, timeout=None, **parser):
+    def search(self, query=None, count=None, sort=None, reverse=False, scores=False, mincount=1000, timeout=None, **parser):
         """Run query and return `Hits`_.
 
         .. versionchanged:: 1.4 sort param for lucene only; use Hits.sorted with a callable
@@ -394,11 +405,12 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param sort: lucene Sort parameters
         :param reverse: reverse flag used with sort
         :param scores: compute scores for candidate results when sorting
+        :param mincount: total hit count accuracy threshold
         :param timeout: stop search after elapsed number of seconds
         :param parser: :meth:`Analyzer.parse` options
         """
         query = Query.alldocs() if query is None else self.parse(query, **parser)
-        cache = collector = self.collector(count, sort, reverse, scores)
+        cache = collector = self.collector(count, sort, reverse, scores, mincount)
         counter = search.TimeLimitingCollector.getGlobalCounter()
         results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, long(timeout * 1000))
         with suppress(search.TimeLimitingCollector.TimeExceededException):
@@ -407,10 +419,13 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if isinstance(cache, search.CachingCollector):
             collector = search.TotalHitCountCollector()
             cache.replay(collector)
-            collector = self.collector(collector.totalHits or 1, sort, reverse, scores)
+            count = collector.totalHits or 1
+            collector = self.collector(count, sort, reverse, scores, count)
             cache.replay(collector)
         topdocs = collector.topDocs()
-        return Hits(self, topdocs.scoreDocs, topdocs.totalHits if timeout is None else None)
+        if not LU7 and scores:  # pragma: no cover
+            search.TopFieldCollector.populateScores(topdocs.scoreDocs, self, query)
+        return Hits(self, topdocs.scoreDocs, topdocs.totalHits)
 
     def facets(self, query, *fields, **query_map):
         """Return mapping of document counts for the intersection with each facet.

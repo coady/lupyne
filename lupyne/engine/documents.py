@@ -280,11 +280,14 @@ class Hits(object):
 
     :param searcher: `IndexSearcher`_ which can retrieve documents
     :param scoredocs: lucene ScoreDocs
-    :param count: total number of hits
+    :param count: total number of hits; float indicates estimate
     :param fields: optional field selectors
     """
-    def __init__(self, searcher, scoredocs, count=None, fields=None):
+    def __init__(self, searcher, scoredocs, count=0, fields=None):
         self.searcher, self.scoredocs = searcher, scoredocs
+        if hasattr(count, 'relation'):  # pragma: no cover
+            cls = int if count.relation == search.TotalHits.Relation.EQUAL_TO else float
+            count = cls(count.value)
         self.count, self.fields = count, fields
 
     def select(self, *fields):
@@ -369,7 +372,7 @@ class Groups(object):
     """Sequence of grouped `Hits`_."""
     select = Hits.__dict__['select']
 
-    def __init__(self, searcher, groupdocs, count=None, fields=None):
+    def __init__(self, searcher, groupdocs, count=0, fields=None):
         self.searcher, self.groupdocs = searcher, groupdocs
         self.count, self.fields = count, fields
 

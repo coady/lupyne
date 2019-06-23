@@ -70,6 +70,7 @@ Optional server extras:
 # Changes
 dev
 * PyLucene >=7.7 required
+* PyLucene 8 supported
 
 2.2
 * PyLucene 7.6 supported

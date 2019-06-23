@@ -374,7 +374,7 @@ class WebSearcher(object):
             &q=\ *chars*\ &q.type=[term|prefix|wildcard]&q.spellcheck=true&q.\ *chars*\ =...,
                 query, optional type to skip parsing, spellcheck, and parser settings: q.field, q.op,...
 
-            &count=\ *int*\ &start=0
+            &count=\ *int*\ &start=0&count.min=1000
                 maximum number of docs to return and offset to start at
 
             &fields=\ *chars*,... &fields.multi=\ *chars*,... &fields.docvalues=\ *chars*\ [:*chars*],...
@@ -434,16 +434,17 @@ class WebSearcher(object):
             start = count = 1
         scores = 'sort.scores' in options
         gcount = options.get('group.count', 1)
+        mincount = options.get('count.min', 1000)
         if ':' in group:
-            hits = searcher.search(q, sort=sort, timeout=timeout, scores=scores)
+            hits = searcher.search(q, sort=sort, timeout=timeout, scores=scores, mincount=mincount)
             name, docvalues = parse.docvalues(searcher, group)
             with HTTPError(TypeError):
                 groups = hits.groupby(docvalues.select(hits.ids).__getitem__, count=count, docs=gcount)
             groups.groupdocs = groups.groupdocs[start:]
         elif group:
-            groups = searcher.groupby(group, q, count, start=start, sort=sort, groupDocsLimit=gcount, includeScores=scores)
+            groups = searcher.groupby(group, q, count, start=start, sort=sort, groupDocsLimit=gcount)
         else:
-            hits = searcher.search(q, sort=sort, count=count, timeout=timeout, scores=scores)
+            hits = searcher.search(q, sort=sort, count=count, timeout=timeout, scores=scores, mincount=mincount)
             groups = engine.documents.Groups(searcher, [hits[start:]], hits.count)
         result = {'query': q and str(q), 'count': groups.count}
         fields, multi, docvalues = parse.fields(searcher, fields, **options)
@@ -480,7 +481,7 @@ class WebSearcher(object):
                     facets[name] = {term: counts[term] for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__)}
         return result
     search.__annotations__.update({'fields.multi': multi, 'fields.docvalues': multi, 'facets.count': int, 'facets.min': int,
-                                   'group.count': int, 'hl.count': int, 'mlt.fields': multi})
+                                   'group.count': int, 'hl.count': int, 'mlt.fields': multi, 'count.min': int})
 
     @cherrypy.expose
     @cherrypy.tools.params()

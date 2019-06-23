@@ -106,9 +106,7 @@ class Analyzer(PythonAnalyzer):
     @classmethod
     def standard(cls, *filters):
         """Return equivalent of StandardAnalyzer with additional filters."""
-        def stop(tokens):
-            return analysis.StopFilter(tokens, analysis.standard.StandardAnalyzer.STOP_WORDS_SET)
-        return cls(analysis.standard.StandardTokenizer, analysis.standard.StandardFilter, analysis.LowerCaseFilter, stop, *filters)
+        return cls(analysis.standard.StandardTokenizer, analysis.LowerCaseFilter, *filters)
 
     @classmethod
     def whitespace(cls, *filters):
