@@ -24,6 +24,7 @@ NestedFields could still be used however, as demonstrated on dates below.
 from datetime import date
 import lucene
 from lupyne import engine
+
 assert lucene.getVMEnv() or lucene.initVM()
 Q = engine.Query
 

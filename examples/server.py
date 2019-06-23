@@ -15,6 +15,7 @@ Example queries:
 import lucene
 from lupyne import engine, server
 from tests import conftest
+
 Q = engine.Query
 
 

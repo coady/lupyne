@@ -10,6 +10,7 @@ from org.apache.lucene.search import grouping
 from six.moves import map, range
 from .queries import Query
 from .utils import convert, long
+
 FieldType = document.FieldType
 
 
@@ -20,6 +21,7 @@ class Field(FieldType):
     :param boost: boost factor
     :param stored, indexed, settings: lucene FieldType attributes
     """
+
     docValuesType = property(FieldType.docValuesType, FieldType.setDocValuesType)
     indexOptions = property(FieldType.indexOptions, FieldType.setIndexOptions)
     omitNorms = property(FieldType.omitNorms, FieldType.setOmitNorms)
@@ -33,8 +35,10 @@ class Field(FieldType):
     properties = {name for name in locals() if not name.startswith('__')}
     types = {int: 'long', float: 'double'}
     types.update(NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string')
-    dimensions = property(getattr(FieldType, 'pointDataDimensionCount', getattr(FieldType, 'pointDimensionCount', None)),
-                          lambda self, count: self.setDimensions(count, Long.BYTES))
+    dimensions = property(
+        getattr(FieldType, 'pointDataDimensionCount', getattr(FieldType, 'pointDimensionCount', None)),
+        lambda self, count: self.setDimensions(count, Long.BYTES),
+    )
 
     def __init__(self, name, docValuesType='', indexOptions='', dimensions=0, **settings):
         super(Field, self).__init__()
@@ -50,7 +54,7 @@ class Field(FieldType):
         if docValuesType:
             self.docValuesType = getattr(index.DocValuesType, docValuesType.upper())
             self.docValueClass = getattr(document, docValuesType.title().replace('_', '') + 'DocValuesField')
-            if (self.stored or self.indexed or self.dimensions):
+            if self.stored or self.indexed or self.dimensions:
                 settings = self.settings
                 del settings['docValuesType']
                 self.docValueLess = Field(self.name, **settings)
@@ -113,6 +117,7 @@ class NestedField(Field):
 
     :param sep: field separator used on name and values
     """
+
     def __init__(self, name, sep='.', **settings):
         Field.__init__(self, name, **Field.String(name, **settings).settings)
         self.sep = sep
@@ -149,6 +154,7 @@ class DateTimeField(Field):
 
     Supports datetimes, dates, and any prefix of time tuples.
     """
+
     def __init__(self, name, dimensions=1, **settings):
         Field.__init__(self, name, dimensions=dimensions, **settings)
 
@@ -157,7 +163,7 @@ class DateTimeField(Field):
         """Return utc timestamp from date or time tuple."""
         if isinstance(date, datetime.date):
             return calendar.timegm(date.timetuple()) + getattr(date, 'microsecond', 0) * 1e-6
-        return float(calendar.timegm(tuple(date) + (None, 1, 1, 0, 0, 0)[len(date):]))
+        return float(calendar.timegm(tuple(date) + (None, 1, 1, 0, 0, 0)[len(date) :]))
 
     def items(self, *dates):
         """Generate lucene NumericFields of timestamps."""
@@ -171,7 +177,7 @@ class DateTimeField(Field):
     def prefix(self, date):
         """Return range query which matches the date prefix."""
         if isinstance(date, datetime.date):
-            date = date.timetuple()[:6 if isinstance(date, datetime.datetime) else 3]
+            date = date.timetuple()[: 6 if isinstance(date, datetime.datetime) else 3]
         if len(date) == 2 and date[1] == 12:  # month must be valid
             return self.range(date, (date[0] + 1, 1))
         return self.range(date, tuple(date[:-1]) + (date[-1] + 1,))
@@ -183,7 +189,7 @@ class DateTimeField(Field):
         :param days,delta: timedelta parameters
         """
         if not isinstance(date, datetime.date):
-            date = datetime.datetime(*(tuple(date) + (None, 1, 1)[len(date):]))
+            date = datetime.datetime(*(tuple(date) + (None, 1, 1)[len(date) :]))
         delta = datetime.timedelta(days, **delta)
         return self.range(*sorted([date, date + delta]), upper=True)
 
@@ -204,6 +210,7 @@ class DateTimeField(Field):
 
 class SpatialField(Field):
     """Geospatial points, indexed with optional docvalues."""
+
     def __init__(self, name, dimensions=1, **settings):
         Field.__init__(self, name, dimensions=dimensions, **settings)
 
@@ -230,6 +237,7 @@ class SpatialField(Field):
 
 class Document(dict):
     """Multimapping of field names to values, but default getters return the first value."""
+
     def __init__(self, doc):
         for field in doc.iterator():
             value = convert(field.numericValue() or field.stringValue() or field.binaryValue())
@@ -258,6 +266,7 @@ class Document(dict):
 
 class Hit(Document):
     """A Document from a search result, with :attr:`id`, :attr:`score`, and optional sort :attr:`keys`."""
+
     def __init__(self, doc, id, score, keys=()):
         Document.__init__(self, doc)
         self.id, self.score = id, score
@@ -283,6 +292,7 @@ class Hits(object):
     :param count: total number of hits; float indicates estimate
     :param fields: optional field selectors
     """
+
     def __init__(self, searcher, scoredocs, count=0, fields=None):
         self.searcher, self.scoredocs = searcher, scoredocs
         if hasattr(count, 'relation'):  # pragma: no cover
@@ -370,6 +380,7 @@ class Hits(object):
 
 class Groups(object):
     """Sequence of grouped `Hits`_."""
+
     select = Hits.__dict__['select']
 
     def __init__(self, searcher, groupdocs, count=0, fields=None):
@@ -401,6 +412,7 @@ class GroupingSearch(grouping.GroupingSearch):
     :param cache: use unlimited caching
     :param attrs: additional attributes to set
     """
+
     def __init__(self, field, sort=None, cache=True, **attrs):
         grouping.GroupingSearch.__init__(self, field)
         self.field = field

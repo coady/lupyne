@@ -14,6 +14,7 @@ It also has no limitations on multiple values, and can be fully customized witho
 import itertools
 import lucene
 from lupyne import engine
+
 assert lucene.getVMEnv() or lucene.initVM()
 
 colors = 'red', 'green', 'blue', 'cyan', 'magenta', 'yellow'
@@ -43,8 +44,5 @@ for hits in hits.groupby(hits.docvalues('color').__getitem__, docs=1):
 assert indexer.facets(query, 'color')['color'] == facets
 
 # queries allow flexible customizations without any indexing changes
-queries = {
-    'additive': engine.Query.any(color=colors[:3]),
-    'subtractive': engine.Query.any(color=colors[3:]),
-}
+queries = {'additive': engine.Query.any(color=colors[:3]), 'subtractive': engine.Query.any(color=colors[3:])}
 assert indexer.facets(query, color=queries)['color'] == {'additive': 6, 'subtractive': 15}

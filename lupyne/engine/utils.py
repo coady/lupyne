@@ -8,6 +8,7 @@ import lucene
 import six
 from java.lang import Double, Float, Number, Object
 from org.apache.lucene import analysis, util
+
 try:
     from typing import Iterable
 except ImportError:  # pragma: no cover
@@ -17,6 +18,7 @@ long = int if six.PY3 else long  # noqa
 
 class Atomic(six.with_metaclass(abc.ABCMeta)):
     """Abstract base class to distinguish singleton values from other iterables."""
+
     @classmethod
     def __subclasshook__(cls, other):
         return not issubclass(other, Iterable) or NotImplemented
@@ -28,6 +30,7 @@ for cls in six.string_types + (analysis.TokenStream, lucene.JArray_byte):
 
 class method(staticmethod):
     """Backport of Python 3's unbound methods."""
+
     def __get__(self, instance, owner):
         return self.__func__ if instance is None else types.MethodType(self.__func__, instance)
 
@@ -37,6 +40,7 @@ class SpellChecker(dict):
 
     Supply a vocabulary mapping words to (reverse) sort keys, such as document frequencies.
     """
+
     def __init__(self, *args, **kwargs):
         dict.__init__(self, *args, **kwargs)
         self.words = sorted(self)

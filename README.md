@@ -5,6 +5,7 @@
 [![image](https://api.shippable.com/projects/56059e3e1895ca4474182ec3/badge?branch=master)](https://app.shippable.com/github/coady/lupyne)
 [![image](https://api.shippable.com/projects/56059e3e1895ca4474182ec3/coverageBadge?branch=master)](https://app.shippable.com/github/coady/lupyne)
 [![image](https://requires.io/github/coady/lupyne/requirements.svg)](https://requires.io/github/coady/lupyne/requirements/)
+[![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://pypi.org/project/black/)
 
 Lupyne is a search engine based on [PyLucene](http://lucene.apache.org/pylucene/), the Python extension for accessing Java Lucene.
 Lucene is a relatively low-level toolkit, and PyLucene wraps it through automatic code generation.

@@ -20,6 +20,7 @@ LU7 = lucene.VERSION < '8'
 
 class closing(set):
     """Manage lifespan of registered objects, similar to contextlib.closing."""
+
     def __del__(self):
         for obj in self:
             obj.close()
@@ -82,6 +83,7 @@ class IndexReader(object):
 
     :param reader: lucene IndexReader
     """
+
     def __init__(self, reader):
         self.indexReader = reader
 
@@ -236,7 +238,7 @@ class IndexReader(object):
         """Generate doc ids and positions which contain given term, optionally with offsets, or only ones with payloads."""
         func = index.MultiFields.getTermPositionsEnum if LU7 else index.MultiTerms.getTermPostingsEnum
         docsenum = func(self.indexReader, name, util.BytesRef(value))
-        for doc in (iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()):
+        for doc in iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ():
             positions = (docsenum.nextPosition() for _ in range(docsenum.freq()))
             if payloads:
                 positions = ((position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload)
@@ -285,6 +287,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     :param directory: directory path, lucene Directory, or lucene IndexReader
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
+
     def __init__(self, directory, analyzer=None):
         self.shared = closing()
         search.IndexSearcher.__init__(self, self.shared.reader(directory))
@@ -472,6 +475,7 @@ class MultiSearcher(IndexSearcher):
     :param reader: directory paths, Directories, IndexReaders, or a single MultiReader
     :param analyzer: lucene Analyzer, default StandardAnalyzer
     """
+
     def __init__(self, reader, analyzer=None):
         IndexSearcher.__init__(self, reader, analyzer)
         self.indexReaders = [index.DirectoryReader.cast_(context.reader()) for context in self.context.children()]
@@ -501,6 +505,7 @@ class IndexWriter(index.IndexWriter):
     :param version: lucene Version argument passed to IndexWriterConfig, default is latest
     :param attrs: additional attributes to set on IndexWriterConfig
     """
+
     parse = IndexSearcher.__dict__['parse']
 
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
@@ -546,7 +551,7 @@ class IndexWriter(index.IndexWriter):
         doc = document.Document()
         for name, values in dict(items, **terms).items():
             if isinstance(values, Atomic):
-                values = values,
+                values = (values,)
             for field in self.fields[name].items(*values):
                 doc.add(field)
         return doc
@@ -614,6 +619,7 @@ class Indexer(IndexWriter):
 
     :param nrt: optionally use a near real-time searcher
     """
+
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, nrt=False, **attrs):
         IndexWriter.__init__(self, directory, mode, analyzer, version, **attrs)
         IndexWriter.commit(self)

@@ -7,6 +7,7 @@ from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 from six import string_types
 from .utils import method
+
 try:
     from typing import Mapping
 except ImportError:  # pragma: no cover
@@ -15,6 +16,7 @@ except ImportError:  # pragma: no cover
 
 class TokenStream(analysis.TokenStream):
     """TokenStream mixin with support for iteration and attributes cached as properties."""
+
     def __iter__(self):
         self.reset()
         return self
@@ -23,6 +25,7 @@ class TokenStream(analysis.TokenStream):
         if self.incrementToken():
             return self
         raise StopIteration
+
     next = __next__
 
     def __getattr__(self, name):
@@ -84,6 +87,7 @@ class TokenFilter(PythonTokenFilter, TokenStream):
 
     Subclass and override :meth:`incrementToken`.
     """
+
     def __init__(self, input):
         PythonTokenFilter.__init__(self, input)
         self.input = input
@@ -99,6 +103,7 @@ class Analyzer(PythonAnalyzer):
     :param tokenizer: lucene Tokenizer class or callable, called with no args
     :param filters: lucene TokenFilter classes or callables, successively called on input tokens
     """
+
     def __init__(self, tokenizer, *filters):
         PythonAnalyzer.__init__(self)
         self.tokenizer, self.filters = tokenizer, filters

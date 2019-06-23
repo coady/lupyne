@@ -5,6 +5,7 @@ Basic indexing and searching example adapted from http://lucene.apache.org/core/
 import lucene
 from org.apache.lucene import analysis, document, index, queryparser, search, store
 from lupyne import engine
+
 assert lucene.getVMEnv() or lucene.initVM()
 
 # # # lucene # # #
@@ -41,14 +42,14 @@ directory.close()
 # # # lupyne # # #
 
 # Store the index in memory:
-indexer = engine.Indexer()                                  # Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults
-indexer.set('fieldname', engine.Field.Text, stored=True)    # default indexed text settings for documents
-indexer.add(fieldname=text)                                 # add document
-indexer.commit()                                            # commit changes and refresh searcher
+indexer = engine.Indexer()  # Indexer combines Writer and Searcher; RAMDirectory and StandardAnalyzer are defaults
+indexer.set('fieldname', engine.Field.Text, stored=True)  # default indexed text settings for documents
+indexer.add(fieldname=text)  # add document
+indexer.commit()  # commit changes and refresh searcher
 
 # Now search the index:
-hits = indexer.search('text', field='fieldname')    # parsing handled if necessary
+hits = indexer.search('text', field='fieldname')  # parsing handled if necessary
 assert len(hits) == 1
-for hit in hits:                                    # hits support mapping interface
+for hit in hits:  # hits support mapping interface
     assert hit['fieldname'] == text
 # closing is handled automatically

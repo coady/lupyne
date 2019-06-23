@@ -78,6 +78,7 @@ def json_in(process_body=None, **kwargs):
         if process_body is not None:
             with HTTPError(TypeError):
                 request.params.update(process_body(request.json))
+
     cherrypy.lib.jsontools.json_in(force='content-type' in request.headers, processor=processor, **kwargs)
 
 
@@ -87,9 +88,11 @@ def json_out(content_type='application/json', **kwargs):
 
     :param content_type: response content-type header
     """
+
     def handler(*args, **kwargs):
         body = cherrypy.request._json_inner_handler(*args, **kwargs)
         return json.dumps(body).encode('utf8') if cherrypy.response.headers['content-type'] == content_type else body
+
     cherrypy.lib.jsontools.json_out(content_type, handler=handler, **kwargs)
 
 
@@ -140,6 +143,7 @@ def multi(value):
 
 class parse:
     """Parameter parsing."""
+
     @staticmethod
     def q(searcher, q, **options):
         options = {key.partition('.')[-1]: options[key] for key in options if key.startswith('q.')}
@@ -191,6 +195,7 @@ def attach_thread(id=None):
 
 class Autoreloader(cherrypy.process.plugins.Autoreloader):
     """Autoreload monitor compatible with lucene VM."""
+
     def run(self):
         attach_thread()
         cherrypy.process.plugins.Autoreloader.run(self)
@@ -198,10 +203,12 @@ class Autoreloader(cherrypy.process.plugins.Autoreloader):
 
 class AttachedMonitor(cherrypy.process.plugins.Monitor):
     """Periodically run a callback function in an attached thread."""
+
     def __init__(self, bus, callback, frequency=cherrypy.process.plugins.Monitor.frequency):
         def run():
             attach_thread()
             callback()
+
         cherrypy.process.plugins.Monitor.__init__(self, bus, run, frequency)
 
     def subscribe(self):
@@ -219,12 +226,18 @@ class WebSearcher(object):
 
     :param urls: ordered hosts to synchronize with
     """
+
     _cp_config = {
-        'tools.gzip.on': True, 'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json'],
-        'tools.accept.on': True, 'tools.accept.media': 'application/json',
-        'tools.json_in.on': True, 'tools.json_out.on': True,
-        'tools.allow.on': True, 'tools.timer.on': True,
-        'tools.validate.on': True, 'error_page.default': json_error,
+        'tools.gzip.on': True,
+        'tools.gzip.mime_types': ['text/html', 'text/plain', 'application/json'],
+        'tools.accept.on': True,
+        'tools.accept.media': 'application/json',
+        'tools.json_in.on': True,
+        'tools.json_out.on': True,
+        'tools.allow.on': True,
+        'tools.timer.on': True,
+        'tools.validate.on': True,
+        'error_page.default': json_error,
     }
 
     def __init__(self, *directories, **kwargs):
@@ -358,12 +371,25 @@ class WebSearcher(object):
         result.update((field, list(searcher.termvector(id, field))) for field in options.get('fields.vector', ()))
         result.update((field, dict(searcher.termvector(id, field, counts=True))) for field in options.get('fields.vector.counts', ()))
         return result
+
     docs.__annotations__.update(dict.fromkeys(['fields', 'fields.multi', 'fields.docvalues', 'fields.vector', 'fields.vector.counts'], multi))
 
     @cherrypy.expose
     @cherrypy.tools.params()
-    def search(self, q=None, count: int = None, start: int = 0, fields: multi = None, sort: multi = None,
-               facets: multi = '', group='', hl: multi = '', mlt: int = None, timeout: float = None, **options):
+    def search(
+        self,
+        q=None,
+        count: int = None,
+        start: int = 0,
+        fields: multi = None,
+        sort: multi = None,
+        facets: multi = '',
+        group='',
+        hl: multi = '',
+        mlt: int = None,
+        timeout: float = None,
+        **options
+    ):
         """Run query and return documents.
 
         .. versionchanged:: 2.3 maxscore option and result removed
@@ -480,8 +506,19 @@ class WebSearcher(object):
                 for name, counts in facets.items():
                     facets[name] = {term: counts[term] for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__)}
         return result
-    search.__annotations__.update({'fields.multi': multi, 'fields.docvalues': multi, 'facets.count': int, 'facets.min': int,
-                                   'group.count': int, 'hl.count': int, 'mlt.fields': multi, 'count.min': int})
+
+    search.__annotations__.update(
+        {
+            'fields.multi': multi,
+            'fields.docvalues': multi,
+            'facets.count': int,
+            'facets.min': int,
+            'group.count': int,
+            'hl.count': int,
+            'mlt.fields': multi,
+            'count.min': int,
+        }
+    )
 
     @cherrypy.expose
     @cherrypy.tools.params()
@@ -608,6 +645,7 @@ class WebSearcher(object):
 
 class WebIndexer(WebSearcher):
     """Dispatch root with a delegated Indexer, exposing write methods."""
+
     def __init__(self, *args, **kwargs):
         self.indexer = engine.Indexer(*args, **kwargs)
         self.updated = time.time()
@@ -730,6 +768,7 @@ class WebIndexer(WebSearcher):
                     assert all(self.indexer.fields[name].docvalues for name in doc)
             self.indexer.update(name, value, doc)
         self.refresh()
+
     docs._cp_config.update(WebSearcher.docs._cp_config)
     docs._cp_config['request.methods_with_bodies'] = ('POST', 'PUT', 'PATCH')
     docs.__annotations__.update(WebSearcher.docs.__annotations__)
@@ -749,6 +788,7 @@ class WebIndexer(WebSearcher):
         else:
             self.indexer.delete(parse.q(self.searcher, q, **options))
         self.refresh()
+
     search._cp_config.update(WebSearcher.search._cp_config)
     search.__annotations__.update(WebSearcher.search.__annotations__)
 

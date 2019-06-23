@@ -7,11 +7,13 @@ import lucene
 from org.apache.lucene import analysis, document, index, search, store, util
 from six.moves import map
 from lupyne import engine
+
 Q = engine.Query
 
 
 class typeAsPayload(engine.TokenFilter):
     "Custom implementation of lucene TypeAsPayloadTokenFilter."
+
     def incrementToken(self):
         result = self.input.incrementToken()
         self.payload = self.type
@@ -160,7 +162,7 @@ def test_searcher(tempdir, fields, constitution):
     assert hits.maxscore == next(hits.scores)
     ids = list(hits.ids)
     hits = indexer.search('people', count=5, mincount=5, field='text')
-    assert list(hits.ids) == ids[:len(hits)]
+    assert list(hits.ids) == ids[: len(hits)]
     assert len(hits) == 5 and hits.count == 8
     assert not any(map(math.isnan, hits.scores))
     assert hits.maxscore == next(hits.scores)
@@ -474,7 +476,7 @@ def test_fields(indexer, constitution):
     hits = indexer.search(query).sorted(sizes.get)
     assert list(hits.ids) == ids
     hits = indexer.search(query, count=3, sort='size')
-    assert list(hits.ids) == ids[:len(hits)]
+    assert list(hits.ids) == ids[: len(hits)]
     hits.select('amendment')
     hit = hits[0].dict()
     assert math.isnan(hit.pop('__score__'))
@@ -510,7 +512,7 @@ def test_numeric(indexer, constitution):
     hits = indexer.search(query).sorted(sizes.get)
     assert list(hits.ids) == ids
     hits = indexer.search(query, count=3, sort=indexer.sortfield('size', type=int))
-    assert list(hits.ids) == ids[:len(hits)]
+    assert list(hits.ids) == ids[: len(hits)]
     query = Q.ranges('size', (None, 1000))
     assert indexer.count(query) == len(sizes) - len(ids)
     hit, = indexer.search(Q.points('amendment', 1))

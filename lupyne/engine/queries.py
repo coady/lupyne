@@ -14,6 +14,7 @@ class Query(object):
 
     Uses class methods and operator overloading for convenient query construction.
     """
+
     def __new__(cls, base, *args):
         return base.__new__(type(base.__name__, (cls, base), {}))
 
@@ -36,7 +37,7 @@ class Query(object):
         for query in queries:
             builder.add(query, occur)
         for name, values in terms.items():
-            for value in ([values] if isinstance(values, string_types) else values):
+            for value in [values] if isinstance(values, string_types) else values:
                 builder.add(cls.term(name, value), occur)
         return builder.build()
 
@@ -58,8 +59,7 @@ class Query(object):
     @classmethod
     def disjunct(cls, multiplier, *queries, **terms):
         """Return lucene DisjunctionMaxQuery from queries and terms."""
-        terms = tuple(cls.term(name, value) for name, values in terms.items()
-                      for value in ([values] if isinstance(values, string_types) else values))
+        terms = tuple(cls.term(name, value) for name, values in terms.items() for value in ([values] if isinstance(values, string_types) else values))
         return cls(search.DisjunctionMaxQuery, Arrays.asList(queries + terms), multiplier)
 
     @classmethod
@@ -207,6 +207,7 @@ class Query(object):
 
 class SpanQuery(Query):
     """Inherited lucene SpanQuery with additional span constructors."""
+
     def __getitem__(self, slc):
         start, stop, step = slc.indices(Integer.MAX_VALUE)
         assert step == 1, 'slice step is not supported'
@@ -246,6 +247,7 @@ class SpanQuery(Query):
 
 class DocValues:
     """DocValues with type conversion."""
+
     class Sorted(object):
         def __init__(self, docvalues, size, type):
             self.docvalues, self.size, self.type = docvalues, size, type
@@ -285,6 +287,7 @@ class SpellParser(PythonQueryParser):
 
     Assign a searcher attribute or override :meth:`correct` implementation.
     """
+
     def suggest(self, term):
         """Return term with text replaced as necessary."""
         field = term.field()

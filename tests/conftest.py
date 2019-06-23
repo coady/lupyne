@@ -60,11 +60,4 @@ def constitution():
 def zipcodes():
     lines = open(os.path.join(dirname, 'zipcodes.txt'))
     for zipcode, latitude, longitude, state, city, county in csv.reader(lines):
-        yield {
-            'zipcode': zipcode,
-            'latitude': float(latitude),
-            'longitude': float(longitude),
-            'city': city.title(),
-            'county': county.title(),
-            'state': state,
-        }
+        yield {'zipcode': zipcode, 'latitude': float(latitude), 'longitude': float(longitude), 'city': city.title(), 'county': county.title(), 'state': state}
