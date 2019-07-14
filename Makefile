@@ -15,7 +15,6 @@ check:
 	python3 setup.py $@ -ms
 	black --check -q .
 	flake8
-	python3 -m examples
 	pytest-2.7 tests/test_engine.py --cov=lupyne.engine --cov-fail-under=100
 	pytest --cov --cov-fail-under=100
 	pytest -vk example

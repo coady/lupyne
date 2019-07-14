@@ -296,7 +296,7 @@ def test_example(request, servers):
     """Custom server example (only run explicitly)."""
     if request.config.option.verbose < 0:
         pytest.skip("requires verbose output")
-    servers.module = 'examples.server'
+    servers.module = 'tests.server'
     resource = servers.start(servers.ports[0])
     result = resource.search(q='date:17*', group='date')
     assert {group['value']: group['count'] for group in result['groups']} == {'1795-02-07': 1, '1791-12-15': 10}

@@ -3,3 +3,4 @@ syntax: glob
 docs/_build
 .coverage
 .pytest_cache
+.ipynb_checkpoints

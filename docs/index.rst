@@ -4,8 +4,8 @@
 
 Lupyne's documentation
 ==================================
-
 Lupyne_ is:
+
  * a high-level Pythonic search `engine <engine.html>`_ library, built on PyLucene_
  * a RESTful_ JSON_ search `server <server.html>`_, built on CherryPy_
 
@@ -29,8 +29,6 @@ Quickstart
   >>> hit.dict()                                      # dict representation of the hit document
   {'name': 'sample', '__id__': 0, '__score__': 0.28768208622932434}
 
-See more `examples <examples.html>`_
-
 Contents
 ^^^^^^^^^^
 
@@ -39,10 +37,6 @@ Contents
 
    engine
    server
-
-.. toctree::
-   :hidden:
-
    examples
 
 Indices and tables
