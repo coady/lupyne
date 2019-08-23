@@ -1,4 +1,4 @@
-include LICENSE.txt
+include LICENSE.txt pyproject.toml
 recursive-include examples *.py
 recursive-include tests *.py *.txt
 recursive-include docs Makefile *.py *.rst *.png
