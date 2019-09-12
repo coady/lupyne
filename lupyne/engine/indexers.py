@@ -15,8 +15,6 @@ from .queries import Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
 from .utils import long, suppress, Atomic, SpellChecker
 
-LU7 = lucene.VERSION < '8'
-
 
 class closing(set):
     """Manage lifespan of registered objects, similar to contextlib.closing."""
@@ -106,8 +104,7 @@ class IndexReader(object):
 
     @property
     def bits(self):
-        cls = index.MultiFields if LU7 else index.MultiBits
-        return cls.getLiveDocs(self.indexReader)
+        return index.MultiBits.getLiveDocs(self.indexReader)
 
     @property
     def directory(self):
@@ -137,8 +134,7 @@ class IndexReader(object):
     @property
     def fieldinfos(self):
         """mapping of field names to lucene FieldInfos"""
-        cls = index.MultiFields if LU7 else index.FieldInfos
-        fieldinfos = cls.getMergedFieldInfos(self.indexReader)
+        fieldinfos = index.FieldInfos.getMergedFieldInfos(self.indexReader)
         return {fieldinfo.name: fieldinfo for fieldinfo in fieldinfos.iterator()}
 
     def suggest(self, name, value, count=1, **attrs):
@@ -211,8 +207,7 @@ class IndexReader(object):
         :param distance: maximum edit distance for fuzzy terms
         :param prefix: prefix length for fuzzy terms
         """
-        cls = index.MultiFields if LU7 else index.MultiTerms
-        terms = cls.getTerms(self.indexReader, name)
+        terms = index.MultiTerms.getTerms(self.indexReader, name)
         if not terms:
             return iter([])
         term, termsenum = index.Term(name, value), terms.iterator()
@@ -229,15 +224,13 @@ class IndexReader(object):
 
     def docs(self, name, value, counts=False):
         """Generate doc ids which contain given term, optionally with frequency counts."""
-        func = index.MultiFields.getTermDocsEnum if LU7 else index.MultiTerms.getTermPostingsEnum
-        docsenum = func(self.indexReader, name, util.BytesRef(value))
+        docsenum = index.MultiTerms.getTermPostingsEnum(self.indexReader, name, util.BytesRef(value))
         docs = iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()
         return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)
 
     def positions(self, name, value, payloads=False, offsets=False):
         """Generate doc ids and positions which contain given term, optionally with offsets, or only ones with payloads."""
-        func = index.MultiFields.getTermPositionsEnum if LU7 else index.MultiTerms.getTermPostingsEnum
-        docsenum = func(self.indexReader, name, util.BytesRef(value))
+        docsenum = index.MultiTerms.getTermPostingsEnum(self.indexReader, name, util.BytesRef(value))
         for doc in iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ():
             positions = (docsenum.nextPosition() for _ in range(docsenum.freq()))
             if payloads:
@@ -342,8 +335,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param positions: optionally include slice positions instead of counts
         """
         offset = 0
-        scores = False if LU7 else search.ScoreMode.COMPLETE_NO_SCORES
-        weight = query.createWeight(self, scores, 1.0)
+        weight = query.createWeight(self, search.ScoreMode.COMPLETE_NO_SCORES, 1.0)
         postings = search.spans.SpanWeight.Postings.POSITIONS
         for reader in self.readers:
             try:
@@ -387,15 +379,13 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             return search.CachingCollector.create(True, float('inf'))
         count = min(count, self.maxDoc() or 1)
         mincount = max(count, mincount)
-        args = [] if LU7 else [mincount]
         if sort is None:
-            return search.TopScoreDocCollector.create(count, *args)
+            return search.TopScoreDocCollector.create(count, mincount)
         if isinstance(sort, string_types):
             sort = self.sortfield(sort, reverse=reverse)
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
-        args = [True, scores, False] if LU7 else [mincount]
-        return search.TopFieldCollector.create(sort, count, *args)
+        return search.TopFieldCollector.create(sort, count, mincount)
 
     def search(self, query=None, count=None, sort=None, reverse=False, scores=False, mincount=1000, timeout=None, **parser):
         """Run query and return `Hits`_.
@@ -426,7 +416,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             collector = self.collector(count, sort, reverse, scores, count)
             cache.replay(collector)
         topdocs = collector.topDocs()
-        if not LU7 and scores:  # pragma: no cover
+        if scores:
             search.TopFieldCollector.populateScores(topdocs.scoreDocs, self, query)
         return Hits(self, topdocs.scoreDocs, topdocs.totalHits)
 
