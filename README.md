@@ -69,7 +69,7 @@ Optional server extras:
     $ pytest [--cov]
 
 # Changes
-dev
+2.3
 * PyLucene >=7.7 required
 * PyLucene 8 supported
 
