@@ -58,7 +58,7 @@ def resource(tempdir, servers, fields, constitution):
 
 
 def test_docs(resource):
-    (directory, size), = resource().items()
+    ((directory, size),) = resource().items()
     assert 'Directory@' in directory and size == 35
     fields = resource.get('/fields')
     assert sorted(fields) == ['amendment', 'article', 'date', 'text', 'year']
@@ -107,7 +107,7 @@ def test_terms(resource):
 
 
 def test_search(resource):
-    doc, = resource.search(q='amendment:1', fields='', **{'fields.docvalues': 'date,year:int'})['docs']
+    (doc,) = resource.search(q='amendment:1', fields='', **{'fields.docvalues': 'date,year:int'})['docs']
     assert doc['date'] == '1791-12-15' and doc['year'] == 1791
     result = resource.search(**{'q.field': 'text', 'q': 'write "hello world"', 'q.spellcheck': 'true'})
     assert result['query'] == 'text:writs text:"held would"'
@@ -118,7 +118,7 @@ def test_search(resource):
     result = resource.search(q='text:"We the People"', **{'q.phraseSlop': 3})
     assert result['count'] == 1
     assert result['query'].startswith('text:"we ') and result['query'].endswith(' people"~3')
-    doc, = result['docs']
+    (doc,) = result['docs']
     assert sorted(doc) == ['__id__', '__score__', 'article']
     assert doc['article'] == 'Preamble' and doc['__id__'] >= 0 and 0 < doc['__score__']
     result = resource.search(q='text:people')
@@ -142,7 +142,7 @@ def test_search(resource):
     assert len(result['facets']['date']) == sum(result['facets']['date'].values()) == 7
     result = resource.search(q='text:freedom')
     assert result['count'] == 1
-    doc, = result['docs']
+    (doc,) = result['docs']
     assert doc['amendment'] == '1'
     assert resource.delete('search', params={'q': 'text:freedom'}) is None
     assert resource.post('update') == 34
@@ -150,7 +150,7 @@ def test_search(resource):
 
 
 def test_highlights(resource):
-    doc, = resource.search(q='amendment:1', hl='amendment', fields='article')['docs']
+    (doc,) = resource.search(q='amendment:1', hl='amendment', fields='article')['docs']
     assert doc['__highlights__'] == {'amendment': '<b>1</b>'}
     result = resource.search(q='text:1', hl='amendment,article')
     highlights = [doc['__highlights__'] for doc in result['docs']]
@@ -268,7 +268,6 @@ def test_start(tempdir, servers):
     os.kill(int(open(pidfile).read()), signal.SIGTERM)
     del servers[port]
     assert subprocess.call((sys.executable, '-m', 'lupyne.server', '-c', __file__), stderr=subprocess.PIPE)
-    assert subprocess.call((sys.executable, 'lupyne/server.py', '-x'), env={'PYTHONPATH': '.'}, stderr=subprocess.PIPE) == 2
     assert cherrypy.tree.mount(None)
     server.init(vmargs=None)
     with pytest.raises(AttributeError):
@@ -281,7 +280,7 @@ def test_config(tempdir, servers):
     client = servers.start(servers.ports[0], tempdir, tempdir, '--autoreload=0.1', **config).client
     response = client.get()
     assert response.ok
-    (directory, size), = response.json().items()
+    ((directory, size),) = response.json().items()
     assert 'Directory@' in directory and size == 0
     assert int(response.headers['age']) >= 0
     assert response.headers['cache-control'] == 'max-age=0'

@@ -5,6 +5,8 @@ check:
 	python3 setup.py $@ -ms
 	black --check -q .
 	flake8
-	pytest-2.7 tests/test_engine.py --cov=lupyne.engine --cov-fail-under=100
-	pytest --cov --cov-fail-under=100
+	make engine server
 	pytest -vk example
+
+engine server:
+	pytest tests/test_$@.py --cov=lupyne.$@ --cov-fail-under=100

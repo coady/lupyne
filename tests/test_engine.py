@@ -45,7 +45,7 @@ def test_analyzers():
     indexer.set('text', engine.Field.Text)
     indexer.add(text='searches')
     indexer.commit()
-    item, = indexer.positions('text', 'search', payloads=True)
+    (item,) = indexer.positions('text', 'search', payloads=True)
     assert item == (0, [(0, '<ALPHANUM>')])
     analyzer = engine.Analyzer.whitespace(engine.TokenFilter)
     assert [token.charTerm for token in analyzer.tokens('Search Engine')] == ['Search', 'Engine']
@@ -90,7 +90,7 @@ def test_writer(tempdir):
     assert len(hits) == hits.count == 1
     assert hits.scoredocs == hits[:1].scoredocs and not hits[1:]
     assert list(hits.ids) == [0]
-    score, = hits.scores
+    (score,) = hits.scores
     assert 0 < score < 1
     assert dict(hits.items()) == {0: score}
     data = hits[0].dict()
@@ -152,7 +152,7 @@ def test_searcher(tempdir, fields, constitution):
     assert len(docs) == count and all(counts) and sum(counts) > count
     positions = dict(indexer.positions('text', 'people'))
     assert list(map(len, positions.values())) == counts
-    hit, = indexer.search('"We the People"', field='text')
+    (hit,) = indexer.search('"We the People"', field='text')
     assert hit['article'] == 'Preamble'
     assert sorted(hit.dict()) == ['__id__', '__score__', 'article']
     hits = indexer.search('people', field='text')
@@ -169,7 +169,7 @@ def test_searcher(tempdir, fields, constitution):
     hits = indexer.search('text:people', count=5, sort=search.Sort.INDEXORDER, scores=True)
     assert sorted(hits.ids) == list(hits.ids)
     assert all(score > 0 for score in hits.scores)
-    hit, = indexer.search('freedom', field='text')
+    (hit,) = indexer.search('freedom', field='text')
     assert hit['amendment'] == '1'
     assert sorted(hit.dict()) == ['__id__', '__score__', 'amendment', 'date']
     hits = indexer.search('date:[1919 TO 1921]')
@@ -181,7 +181,7 @@ def test_searcher(tempdir, fields, constitution):
     spans = dict(indexer.spans(span))
     assert len(spans) == count and spans == dict(indexer.docs('text', 'persons', counts=True))
     near = Q.near('text', 'persons', 'papers', slop=2)
-    (id, positions), = indexer.spans(near, positions=True)
+    ((id, positions),) = indexer.spans(near, positions=True)
     assert indexer[id]['amendment'] == '4' and positions in ([(3, 6)], [(10, 13)])
     assert 'persons' in indexer.termvector(id, 'text')
     assert dict(indexer.termvector(id, 'text', counts=True))['persons'] == 2
@@ -360,21 +360,21 @@ def test_grouping(tempdir, indexer, zipcodes):
     hits = indexer.search(field.prefix('CA.Los Angeles'))
     assert sorted({hit['city'] for hit in hits}) == cities
     assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
-    hit, = indexer.search('zipcode:90210')
+    (hit,) = indexer.search('zipcode:90210')
     assert hit['state'] == 'CA' and hit['county'] == 'Los Angeles' and hit['city'] == 'Beverly Hills' and hit['longitude'] == '-118.406'
     query = Q.prefix('zipcode', '90')
-    (field, facets), = indexer.facets(query, 'state.county').items()
+    ((field, facets),) = indexer.facets(query, 'state.county').items()
     assert field == 'state.county'
     la, orange = sorted(filter(facets.get, facets))
     assert la == 'CA.Los Angeles' and facets[la] > 100
     assert orange == 'CA.Orange' and facets[orange] > 10
     queries = {term: Q.term(field, term) for term in indexer.terms(field, 'CA.')}
-    (field, facets), = indexer.facets(query, **{field: queries}).items()
+    ((field, facets),) = indexer.facets(query, **{field: queries}).items()
     assert all(value.startswith('CA.') for value in facets) and set(facets) == set(queries)
     assert facets['CA.Los Angeles'] == 264
     groups = indexer.groupby(field, Q.term('state', 'CA'), count=1)
     assert len(groups) == 1 < groups.count
-    hits, = groups
+    (hits,) = groups
     assert hits.value == 'CA.Los Angeles' and len(hits) == 1 and hits.count > 100
     grouping = engine.documents.GroupingSearch(field, sort=search.Sort(indexer.sortfield(field)), cache=False, allGroups=True)
     assert all(grouping.search(indexer.indexSearcher, Q.alldocs()).facets.values())
@@ -406,7 +406,7 @@ def test_spatial(indexer, zipcodes):
             indexer.add(doc, location=[(doc['longitude'], doc['latitude'])])
     indexer.commit()
     city, zipcode = 'Beverly Hills', '90210'
-    hit, = indexer.search('zipcode:' + zipcode)
+    (hit,) = indexer.search('zipcode:' + zipcode)
     assert hit['city'] == city
     x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
     query = field.within(x, y, 1e4)
@@ -445,7 +445,7 @@ def test_fields(indexer, constitution):
     assert field.settings == {'stored': True, 'tokenized': False, 'omitNorms': True, 'indexOptions': 'DOCS'}
     attrs = 'stored', 'omitNorms', 'storeTermVectors', 'storeTermVectorPositions', 'storeTermVectorOffsets'
     field = engine.Field('', indexOptions='docs', **dict.fromkeys(attrs, True))
-    field, = field.items(' ')
+    (field,) = field.items(' ')
     assert all(getattr(field.fieldType(), attr)() for attr in attrs)
     indexer.set('amendment', engine.Field.String, stored=True)
     indexer.set('size', engine.Field.String, stored=True, docValuesType='sorted')
@@ -515,7 +515,7 @@ def test_numeric(indexer, constitution):
     assert list(hits.ids) == ids[: len(hits)]
     query = Q.ranges('size', (None, 1000))
     assert indexer.count(query) == len(sizes) - len(ids)
-    hit, = indexer.search(Q.points('amendment', 1))
+    (hit,) = indexer.search(Q.points('amendment', 1))
     assert hit['amendment'] == 1
 
 

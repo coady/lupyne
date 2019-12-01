@@ -10,7 +10,7 @@
 Lupyne is a search engine based on [PyLucene](http://lucene.apache.org/pylucene/), the Python extension for accessing Java Lucene.
 Lucene is a relatively low-level toolkit, and PyLucene wraps it through automatic code generation.
 So although Java idioms are translated to Python idioms where possible, the resulting interface is far from Pythonic.
-See `./examples` for comparisons with the Lucene API.
+See `./docs/examples.ipynb` for comparisons with the Lucene API.
 
 Lupyne also provides a RESTful JSON search server, based on [CherryPy](http://cherrypy.org).
 Note Solr and Elasticsearch are popular options for Lucene-based search, if no further (Python) customization is needed.
@@ -55,7 +55,7 @@ PyLucene is not `pip` installable.
 * [Homebrew](https://brew.sh) formula: `$ brew install coady/tap/pylucene`
 
 # Dependencies
-* PyLucene >=7.7
+* PyLucene >=8
 * six
 
 Optional server extras:
@@ -69,6 +69,9 @@ Optional server extras:
     $ pytest [--cov]
 
 # Changes
+dev
+* PyLucene >=8 required
+
 2.3
 * PyLucene >=7.7 required
 * PyLucene 8 supported

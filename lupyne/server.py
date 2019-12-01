@@ -153,7 +153,7 @@ class parse:
         if any(boost for name, boost in fields):
             field = {name: float(boost or 1.0) for name, boost in fields}
         elif isinstance(field, str):
-            (field, boost), = fields
+            ((field, boost),) = fields
         else:
             field = [name for name, boost in fields] or ''
         if 'type' in options:
@@ -332,7 +332,7 @@ class WebSearcher(object):
         if not self.urls and hasattr(self, 'fields'):
             other = WebIndexer(self.searcher.directory, analyzer=self.searcher.analyzer)
             other.indexer.shared, other.indexer.fields = self.searcher.shared, self.fields
-            app, = (app for app in cherrypy.tree.apps.values() if app.root is self)
+            (app,) = (app for app in cherrypy.tree.apps.values() if app.root is self)
             mount(other, app=app, autoupdate=getattr(self, 'autoupdate', 0))
         return len(self.searcher)
 
@@ -361,7 +361,7 @@ class WebSearcher(object):
         if not name:
             return list(searcher)
         with HTTPError(ValueError, http.client.NOT_FOUND):
-            id, = searcher.docs(name, value) if value else [int(name)]
+            (id,) = searcher.docs(name, value) if value else [int(name)]
         fields, multi, docvalues = parse.fields(searcher, **options)
         with HTTPError(lucene.JavaError, http.client.NOT_FOUND):
             doc = searcher[id] if fields is None else searcher.get(id, *itertools.chain(fields, multi))
@@ -449,7 +449,7 @@ class WebSearcher(object):
         q = parse.q(searcher, q, **options)
         if mlt is not None:
             if q is not None:
-                mlt, = searcher.search(q, count=mlt + 1, sort=sort)[mlt:].ids
+                (mlt,) = searcher.search(q, count=mlt + 1, sort=sort)[mlt:].ids
             mltfields = options.pop('mlt.fields', ())
             with HTTPError(ValueError):
                 attrs = {key.partition('.')[-1]: json.loads(options[key]) for key in options if key.startswith('mlt.')}
