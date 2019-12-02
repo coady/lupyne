@@ -265,19 +265,22 @@ class Document(dict):
 
 
 class Hit(Document):
-    """A Document from a search result, with :attr:`id`, :attr:`score`, and optional sort :attr:`keys`."""
+    """A Document from a search result, with :attr:`id`, :attr:`score`, and optional :attr:`sortkeys`.
 
-    def __init__(self, doc, id, score, keys=()):
+    .. versionchanged:: 2.4 keys renamed to :attr:`sortkeys`
+    """
+
+    def __init__(self, doc, id, score, sortkeys=()):
         Document.__init__(self, doc)
         self.id, self.score = id, score
-        self.keys = tuple(map(convert, keys))
+        self.sortkeys = tuple(map(convert, sortkeys))
 
     def dict(self, *names, **defaults):
         """Return dict representation of document with __id__, __score__, and any sort __keys__."""
         result = Document.dict(self, *names, **defaults)
         result.update(__id__=self.id, __score__=self.score)
-        if self.keys:
-            result['__keys__'] = self.keys
+        if self.sortkeys:
+            result['__sortkeys__'] = self.sortkeys
         return result
 
 

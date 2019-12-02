@@ -411,8 +411,8 @@ def test_spatial(indexer, zipcodes):
     x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
     query = field.within(x, y, 1e4)
     hits = indexer.search(query, sort=field.distances(x, y))
-    distances = {hit.id: hit.keys[0] for hit in hits}
-    assert hits[0]['zipcode'] == zipcode and hits[0].keys < (1,)
+    distances = {hit.id: hit.sortkeys[0] for hit in hits}
+    assert hits[0]['zipcode'] == zipcode and hits[0].sortkeys < (1,)
     cities = {hit['city'] for hit in hits}
     assert city in cities and len(cities) == 12
     groups = hits.groupby(lambda id: bisect.bisect_left([100, 5000], distances[id]))
@@ -480,7 +480,7 @@ def test_fields(indexer, constitution):
     hits.select('amendment')
     hit = hits[0].dict()
     assert math.isnan(hit.pop('__score__'))
-    assert hit == {'amendment': '20', '__id__': 19, '__keys__': ('1923',)}
+    assert hit == {'amendment': '20', '__id__': 19, '__sortkeys__': ('1923',)}
     query = Q.range('size', None, '1000')
     assert indexer.count(query) == len(sizes) - len(ids)
 

@@ -393,6 +393,7 @@ class WebSearcher(object):
         """Run query and return documents.
 
         .. versionchanged:: 2.3 maxscore option and result removed
+        .. versionchanged:: 2.4 __keys__ renamed to __sortkeys__
 
         **GET** /search?
             Return array of document objects and total doc count.
@@ -435,7 +436,7 @@ class WebSearcher(object):
                 | {
                 | "query": *string*\|null,
                 | "count": *int*\|null,
-                | "docs": [{"__id__": *int*, "__score__": *number*, "__keys__": *array*,
+                | "docs": [{"__id__": *int*, "__score__": *number*, "__sortkeys__": *array*,
                     "__highlights__": {*string*: *array*,... }, *string*: *value*,... },... ],
                 | "facets": {*string*: {*string*: *int*,... },... },
                 | "groups": [{"count": *int*, "value": *value*, "docs": [*object*,... ]},... ]

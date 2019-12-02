@@ -129,13 +129,13 @@ def test_search(resource):
     assert docs[:5] == result['docs'] and result['count'] == len(docs)
     result = resource.search(q='text:people', count=5, sort='-year:int')
     assert all(math.isnan(doc['__score__']) for doc in result['docs'])
-    assert result['docs'][0]['__keys__'] == [1913] and result['docs'][-1]['__keys__'] == [1791]
+    assert result['docs'][0]['__sortkeys__'] == [1913] and result['docs'][-1]['__sortkeys__'] == [1791]
     result = resource.search(q='text:people', sort='-year:int')
-    assert result['docs'][0]['__keys__'] == [1913] and result['docs'][-1]['__keys__'] == [0]
+    assert result['docs'][0]['__sortkeys__'] == [1913] and result['docs'][-1]['__sortkeys__'] == [0]
     result = resource.search(q='text:people', count=5, sort='-year:int', **{'sort.scores': ''})
     result = resource.search(q='text:people', count=1, sort='-year:int', **{'sort.scores': 'max'})
     result = resource.search(q='text:people', count=5, sort='-date,year:int')
-    assert result['docs'][0]['__keys__'] == ['1913-04-08', 1913] and result['docs'][-1]['__keys__'] == ['1791-12-15', 1791]
+    assert result['docs'][0]['__sortkeys__'] == ['1913-04-08', 1913] and result['docs'][-1]['__sortkeys__'] == ['1791-12-15', 1791]
     result = resource.search(q='text:people', start=2, count=2, facets='date')
     assert result['count'] == 8 and result['facets']['date'] == {'1791-12-15': 5, '1913-04-08': 1}
     result = resource.search(q='text:president', facets='date')

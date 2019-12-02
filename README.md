@@ -71,6 +71,7 @@ Optional server extras:
 # Changes
 dev
 * PyLucene >=8 required
+* `Hit.keys` renamed to `Hit.sortkeys`
 
 2.3
 * PyLucene >=7.7 required
