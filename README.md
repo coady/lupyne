@@ -69,7 +69,7 @@ Optional server extras:
     $ pytest [--cov]
 
 # Changes
-dev
+2.4
 * PyLucene >=8 required
 * `Hit.keys` renamed to `Hit.sortkeys`
 
