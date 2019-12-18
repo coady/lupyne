@@ -8,12 +8,10 @@ from java.io import File, IOException, StringReader
 from java.util import Arrays, HashSet
 from org.apache.lucene import analysis, document, index, queries, search, store, util
 from org.apache.lucene.search import spell, uhighlight
-from six import string_types
-from six.moves import filter, map, range, zip
 from .analyzers import Analyzer
 from .queries import Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch
-from .utils import long, suppress, Atomic, SpellChecker
+from .utils import suppress, Atomic, SpellChecker
 
 
 class closing(set):
@@ -33,7 +31,7 @@ class closing(set):
         if directory is None:
             directory = store.RAMDirectory()
             self.add(directory)
-        elif isinstance(directory, string_types):
+        elif isinstance(directory, str):
             directory = store.FSDirectory.open(File(directory).toPath())
             self.add(directory)
         return directory
@@ -76,7 +74,7 @@ def copy(commit, dest):
                     raise
 
 
-class IndexReader(object):
+class IndexReader:
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
 
     :param reader: lucene IndexReader
@@ -271,7 +269,7 @@ class IndexReader(object):
         mlt.fieldNames = fields or None
         for name, value in attrs.items():
             setattr(mlt, name, value)
-        return mlt.like(fields[0], StringReader(doc)) if isinstance(doc, string_types) else mlt.like(doc)
+        return mlt.like(fields[0], StringReader(doc)) if isinstance(doc, str) else mlt.like(doc)
 
 
 class IndexSearcher(search.IndexSearcher, IndexReader):
@@ -283,7 +281,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
 
     def __init__(self, directory, analyzer=None):
         self.shared = closing()
-        search.IndexSearcher.__init__(self, self.shared.reader(directory))
+        super().__init__(self.shared.reader(directory))
         self.analyzer = self.shared.analyzer(analyzer)
         self.spellcheckers = {}
 
@@ -381,7 +379,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         mincount = max(count, mincount)
         if sort is None:
             return search.TopScoreDocCollector.create(count, mincount)
-        if isinstance(sort, string_types):
+        if isinstance(sort, str):
             sort = self.sortfield(sort, reverse=reverse)
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
@@ -405,9 +403,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         query = Query.alldocs() if query is None else self.parse(query, **parser)
         cache = collector = self.collector(count, sort, reverse, scores, mincount)
         counter = search.TimeLimitingCollector.getGlobalCounter()
-        results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, long(timeout * 1000))
+        results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, int(timeout * 1000))
         with suppress(search.TimeLimitingCollector.TimeExceededException):
-            search.IndexSearcher.search(self, query, results)
+            super().search(query, results)
             timeout = None
         if isinstance(cache, search.CachingCollector):
             collector = search.TotalHitCountCollector()
@@ -454,7 +452,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """Generate scores for all queries against a given document mapping."""
         searcher = index.memory.MemoryIndex()
         for name, value in document.items():
-            args = [self.analyzer] * isinstance(value, string_types)
+            args = [self.analyzer] * isinstance(value, str)
             searcher.addField(name, value, *args)
         return (searcher.search(self.parse(query)) for query in queries)
 
@@ -467,7 +465,7 @@ class MultiSearcher(IndexSearcher):
     """
 
     def __init__(self, reader, analyzer=None):
-        IndexSearcher.__init__(self, reader, analyzer)
+        super().__init__(reader, analyzer)
         self.indexReaders = [index.DirectoryReader.cast_(context.reader()) for context in self.context.children()]
         self.version = sum(reader.version for reader in self.indexReaders)
 
@@ -505,7 +503,7 @@ class IndexWriter(index.IndexWriter):
         for name, value in attrs.items():
             setattr(config, name, value)
         self.policy = config.indexDeletionPolicy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
-        index.IndexWriter.__init__(self, self.shared.directory(directory), config)
+        super().__init__(self.shared.directory(directory), config)
         self.fields = {}
 
     def __del__(self):
@@ -611,8 +609,8 @@ class Indexer(IndexWriter):
     """
 
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, nrt=False, **attrs):
-        IndexWriter.__init__(self, directory, mode, analyzer, version, **attrs)
-        IndexWriter.commit(self)
+        super().__init__(directory, mode, analyzer, version, **attrs)
+        super().commit()
         self.nrt = nrt
         self.indexSearcher = IndexSearcher(self if nrt else self.directory, self.analyzer)
 
@@ -639,11 +637,11 @@ class Indexer(IndexWriter):
 
         :param merge: merge segments with deletes, or optionally specify maximum number of segments
         """
-        IndexWriter.commit(self)
+        super().commit()
         if merge:
             if isinstance(merge, bool):
                 self.forceMergeDeletes()
             else:
                 self.forceMerge(merge)
-            IndexWriter.commit(self)
+            super().commit()
         self.refresh(**caches)

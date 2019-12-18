@@ -1,5 +1,5 @@
 [![image](https://img.shields.io/pypi/v/lupyne.svg)](https://pypi.org/project/lupyne/)
-[![image](https://img.shields.io/pypi/pyversions/lupyne.svg)](https://python3statement.org)
+![image](https://img.shields.io/pypi/pyversions/lupyne.svg)
 [![image](https://pepy.tech/badge/lupyne)](https://pepy.tech/project/lupyne)
 ![image](https://img.shields.io/pypi/status/lupyne.svg)
 [![image](https://api.shippable.com/projects/56059e3e1895ca4474182ec3/badge?branch=master)](https://app.shippable.com/github/coady/lupyne)
@@ -56,10 +56,8 @@ PyLucene is not `pip` installable.
 
 # Dependencies
 * PyLucene >=8
-* six
 
 Optional server extras:
-* Python >=3.5
 * cherrypy >=11
 * clients >=0.2
 
@@ -69,6 +67,9 @@ Optional server extras:
     $ pytest [--cov]
 
 # Changes
+dev
+* Python 3 required
+
 2.4
 * PyLucene >=8 required
 * `Hit.keys` renamed to `Hit.sortkeys`

@@ -198,7 +198,7 @@ class Autoreloader(cherrypy.process.plugins.Autoreloader):
 
     def run(self):
         attach_thread()
-        cherrypy.process.plugins.Autoreloader.run(self)
+        super().run()
 
 
 class AttachedMonitor(cherrypy.process.plugins.Monitor):
@@ -209,19 +209,19 @@ class AttachedMonitor(cherrypy.process.plugins.Monitor):
             attach_thread()
             callback()
 
-        cherrypy.process.plugins.Monitor.__init__(self, bus, run, frequency)
+        super().__init__(bus, run, frequency)
 
     def subscribe(self):
-        cherrypy.process.plugins.Monitor.subscribe(self)
+        super().subscribe()
         if cherrypy.engine.state == cherrypy.engine.states.STARTED:
             self.start()
 
     def unsubscribe(self):
-        cherrypy.process.plugins.Monitor.unsubscribe(self)
+        super().unsubscribe()
         self.thread.cancel()
 
 
-class WebSearcher(object):
+class WebSearcher:
     """Dispatch root with a delegated Searcher.
 
     :param urls: ordered hosts to synchronize with

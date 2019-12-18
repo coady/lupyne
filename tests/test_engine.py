@@ -5,7 +5,6 @@ import os
 import pytest
 import lucene
 from org.apache.lucene import analysis, document, index, search, store, util
-from six.moves import map
 from lupyne import engine
 
 Q = engine.Query

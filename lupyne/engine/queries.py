@@ -4,12 +4,9 @@ from java.util import Arrays
 from org.apache.lucene import document, index, search, util
 from org.apache.lucene.search import spans
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
-from six import string_types
-from six.moves import map, range
-from .utils import long, method
 
 
-class Query(object):
+class Query:
     """Inherited lucene Query, with dynamic base class acquisition.
 
     Uses class methods and operator overloading for convenient query construction.
@@ -37,7 +34,7 @@ class Query(object):
         for query in queries:
             builder.add(query, occur)
         for name, values in terms.items():
-            for value in [values] if isinstance(values, string_types) else values:
+            for value in [values] if isinstance(values, str) else values:
                 builder.add(cls.term(name, value), occur)
         return builder.build()
 
@@ -59,7 +56,7 @@ class Query(object):
     @classmethod
     def disjunct(cls, multiplier, *queries, **terms):
         """Return lucene DisjunctionMaxQuery from queries and terms."""
-        terms = tuple(cls.term(name, value) for name, values in terms.items() for value in ([values] if isinstance(values, string_types) else values))
+        terms = tuple(cls.term(name, value) for name, values in terms.items() for value in ([values] if isinstance(values, str) else values))
         return cls(search.DisjunctionMaxQuery, Arrays.asList(queries + terms), multiplier)
 
     @classmethod
@@ -73,7 +70,7 @@ class Query(object):
     def near(cls, name, *values, **kwargs):
         """Return :meth:`SpanNearQuery <SpanQuery.near>` from terms.
         Term values which supply another field name will be masked."""
-        spans = (cls.span(name, value) if isinstance(value, string_types) else cls.span(*value).mask(name) for value in values)
+        spans = (cls.span(name, value) if isinstance(value, str) else cls.span(*value).mask(name) for value in values)
         return SpanQuery.near(*spans, **kwargs)
 
     @classmethod
@@ -94,7 +91,7 @@ class Query(object):
         for attr in attrs:
             setattr(builder, attr, attrs[attr])
         for idx, words in enumerate(values):
-            if isinstance(words, string_types):
+            if isinstance(words, str):
                 words = [words]
             if words is not None:
                 builder.add([index.Term(name, word) for word in words], idx)
@@ -130,7 +127,7 @@ class Query(object):
         """Return lucene set query of one dimensional points."""
         if any(isinstance(value, float) for value in values):
             return document.DoublePoint.newSetQuery(name, values)
-        return document.LongPoint.newSetQuery(name, tuple(map(long, values)))
+        return document.LongPoint.newSetQuery(name, tuple(map(int, values)))
 
     @staticmethod
     def ranges(name, *intervals, **inclusive):
@@ -156,7 +153,7 @@ class Query(object):
                     stop = Long.MAX_VALUE
                 elif not upper:
                     stop -= 1
-                start, stop = long(start), long(stop)
+                start, stop = int(start), int(stop)
             starts.append(start)
             stops.append(stop)
         if any(isinstance(value, float) for value in starts):
@@ -193,7 +190,6 @@ class Query(object):
     def __ror__(self, other):
         return Query.any(other, self)
 
-    @method
     def __sub__(self, other):
         """self -other"""
         builder = search.BooleanQuery.Builder()
@@ -248,7 +244,7 @@ class SpanQuery(Query):
 class DocValues:
     """DocValues with type conversion."""
 
-    class Sorted(object):
+    class Sorted:
         def __init__(self, docvalues, size, type):
             self.docvalues, self.size, self.type = docvalues, size, type
 

@@ -1,3 +1,4 @@
+from typing import Mapping
 from java.io import StringReader
 from java.lang import Float
 from java.util import HashMap
@@ -5,13 +6,6 @@ from org.apache.lucene import analysis, queryparser, util
 from org.apache.lucene.search import uhighlight
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
-from six import string_types
-from .utils import method
-
-try:
-    from typing import Mapping
-except ImportError:  # pragma: no cover
-    from collections import Mapping
 
 
 class TokenStream(analysis.TokenStream):
@@ -25,8 +19,6 @@ class TokenStream(analysis.TokenStream):
         if self.incrementToken():
             return self
         raise StopIteration
-
-    next = __next__
 
     def __getattr__(self, name):
         cls = getattr(analysis.tokenattributes, name + 'Attribute').class_
@@ -89,7 +81,7 @@ class TokenFilter(PythonTokenFilter, TokenStream):
     """
 
     def __init__(self, input):
-        PythonTokenFilter.__init__(self, input)
+        super().__init__(input)
         self.input = input
 
     def incrementToken(self):
@@ -105,7 +97,7 @@ class Analyzer(PythonAnalyzer):
     """
 
     def __init__(self, tokenizer, *filters):
-        PythonAnalyzer.__init__(self)
+        super().__init__()
         self.tokenizer, self.filters = tokenizer, filters
 
     @classmethod
@@ -133,7 +125,6 @@ class Analyzer(PythonAnalyzer):
         """Return lucene TokenStream from text."""
         return self.components(field, StringReader(text))[1]
 
-    @method
     def parse(self, query, field='', op='', parser=None, **attrs):
         """Return parsed lucene Query.
 
@@ -144,7 +135,7 @@ class Analyzer(PythonAnalyzer):
         :param attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        cls = queryparser.classic.QueryParser if isinstance(field, string_types) else queryparser.classic.MultiFieldQueryParser
+        cls = queryparser.classic.QueryParser if isinstance(field, str) else queryparser.classic.MultiFieldQueryParser
         args = field, self
         if isinstance(field, Mapping):
             boosts = HashMap()
@@ -164,7 +155,6 @@ class Analyzer(PythonAnalyzer):
             if isinstance(parser, PythonQueryParser):
                 parser.finalize()
 
-    @method
     def highlight(self, query, field, content, count=1):
         """Return highlighted content.
 

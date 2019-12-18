@@ -3,20 +3,13 @@ import bisect
 import contextlib
 import heapq
 import itertools
-import types
+from typing import Iterable
 import lucene
-import six
 from java.lang import Double, Float, Number, Object
 from org.apache.lucene import analysis, util
 
-try:
-    from typing import Iterable
-except ImportError:  # pragma: no cover
-    from collections import Iterable
-long = int if six.PY3 else long  # noqa
 
-
-class Atomic(six.with_metaclass(abc.ABCMeta)):
+class Atomic(metaclass=abc.ABCMeta):
     """Abstract base class to distinguish singleton values from other iterables."""
 
     @classmethod
@@ -24,15 +17,8 @@ class Atomic(six.with_metaclass(abc.ABCMeta)):
         return not issubclass(other, Iterable) or NotImplemented
 
 
-for cls in six.string_types + (analysis.TokenStream, lucene.JArray_byte):
+for cls in (str, analysis.TokenStream, lucene.JArray_byte):
     Atomic.register(cls)
-
-
-class method(staticmethod):
-    """Backport of Python 3's unbound methods."""
-
-    def __get__(self, instance, owner):
-        return self.__func__ if instance is None else types.MethodType(self.__func__, instance)
 
 
 class SpellChecker(dict):
@@ -42,7 +28,7 @@ class SpellChecker(dict):
     """
 
     def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.words = sorted(self)
         alphabet = ''.join(set(itertools.chain.from_iterable(self)))
         self.suffix = alphabet and max(alphabet) * max(map(len, self))

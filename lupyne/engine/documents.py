@@ -7,9 +7,8 @@ from java.lang import Long
 from java.util import Arrays, HashSet
 from org.apache.lucene import document, index, search, util
 from org.apache.lucene.search import grouping
-from six.moves import map, range
 from .queries import Query
-from .utils import convert, long
+from .utils import convert
 
 FieldType = document.FieldType
 
@@ -92,14 +91,14 @@ class Field(FieldType):
     def items(self, *values):
         """Generate lucene Fields suitable for adding to a document."""
         if self.docvalues:
-            types = {int: long, float: util.NumericUtils.doubleToSortableLong}
+            types = {int: int, float: util.NumericUtils.doubleToSortableLong}
             for value in values:
                 yield self.docValueClass(self.name, types.get(type(value), util.BytesRef)(value))
             self = getattr(self, 'docValueLess', self)
         if self.dimensions:
             for value in values:
                 if isinstance(value, int):
-                    yield document.LongPoint(self.name, long(value))
+                    yield document.LongPoint(self.name, int(value))
                 else:
                     yield document.DoublePoint(self.name, value)
         if self.indexed:
@@ -119,7 +118,7 @@ class NestedField(Field):
     """
 
     def __init__(self, name, sep='.', **settings):
-        Field.__init__(self, name, **Field.String(name, **settings).settings)
+        super().__init__(name, **Field.String(name, **settings).settings)
         self.sep = sep
         self.names = tuple(self.values(name))
 
@@ -156,7 +155,7 @@ class DateTimeField(Field):
     """
 
     def __init__(self, name, dimensions=1, **settings):
-        Field.__init__(self, name, dimensions=dimensions, **settings)
+        super().__init__(name, dimensions=dimensions, **settings)
 
     @classmethod
     def timestamp(cls, date):
@@ -167,7 +166,7 @@ class DateTimeField(Field):
 
     def items(self, *dates):
         """Generate lucene NumericFields of timestamps."""
-        return Field.items(self, *map(self.timestamp, dates))
+        return super().items(*map(self.timestamp, dates))
 
     def range(self, start, stop, **inclusive):
         """Return NumericRangeQuery of timestamps."""
@@ -212,7 +211,7 @@ class SpatialField(Field):
     """Geospatial points, indexed with optional docvalues."""
 
     def __init__(self, name, dimensions=1, **settings):
-        Field.__init__(self, name, dimensions=dimensions, **settings)
+        super().__init__(name, dimensions=dimensions, **settings)
 
     def items(self, *points):
         """Generate lucene LatLon fields from points (lng, lat)."""
@@ -244,14 +243,14 @@ class Document(dict):
             self.setdefault(field.name(), []).append(value)
 
     def __getitem__(self, name):
-        return dict.__getitem__(self, name)[0]
+        return super().__getitem__(name)[0]
 
     def get(self, name, default=None):
-        return dict.get(self, name, [default])[0]
+        return super().get(name, [default])[0]
 
     def getlist(self, name):
         """Return list of all values for given field."""
-        return dict.get(self, name, [])
+        return super().get(name, [])
 
     def dict(self, *names, **defaults):
         """Return dict representation of document.
@@ -271,20 +270,20 @@ class Hit(Document):
     """
 
     def __init__(self, doc, id, score, sortkeys=()):
-        Document.__init__(self, doc)
+        super().__init__(doc)
         self.id, self.score = id, score
         self.sortkeys = tuple(map(convert, sortkeys))
 
     def dict(self, *names, **defaults):
         """Return dict representation of document with __id__, __score__, and any sort __keys__."""
-        result = Document.dict(self, *names, **defaults)
+        result = super().dict(*names, **defaults)
         result.update(__id__=self.id, __score__=self.score)
         if self.sortkeys:
             result['__sortkeys__'] = self.sortkeys
         return result
 
 
-class Hits(object):
+class Hits:
     """Search results: lazily evaluated and memory efficient.
 
     Provides a read-only sequence interface to hit objects.
@@ -381,7 +380,7 @@ class Hits(object):
         return type(self)(self.searcher, scoredocs, self.count, self.fields)
 
 
-class Groups(object):
+class Groups:
     """Sequence of grouped `Hits`_."""
 
     select = Hits.__dict__['select']
@@ -417,7 +416,7 @@ class GroupingSearch(grouping.GroupingSearch):
     """
 
     def __init__(self, field, sort=None, cache=True, **attrs):
-        grouping.GroupingSearch.__init__(self, field)
+        super().__init__(field)
         self.field = field
         if sort:
             self.groupSort = self.sortWithinGroup = sort
@@ -437,5 +436,5 @@ class GroupingSearch(grouping.GroupingSearch):
         """Run query and return `Groups`_."""
         if count is None:
             count = sum(index.DocValues.getSorted(reader, self.field).valueCount for reader in searcher.readers) or 1
-        topgroups = grouping.GroupingSearch.search(self, searcher, query, start, count - start)
+        topgroups = super().search(searcher, query, start, count - start)
         return Groups(searcher, topgroups.groups, topgroups.totalHitCount)
