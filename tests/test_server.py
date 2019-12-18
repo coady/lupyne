@@ -325,7 +325,7 @@ def test_replication(tempdir, servers):
     assert resource.post('update') == 1
     primary.post('docs', [{}])
     assert primary.post('update') == 2
-    time.sleep(1.1)
+    time.sleep(1.5)
     assert sum(secondary().values()) == 2
     servers.stop(servers.ports[-1])
     root = server.WebSearcher(directory, urls=(primary.url, secondary.url))

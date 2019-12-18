@@ -30,7 +30,8 @@ In such cases a commit still hasn't occurred, and the index based :meth:`last-mo
  * :meth:`/update <WebIndexer.update>`
 
 Custom servers should create and mount WebSearchers and WebIndexers as needed.
-:meth:`Caches <WebSearcher.update>` and :meth:`field settings <WebIndexer.fields>` can then be applied directly before `starting <#start>`_ the server.
+:meth:`Caches <WebSearcher.update>` and :meth:`field settings <WebIndexer.fields>`
+can then be applied directly before `starting <#start>`_ the server.
 WebSearchers and WebIndexers can of course also be subclassed for custom interfaces.
 
 CherryPy and Lucene VM integration issues:
@@ -244,7 +245,10 @@ class WebSearcher:
         self.urls = collections.deque(kwargs.pop('urls', ()))
         if self.urls:
             engine.IndexWriter(*directories).close()
-        self.searcher = engine.MultiSearcher(directories, **kwargs) if len(directories) > 1 else engine.IndexSearcher(*directories, **kwargs)
+        if len(directories) > 1:
+            self.searcher = engine.MultiSearcher(directories, **kwargs)
+        else:
+            self.searcher = engine.IndexSearcher(*directories, **kwargs)
         self.updated = time.time()
         self.query_map = {}
 
@@ -372,7 +376,9 @@ class WebSearcher:
         result.update((field, dict(searcher.termvector(id, field, counts=True))) for field in options.get('fields.vector.counts', ()))
         return result
 
-    docs.__annotations__.update(dict.fromkeys(['fields', 'fields.multi', 'fields.docvalues', 'fields.vector', 'fields.vector.counts'], multi))
+    docs.__annotations__.update(
+        dict.fromkeys(['fields', 'fields.multi', 'fields.docvalues', 'fields.vector', 'fields.vector.counts'], multi)
+    )
 
     @cherrypy.expose
     @cherrypy.tools.params()

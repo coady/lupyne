@@ -56,8 +56,10 @@ class Query:
     @classmethod
     def disjunct(cls, multiplier, *queries, **terms):
         """Return lucene DisjunctionMaxQuery from queries and terms."""
-        terms = tuple(cls.term(name, value) for name, values in terms.items() for value in ([values] if isinstance(values, str) else values))
-        return cls(search.DisjunctionMaxQuery, Arrays.asList(queries + terms), multiplier)
+        queries = list(queries)
+        for name, values in terms.items():
+            queries += (cls.term(name, value) for value in ([values] if isinstance(values, str) else values))
+        return cls(search.DisjunctionMaxQuery, Arrays.asList(queries), multiplier)
 
     @classmethod
     def span(cls, *term):
