@@ -1,3 +1,4 @@
+from typing import Callable, Iterable, Iterator
 import lucene  # noqa
 from java.lang import Double, Integer, Long
 from java.util import Arrays
@@ -15,16 +16,16 @@ class Query:
     def __new__(cls, base, *args):
         return base.__new__(type(base.__name__, (cls, base), {}))
 
-    def __init__(self, base, *args):
+    def __init__(self, base: search.Query, *args):
         base.__init__(self, *args)
 
     @classmethod
-    def term(cls, name, value):
+    def term(cls, name: str, value) -> 'Query':
         """Return lucene TermQuery."""
         return cls(search.TermQuery, index.Term(name, value))
 
     @classmethod
-    def terms(cls, name, values):
+    def terms(cls, name: str, values) -> 'Query':
         """Return lucene TermInSetQuery, optimizing a SHOULD BooleanQuery of many terms."""
         return cls(search.TermInSetQuery, name, list(map(util.BytesRef, values)))
 
@@ -39,17 +40,17 @@ class Query:
         return builder.build()
 
     @classmethod
-    def any(cls, *queries, **terms):
+    def any(cls, *queries: search.Query, **terms) -> 'Query':
         """Return lucene BooleanQuery with SHOULD clauses from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.SHOULD, *queries, **terms)
 
     @classmethod
-    def all(cls, *queries, **terms):
+    def all(cls, *queries: search.Query, **terms) -> 'Query':
         """Return lucene BooleanQuery with MUST clauses from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.MUST, *queries, **terms)
 
     @classmethod
-    def filter(cls, *queries, **terms):
+    def filter(cls, *queries: search.Query, **terms) -> 'Query':
         """Return lucene BooleanQuery with FILTER clauses from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.FILTER, *queries, **terms)
 
@@ -62,32 +63,32 @@ class Query:
         return cls(search.DisjunctionMaxQuery, Arrays.asList(queries), multiplier)
 
     @classmethod
-    def span(cls, *term):
+    def span(cls, *term) -> 'SpanQuery':
         """Return `SpanQuery`_ from term name and value or a MultiTermQuery."""
         if len(term) <= 1:
             return SpanQuery(spans.SpanMultiTermQueryWrapper, *term)
         return SpanQuery(spans.SpanTermQuery, index.Term(*term))
 
     @classmethod
-    def near(cls, name, *values, **kwargs):
+    def near(cls, name: str, *values, **kwargs) -> 'SpanQuery':
         """Return :meth:`SpanNearQuery <SpanQuery.near>` from terms.
         Term values which supply another field name will be masked."""
         spans = (cls.span(name, value) if isinstance(value, str) else cls.span(*value).mask(name) for value in values)
         return SpanQuery.near(*spans, **kwargs)
 
     @classmethod
-    def prefix(cls, name, value):
+    def prefix(cls, name: str, value) -> 'Query':
         """Return lucene PrefixQuery."""
         return cls(search.PrefixQuery, index.Term(name, value))
 
     @classmethod
-    def range(cls, name, start, stop, lower=True, upper=False):
+    def range(cls, name: str, start, stop, lower=True, upper=False) -> 'Query':
         """Return lucene RangeQuery, by default with a half-open interval."""
         start, stop = (value if value is None else util.BytesRef(value) for value in (start, stop))
         return cls(search.TermRangeQuery, name, start, stop, lower, upper)
 
     @classmethod
-    def phrase(cls, name, *values, **attrs):
+    def phrase(cls, name: str, *values, **attrs) -> 'Query':
         """Return lucene MultiPhraseQuery.  None may be used as a placeholder."""
         builder = search.MultiPhraseQuery.Builder()
         for attr in attrs:
@@ -100,39 +101,39 @@ class Query:
         return builder.build()
 
     @classmethod
-    def wildcard(cls, name, value):
+    def wildcard(cls, name: str, value) -> 'Query':
         """Return lucene WildcardQuery."""
         return cls(search.WildcardQuery, index.Term(name, value))
 
     @classmethod
-    def fuzzy(cls, name, value, *args):
+    def fuzzy(cls, name: str, value, *args) -> 'Query':
         """Return lucene FuzzyQuery."""
         return cls(search.FuzzyQuery, index.Term(name, value), *args)
 
     @classmethod
-    def alldocs(cls):
+    def alldocs(cls) -> 'Query':
         """Return lucene MatchAllDocsQuery."""
         return cls(search.MatchAllDocsQuery)
 
     @classmethod
-    def nodocs(cls):
+    def nodocs(cls) -> 'Query':
         """Return lucene MatchNoDocsQuery."""
         return cls(search.MatchNoDocsQuery)
 
     @classmethod
-    def regexp(cls, name, value, *args):
+    def regexp(cls, name: str, value, *args) -> 'Query':
         """Return lucene RegexpQuery."""
         return cls(search.RegexpQuery, index.Term(name, value), *args)
 
     @staticmethod
-    def points(name, *values):
+    def points(name: str, *values) -> search.Query:
         """Return lucene set query of one dimensional points."""
         if any(isinstance(value, float) for value in values):
             return document.DoublePoint.newSetQuery(name, values)
         return document.LongPoint.newSetQuery(name, tuple(map(int, values)))
 
     @staticmethod
-    def ranges(name, *intervals, **inclusive):
+    def ranges(name: str, *intervals, **inclusive) -> search.Query:
         """Return lucene multidimensional point range query, by default with half-open intervals."""
         lower, upper = inclusive.pop('lower', True), inclusive.pop('upper', False)
         starts, stops = [], []
@@ -162,37 +163,37 @@ class Query:
             return document.DoublePoint.newRangeQuery(name, starts, stops)
         return document.LongPoint.newRangeQuery(name, starts, stops)
 
-    def constant(self):
+    def constant(self) -> 'Query':
         """Return lucene ConstantScoreQuery."""
         return Query(search.ConstantScoreQuery, self)
 
-    def boost(self, value):
+    def boost(self, value: float) -> 'Query':
         """Return lucene BoostQuery."""
         return Query(search.BoostQuery, self, value)
 
-    def __pos__(self):
+    def __pos__(self) -> 'Query':
         """+self"""
         return Query.all(self)
 
-    def __neg__(self):
+    def __neg__(self) -> 'Query':
         """-self"""
         return Query.boolean(search.BooleanClause.Occur.MUST_NOT, self)
 
-    def __and__(self, other):
+    def __and__(self, other: search.Query) -> 'Query':
         """+self +other"""
         return Query.all(self, other)
 
     def __rand__(self, other):
         return Query.all(other, self)
 
-    def __or__(self, other):
+    def __or__(self, other: search.Query) -> 'Query':
         """self other"""
         return Query.any(self, other)
 
     def __ror__(self, other):
         return Query.any(other, self)
 
-    def __sub__(self, other):
+    def __sub__(self, other: search.Query) -> 'Query':
         """self -other"""
         builder = search.BooleanQuery.Builder()
         builder.add(self, search.BooleanClause.Occur.SHOULD)
@@ -206,39 +207,34 @@ class Query:
 class SpanQuery(Query):
     """Inherited lucene SpanQuery with additional span constructors."""
 
-    def __getitem__(self, slc):
+    def __getitem__(self, slc: slice) -> 'SpanQuery':
         start, stop, step = slc.indices(Integer.MAX_VALUE)
         assert step == 1, 'slice step is not supported'
         return SpanQuery(spans.SpanPositionRangeQuery, self, start, stop)
 
-    def __sub__(self, other):
+    def __sub__(self, other: spans.SpanQuery) -> 'SpanQuery':
         return SpanQuery(spans.SpanNotQuery, self, other)
 
-    def __or__(*spans_):
+    def __or__(*spans_: spans.SpanQuery) -> 'SpanQuery':
         return SpanQuery(spans.SpanOrQuery, spans_)
 
-    def near(*spans_, **kwargs):
-        """Return lucene SpanNearQuery from SpanQueries.
+    def near(*spans_, slop=0, inOrder=True):
+        """Return lucene SpanNearQuery from SpanQueries."""
+        return SpanQuery(spans.SpanNearQuery, spans_, slop, inOrder)
 
-        :param slop: default 0
-        :param inOrder: default True
-        """
-        args = map(kwargs.get, ('slop', 'inOrder'), (0, True))
-        return SpanQuery(spans.SpanNearQuery, spans_, *args)
-
-    def mask(self, name):
+    def mask(self, name: str) -> 'SpanQuery':
         """Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."""
         return SpanQuery(spans.FieldMaskingSpanQuery, self, name)
 
-    def boost(self, value):
+    def boost(self, value: float) -> 'SpanQuery':
         """Return lucene SpanBoostQuery."""
         return SpanQuery(spans.SpanBoostQuery, self, value)
 
-    def containing(self, other):
+    def containing(self, other: spans.SpanQuery) -> 'SpanQuery':
         """Return lucene SpanContainingQuery."""
         return SpanQuery(spans.SpanContainingQuery, self, other)
 
-    def within(self, other):
+    def within(self, other: spans.SpanQuery) -> 'SpanQuery':
         """Return lucene SpanWithinQuery."""
         return SpanQuery(spans.SpanWithinQuery, self, other)
 
@@ -247,35 +243,35 @@ class DocValues:
     """DocValues with type conversion."""
 
     class Sorted:
-        def __init__(self, docvalues, size, type):
+        def __init__(self, docvalues: index.DocValues, size: int, type: Callable):
             self.docvalues, self.size, self.type = docvalues, size, type
 
         def __iter__(self):
             return map(self.__getitem__, range(self.size))
 
-        def select(self, ids):
+        def select(self, ids: Iterable) -> dict:
             """Return mapping of doc ids to values."""
             return {id: self[id] for id in sorted(ids)}
 
-        def __getitem__(self, id):
+        def __getitem__(self, id: int):
             if self.docvalues.advanceExact(id):
                 return self.type(self.docvalues.binaryValue())
 
     Binary = Sorted
 
     class Numeric(Sorted):
-        def __getitem__(self, id):
+        def __getitem__(self, id: int):
             if self.docvalues.advanceExact(id):
                 return self.type(self.docvalues.longValue())
 
     class SortedNumeric(Sorted):
-        def __getitem__(self, id):
+        def __getitem__(self, id: int):
             if self.docvalues.advanceExact(id):
                 return tuple(self.type(self.docvalues.nextValue()) for _ in range(self.docvalues.docValueCount()))
 
     class SortedSet(Sorted):
-        def __getitem__(self, id):
-            ords = iter(self.docvalues.nextOrd, self.docvalues.NO_MORE_ORDS)
+        def __getitem__(self, id: int):
+            ords = iter(self.docvalues.nextOrd, self.docvalues.NO_MORE_ORDS)  # type: Iterator
             if self.docvalues.advanceExact(id):
                 return tuple(self.type(self.docvalues.lookupOrd(ord)) for ord in ords)
 
@@ -286,13 +282,13 @@ class SpellParser(PythonQueryParser):
     Assign a searcher attribute or override :meth:`correct` implementation.
     """
 
-    def suggest(self, term):
+    def suggest(self, term: index.Term) -> index.Term:
         """Return term with text replaced as necessary."""
         field = term.field()
         words = self.searcher.suggest(field, term.text())
         return index.Term(field, *words) if words else term
 
-    def rewrite(self, query):
+    def rewrite(self, query: search.Query) -> search.Query:
         """Return term or phrase query with corrected terms substituted."""
         if search.TermQuery.instance_(query):
             term = search.TermQuery.cast_(query).term

@@ -1,8 +1,8 @@
-from typing import Mapping
+from typing import Callable, Iterable, Mapping
 from java.io import StringReader
 from java.lang import Float
 from java.util import HashMap
-from org.apache.lucene import analysis, queryparser, util
+from org.apache.lucene import analysis, queryparser, search, util
 from org.apache.lucene.search import uhighlight
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
@@ -27,12 +27,12 @@ class TokenStream(analysis.TokenStream):
         return attr
 
     @property
-    def offset(self):
+    def offset(self) -> tuple:
         """start and stop character offset"""
         return self.Offset.startOffset(), self.Offset.endOffset()
 
     @offset.setter
-    def offset(self, item):
+    def offset(self, item: Iterable):
         self.Offset.setOffset(*item)
 
     @property
@@ -46,31 +46,31 @@ class TokenStream(analysis.TokenStream):
         self.Payload.payload = util.BytesRef(data)
 
     @property
-    def positionIncrement(self):
+    def positionIncrement(self) -> int:
         """position relative to the previous token"""
         return self.PositionIncrement.positionIncrement
 
     @positionIncrement.setter
-    def positionIncrement(self, index):
+    def positionIncrement(self, index: int):
         self.PositionIncrement.positionIncrement = index
 
     @property
-    def charTerm(self):
+    def charTerm(self) -> str:
         """term text"""
         return self.CharTerm.toString()
 
     @charTerm.setter
-    def charTerm(self, text):
+    def charTerm(self, text: str):
         self.CharTerm.setEmpty()
         self.CharTerm.append(text)
 
     @property
-    def type(self):
+    def type(self) -> str:
         """lexical type"""
         return self.Type.type()
 
     @type.setter
-    def type(self, text):
+    def type(self, text: str):
         self.Type.setType(text)
 
 
@@ -80,11 +80,11 @@ class TokenFilter(PythonTokenFilter, TokenStream):
     Subclass and override :meth:`incrementToken`.
     """
 
-    def __init__(self, input):
+    def __init__(self, input: analysis.TokenStream):
         super().__init__(input)
         self.input = input
 
-    def incrementToken(self):
+    def incrementToken(self) -> bool:
         """Advance to next token and return whether the stream is not empty."""
         return self.input.incrementToken()
 
@@ -96,17 +96,17 @@ class Analyzer(PythonAnalyzer):
     :param filters: lucene TokenFilter classes or callables, successively called on input tokens
     """
 
-    def __init__(self, tokenizer, *filters):
+    def __init__(self, tokenizer: Callable, *filters: Callable):
         super().__init__()
         self.tokenizer, self.filters = tokenizer, filters
 
     @classmethod
-    def standard(cls, *filters):
+    def standard(cls, *filters: Callable) -> 'Analyzer':
         """Return equivalent of StandardAnalyzer with additional filters."""
         return cls(analysis.standard.StandardTokenizer, analysis.LowerCaseFilter, *filters)
 
     @classmethod
-    def whitespace(cls, *filters):
+    def whitespace(cls, *filters: Callable) -> 'Analyzer':
         """Return equivalent of WhitespaceAnalyzer with additional filters."""
         return cls(analysis.core.WhitespaceTokenizer, *filters)
 
@@ -121,11 +121,11 @@ class Analyzer(PythonAnalyzer):
     def createComponents(self, field):
         return analysis.Analyzer.TokenStreamComponents(*self.components(field))
 
-    def tokens(self, text, field=None):
+    def tokens(self, text: str, field: str = None) -> analysis.TokenStream:
         """Return lucene TokenStream from text."""
         return self.components(field, StringReader(text))[1]
 
-    def parse(self, query, field='', op='', parser=None, **attrs):
+    def parse(self, query: str, field='', op='', parser=None, **attrs) -> search.Query:
         """Return parsed lucene Query.
 
         :param query: query string
@@ -141,7 +141,7 @@ class Analyzer(PythonAnalyzer):
             boosts = HashMap()
             for key in field:
                 boosts.put(key, Float(field[key]))
-            args = list(field), self, boosts
+            args = list(field), self, boosts  # type: ignore
         parser = (parser or cls)(*args)
         if op:
             parser.defaultOperator = getattr(queryparser.classic.QueryParser.Operator, op.upper())
@@ -155,7 +155,7 @@ class Analyzer(PythonAnalyzer):
             if isinstance(parser, PythonQueryParser):
                 parser.finalize()
 
-    def highlight(self, query, field, content, count=1):
+    def highlight(self, query: search.Query, field: str, content: str, count: int = 1):
         """Return highlighted content.
 
         :param query: lucene Query

@@ -5,6 +5,7 @@ check:
 	python3 setup.py $@ -ms
 	black --check -q .
 	flake8
+	mypy -p lupyne.engine
 	make engine server
 	pytest -vk example
 

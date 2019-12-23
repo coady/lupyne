@@ -3,14 +3,15 @@ import itertools
 import operator
 import os
 from functools import partial
+from typing import Iterator, Mapping
 import lucene
 from java.io import File, IOException, StringReader
 from java.util import Arrays, HashSet
 from org.apache.lucene import analysis, document, index, queries, search, store, util
-from org.apache.lucene.search import spell, uhighlight
+from org.apache.lucene.search import spans, spell, uhighlight
 from .analyzers import Analyzer
 from .queries import Query, DocValues, SpellParser
-from .documents import Field, Document, Hits, GroupingSearch
+from .documents import Field, Document, Hits, GroupingSearch, Groups
 from .utils import suppress, Atomic, SpellChecker
 
 
@@ -91,51 +92,51 @@ class IndexReader:
     def __len__(self):
         return self.numDocs()
 
-    def __contains__(self, id):
+    def __contains__(self, id: int):
         bits = self.bits
         return (0 <= id < self.maxDoc()) and (not bits or bits.get(id))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[int]:
         ids = range(self.maxDoc())
         bits = self.bits
         return filter(bits.get, ids) if bits else iter(ids)
 
     @property
-    def bits(self):
+    def bits(self) -> util.Bits:
         return index.MultiBits.getLiveDocs(self.indexReader)
 
     @property
-    def directory(self):
+    def directory(self) -> store.Directory:
         """reader's lucene Directory"""
         return self.__getattr__('directory')()
 
     @property
-    def path(self):
+    def path(self) -> str:
         """FSDirectory path"""
         return str(store.FSDirectory.cast_(self.directory).directory)
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> float:
         """timestamp of reader's last commit"""
         return File(self.path, self.indexCommit.segmentsFileName).lastModified() * 0.001
 
     @property
-    def readers(self):
+    def readers(self) -> Iterator:
         """segment readers"""
         return (index.SegmentReader.cast_(context.reader()) for context in self.leaves())
 
     @property
-    def segments(self):
+    def segments(self) -> dict:
         """segment filenames with document counts"""
         return {reader.segmentName: reader.numDocs() for reader in self.readers}
 
     @property
-    def fieldinfos(self):
+    def fieldinfos(self) -> dict:
         """mapping of field names to lucene FieldInfos"""
         fieldinfos = index.FieldInfos.getMergedFieldInfos(self.indexReader)
         return {fieldinfo.name: fieldinfo for fieldinfo in fieldinfos.iterator()}
 
-    def suggest(self, name, value, count=1, **attrs):
+    def suggest(self, name: str, value, count: int = 1, **attrs) -> list:
         """Return spelling suggestions from DirectSpellChecker.
 
         :param name: field name
@@ -148,7 +149,7 @@ class IndexReader:
             setattr(checker, attr, attrs[attr])
         return [word.string for word in checker.suggestSimilar(index.Term(name, value), count, self.indexReader)]
 
-    def sortfield(self, name, type=None, reverse=False):
+    def sortfield(self, name: str, type=None, reverse=False) -> search.SortField:
         """Return lucene SortField, deriving the the type from FieldInfos if necessary.
 
         :param name: field name
@@ -160,7 +161,7 @@ class IndexReader:
         type = Field.types.get(type, type).upper()
         return search.SortField(name, getattr(search.SortField.Type, type), reverse)
 
-    def docvalues(self, name, type=None):
+    def docvalues(self, name: str, type=None) -> DocValues.Sorted:
         """Return chained lucene DocValues, suitable for custom sorting or grouping.
 
         Note multi-valued DocValues aren't thread-safe and only supported ordered iteration.
@@ -173,7 +174,7 @@ class IndexReader:
         method = getattr(index.MultiDocValues, 'get{}Values'.format(docValuesType))
         return getattr(DocValues, docValuesType)(method(self.indexReader, name), len(self), type)
 
-    def copy(self, dest, query=None, exclude=None, merge=0):
+    def copy(self, dest, query: search.Query = None, exclude: search.Query = None, merge: int = 0) -> int:
         """Copy the index to the destination directory.
 
         Optimized to use hard links if the destination is a file system path.
@@ -195,7 +196,7 @@ class IndexReader:
                 writer.forceMerge(merge)
             return len(writer)
 
-    def terms(self, name, value='', stop='', counts=False, distance=0, prefix=0):
+    def terms(self, name: str, value='', stop='', counts=False, distance=0, prefix=0) -> Iterator:
         """Generate a slice of term values, optionally with frequency counts.
 
         :param name: field name
@@ -217,19 +218,19 @@ class IndexReader:
         terms = map(operator.methodcaller('utf8ToString'), terms)
         predicate = partial(operator.gt, stop) if stop else operator.methodcaller('startswith', value)
         if not distance:
-            terms = itertools.takewhile(predicate, terms)
+            terms = itertools.takewhile(predicate, terms)  # type: ignore
         return ((term, termsenum.docFreq()) for term in terms) if counts else terms
 
-    def docs(self, name, value, counts=False):
+    def docs(self, name: str, value, counts=False) -> Iterator:
         """Generate doc ids which contain given term, optionally with frequency counts."""
         docsenum = index.MultiTerms.getTermPostingsEnum(self.indexReader, name, util.BytesRef(value))
         docs = iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()
-        return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)
+        return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)  # type: ignore
 
-    def positions(self, name, value, payloads=False, offsets=False):
+    def positions(self, name: str, value, payloads=False, offsets=False) -> Iterator[tuple]:
         """Generate doc ids and positions which contain given term, optionally with offsets, or only ones with payloads."""
         docsenum = index.MultiTerms.getTermPostingsEnum(self.indexReader, name, util.BytesRef(value))
-        for doc in iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ():
+        for doc in iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ():  # type: ignore
             positions = (docsenum.nextPosition() for _ in range(docsenum.freq()))
             if payloads:
                 positions = ((position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload)
@@ -242,12 +243,12 @@ class IndexReader:
         termsenum = terms.iterator() if terms else index.TermsEnum.EMPTY
         return termsenum, map(operator.methodcaller('utf8ToString'), util.BytesRefIterator.cast_(termsenum))
 
-    def termvector(self, id, field, counts=False):
+    def termvector(self, id: int, field: str, counts=False) -> Iterator:
         """Generate terms for given doc id and field, optionally with frequency counts."""
         termsenum, terms = self.vector(id, field)
         return ((term, int(termsenum.totalTermFreq())) for term in terms) if counts else terms
 
-    def positionvector(self, id, field, offsets=False):
+    def positionvector(self, id: int, field: str, offsets=False) -> Iterator[tuple]:
         """Generate terms and positions for given doc id and field, optionally with character offsets."""
         termsenum, terms = self.vector(id, field)
         for term in terms:
@@ -258,7 +259,7 @@ class IndexReader:
                 positions = ((docsenum.startOffset(), docsenum.endOffset()) for _ in positions)
             yield term, list(positions)
 
-    def morelikethis(self, doc, *fields, **attrs):
+    def morelikethis(self, doc, *fields, **attrs) -> Query:
         """Return MoreLikeThis query for document.
 
         :param doc: document id or text
@@ -286,7 +287,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         self.spellcheckers = {}
 
     @classmethod
-    def load(cls, directory, analyzer=None):
+    def load(cls, directory, analyzer=None) -> 'IndexSearcher':
         """Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."""
         with closing.store(directory) as directory:
             directory = store.RAMDirectory(directory, store.IOContext.DEFAULT)
@@ -301,7 +302,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def openIfChanged(self):
         return index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
 
-    def reopen(self, spellcheckers=False):
+    def reopen(self, spellcheckers=False) -> 'IndexSearcher':
         """Return current `IndexSearcher`_, only creating a new one if necessary.
 
         :param spellcheckers: refresh cached :attr:`spellcheckers`
@@ -319,14 +320,14 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             other.spellcheckers = dict(self.spellcheckers)
         return other
 
-    def __getitem__(self, id):
+    def __getitem__(self, id: int) -> Document:
         return Document(self.doc(id))
 
-    def get(self, id, *fields):
+    def get(self, id: int, *fields: str) -> Document:
         """Return `Document`_ with only selected fields loaded."""
         return Document(self.document(id, HashSet(Arrays.asList(fields))))
 
-    def spans(self, query, positions=False):
+    def spans(self, query: spans.SpanQuery, positions=False) -> Iterator[tuple]:
         """Generate docs with occurrence counts for a span query.
 
         :param query: lucene SpanQuery
@@ -340,12 +341,12 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 spans = weight.getSpans(reader.context, postings)
             except lucene.JavaError:  # EOF
                 continue
-            for doc in iter(spans.nextDoc, spans.NO_MORE_DOCS):
-                starts = iter(spans.nextStartPosition, spans.NO_MORE_POSITIONS)
+            for doc in iter(spans.nextDoc, spans.NO_MORE_DOCS):  # type: int
+                starts = iter(spans.nextStartPosition, spans.NO_MORE_POSITIONS)  # type: Iterator
                 if positions:
                     values = [(start, spans.endPosition()) for start in starts]
                 else:
-                    values = sum(1 for _ in starts)
+                    values = sum(1 for _ in starts)  # type: ignore
                 yield (doc + offset), values
             offset += reader.maxDoc()
 
@@ -357,11 +358,11 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return Analyzer.parse(self.analyzer, query, **kwargs)
 
     @property
-    def highlighter(self):
+    def highlighter(self) -> uhighlight.UnifiedHighlighter:
         """lucene UnifiedHighlighter"""
         return uhighlight.UnifiedHighlighter(self, self.analyzer)
 
-    def count(self, *query, **options):
+    def count(self, *query, **options) -> int:
         """Return number of hits for given query or term.
 
         :param query: :meth:`search` compatible query, or optimally a name and value
@@ -385,7 +386,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             sort = search.Sort(sort)
         return search.TopFieldCollector.create(sort, count, mincount)
 
-    def search(self, query=None, count=None, sort=None, reverse=False, scores=False, mincount=1000, timeout=None, **parser):
+    def search(self, query=None, count=None, sort=None, reverse=False, scores=False, mincount=1000, timeout=None, **parser) -> Hits:
         """Run query and return `Hits`_.
 
         .. versionchanged:: 1.4 sort param for lucene only; use Hits.sorted with a callable
@@ -418,7 +419,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             search.TopFieldCollector.populateScores(topdocs.scoreDocs, self, query)
         return Hits(self, topdocs.scoreDocs, topdocs.totalHits)
 
-    def facets(self, query, *fields, **query_map):
+    def facets(self, query, *fields: str, **query_map: dict) -> dict:
         """Return mapping of document counts for the intersection with each facet.
 
         .. versionchanged:: 1.6 filters are no longer implicitly cached, a `GroupingSearch`_ is used instead
@@ -433,22 +434,22 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             counts[facet] = {key: self.count(Query.all(query, queries[key])) for key in queries}
         return counts
 
-    def groupby(self, field, query, count=None, start=0, **attrs):
+    def groupby(self, field: str, query, count: int = None, start: int = 0, **attrs) -> Groups:
         """Return `Hits`_ grouped by field using a `GroupingSearch`_."""
         return GroupingSearch(field, **attrs).search(self, self.parse(query), count, start)
 
-    def spellchecker(self, field):
+    def spellchecker(self, field: str) -> SpellChecker:
         """Return and cache spellchecker for given field."""
         try:
             return self.spellcheckers[field]
         except KeyError:
             return self.spellcheckers.setdefault(field, SpellChecker(self.terms(field, counts=True)))
 
-    def complete(self, field, prefix, count=None):
+    def complete(self, field: str, prefix: str, count: int = None) -> list:
         """Return ordered suggested words for prefix."""
         return self.spellchecker(field).complete(prefix, count)
 
-    def match(self, document, *queries):
+    def match(self, document: Mapping, *queries) -> Iterator[float]:
         """Generate scores for all queries against a given document mapping."""
         searcher = index.memory.MemoryIndex()
         for name, value in document.items():
@@ -496,7 +497,7 @@ class IndexWriter(index.IndexWriter):
 
     parse = IndexSearcher.__dict__['parse']
 
-    def __init__(self, directory=None, mode='a', analyzer=None, version=None, **attrs):
+    def __init__(self, directory=None, mode: str = 'a', analyzer=None, version=None, **attrs):
         self.shared = closing()
         config = index.IndexWriterConfig() if analyzer is None else index.IndexWriterConfig(self.shared.analyzer(analyzer))
         config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
@@ -504,7 +505,7 @@ class IndexWriter(index.IndexWriter):
             setattr(config, name, value)
         self.policy = config.indexDeletionPolicy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
         super().__init__(self.shared.directory(directory), config)
-        self.fields = {}
+        self.fields = {}  # type: dict
 
     def __del__(self):
         if hash(self):
@@ -515,7 +516,7 @@ class IndexWriter(index.IndexWriter):
         return self.docStats.numDocs
 
     @classmethod
-    def check(cls, directory, fix=False):
+    def check(cls, directory, fix=False) -> index.CheckIndex.Status:
         """Check and optionally fix unlocked index, returning lucene CheckIndex.Status."""
         with closing.store(directory) as directory:
             with contextlib.closing(index.CheckIndex(directory)) as checkindex:
@@ -524,7 +525,7 @@ class IndexWriter(index.IndexWriter):
                     checkindex.exorciseIndex(status)
         return status
 
-    def set(self, name, cls=Field, **settings):
+    def set(self, name: str, cls=Field, **settings) -> Field:
         """Assign settings to field name and return the field.
 
         :param name: registered name of field
@@ -534,7 +535,7 @@ class IndexWriter(index.IndexWriter):
         field = self.fields[name] = cls(name, **settings)
         return field
 
-    def document(self, items=(), **terms):
+    def document(self, items=(), **terms) -> document.Document:
         """Return lucene Document from mapping of field names to one or multiple values."""
         doc = document.Document()
         for name, values in dict(items, **terms).items():
@@ -548,7 +549,7 @@ class IndexWriter(index.IndexWriter):
         """Add :meth:`document` to index with optional boost."""
         self.addDocument(self.document(document, **terms))
 
-    def update(self, name, value='', document=(), **terms):
+    def update(self, name: str, value='', document=(), **terms):
         """Atomically delete documents which match given term and add the new :meth:`document`.
 
         .. versionchanged:: 1.7 update in-place if only DocValues are given
