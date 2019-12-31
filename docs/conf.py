@@ -52,7 +52,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'lupyne'
-copyright = '2019, Aric Coady'
+copyright = '2020, Aric Coady'
 author = 'Aric Coady'
 
 # The version info for the project you're documenting, acts as replacement for

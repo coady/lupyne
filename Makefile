@@ -1,5 +1,10 @@
-all: check
-	make -C docs html SPHINXOPTS=-W
+all: check html
+
+html:
+	make -C docs $@ SPHINXOPTS=-W
+
+pages: html
+	ghp-import -nm "GH pages autocommit." docs/_build/$?
 
 check:
 	python3 setup.py $@ -ms

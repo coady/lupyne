@@ -44,7 +44,7 @@ Run the server.
 
     $ python -m lupyne.server
 
-Read the [documentation](http://lupyne.surge.sh).
+Read the [documentation](https://coady.github.io/lupyne/).
 
 # Installation
 
