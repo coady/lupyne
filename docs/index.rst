@@ -21,7 +21,7 @@ Quickstart
   >>> hits = indexer.search('text:hello')             # run search and return sequence of documents
   >>> len(hits), hits.count                           # 1 hit retrieved (out of a total of 1)
   (1, 1)
-  >>> hit, = hits
+  >>> (hit,) = hits
   >>> hit['name']                                     # hits support mapping interface for their stored fields
   'sample'
   >>> hit.id, hit.score                               # plus internal doc number and score

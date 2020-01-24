@@ -10,7 +10,7 @@ setup(
     author='Aric Coady',
     author_email='aric.coady@gmail.com',
     url='https://github.com/coady/lupyne',
-    project_urls={'Documentation': 'https://lupyne.surge.sh'},
+    project_urls={'Documentation': 'https://coady.github.io/lupyne/'},
     license='Apache Software License',
     packages=['lupyne', 'lupyne.engine'],
     extras_require={'server': ['cherrypy>=11', 'clients>=0.2'], 'docs': ['nbsphinx', 'jupyter']},

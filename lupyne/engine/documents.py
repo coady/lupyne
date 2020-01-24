@@ -330,7 +330,7 @@ class Hits:
     @property
     def maxscore(self) -> float:
         """max score of present hits; not necessarily of all matches"""
-        return max(self.scores) if self else float('nan')
+        return max(self.scores, default=float('nan'))
 
     def items(self) -> Iterator[tuple]:
         """Generate zipped ids and scores."""

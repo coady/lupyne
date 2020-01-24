@@ -48,7 +48,9 @@ Read the [documentation](https://coady.github.io/lupyne/).
 
 # Installation
 
-    $ pip install lupyne[server]
+```console
+% pip install lupyne[server]
+```
 
 PyLucene is not `pip` installable.
 * [Install](http://lucene.apache.org/pylucene/install.html) instructions
@@ -65,7 +67,9 @@ Optional server extras:
 # Tests
 100% branch coverage.
 
-    $ pytest [--cov]
+```console
+% pytest [--cov]
+```
 
 # Changes
 dev

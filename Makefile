@@ -4,7 +4,7 @@ html:
 	make -C docs $@ SPHINXOPTS=-W
 
 pages: html
-	ghp-import -nm "GH pages autocommit." docs/_build/$?
+	ghp-import -n docs/_build/$?
 
 check:
 	python3 setup.py $@ -ms
