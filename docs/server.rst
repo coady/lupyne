@@ -4,11 +4,10 @@ server
   :cwd: ..
 .. automodule:: lupyne.server
 .. note:: Lucene doc ids are ephemeral;  only use doc ids across requests for the same index version.
-.. warning:: Autosyncing is not recommended for production.
 
 Lucene index files are incremental, so synchronizing files and refreshing searchers is a viable replication strategy.
-The `autoupdate` and `autosync` features demonstrate this, but are not meant to recommend HTTP for file syncing.
-Autoupdating is considered production-ready; autosyncing is not.
+Both searchers and indexers support `autoupdate`, and indexers support snapshots,
+which allow replicating index files safely and atomically.
 
 CherryPy was chosen because not only is it well suited to exposing APIs, but it includes a production multithreaded server.
 Lucene caches heavily, and PyLucene is not bound by the `GIL`_ when in the Java VM.

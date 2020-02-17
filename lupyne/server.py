@@ -43,18 +43,14 @@ CherryPy and Lucene VM integration issues:
 """
 
 import argparse
-import collections
-import contextlib
 import heapq
 import http
 import itertools
 import os
 import re
 import time
-import warnings
 import lucene
 import cherrypy
-import clients
 from requests.compat import json
 from lupyne import engine
 
@@ -212,15 +208,6 @@ class AttachedMonitor(cherrypy.process.plugins.Monitor):
 
         super().__init__(bus, run, frequency)
 
-    def subscribe(self):
-        super().subscribe()
-        if cherrypy.engine.state == cherrypy.engine.states.STARTED:
-            self.start()
-
-    def unsubscribe(self):
-        super().unsubscribe()
-        self.thread.cancel()
-
 
 class WebSearcher:
     """Dispatch root with a delegated Searcher.
@@ -242,9 +229,6 @@ class WebSearcher:
     }
 
     def __init__(self, *directories, **kwargs):
-        self.urls = collections.deque(kwargs.pop('urls', ()))
-        if self.urls:
-            engine.IndexWriter(*directories).close()
         if len(directories) > 1:
             self.searcher = engine.MultiSearcher(directories, **kwargs)
         else:
@@ -266,27 +250,9 @@ class WebSearcher:
     def etag(self):
         return 'W/"{}"'.format(self.searcher.version)
 
-    def sync(self, url):
-        """Sync with remote index."""
-        directory = self.searcher.path
-        resource = clients.Resource(url, headers={'if-none-match': self.etag})
-        response = resource.client.put('update/snapshot')
-        if response.status_code in (http.client.PRECONDITION_FAILED, http.client.METHOD_NOT_ALLOWED):
-            return []
-        response.raise_for_status()
-        names = sorted(set(response.json()).difference(os.listdir(directory)))
-        resource /= response.headers['location']
-        try:
-            for name in names:
-                with open(os.path.join(directory, name), 'wb') as file:
-                    resource.download(file, name)
-        finally:
-            resource.delete()
-        return names
-
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
-    @cherrypy.tools.allow(methods=['GET', 'POST'])
+    @cherrypy.tools.allow(methods=['GET'])
     def index(self, url=''):
         """Return index information and synchronize with remote index.
 
@@ -298,9 +264,6 @@ class WebSearcher:
 
             :return: {*string*: *int*,... }
         """
-        if cherrypy.request.method == 'POST':
-            self.sync(url)
-            cherrypy.response.status = int(http.client.ACCEPTED)
         if isinstance(self.searcher, engine.MultiSearcher):
             return {reader.directory().toString(): reader.numDocs() for reader in self.searcher.indexReaders}
         return {self.searcher.directory.toString(): len(self.searcher)}
@@ -320,24 +283,8 @@ class WebSearcher:
 
             :return: *int*
         """
-        names = ()
-        while self.urls:
-            url = self.urls[0]
-            try:
-                names = self.sync(url)
-                break
-            except IOError:
-                with contextlib.suppress(ValueError):
-                    self.urls.remove(url)
         self.searcher = self.searcher.reopen(**caches)
         self.updated = time.time()
-        if names:
-            engine.IndexWriter(self.searcher.directory).close()
-        if not self.urls and hasattr(self, 'fields'):
-            other = WebIndexer(self.searcher.directory, analyzer=self.searcher.analyzer)
-            other.indexer.shared, other.indexer.fields = self.searcher.shared, self.fields
-            (app,) = (app for app in cherrypy.tree.apps.values() if app.root is self)
-            mount(other, app=app, autoupdate=getattr(self, 'autoupdate', 0))
         return len(self.searcher)
 
     @cherrypy.expose
@@ -692,53 +639,43 @@ class WebIndexer(WebSearcher):
 
     @cherrypy.expose
     @cherrypy.tools.json_in(process_body=dict)
-    @cherrypy.tools.allow(paths=[('POST',), ('GET', 'PUT', 'DELETE'), ('GET',)])
-    def update(self, id='', name='', **options):
+    @cherrypy.tools.allow(paths=[('POST',), ('GET', 'DELETE')])
+    def update(self, id='', *, snapshot=False, **options):
         """Commit index changes and refresh index version.
 
         **POST** /update
-            Commit write operations and return document count.  See :meth:`WebSearcher.update` for caching options.
+            Commit write operations and optionall snapshot.  See :meth:`WebSearcher.update` for caching options.
 
-            {"merge": true|\ *int*,... }
+            {"merge": true|\ *int*, "snapshot": true}
 
             .. versionchanged:: 1.2 request body is an object instead of an array
+            .. versionchanged:: 2.5 snapshot moved to POST parameter
 
-            :return: *int*
+            :return: *int*|\ [*string*,... ]
 
-        **GET, PUT, DELETE** /update/[snapshot|\ *int*]
-            Verify, create, or release unique snapshot of current index commit and return array of referenced filenames.
+        **GET, DELETE** /update/*int*
+            Verify or release unique snapshot of current index commit and return array of referenced filenames.
 
-            .. versionchanged:: 1.4 lucene identifies snapshots by commit generation;  use location header
+            .. versionchanged:: 1.4 lucene identifies snapshots by commit generation; use location header
 
             :return: [*string*,... ]
-
-        **GET** /update/*int*/*chars*
-            Download index file corresponding to snapshot id and filename.
         """
+        response = cherrypy.serving.response
         if not id:
             self.indexer.commit(**options)
             self.updated = time.time()
-            return len(self.indexer)
-        method = cherrypy.request.method
-        response = cherrypy.serving.response
-        if method == 'PUT':
-            if id != 'snapshot':
-                raise cherrypy.NotFound()
+            if not snapshot:
+                return len(self.indexer)
             commit = self.indexer.policy.snapshot()
             response.status = int(http.client.CREATED)
             response.headers['location'] = cherrypy.url('/update/{0:d}'.format(commit.generation), relative='server')
-        else:
-            with HTTPError((ValueError, AssertionError), http.client.NOT_FOUND):
-                commit = self.indexer.policy.getIndexCommit(int(id))
-                assert commit is not None, 'commit not snapshotted'
-            if method == 'DELETE':
-                self.indexer.policy.release(commit)
-        if not name:
             return list(commit.fileNames)
-        with HTTPError((TypeError, AssertionError), http.client.NOT_FOUND):
-            directory = self.searcher.path
-            assert name in commit.fileNames, 'file not referenced in commit'
-        return cherrypy.lib.static.serve_download(os.path.join(directory, name))
+        with HTTPError((ValueError, AssertionError), http.client.NOT_FOUND):
+            commit = self.indexer.policy.getIndexCommit(int(id))
+            assert commit is not None, 'commit not snapshotted'
+        if cherrypy.request.method == 'DELETE':
+            self.indexer.policy.release(commit)
+        return list(commit.fileNames)
 
     @cherrypy.expose
     @cherrypy.tools.allow(paths=[('GET', 'POST'), ('GET',), ('GET', 'PUT', 'DELETE', 'PATCH')])
@@ -839,20 +776,13 @@ def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
             app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))
 
 
-def mount(root, path='', config=None, autoupdate=0, app=None):
+def mount(root, path='', config=None, autoupdate=0):
     """Attach root and subscribe to plugins.
 
     :param root,path,config: see cherrypy.tree.mount
     :param autoupdate: see command-line options
-    :param app: optionally replace root on existing app
     """
-    if app is None:
-        app = cherrypy.tree.mount(root, path, config)
-    else:
-        cherrypy.engine.unsubscribe('stop', app.root.close)
-        if hasattr(app.root, 'monitor'):
-            app.root.monitor.unsubscribe()
-        app.root = root
+    app = cherrypy.tree.mount(root, path, config)
     cherrypy.engine.subscribe('stop', root.close)
     if autoupdate:
         root.monitor = AttachedMonitor(cherrypy.engine, root.update, autoupdate)
@@ -894,23 +824,17 @@ parser.add_argument('-p', '--pidfile', metavar='FILE', help='store the process i
 parser.add_argument('-d', '--daemonize', action='store_true', help='run the server as a daemon')
 parser.add_argument('--autoreload', type=float, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
 parser.add_argument('--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes')
-parser.add_argument('--autosync', metavar='URL,...', help='automatically synchronize searcher with remote hosts and update')
 parser.add_argument('--real-time', action='store_true', help='search in real-time without committing')
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    read_only = args.read_only or args.autosync or len(args.directories) > 1
+    read_only = args.read_only or len(args.directories) > 1
     kwargs = {'nrt': True} if args.real_time else {}
     if read_only and (args.real_time or not args.directories):
         parser.error('incompatible read/write options')
-    if args.autosync:
-        kwargs['urls'] = args.autosync.split(',')
-        if not (args.autoupdate and len(args.directories) == 1):
-            parser.error('autosync requires autoupdate and a single directory')
-        warnings.warn('autosync is not recommended for production usage')
     if args.config and not os.path.exists(args.config):
         args.config = {'global': json.loads(args.config)}
     cls = WebSearcher if read_only else WebIndexer
     root = cls.new(*map(os.path.abspath, args.directories), **kwargs)
-    del args.directories, args.read_only, args.autosync, args.real_time
+    del args.directories, args.read_only, args.real_time
     start(root, callback=init, **args.__dict__)

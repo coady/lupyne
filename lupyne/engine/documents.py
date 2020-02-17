@@ -41,7 +41,7 @@ class Field(FieldType):  # type: ignore
     )
 
     def __init__(self, name: str, docValuesType='', indexOptions='', dimensions=0, **settings):
-        super(Field, self).__init__()
+        super().__init__()
         self.name = name
         for name in self.properties.intersection(settings):
             setattr(self, name, settings.pop(name))

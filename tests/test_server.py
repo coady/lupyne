@@ -4,6 +4,7 @@ import json
 import math
 import operator
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -308,50 +309,19 @@ def test_example(request, servers):
 
 
 def test_replication(tempdir, servers):
+    primary = servers.start(servers.ports[0], tempdir, '--autoupdate=1')
     directory = os.path.join(tempdir, 'backup')
-    primary = servers.start(servers.ports[0], tempdir)
-    sync, update = '--autosync=' + primary.url, '--autoupdate=1'
-    secondary = servers.start(servers.ports[1], '-r', directory, sync, update)
-    resource = servers.start(servers.ports[2], '-r', directory)
-    for args in [('-r', tempdir), (update, tempdir), (update, tempdir, tempdir)]:
-        assert subprocess.call((sys.executable, '-m', 'lupyne.server', sync) + args, stderr=subprocess.PIPE)
+    engine.IndexWriter(directory).close()
+    secondary = servers.start(servers.ports[1], '-r', directory, '--autoupdate=1')
     primary.post('docs', [{}])
-    assert primary.post('update') == 1
-    assert primary.client.put('update/0').status_code == http.client.NOT_FOUND
-    response = resource.client.post(json={'url': primary.url})
-    assert response.status_code == http.client.ACCEPTED and sum(response.json().values()) == 0
-    assert resource.post('update') == 1
-    assert resource.post(json={'url': primary.url})
-    assert resource.post('update') == 1
-    primary.post('docs', [{}])
-    assert primary.post('update') == 2
-    time.sleep(1.5)
-    assert sum(secondary().values()) == 2
-    servers.stop(servers.ports[-1])
-    root = server.WebSearcher(directory, urls=(primary.url, secondary.url))
-    app = server.mount(root)
-    root.fields = {}
-    assert root.update() == 2
-    assert len(root.urls) == 2
-    servers.stop(servers.ports[0])
-    assert secondary.docs()
-    assert secondary.client.post('docs', []).status_code == http.client.METHOD_NOT_ALLOWED
-    assert secondary.terms() == []
-    assert root.update() == 2
-    assert len(root.urls) == 1
-    servers.stop(servers.ports[1])
-    assert root.update() == 2
-    assert len(root.urls) == 0 and isinstance(app.root, server.WebIndexer)
-    app.root.close()
-    root = server.WebSearcher(directory)
-    app = server.mount(root, autoupdate=0.1)
-    root.fields, root.autoupdate = {}, 0.1
-    cherrypy.config['log.screen'] = servers.config['log.screen']
-    cherrypy.engine.state = cherrypy.engine.states.STARTED
-    root.monitor.start()  # simulate engine starting
-    time.sleep(0.2)
-    app.root.indexer.add()
-    time.sleep(0.2)
-    assert len(app.root.indexer) == len(root.searcher) + 1
-    app.root.monitor.unsubscribe()
-    del app.root
+    assert primary.client.get('update/0').status_code == http.client.NOT_FOUND
+    assert primary.client.get('update/x').status_code == http.client.NOT_FOUND
+    response = primary.client.post('update', {'snapshot': True})
+    assert response.status_code == http.client.CREATED
+    location, filenames = response.headers['location'], response.json()
+    assert primary.get(location) == filenames
+    for filename in filenames:
+        shutil.copy(os.path.join(tempdir, filename), directory)
+    assert primary.delete(location) == filenames
+    time.sleep(1.1)
+    assert secondary.get('docs') == [0]

@@ -74,6 +74,7 @@ Optional server extras:
 # Changes
 dev
 * Python 3 required
+* Removed server `autosync`
 
 2.4
 * PyLucene >=8 required

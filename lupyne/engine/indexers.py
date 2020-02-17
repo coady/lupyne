@@ -371,7 +371,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if len(query) > 1:
             return self.docFreq(index.Term(*query))
         query = self.parse(*query, **options) if query else Query.alldocs()
-        return super(IndexSearcher, self).count(query)
+        return super().count(query)
 
     def collector(self, count=None, sort=None, reverse=False, scores=False, mincount=1000):
         if count is None:

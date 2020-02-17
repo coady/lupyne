@@ -13,9 +13,9 @@ setup(
     project_urls={'Documentation': 'https://coady.github.io/lupyne/'},
     license='Apache Software License',
     packages=['lupyne', 'lupyne.engine'],
-    extras_require={'server': ['cherrypy>=11', 'clients>=0.2'], 'docs': ['nbsphinx', 'jupyter']},
+    extras_require={'server': ['cherrypy>=11'], 'docs': ['nbsphinx', 'jupyter']},
     python_requires='>=3.5',
-    tests_require=['pytest-cov'],
+    tests_require=['pytest-cov', 'clients'],
     classifiers=[
         'Development Status :: 6 - Mature',
         'Framework :: CherryPy',
