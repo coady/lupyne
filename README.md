@@ -42,7 +42,9 @@ hits = searcher.search('text:query')
 
 Run the server.
 
-    $ python -m lupyne.server
+```console
+% python -m lupyne.server
+```
 
 Read the [documentation](https://coady.github.io/lupyne/).
 
@@ -53,16 +55,13 @@ Read the [documentation](https://coady.github.io/lupyne/).
 ```
 
 PyLucene is not `pip` installable.
-* [Install](http://lucene.apache.org/pylucene/install.html) instructions
-* [Docker](https://hub.docker.com) image: `$ docker pull coady/pylucene`
-* [Homebrew](https://brew.sh) formula: `$ brew install coady/tap/pylucene`
+* [Install instructions](http://lucene.apache.org/pylucene/install.html)
+* [Docker](https://hub.docker.com) image: `docker pull coady/pylucene`
+* [Homebrew](https://brew.sh) formula: `brew install coady/tap/pylucene`
 
 # Dependencies
 * PyLucene >=8
-
-Optional server extras:
-* cherrypy >=11
-* clients >=0.2
+* cherrypy >=11 (if server option)
 
 # Tests
 100% branch coverage.
@@ -71,10 +70,14 @@ Optional server extras:
 % pytest [--cov]
 ```
 
+# Roadmap
+The server interface is being simplified in anticipation of switching web frameworks,
+to support OpenAPI and GraphQL.
+
 # Changes
 dev
 * Python 3 required
-* Removed server `autosync`
+* Simplified server command-line options
 
 2.4
 * PyLucene >=8 required

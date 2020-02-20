@@ -236,13 +236,6 @@ class WebSearcher:
         self.updated = time.time()
         self.query_map = {}
 
-    @classmethod
-    def new(cls, *args, **kwargs):
-        """Return new uninitialized root which can be mounted on dispatch tree before VM initialization."""
-        self = object.__new__(cls)
-        self.args, self.kwargs = args, kwargs
-        return self
-
     def close(self):
         self.searcher.close()
 
@@ -644,7 +637,7 @@ class WebIndexer(WebSearcher):
         """Commit index changes and refresh index version.
 
         **POST** /update
-            Commit write operations and optionall snapshot.  See :meth:`WebSearcher.update` for caching options.
+            Commit write operations and optional snapshot.  See :meth:`WebSearcher.update` for caching options.
 
             {"merge": true|\ *int*, "snapshot": true}
 
@@ -768,60 +761,29 @@ class WebIndexer(WebSearcher):
             return self.indexer.fields[name].settings
 
 
-def init(vmargs='-Xrs,-Djava.awt.headless=true', **kwargs):
-    """Callback to initialize VM and app roots after daemonizing."""
-    assert lucene.getVMEnv() or lucene.initVM(vmargs=vmargs, **kwargs)
-    for app in cherrypy.tree.apps.values():
-        if isinstance(app.root, WebSearcher):
-            app.root.__init__(*app.root.__dict__.pop('args'), **app.root.__dict__.pop('kwargs'))
-
-
-def mount(root, path='', config=None, autoupdate=0):
-    """Attach root and subscribe to plugins.
-
-    :param root,path,config: see cherrypy.tree.mount
-    :param autoupdate: see command-line options
-    """
-    app = cherrypy.tree.mount(root, path, config)
-    cherrypy.engine.subscribe('stop', root.close)
-    if autoupdate:
-        root.monitor = AttachedMonitor(cherrypy.engine, root.update, autoupdate)
-        root.monitor.subscribe()
-    return app
-
-
-def start(root=None, path='', config=None, pidfile='', daemonize=False, autoreload=0, autoupdate=0, callback=None):
+def start(root, path='', config=None, autoreload=0, autoupdate=0):
     """Attach root, subscribe to plugins, and start server.
 
     :param root,path,config: see cherrypy.quickstart
-    :param pidfile,daemonize,autoreload,autoupdate: see command-line options
-    :param callback: optional callback function scheduled after daemonizing
+    :param autoreload,autoupdate: see command-line options
     """
     cherrypy.engine.subscribe('start_thread', attach_thread)
     cherrypy.config['engine.autoreload.on'] = False
-    if pidfile:
-        cherrypy.process.plugins.PIDFile(cherrypy.engine, os.path.abspath(pidfile)).subscribe()
-    if daemonize:
-        cherrypy.config['log.screen'] = False
-        cherrypy.process.plugins.Daemonizer(cherrypy.engine).subscribe()
     if autoreload:
         reloader = Autoreloader(cherrypy.engine, autoreload, match='lupyne.*')
         reloader.files.add(__file__)
         reloader.subscribe()
-    if callback:
-        priority = (cherrypy.process.plugins.Daemonizer.start.priority + cherrypy.process.plugins.Monitor.start.priority) // 2
-        cherrypy.engine.subscribe('start', callback, priority)
-    if root is not None:
-        mount(root, path, config, autoupdate)
-    cherrypy.quickstart(cherrypy.tree.apps.get(path), path, config)
+    cherrypy.engine.subscribe('stop', root.close)
+    if autoupdate:
+        root.monitor = AttachedMonitor(cherrypy.engine, root.update, autoupdate)
+        root.monitor.subscribe()
+    cherrypy.quickstart(root, path, config)
 
 
 parser = argparse.ArgumentParser(description='Restful json cherrypy server.', prog='lupyne.server')
 parser.add_argument('directories', nargs='*', metavar='directory', help='index directories')
 parser.add_argument('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
 parser.add_argument('-c', '--config', help='optional configuration file or json object of global params')
-parser.add_argument('-p', '--pidfile', metavar='FILE', help='store the process id in the given file')
-parser.add_argument('-d', '--daemonize', action='store_true', help='run the server as a daemon')
 parser.add_argument('--autoreload', type=float, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
 parser.add_argument('--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes')
 parser.add_argument('--real-time', action='store_true', help='search in real-time without committing')
@@ -834,7 +796,7 @@ if __name__ == '__main__':
         parser.error('incompatible read/write options')
     if args.config and not os.path.exists(args.config):
         args.config = {'global': json.loads(args.config)}
+    lucene.initVM(vmargs='-Xrs,-Djava.awt.headless=true')
     cls = WebSearcher if read_only else WebIndexer
-    root = cls.new(*map(os.path.abspath, args.directories), **kwargs)
-    del args.directories, args.read_only, args.real_time
-    start(root, callback=init, **args.__dict__)
+    root = cls(*map(os.path.abspath, args.directories), **kwargs)
+    start(root, config=args.config, autoreload=args.autoreload, autoupdate=args.autoupdate)

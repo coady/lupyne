@@ -48,7 +48,6 @@ WebIndexer
 
 start
 -----------
-.. autofunction:: mount
 .. autofunction:: start
 
 .. _CherryPy tools: http://docs.cherrypy.org/en/latest/extend.html#tools

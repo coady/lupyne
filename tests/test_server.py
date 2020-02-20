@@ -5,12 +5,10 @@ import math
 import operator
 import os
 import shutil
-import signal
 import subprocess
 import sys
 import time
 from email.utils import parsedate
-import cherrypy
 import clients
 import portend
 import pytest
@@ -261,21 +259,8 @@ def test_realtime(tempdir, servers):
     assert response.ok and version != response.headers['etag']
 
 
-def test_start(tempdir, servers):
-    port = servers.ports[0]
-    pidfile = os.path.join(tempdir, 'pid')
-    servers.start(port, '-dp', pidfile)
-    time.sleep(1)
-    os.kill(int(open(pidfile).read()), signal.SIGTERM)
-    del servers[port]
-    assert subprocess.call((sys.executable, '-m', 'lupyne.server', '-c', __file__), stderr=subprocess.PIPE)
-    assert cherrypy.tree.mount(None)
-    server.init(vmargs=None)
-    with pytest.raises(AttributeError):
-        server.start(config=True)
-
-
 def test_config(tempdir, servers):
+    assert subprocess.call((sys.executable, '-m', 'lupyne.server', '-c', __file__), stderr=subprocess.PIPE)
     engine.IndexWriter(tempdir).close()
     config = {'tools.validate.last_modified': True, 'tools.validate.expires': 0, 'tools.validate.max_age': 0}
     client = servers.start(servers.ports[0], tempdir, tempdir, '--autoreload=0.1', **config).client
