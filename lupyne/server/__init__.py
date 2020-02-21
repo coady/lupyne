@@ -38,15 +38,12 @@ CherryPy and Lucene VM integration issues:
 
  * Monitors (such as autoreload) are not compatible with the VM unless threads are attached.
  * WorkerThreads must be also attached to the VM.
- * VM initialization must occur after daemonizing.
  * Recommended that the VM ignores keyboard interrupts (-Xrs) for clean server shutdown.
 """
-
-import argparse
+import builtins
 import heapq
 import http
 import itertools
-import os
 import re
 import time
 import lucene
@@ -175,7 +172,7 @@ class parse:
     def docvalues(searcher, field):
         name, type = field.split(':') if ':' in field else (field, '')
         with HTTPError(AttributeError):
-            return name, searcher.docvalues(name, getattr(__builtins__, type, None))
+            return name, searcher.docvalues(name, getattr(builtins, type, None))
 
 
 def json_error(version, **body):
@@ -244,16 +241,11 @@ class WebSearcher:
         return 'W/"{}"'.format(self.searcher.version)
 
     @cherrypy.expose
-    @cherrypy.tools.json_in(process_body=dict)
-    @cherrypy.tools.allow(methods=['GET'])
-    def index(self, url=''):
-        """Return index information and synchronize with remote index.
+    def index(self):
+        """Return index information.
 
-        **GET, POST** /[index]
+        **GET** /[index]
             Return a mapping of the directory to the document count.
-            Add new segments from remote host.
-
-            {"url": *string*}
 
             :return: {*string*: *int*,... }
         """
@@ -392,7 +384,7 @@ class WebSearcher:
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort)
             with HTTPError(AttributeError):
-                sort = [searcher.sortfield(name, getattr(__builtins__, type, None), (reverse == '-')) for reverse, name, type in sort]
+                sort = [searcher.sortfield(name, getattr(builtins, type, None), (reverse == '-')) for reverse, name, type in sort]
         q = parse.q(searcher, q, **options)
         if mlt is not None:
             if q is not None:
@@ -778,25 +770,3 @@ def start(root, path='', config=None, autoreload=0, autoupdate=0):
         root.monitor = AttachedMonitor(cherrypy.engine, root.update, autoupdate)
         root.monitor.subscribe()
     cherrypy.quickstart(root, path, config)
-
-
-parser = argparse.ArgumentParser(description='Restful json cherrypy server.', prog='lupyne.server')
-parser.add_argument('directories', nargs='*', metavar='directory', help='index directories')
-parser.add_argument('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
-parser.add_argument('-c', '--config', help='optional configuration file or json object of global params')
-parser.add_argument('--autoreload', type=float, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
-parser.add_argument('--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes')
-parser.add_argument('--real-time', action='store_true', help='search in real-time without committing')
-
-if __name__ == '__main__':
-    args = parser.parse_args()
-    read_only = args.read_only or len(args.directories) > 1
-    kwargs = {'nrt': True} if args.real_time else {}
-    if read_only and (args.real_time or not args.directories):
-        parser.error('incompatible read/write options')
-    if args.config and not os.path.exists(args.config):
-        args.config = {'global': json.loads(args.config)}
-    lucene.initVM(vmargs='-Xrs,-Djava.awt.headless=true')
-    cls = WebSearcher if read_only else WebIndexer
-    root = cls(*map(os.path.abspath, args.directories), **kwargs)
-    start(root, config=args.config, autoreload=args.autoreload, autoupdate=args.autoupdate)

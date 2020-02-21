@@ -12,7 +12,7 @@ setup(
     url='https://github.com/coady/lupyne',
     project_urls={'Documentation': 'https://coady.github.io/lupyne/'},
     license='Apache Software License',
-    packages=['lupyne', 'lupyne.engine'],
+    packages=['lupyne', 'lupyne.engine', 'lupyne.server'],
     extras_require={'server': ['cherrypy>=11'], 'docs': ['nbsphinx', 'jupyter']},
     python_requires='>=3.5',
     tests_require=['pytest-cov', 'clients'],
