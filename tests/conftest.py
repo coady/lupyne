@@ -68,3 +68,13 @@ def zipcodes():
             'county': county.title(),
             'state': state,
         }
+
+
+@pytest.fixture
+def index(tempdir, fields, constitution):
+    with engine.IndexWriter(tempdir) as writer:
+        writer.fields.update({field.name: field for field in fields})
+        for doc in constitution:
+            writer.add(doc)
+    os.environ['DIRECTORIES'] = tempdir
+    return tempdir

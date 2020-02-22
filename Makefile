@@ -11,8 +11,8 @@ check:
 	black --check -q .
 	flake8
 	mypy -p lupyne.engine
-	make engine server
+	pytest --cov=lupyne tests/test_engine.py
+	pytest --cov=lupyne --cov-append tests/test_rest.py
+	pytest --cov=lupyne --cov-append tests/test_graphql.py
+	pytest --cov=lupyne --cov-append tests/test_server.py --cov-fail-under=100
 	pytest -vk example
-
-engine server:
-	pytest tests/test_$@.py --cov=lupyne.$@ --cov-fail-under=100

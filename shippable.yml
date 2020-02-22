@@ -6,6 +6,8 @@ build:
     image_tag: latest
     pull: true
   ci:
-    - pip install cherrypy clients pytest-cov
-    - pytest -v --cov --cov-fail-under=100
+    - pip install cherrypy clients pytest-cov strawberry-graphql fastapi
+    - pytest -v --cov=lupyne tests/test_engine.py tests/test_server.py
+    - pytest -v --cov=lupyne --cov-append tests/test_rest.py
+    - pytest -v --cov=lupyne --cov-append tests/test_graphql.py
     - coverage xml -o shippable/codecoverage/coverage.xml
