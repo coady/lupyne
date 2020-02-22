@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 import lucene
-from . import WebSearcher, WebIndexer, start
+from .legacy import WebSearcher, WebIndexer, start
 
 parser = argparse.ArgumentParser(description='Restful json cherrypy server.', prog='lupyne.server')
 parser.add_argument('directories', nargs='*', metavar='directory', help='index directories')

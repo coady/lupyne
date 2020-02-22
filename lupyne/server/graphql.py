@@ -5,7 +5,7 @@ from starlette.applications import Starlette
 from .settings import DEBUG, DIRECTORIES
 from .base import WebSearcher
 
-assert lucene.initVM()
+assert lucene.getVMEnv() or lucene.initVM()
 root = WebSearcher(*DIRECTORIES)
 app = Starlette(debug=DEBUG)
 app.on_event('shutdown')(root.close)

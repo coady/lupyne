@@ -13,7 +13,8 @@ Example queries:
 """
 
 import lucene
-from lupyne import engine, server
+from lupyne import engine
+from lupyne.server import legacy
 from tests import conftest
 
 Q = engine.Query
@@ -21,7 +22,7 @@ Q = engine.Query
 
 if __name__ == '__main__':
     assert lucene.getVMEnv() or lucene.initVM(vmargs='-Xrs')
-    root = server.WebIndexer()
+    root = legacy.WebIndexer()
     # assign field settings
     root.indexer.set('amendment', engine.Field.String, stored=True)
     root.indexer.set('date', engine.Field.String, stored=True, docValuesType='sorted')
@@ -35,4 +36,4 @@ if __name__ == '__main__':
     years = {date.split('-')[0] for date in root.searcher.terms('date')}
     root.query_map['year'] = {year: Q.prefix('date', year) for year in years}
     # start server
-    server.start(root)
+    legacy.start(root)

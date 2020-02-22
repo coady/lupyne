@@ -12,7 +12,8 @@ from email.utils import parsedate
 import clients
 import portend
 import pytest
-from lupyne import engine, server
+from lupyne import engine
+from lupyne.server import legacy
 
 
 class Servers(dict):
@@ -237,7 +238,7 @@ def test_queries(servers):
 def test_realtime(tempdir, servers):
     for args in [('-r',), ('--real-time', 'index0', 'index1'), ('-r', '--real-time', 'index')]:
         assert subprocess.call((sys.executable, '-m', 'lupyne.server') + args, stderr=subprocess.PIPE)
-    root = server.WebIndexer(tempdir)
+    root = legacy.WebIndexer(tempdir)
     root.indexer.add()
     assert root.update() == 1
     del root

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from .settings import DEBUG, DIRECTORIES
 from .base import WebSearcher
 
-assert lucene.initVM()
+assert lucene.getVMEnv() or lucene.initVM()
 root = WebSearcher(*DIRECTORIES)
 app = FastAPI(debug=DEBUG)
 app.on_event('shutdown')(root.close)
