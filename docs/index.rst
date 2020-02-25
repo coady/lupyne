@@ -37,6 +37,8 @@ Contents
 
    engine
    server
+   rest
+   graphql
    examples
 
 Indices and tables

@@ -2,7 +2,7 @@ server
 ======
 .. program-output:: python3 -m lupyne.server -h
   :cwd: ..
-.. automodule:: lupyne.server
+.. automodule:: lupyne.server.legacy
 .. note:: Lucene doc ids are ephemeral;  only use doc ids across requests for the same index version.
 
 Lucene index files are incremental, so synchronizing files and refreshing searchers is a viable replication strategy.
@@ -27,18 +27,9 @@ WebSearcher
 -----------
 .. autoclass:: WebSearcher
   :members:
-  :exclude-members: new, sync
 
-  .. versionchanged:: 1.2
-    automatic synchronization and promotion
-
-  .. attribute:: fields
-
-    optional field settings will trigger indexer promotion when synchronized hosts are exhausted
-
-  .. attribute:: autoupdate
-
-    optional autoupdate timer for use upon indexer promotion
+  .. versionchanged:: 2.5
+    automatic synchronization and promotion removed
 
 WebIndexer
 -----------

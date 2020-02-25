@@ -2,13 +2,15 @@ import csv
 import itertools
 import os
 import shutil
+import sys
 import tempfile
 from datetime import datetime
+from pathlib import Path
 import pytest
 import lucene
 from lupyne import engine
 
-dirname = os.path.join(os.path.dirname(__file__), 'fixtures')
+fixtures = Path(__file__).parent / 'fixtures'
 
 
 def pytest_report_header(config):
@@ -21,7 +23,9 @@ def pytest_configure(config):
 
 @pytest.fixture
 def tempdir():
-    tempdir = tempfile.mkdtemp(dir=dirname)
+    tempdir = tempfile.mkdtemp(dir=fixtures)
+    os.environ['DIRECTORIES'] = tempdir
+    sys.modules.pop('lupyne.server.settings', None)
     yield tempdir
     shutil.rmtree(tempdir)
 
@@ -43,7 +47,7 @@ def fields():
 
 @fixture
 def constitution():
-    lines = open(os.path.join(dirname, 'constitution.txt'))
+    lines = open(fixtures / 'constitution.txt')
     items = itertools.groupby(lines, lambda l: l.startswith('Article ') or l.startswith('Amendment '))
     for _, (header,) in items:
         _, lines = next(items)
@@ -58,7 +62,7 @@ def constitution():
 
 @fixture
 def zipcodes():
-    lines = open(os.path.join(dirname, 'zipcodes.txt'))
+    lines = open(fixtures / 'zipcodes.txt')
     for zipcode, latitude, longitude, state, city, county in csv.reader(lines):
         yield {
             'zipcode': zipcode,
@@ -76,5 +80,4 @@ def index(tempdir, fields, constitution):
         writer.fields.update({field.name: field for field in fields})
         for doc in constitution:
             writer.add(doc)
-    os.environ['DIRECTORIES'] = tempdir
     return tempdir

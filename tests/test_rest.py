@@ -10,7 +10,7 @@ def client(index):
 
 
 def test_index(client):
-    response = client.get("/")
-    assert response.status_code == 200
-    ((directory, count),) = response.json().items()
-    assert 'Directory@' in directory and count == 35
+    result = client.get('/').json()
+    ((directory, count),) = result.items()
+    assert 'Directory@' in directory
+    assert count == 35

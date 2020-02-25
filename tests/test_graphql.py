@@ -4,9 +4,10 @@ from starlette import testclient
 
 class TestClient(testclient.TestClient):
     def execute(self, **kwargs):
-        response = self.post('/graphql', json=kwargs)
-        assert response.status_code == 200
-        return response.json()['data']
+        result = self.post('/graphql', json=kwargs).json()
+        for error in result.get('errors', []):
+            raise RuntimeError(error)
+        return result['data']
 
 
 @pytest.fixture
