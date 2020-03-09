@@ -8,7 +8,9 @@ assert lucene.getVMEnv() or lucene.initVM()
 root = WebSearcher(*DIRECTORIES)
 app = FastAPI(debug=DEBUG)
 app.on_event('shutdown')(root.close)
+
 app.get('/', response_description="{`directory`: `count`}")(root.index)
+app.post('/', response_description="{`directory`: `count`}")(root.refresh)
 
 
 @app.middleware('http')

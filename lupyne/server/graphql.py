@@ -26,5 +26,14 @@ class Query:
         return Index(directories=index, counts=index.values())
 
 
-schema = strawberry.Schema(query=Query)
+@strawberry.type
+class Mutation:
+    @strawberry.field
+    def index(self, info, spellcheckers: bool = False) -> Index:
+        """Refresh index."""
+        index = root.refresh(spellcheckers=spellcheckers)
+        return Index(directories=index, counts=index.values())
+
+
+schema = strawberry.Schema(query=Query, mutation=Mutation)
 app.add_route('/graphql', strawberry.asgi.GraphQL(schema, debug=DEBUG))

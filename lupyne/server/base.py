@@ -39,3 +39,9 @@ class WebSearcher:
         if isinstance(searcher, engine.MultiSearcher):  # pragma: no cover
             return {reader.directory().toString(): reader.numDocs() for reader in searcher.indexReaders}
         return {searcher.directory.toString(): len(searcher)}
+
+    def refresh(self, spellcheckers: bool = False) -> dict:
+        """Refresh index version."""
+        self._searcher = self.searcher.reopen(spellcheckers=spellcheckers)
+        self.updated = time.time()
+        return self.index()
