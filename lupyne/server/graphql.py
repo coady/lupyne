@@ -11,6 +11,12 @@ app = Starlette(debug=DEBUG)
 app.on_event('shutdown')(root.close)
 
 
+def selections(node):
+    """Return tree of field name selections."""
+    nodes = getattr(node.selection_set, 'selections', [])
+    return {node.name.value: selections(node) for node in nodes}
+
+
 @strawberry.type
 class Index:
     directories: List[str]
@@ -18,12 +24,42 @@ class Index:
 
 
 @strawberry.type
+class Values:
+    __annotations__ = {name: List[str] for name in root.indexed()}
+    locals().update(dict.fromkeys(__annotations__, ()))
+
+
+@strawberry.type
+class Counts:
+    __annotations__ = {name: List[int] for name in root.indexed()}
+    locals().update(dict.fromkeys(__annotations__, ()))
+
+
+@strawberry.type
+class Terms:
+    values: Values
+    counts: Counts
+
+
+@strawberry.type
 class Query:
     @strawberry.field
     def index(self, info) -> Index:
-        """Return index information."""
+        """index information"""
         index = root.index()
         return Index(directories=index, counts=index.values())
+
+    @strawberry.field
+    def terms(self, info) -> Terms:
+        """indexed field names"""
+        names = selections(*info.field_nodes)
+        counts = dict.fromkeys(names.get('counts', []))
+        values = dict.fromkeys(set(names.get('values', [])) - set(counts))
+        for name in values:
+            values[name] = root.searcher.terms(name)
+        for name in counts:
+            values[name], counts[name] = zip(*root.searcher.terms(name, counts=True))
+        return Terms(Values(**values), Counts(**counts))
 
 
 @strawberry.type

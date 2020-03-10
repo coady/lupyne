@@ -1,5 +1,6 @@
 import time
 import lucene
+from org.apache.lucene import index
 from .. import engine
 
 
@@ -34,7 +35,7 @@ class WebSearcher:
         return time.time() - self.updated
 
     def index(self) -> dict:
-        """Return index information."""
+        """index information"""
         searcher = self.searcher
         if isinstance(searcher, engine.MultiSearcher):  # pragma: no cover
             return {reader.directory().toString(): reader.numDocs() for reader in searcher.indexReaders}
@@ -45,3 +46,8 @@ class WebSearcher:
         self._searcher = self.searcher.reopen(spellcheckers=spellcheckers)
         self.updated = time.time()
         return self.index()
+
+    def indexed(self) -> list:
+        """indexed field names"""
+        fieldinfos = self.searcher.fieldinfos.values()
+        return sorted(fi.name for fi in fieldinfos if fi.indexOptions != index.IndexOptions.NONE)

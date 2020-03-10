@@ -1,4 +1,5 @@
 import time
+from typing import Union
 import lucene
 from fastapi import FastAPI
 from .settings import DEBUG, DIRECTORIES
@@ -11,6 +12,13 @@ app.on_event('shutdown')(root.close)
 
 app.get('/', response_description="{`directory`: `count`}")(root.index)
 app.post('/', response_description="{`directory`: `count`}")(root.refresh)
+app.get('/terms', response_description="[`name`, ...]")(root.indexed)
+
+
+@app.get('/terms/{name}')
+def terms(name: str, *, counts: bool = False) -> Union[list, dict]:
+    terms = root.searcher.terms(name, counts=counts)
+    return (dict if counts else list)(terms)
 
 
 @app.middleware('http')

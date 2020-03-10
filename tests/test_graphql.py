@@ -4,9 +4,11 @@ from starlette import testclient
 
 class TestClient(testclient.TestClient):
     def execute(self, **kwargs):
-        result = self.post('/graphql', json=kwargs).json()
+        response = self.post('/graphql', json=kwargs)
+        response.raise_for_status()
+        result = response.json()
         for error in result.get('errors', []):
-            raise RuntimeError(error)
+            raise ValueError(error)
         return result['data']
 
 
@@ -27,3 +29,12 @@ def test_index(client):
     assert data == {'index': {'directories': [directory]}}
     data = client.execute(query='''mutation { index(spellcheckers: true) { counts } }''')
     assert data == {'index': {'counts': index['counts']}}
+
+
+def test_terms(client):
+    data = client.execute(query='''{ terms { values { date } } }''')
+    dates = data['terms']['values']['date']
+    assert min(dates) == dates[0] == '1791-12-15'
+    data = client.execute(query='''{ terms { counts { date } } }''')
+    counts = data['terms']['counts']['date']
+    assert counts[0] == 10
