@@ -8,8 +8,15 @@ parser = argparse.ArgumentParser(description='Restful json cherrypy server.', pr
 parser.add_argument('directories', nargs='*', metavar='directory', help='index directories')
 parser.add_argument('-r', '--read-only', action='store_true', help='expose only read methods; no write lock')
 parser.add_argument('-c', '--config', help='optional configuration file or json object of global params')
-parser.add_argument('--autoreload', type=float, metavar='SECONDS', help='automatically reload modules; replacement for engine.autoreload')
-parser.add_argument('--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes')
+parser.add_argument(
+    '--autoreload',
+    type=float,
+    metavar='SECONDS',
+    help='automatically reload modules; replacement for engine.autoreload',
+)
+parser.add_argument(
+    '--autoupdate', type=float, metavar='SECONDS', help='automatically update index version and commit any changes'
+)
 parser.add_argument('--real-time', action='store_true', help='search in real-time without committing')
 
 args = parser.parse_args()

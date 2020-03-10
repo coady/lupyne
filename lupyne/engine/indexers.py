@@ -228,7 +228,9 @@ class IndexReader:
         return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)  # type: ignore
 
     def positions(self, name: str, value, payloads=False, offsets=False) -> Iterator[tuple]:
-        """Generate doc ids and positions which contain given term, optionally with offsets, or only ones with payloads."""
+        """Generate doc ids and positions which contain given term.
+
+        Optionally with offsets, or only ones with payloads."""
         docsenum = index.MultiTerms.getTermPostingsEnum(self.indexReader, name, util.BytesRef(value))
         for doc in iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ():  # type: ignore
             positions = (docsenum.nextPosition() for _ in range(docsenum.freq()))
@@ -386,7 +388,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             sort = search.Sort(sort)
         return search.TopFieldCollector.create(sort, count, mincount)
 
-    def search(self, query=None, count=None, sort=None, reverse=False, scores=False, mincount=1000, timeout=None, **parser) -> Hits:
+    def search(
+        self, query=None, count=None, sort=None, reverse=False, scores=False, mincount=1000, timeout=None, **parser
+    ) -> Hits:
         """Run query and return `Hits`_.
 
         .. versionchanged:: 1.4 sort param for lucene only; use Hits.sorted with a callable
@@ -402,9 +406,10 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         :param parser: :meth:`Analyzer.parse` options
         """
         query = Query.alldocs() if query is None else self.parse(query, **parser)
-        cache = collector = self.collector(count, sort, reverse, scores, mincount)
+        results = cache = collector = self.collector(count, sort, reverse, scores, mincount)
         counter = search.TimeLimitingCollector.getGlobalCounter()
-        results = collector if timeout is None else search.TimeLimitingCollector(collector, counter, int(timeout * 1000))
+        if timeout is not None:
+            results = search.TimeLimitingCollector(collector, counter, int(timeout * 1000))
         with suppress(search.TimeLimitingCollector.TimeExceededException):
             super().search(query, results)
             timeout = None
@@ -499,7 +504,8 @@ class IndexWriter(index.IndexWriter):
 
     def __init__(self, directory=None, mode: str = 'a', analyzer=None, version=None, **attrs):
         self.shared = closing()
-        config = index.IndexWriterConfig() if analyzer is None else index.IndexWriterConfig(self.shared.analyzer(analyzer))
+        args = [] if analyzer is None else [self.shared.analyzer(analyzer)]
+        config = index.IndexWriterConfig(*args)
         config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
         for name, value in attrs.items():
             setattr(config, name, value)
@@ -558,7 +564,8 @@ class IndexWriter(index.IndexWriter):
         term = index.Term(name, *[value] if value else doc.getValues(name))
         fields = list(doc.iterator())
         types = [Field.cast_(field.fieldType()) for field in fields]
-        if any(ft.stored() or ft.indexOptions() != index.IndexOptions.NONE or Field.dimensions.fget(ft) for ft in types):
+        noindex = index.IndexOptions.NONE
+        if any(ft.stored() or ft.indexOptions() != noindex or Field.dimensions.fget(ft) for ft in types):
             self.updateDocument(term, doc)
         elif fields:
             self.updateDocValues(term, *fields)

@@ -320,7 +320,9 @@ def test_queries():
     assert str(Q.span(wildcard)) == 'SpanMultiTermQueryWrapper(text:*)'
     near = Q.near('text', 'lucene', ('alias', 'search'), slop=-1, inOrder=False)
     assert str(near) == 'spanNear([text:lucene, mask(alias:search) as text], -1, false)'
-    assert str(span - near) == 'spanNot(text:lucene, spanNear([text:lucene, mask(alias:search) as text], -1, false), 0, 0)'
+    assert (
+        str(span - near) == 'spanNot(text:lucene, spanNear([text:lucene, mask(alias:search) as text], -1, false), 0, 0)'
+    )
     assert str(span | near) == 'spanOr([text:lucene, spanNear([text:lucene, mask(alias:search) as text], -1, false)])'
     assert str(span.mask('alias')) == 'mask(text:lucene) as alias'
     assert str(span.boost(2.0)) == '(text:lucene)^2.0'
@@ -360,7 +362,8 @@ def test_grouping(tempdir, indexer, zipcodes):
     assert sorted({hit['city'] for hit in hits}) == cities
     assert cities[0] == 'Acton' and cities[-1] == 'Woodland Hills'
     (hit,) = indexer.search('zipcode:90210')
-    assert hit['state'] == 'CA' and hit['county'] == 'Los Angeles' and hit['city'] == 'Beverly Hills' and hit['longitude'] == '-118.406'
+    assert hit['state'] == 'CA' and hit['county'] == 'Los Angeles'
+    assert hit['city'] == 'Beverly Hills' and hit['longitude'] == '-118.406'
     query = Q.prefix('zipcode', '90')
     ((field, facets),) = indexer.facets(query, 'state.county').items()
     assert field == 'state.county'
@@ -375,7 +378,8 @@ def test_grouping(tempdir, indexer, zipcodes):
     assert len(groups) == 1 < groups.count
     (hits,) = groups
     assert hits.value == 'CA.Los Angeles' and len(hits) == 1 and hits.count > 100
-    grouping = engine.documents.GroupingSearch(field, sort=search.Sort(indexer.sortfield(field)), cache=False, allGroups=True)
+    sort = search.Sort(indexer.sortfield(field))
+    grouping = engine.documents.GroupingSearch(field, sort=sort, cache=False, allGroups=True)
     assert all(grouping.search(indexer.indexSearcher, Q.alldocs()).facets.values())
     assert len(grouping) == len(list(grouping)) > 100
     assert set(grouping) > set(facets)
@@ -451,7 +455,9 @@ def test_fields(indexer, constitution):
     field = indexer.fields['date'] = engine.NestedField('Y-m-d', sep='-', stored=True)
     for doc in constitution:
         if 'amendment' in doc:
-            indexer.add(amendment='{:02}'.format(int(doc['amendment'])), date=doc['date'], size='{:04}'.format(len(doc['text'])))
+            indexer.add(
+                amendment='{:02}'.format(int(doc['amendment'])), date=doc['date'], size='{:04}'.format(len(doc['text']))
+            )
     indexer.commit()
     assert set(indexer.fieldinfos) == {'amendment', 'Y', 'Y-m', 'Y-m-d', 'size'}
     assert str(indexer.fieldinfos['amendment'].indexOptions) == 'DOCS'
@@ -490,7 +496,9 @@ def test_numeric(indexer, constitution):
     indexer.set('size', dimensions=1, stored=True, docValuesType='numeric')
     for doc in constitution:
         if 'amendment' in doc:
-            indexer.add(amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text']))
+            indexer.add(
+                amendment=int(doc['amendment']), date=[tuple(map(int, doc['date'].split('-')))], size=len(doc['text'])
+            )
     indexer.commit()
     query = field.prefix((1791, 12))
     assert indexer.count(query) == 10
@@ -520,7 +528,14 @@ def test_numeric(indexer, constitution):
 
 def test_highlighting(constitution):
     indexer = engine.Indexer()
-    indexer.set('text', engine.Field.Text, stored=True, storeTermVectors=True, storeTermVectorPositions=True, storeTermVectorOffsets=True)
+    indexer.set(
+        'text',
+        engine.Field.Text,
+        stored=True,
+        storeTermVectors=True,
+        storeTermVectorPositions=True,
+        storeTermVectorOffsets=True,
+    )
     for doc in constitution:
         if 'amendment' in doc:
             indexer.add(text=doc['text'])
@@ -591,7 +606,9 @@ def test_docvalues():
     assert indexer.sortfield('points', type=float).type == search.SortField.Type.DOUBLE
 
     segments = indexer.segments
-    indexer.update('id', id='0', title='one', size=1, point=1.5, priority='high', tags=['blue'], sizes=[1], points=[1.5])
+    indexer.update(
+        'id', id='0', title='one', size=1, point=1.5, priority='high', tags=['blue'], sizes=[1], points=[1.5]
+    )
     indexer.commit()
     assert indexer.segments != segments
     segments = indexer.segments

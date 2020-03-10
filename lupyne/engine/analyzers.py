@@ -163,4 +163,5 @@ class Analyzer(PythonAnalyzer):
         :param content: text
         :param count: optional maximum number of passages
         """
-        return uhighlight.UnifiedHighlighter(None, self).highlightWithoutSearcher(field, query, content, count).toString()
+        highlighter = uhighlight.UnifiedHighlighter(None, self)
+        return highlighter.highlightWithoutSearcher(field, query, content, count).toString()

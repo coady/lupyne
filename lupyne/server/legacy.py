@@ -21,7 +21,8 @@ Single documents may be added, deleted, or replaced by a unique indexed field.
 Multiples documents may also be added or deleted by query at once.
 By default changes are not visible until the update resource is called to commit a new index version.
 If a near real-time Indexer is used, then changes are instantly searchable.
-In such cases a commit still hasn't occurred, and the index based :meth:`last-modified header <validate>` shouldn't be used for caching.
+In such cases a commit still hasn't occurred,
+and the index based :meth:`last-modified header <validate>` shouldn't be used for caching.
 
  * :meth:`/ <WebIndexer.index>`
  * :meth:`/search <WebIndexer.search>`
@@ -305,7 +306,10 @@ class WebSearcher:
         with HTTPError(TypeError):
             result.update((name, docvalues[name][id]) for name in docvalues)
         result.update((field, list(searcher.termvector(id, field))) for field in options.get('fields.vector', ()))
-        result.update((field, dict(searcher.termvector(id, field, counts=True))) for field in options.get('fields.vector.counts', ()))
+        result.update(
+            (field, dict(searcher.termvector(id, field, counts=True)))
+            for field in options.get('fields.vector.counts', ())
+        )
         return result
 
     docs.__annotations__.update(
@@ -384,7 +388,10 @@ class WebSearcher:
         if sort is not None:
             sort = (re.match('(-?)(\w+):?(\w*)', field).groups() for field in sort)
             with HTTPError(AttributeError):
-                sort = [searcher.sortfield(name, getattr(builtins, type, None), (reverse == '-')) for reverse, name, type in sort]
+                sort = [
+                    searcher.sortfield(name, getattr(builtins, type, None), (reverse == '-'))
+                    for reverse, name, type in sort
+                ]
         q = parse.q(searcher, q, **options)
         if mlt is not None:
             if q is not None:
@@ -443,7 +450,10 @@ class WebSearcher:
                     facets[name] = {term: count for term, count in counts.items() if count >= options['facets.min']}
             if 'facets.count' in options:
                 for name, counts in facets.items():
-                    facets[name] = {term: counts[term] for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__)}
+                    facets[name] = {
+                        term: counts[term]
+                        for term in heapq.nlargest(options['facets.count'], counts, key=counts.__getitem__)
+                    }
         return result
 
     search.__annotations__.update(

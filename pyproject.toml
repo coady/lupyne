@@ -1,4 +1,4 @@
 [tool.black]
-line-length = 140
+line-length = 120
 skip-string-normalization = true
 exclude = "docs"

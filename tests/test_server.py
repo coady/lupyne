@@ -70,7 +70,8 @@ def test_docs(resource):
     assert resource.docs('8', **{'fields.docvalues': 'date'}) == {'amendment': '1', 'date': '1791-12-15'}
     assert resource.docs('8', fields='', **{'fields.docvalues': 'year:int'}) == {'year': 1791}
     assert resource.client.get('docs/8', params={'fields.docvalues': 'year'}).status_code == http.client.BAD_REQUEST
-    assert resource.client.get('docs/8', params={'fields.docvalues': 'year:invalid'}).status_code == http.client.BAD_REQUEST
+    response = resource.client.get('docs/8', params={'fields.docvalues': 'year:invalid'})
+    assert response.status_code == http.client.BAD_REQUEST
     doc = resource.docs('0', **{'fields.vector': 'text,missing'})
     assert doc['missing'] == [] and doc['text'].index('states') < doc['text'].index('united')
     doc = resource.docs('0', **{'fields.vector.counts': 'text'})
@@ -135,7 +136,10 @@ def test_search(resource):
     result = resource.search(q='text:people', count=5, sort='-year:int', **{'sort.scores': ''})
     result = resource.search(q='text:people', count=1, sort='-year:int', **{'sort.scores': 'max'})
     result = resource.search(q='text:people', count=5, sort='-date,year:int')
-    assert result['docs'][0]['__sortkeys__'] == ['1913-04-08', 1913] and result['docs'][-1]['__sortkeys__'] == ['1791-12-15', 1791]
+    assert result['docs'][0]['__sortkeys__'] == ['1913-04-08', 1913] and result['docs'][-1]['__sortkeys__'] == [
+        '1791-12-15',
+        1791,
+    ]
     result = resource.search(q='text:people', start=2, count=2, facets='date')
     assert result['count'] == 8 and result['facets']['date'] == {'1791-12-15': 5, '1913-04-08': 1}
     result = resource.search(q='text:president', facets='date')
@@ -157,7 +161,9 @@ def test_highlights(resource):
     assert all(highlight['amendment'] or highlight['article'] for highlight in highlights)
     result = resource.search(mlt=0)
     assert result['count'] >= 25 and set(result['query'].split()) >= {'text:united', 'text:states'}
-    result = resource.search(q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6})
+    result = resource.search(
+        q='amendment:2', mlt=0, **{'mlt.fields': 'text', 'mlt.minTermFreq': 1, 'mlt.minWordLen': 6}
+    )
     assert result['count'] == 11 and set(result['query'].split()) == {'text:necessary', 'text:people'}
     assert [doc['amendment'] for doc in result['docs'][:3]] == ['2', '9', '10']
     result = resource.search(q='text:people', count=1, timeout=-1)
@@ -185,7 +191,8 @@ def test_groups(resource):
     assert len(groups) == result['count'] == 9 < sum(groups.values())
     group = result['groups'][0]
     assert group['value'] == 1791 and group['count'] == 5
-    assert resource.client.get('search', params={'q': 'text:right', 'group': 'date:int'}).status_code == http.client.BAD_REQUEST
+    response = resource.client.get('search', params={'q': 'text:right', 'group': 'date:int'})
+    assert response.status_code == http.client.BAD_REQUEST
 
 
 def test_facets(tempdir, servers, zipcodes):
@@ -209,7 +216,9 @@ def test_facets(tempdir, servers, zipcodes):
     assert sorted(result['facets']['county']) == ['Los Angeles', 'Orange', 'San Diego']
     result = resource.search(count=0, facets='county', **{'facets.min': 140})
     assert sorted(result['facets']['county']) == ['Los Angeles', 'Orange', 'San Diego']
-    result = resource.search(q='Los Angeles', group='county.city', **{'group.count': 2, 'q.field': 'county', 'q.type': 'prefix'})
+    result = resource.search(
+        q='Los Angeles', group='county.city', **{'group.count': 2, 'q.field': 'county', 'q.type': 'prefix'}
+    )
     assert all(group['value'].startswith('Los Angeles') for group in result['groups'])
     assert sum(map(operator.itemgetter('count'), result['groups'])) == sum(facets.values()) == result['count']
 
