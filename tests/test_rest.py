@@ -28,3 +28,13 @@ def test_terms(client):
     assert min(result) == result[0] == '1791-12-15'
     result = client.get('/terms/date', params={'counts': True}).json()
     assert result['1791-12-15'] == 10
+
+
+def test_search(client):
+    result = client.get('/search', params={'q': "text:right", 'count': 1}).json()
+    assert result['count'] == 13
+    (hit,) = result['hits']
+    assert hit['id'] == 9
+    assert hit['score'] > 0
+    assert hit['sortkeys'] == []
+    assert hit['doc'] == {'amendment': ['2'], 'date': ['1791-12-15']}

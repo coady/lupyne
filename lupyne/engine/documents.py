@@ -298,7 +298,7 @@ class Hits:
 
     def __init__(self, searcher, scoredocs: Sequence, count=0, fields=None):
         self.searcher, self.scoredocs = searcher, scoredocs
-        if hasattr(count, 'relation'):  # pragma: no cover
+        if hasattr(count, 'relation'):
             cls = int if count.relation == search.TotalHits.Relation.EQUAL_TO else float
             count = cls(count.value)
         self.count, self.fields = count, fields

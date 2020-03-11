@@ -38,3 +38,15 @@ def test_terms(client):
     data = client.execute(query='''{ terms { counts { date } } }''')
     counts = data['terms']['counts']['date']
     assert counts[0] == 10
+
+
+def test_search(client):
+    data = client.execute(
+        query='''{ search(q: "text:right", count: 1) { count hits { id score sortkeys doc { amendment } } } }'''
+    )
+    assert data['search']['count'] == 13
+    (hit,) = data['search']['hits']
+    assert hit['id'] == 9
+    assert hit['score'] > 0
+    assert hit['sortkeys'] == []
+    assert hit['doc'] == {'amendment': ['2']}

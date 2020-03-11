@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import lucene
 import strawberry.asgi
 from starlette.applications import Starlette
@@ -42,6 +42,26 @@ class Terms:
 
 
 @strawberry.type
+class Document:
+    __annotations__ = {name: List[str] for name in root.searcher.fieldinfos}
+    locals().update(dict.fromkeys(__annotations__, ()))
+
+
+@strawberry.type
+class Hit:
+    id: int
+    score: Optional[float]
+    sortkeys: List[str]
+    doc: Document
+
+
+@strawberry.type
+class Hits:
+    count: int
+    hits: List[Hit]
+
+
+@strawberry.type
 class Query:
     @strawberry.field
     def index(self, info) -> Index:
@@ -60,6 +80,12 @@ class Query:
         for name in counts:
             values[name], counts[name] = zip(*root.searcher.terms(name, counts=True))
         return Terms(Values(**values), Counts(**counts))
+
+    @strawberry.field
+    def search(self, info, q: str, count: int = None) -> Hits:
+        """Run query and return htis."""
+        hits = root.searcher.search(q, count)
+        return Hits(hits.count, hits=[Hit(hit.id, hit.score, hit.sortkeys, Document(**hit)) for hit in hits])
 
 
 @strawberry.type

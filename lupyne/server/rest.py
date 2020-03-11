@@ -21,6 +21,16 @@ def terms(name: str, *, counts: bool = False) -> Union[list, dict]:
     return (dict if counts else list)(terms)
 
 
+@app.get('/search')
+def search(q: str, count: int = None) -> dict:
+    """Run query and return htis."""
+    hits = root.searcher.search(q, count)
+    return {
+        'count': hits.count,
+        'hits': [{'id': hit.id, 'score': hit.score, 'sortkeys': hit.sortkeys, 'doc': hit} for hit in hits],
+    }
+
+
 @app.middleware('http')
 async def headers(request, call_next):
     start = time.time()
