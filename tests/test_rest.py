@@ -4,7 +4,7 @@ from starlette.testclient import TestClient
 
 @pytest.fixture
 def client(index):
-    from lupyne.server.rest import app
+    from lupyne.services.rest import app
 
     return TestClient(app)
 

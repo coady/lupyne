@@ -14,7 +14,7 @@ class TestClient(testclient.TestClient):
 
 @pytest.fixture
 def client(index):
-    from lupyne.server.graphql import app
+    from lupyne.services.graphql import app
 
     return TestClient(app)
 

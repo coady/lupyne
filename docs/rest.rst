@@ -4,7 +4,7 @@ Prototype `OpenAPI`_ server based on `FastAPI`_.
 
 Configure `DIRECTORIES` in `.env` file or environment variable
 
-   % uvicorn lupyne.server.rest:app [--reload]
+   % uvicorn lupyne.services.rest:app [--reload]
 
 Open http://localhost:8000/docs
 

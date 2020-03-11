@@ -25,7 +25,7 @@ def pytest_configure(config):
 def tempdir():
     tempdir = tempfile.mkdtemp(dir=fixtures)
     os.environ['DIRECTORIES'] = tempdir
-    sys.modules.pop('lupyne.server.settings', None)
+    sys.modules.pop('lupyne.services.settings', None)
     yield tempdir
     shutil.rmtree(tempdir)
 
