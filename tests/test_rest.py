@@ -6,7 +6,9 @@ from starlette.testclient import TestClient
 def client(index):
     from lupyne.services.rest import app
 
-    return TestClient(app)
+    client = TestClient(app)
+    client.hooks['response'] = lambda r, **_: r.raise_for_status()
+    return client
 
 
 def test_index(client):
