@@ -46,7 +46,7 @@ class Field(FieldType):  # type: ignore
         for name in self.properties.intersection(settings):
             setattr(self, name, settings.pop(name))
         for name in settings:
-            raise AttributeError("'Field' object has not property '{}".format(name))
+            raise AttributeError(f"'Field' object has no property '{name}'")
         if dimensions:
             self.dimensions = dimensions
         if indexOptions:

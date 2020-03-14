@@ -127,7 +127,7 @@ def validate(etag=True, last_modified=False, max_age=None, expires=None):
         cherrypy.lib.cptools.validate_since()
     if max_age is not None:
         headers['age'] = int(time.time() - root.updated)
-        headers['cache-control'] = 'max-age={}'.format(max_age)
+        headers['cache-control'] = f'max-age={max_age}'
     if expires is not None:
         headers['expires'] = cherrypy.lib.httputil.HTTPDate(expires + root.updated)
 
@@ -239,7 +239,7 @@ class WebSearcher:
 
     @property
     def etag(self):
-        return 'W/"{}"'.format(self.searcher.version)
+        return f'W/"{self.searcher.version}"'
 
     @cherrypy.expose
     def index(self):
@@ -330,7 +330,7 @@ class WebSearcher:
         hl: multi = '',
         mlt: int = None,
         timeout: float = None,
-        **options
+        **options,
     ):
         """Run query and return documents.
 
@@ -663,7 +663,7 @@ class WebIndexer(WebSearcher):
                 return len(self.indexer)
             commit = self.indexer.policy.snapshot()
             response.status = int(http.client.CREATED)
-            response.headers['location'] = cherrypy.url('/update/{0:d}'.format(commit.generation), relative='server')
+            response.headers['location'] = cherrypy.url(f'/update/{commit.generation:d}', relative='server')
             return list(commit.fileNames)
         with HTTPError((ValueError, AssertionError), http.client.NOT_FOUND):
             commit = self.indexer.policy.getIndexCommit(int(id))

@@ -49,7 +49,6 @@ Run the server.
 Read the [documentation](https://coady.github.io/lupyne/).
 
 # Installation
-
 ```console
 % pip install lupyne[server]
 ```
@@ -76,7 +75,7 @@ to support OpenAPI and GraphQL.
 
 # Changes
 dev
-* Python 3 required
+* Python >=3.6 required
 * Simplified server command-line options
 
 2.4

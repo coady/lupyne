@@ -171,7 +171,7 @@ class IndexReader:
         """
         type = {int: int, float: util.NumericUtils.sortableLongToDouble}.get(type, util.BytesRef.utf8ToString)
         docValuesType = self.fieldinfos[name].docValuesType.toString().title().replace('_', '')
-        method = getattr(index.MultiDocValues, 'get{}Values'.format(docValuesType))
+        method = getattr(index.MultiDocValues, f'get{docValuesType}Values')
         return getattr(DocValues, docValuesType)(method(self.indexReader, name), len(self), type)
 
     def copy(self, dest, query: search.Query = None, exclude: search.Query = None, merge: int = 0) -> int:
