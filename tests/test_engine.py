@@ -347,7 +347,7 @@ def test_grouping(tempdir, indexer, zipcodes):
     field = indexer.fields['location'] = engine.NestedField('state.county.city', docValuesType='sorted')
     for doc in zipcodes:
         if doc['state'] in ('CA', 'AK', 'WY', 'PR'):
-            lat, lng = ('{0:08.3f}'.format(doc.pop(l)) for l in ['latitude', 'longitude'])
+            lat, lng = ('{0:08.3f}'.format(doc.pop(lt)) for lt in ['latitude', 'longitude'])
             location = '.'.join(doc[name] for name in ['state', 'county', 'city'])
             indexer.add(doc, latitude=lat, longitude=lng, location=location)
     indexer.commit()
@@ -411,7 +411,7 @@ def test_spatial(indexer, zipcodes):
     city, zipcode = 'Beverly Hills', '90210'
     (hit,) = indexer.search('zipcode:' + zipcode)
     assert hit['city'] == city
-    x, y = (float(hit[l]) for l in ['longitude', 'latitude'])
+    x, y = (float(hit[lt]) for lt in ['longitude', 'latitude'])
     query = field.within(x, y, 1e4)
     hits = indexer.search(query, sort=field.distances(x, y))
     distances = {hit.id: hit.sortkeys[0] for hit in hits}

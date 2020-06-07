@@ -32,11 +32,11 @@ def test_index(client):
 
 
 def test_terms(client):
-    data = client.execute('{ terms { values { date } } }')
-    dates = data['terms']['values']['date']
+    data = client.execute('{ terms { date { values } } }')
+    dates = data['terms']['date']['values']
     assert min(dates) == dates[0] == '1791-12-15'
-    data = client.execute('{ terms { counts { date } } }')
-    counts = data['terms']['counts']['date']
+    data = client.execute('{ terms { date { counts } } }')
+    counts = data['terms']['date']['counts']
     assert counts[0] == 10
 
 

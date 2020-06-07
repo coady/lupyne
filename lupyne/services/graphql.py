@@ -19,36 +19,40 @@ def selections(node):
 
 @strawberry.type
 class Index:
+    """index information"""
+
     directories: List[str]
     counts: List[int]
 
 
 @strawberry.type
-class Values:
-    __annotations__ = {name: List[str] for name in root.indexed()}
-    locals().update(dict.fromkeys(__annotations__, ()))
-
-
-@strawberry.type
-class Counts:
-    __annotations__ = {name: List[int] for name in root.indexed()}
-    locals().update(dict.fromkeys(__annotations__, ()))
-
-
-@strawberry.type
 class Terms:
-    values: Values
-    counts: Counts
+    """terms and counts"""
+
+    values: List[str]
+    counts: List[int]
+
+
+@strawberry.type
+class IndexedFields:
+    """indexed field names"""
+
+    __annotations__ = {name: Terms for name in root.indexed()}
+    locals().update(dict.fromkeys(__annotations__))
 
 
 @strawberry.type
 class Document:
+    """stored fields"""
+
     __annotations__ = {name: List[str] for name in root.searcher.fieldinfos}
-    locals().update(dict.fromkeys(__annotations__, ()))
+    locals().update(dict.fromkeys(__annotations__))
 
 
 @strawberry.type
 class Hit:
+    """search result"""
+
     id: int
     score: Optional[float]
     sortkeys: List[str]
@@ -57,6 +61,8 @@ class Hit:
 
 @strawberry.type
 class Hits:
+    """search results"""
+
     count: int
     hits: List[Hit]
 
@@ -64,26 +70,24 @@ class Hits:
 @strawberry.type
 class Query:
     @strawberry.field
-    def index(self, info) -> Index:
+    def index(self) -> Index:
         """index information"""
         index = root.index()
         return Index(directories=index, counts=index.values())
 
     @strawberry.field
-    def terms(self, info) -> Terms:
+    def terms(self, info) -> IndexedFields:
         """indexed field names"""
-        names = selections(*info.field_nodes)
-        counts = dict.fromkeys(names.get('counts', []))
-        values = dict.fromkeys(set(names.get('values', [])) - set(counts))
-        for name in values:
-            values[name] = root.searcher.terms(name)
-        for name in counts:
-            values[name], counts[name] = zip(*root.searcher.terms(name, counts=True))
-        return Terms(Values(**values), Counts(**counts))
+        fields = {}
+        for name, selected in selections(*info.field_nodes).items():
+            counts = 'counts' in selected
+            terms = root.searcher.terms(name, counts=counts)
+            fields[name] = Terms(*zip(*terms)) if counts else Terms(terms, [])
+        return IndexedFields(**fields)
 
     @strawberry.field
-    def search(self, info, q: str, count: int = None) -> Hits:
-        """Run query and return htis."""
+    def search(self, q: str, count: int = None) -> Hits:
+        """Run query and return hits."""
         hits = root.searcher.search(q, count)
         return Hits(hits.count, hits=[Hit(hit.id, hit.score, hit.sortkeys, Document(**hit)) for hit in hits])
 
@@ -91,7 +95,7 @@ class Query:
 @strawberry.type
 class Mutation:
     @strawberry.field
-    def index(self, info, spellcheckers: bool = False) -> Index:
+    def index(self, spellcheckers: bool = False) -> Index:
         """Refresh index."""
         index = root.refresh(spellcheckers=spellcheckers)
         return Index(directories=index, counts=index.values())

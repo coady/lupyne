@@ -500,7 +500,7 @@ class IndexWriter(index.IndexWriter):
     :param attrs: additional attributes to set on IndexWriterConfig
     """
 
-    parse = IndexSearcher.__dict__['parse']
+    parse = IndexSearcher.parse
 
     def __init__(self, directory=None, mode: str = 'a', analyzer=None, version=None, **attrs):
         self.shared = closing()

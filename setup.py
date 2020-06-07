@@ -17,7 +17,7 @@ setup(
         'server': ['cherrypy>=11'],
         'docs': ['nbsphinx', 'jupyter'],
         'rest': ['fastapi'],
-        'graphql': 'strawberry-graphql',
+        'graphql': 'strawberry-graphql>=0.26.1',
     },
     python_requires='>=3.6',
     tests_require=['pytest-cov', 'clients'],

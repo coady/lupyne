@@ -23,7 +23,7 @@ def terms(name: str, *, counts: bool = False) -> Union[list, dict]:
 
 @app.get('/search')
 def search(q: str, count: int = None) -> dict:
-    """Run query and return htis."""
+    """Run query and return hits."""
     hits = root.searcher.search(q, count)
     return {
         'count': hits.count,

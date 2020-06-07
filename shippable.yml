@@ -6,7 +6,6 @@ build:
     image_tag: latest
     pull: true
   ci:
-    - pip install 'graphql-core<3.1'
     - pip install pytest-cov requests strawberry-graphql
     - pip install fastapi
     - pytest -v --cov=lupyne tests/test_engine.py tests/test_rest.py tests/test_graphql.py

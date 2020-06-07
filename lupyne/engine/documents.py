@@ -384,7 +384,7 @@ class Hits:
 class Groups:
     """Sequence of grouped `Hits`_."""
 
-    select = Hits.__dict__['select']
+    select = Hits.select
 
     def __init__(self, searcher, groupdocs: Sequence, count: int = 0, fields=None):
         self.searcher, self.groupdocs = searcher, groupdocs
