@@ -1,0 +1,13 @@
+"""stored fields"""
+type Document {
+  text: String!
+  article: String
+  amendment: String
+  date: String
+}
+
+"""sort fields"""
+type FieldDoc {
+  date: String
+  year: Int
+}

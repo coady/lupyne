@@ -33,7 +33,7 @@ class Field(FieldType):  # type: ignore
     tokenized = property(FieldType.tokenized, FieldType.setTokenized)
 
     properties = {name for name in locals() if not name.startswith('__')}
-    types = {int: 'long', float: 'double'}
+    types = {int: 'long', float: 'double', str: 'string'}
     types.update(NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string')
     dimensions = property(
         getattr(FieldType, 'pointDataDimensionCount', getattr(FieldType, 'pointDimensionCount', None)),

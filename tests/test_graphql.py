@@ -1,5 +1,7 @@
+import os
 import pytest
 from starlette import testclient
+from .conftest import fixtures
 
 
 class TestClient(testclient.TestClient):
@@ -14,6 +16,7 @@ class TestClient(testclient.TestClient):
 
 @pytest.fixture
 def client(index):
+    os.environ['SCHEMA'] = str(fixtures / 'constitution.graphql')
     from lupyne.services.graphql import app
 
     return TestClient(app)
@@ -41,11 +44,19 @@ def test_terms(client):
 
 
 def test_search(client):
-    q = '{ search(q: "text:right", count: 1) { count hits { id score sortkeys doc { amendment } } } }'
-    data = client.execute(q)
+    data = client.execute(
+        '{ search(q: "text:right", count: 1) { count hits { id score sortkeys { year } doc { amendment } } } }'
+    )
     assert data['search']['count'] == 13
     (hit,) = data['search']['hits']
     assert hit['id'] == 9
     assert hit['score'] > 0
-    assert hit['sortkeys'] == []
-    assert hit['doc'] == {'amendment': ['2']}
+    assert hit['sortkeys'] == {'year': None}
+    assert hit['doc'] == {'amendment': '2'}
+    data = client.execute(
+        '''{ search(q: "text:right", count: 1, sort: ["-year"])
+        { count hits { id score sortkeys { year } doc { amendment } } } }'''
+    )
+    assert data['search']['count'] == 13
+    (hit,) = data['search']['hits']
+    assert hit == {'id': 33, 'score': None, 'sortkeys': {'year': 1971}, 'doc': {'amendment': '26'}}
