@@ -1,9 +1,10 @@
+import math
 import time
 from typing import Union
 import lucene
 from fastapi import FastAPI
 from .settings import DEBUG, DIRECTORIES
-from .base import WebSearcher
+from .base import Document, WebSearcher
 
 assert lucene.getVMEnv() or lucene.initVM()
 root = WebSearcher(*DIRECTORIES)
@@ -22,13 +23,17 @@ def terms(name: str, *, counts: bool = False) -> Union[list, dict]:
 
 
 @app.get('/search')
-def search(q: str, count: int = None) -> dict:
+def search(q: str, count: int = None, sort: str = '') -> dict:
     """Run query and return hits."""
-    hits = root.searcher.search(q, count)
-    return {
-        'count': hits.count,
-        'hits': [{'id': hit.id, 'score': hit.score, 'sortkeys': hit.sortkeys, 'doc': hit} for hit in hits],
-    }
+    sortfields = root.sortfields(sort and sort.split(','))
+    hits = root.searcher.search(q, count, list(sortfields.values()) or None)
+    result = {'count': hits.count, 'hits': []}
+    for hit in hits:
+        score = None if math.isnan(hit.score) else hit.score
+        sortkeys = dict(zip(sortfields, hit.sortkeys))
+        doc = Document(**hit).__dict__
+        result['hits'].append({'id': hit.id, 'score': score, 'sortkeys': sortkeys, 'doc': doc})
+    return result
 
 
 @app.middleware('http')

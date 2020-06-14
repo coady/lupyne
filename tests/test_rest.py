@@ -1,9 +1,12 @@
+import os
 import pytest
 from starlette.testclient import TestClient
+from .conftest import fixtures
 
 
 @pytest.fixture
 def client(index):
+    os.environ['SCHEMA'] = str(fixtures / 'constitution.graphql')
     from lupyne.services.rest import app
 
     client = TestClient(app)
@@ -38,5 +41,10 @@ def test_search(client):
     (hit,) = result['hits']
     assert hit['id'] == 9
     assert hit['score'] > 0
-    assert hit['sortkeys'] == []
-    assert hit['doc'] == {'amendment': ['2'], 'date': ['1791-12-15']}
+    assert hit['sortkeys'] == {}
+    assert hit['doc'] == {'amendment': '2', 'date': '1791-12-15'}
+    result = client.get('/search', params={'q': "text:right", 'count': 1, 'sort': '-year'}).json()
+    assert result['count'] == 13
+    assert result['hits'] == [
+        {'id': 33, 'score': None, 'sortkeys': {'year': 1971}, 'doc': {'amendment': '26', 'date': '1971-07-01'}},
+    ]

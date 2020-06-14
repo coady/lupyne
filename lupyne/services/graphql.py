@@ -1,39 +1,16 @@
+import math
 from typing import List, Optional
 import graphql
 import lucene
 import strawberry.asgi
 from starlette.applications import Starlette
-from .settings import DEBUG, DIRECTORIES, SCHEMA
-from .base import WebSearcher
+from .settings import DEBUG, DIRECTORIES
+from .base import Document, FieldDoc, WebSearcher
 
 assert lucene.getVMEnv() or lucene.initVM()
 root = WebSearcher(*DIRECTORIES)
 app = Starlette(debug=DEBUG)
 app.on_event('shutdown')(root.close)
-
-type_map = {
-    'Int': int,
-    'Float': float,
-    'String': str,
-}
-schema = {}
-if SCHEMA:  # pragma: no branch
-    document = graphql.parse(open(SCHEMA).read())
-    schema = {definition.name.value: definition.fields for definition in document.definitions}
-
-
-def convert(node):
-    """Return type annotation from graphql node."""
-    if isinstance(node, graphql.NonNullTypeNode):
-        return convert(node.type)
-    if isinstance(node, graphql.ListTypeNode):  # pragma: no cover
-        return List[convert(node.type)]
-    return type_map[node.name.value]
-
-
-def multi_valued(annotations):
-    """Return set of multi-valued fields."""
-    return {name for name, tp in annotations.items() if getattr(tp, '__origin__', 'tp') is list}
 
 
 def selections(node):
@@ -67,35 +44,23 @@ class IndexedFields:
 
 
 @strawberry.type
-class Document:
-    """stored fields"""
-
-    __annotations__ = {field.name.value: convert(field.type) for field in schema.get('Document', [])}
-    locals().update(dict.fromkeys(__annotations__))
-    locals().update(dict.fromkeys(multi_valued(__annotations__), ()))
-
-    def __init__(self, **doc):
-        for name, values in doc.items():
-            setattr(self, name, values[0] if getattr(type(self), name) is None else values)
-
-
-@strawberry.type
-class FieldDoc:
-    """sort fields"""
-
-    __annotations__ = {field.name.value: convert(field.type) for field in schema.get('FieldDoc', [])}
-    locals().update(dict.fromkeys(__annotations__))
-    assert not multi_valued(__annotations__)
-
-
-@strawberry.type
 class Hit:
     """search result"""
 
     id: int
     score: Optional[float]
-    sortkeys: FieldDoc
-    doc: Document
+    if FieldDoc.__annotations__:  # pragma: no branch
+        sortkeys: FieldDoc
+    if Document.__annotations__:  # pragma: no branch
+        doc: Document
+
+    def __init__(self, id, score, sortkeys=None, doc=None):
+        self.id = id
+        self.score = None if math.isnan(score) else score
+        if sortkeys is not None:  # pragma: no branch
+            self.sortkeys = FieldDoc(**sortkeys)
+        if doc is not None:  # pragma: no branch
+            self.doc = Document(**doc)
 
 
 @strawberry.type
@@ -127,14 +92,13 @@ class Query:
     @strawberry.field
     def search(self, info, q: str, count: int = None, sort: List[str] = []) -> Hits:
         """Run query and return hits."""
-        sort = {name.lstrip('-'): name.startswith('-') for name in sort}
-        sortfields = [root.searcher.sortfield(name, FieldDoc.__annotations__[name], sort[name]) for name in sort]
-        hits = root.searcher.search(q, count, sortfields or None)
+        sortfields = root.sortfields(sort)
+        hits = root.searcher.search(q, count, list(sortfields.values()) or None)
         hits.select(*selections(*info.field_nodes).get('hits', {}).get('doc', []))
         result = Hits(hits.count, [])
         for hit in hits:
-            sortkeys = FieldDoc(**dict(zip(sort, hit.sortkeys)))
-            result.hits.append(Hit(hit.id, None if sort else hit.score, sortkeys, Document(**hit)))
+            sortkeys = dict(zip(sortfields, hit.sortkeys))
+            result.hits.append(Hit(hit.id, hit.score, sortkeys, hit))
         return result
 
 
