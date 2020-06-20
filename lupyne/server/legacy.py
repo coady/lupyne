@@ -45,11 +45,11 @@ import builtins
 import heapq
 import http
 import itertools
+import json
 import re
 import time
 import lucene
 import cherrypy
-from requests.compat import json
 from lupyne import engine
 
 cherrypy.tools.params._priority = 15  # fix for json_out compatibility
