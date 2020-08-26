@@ -210,8 +210,11 @@ class IndexReader:
         if not terms:
             return iter([])
         term, termsenum = index.Term(name, value), terms.iterator()
-        if distance:
-            terms = termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, distance, prefix, False)
+        if distance:  # pragma: no cover
+            if lucene.VERSION < '8.6':
+                terms = termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, distance, prefix, False)
+            else:
+                terms = termsenum = search.FuzzyTermsEnum(terms, term, distance, prefix, False)
         else:
             termsenum.seekCeil(util.BytesRef(value))
             terms = itertools.chain([termsenum.term()], util.BytesRefIterator.cast_(termsenum))

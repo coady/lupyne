@@ -6,6 +6,6 @@ build:
     image_tag: latest
     pull: true
   ci:
-    - pip install pytest-cov strawberry-graphql fastapi
+    - pip install pytest-cov requests strawberry-graphql fastapi
     - pytest -v --cov=lupyne tests/test_engine.py tests/test_rest.py tests/test_graphql.py
     - coverage xml -o shippable/codecoverage/coverage.xml

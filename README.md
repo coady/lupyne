@@ -70,12 +70,12 @@ PyLucene is not `pip` installable.
 ```
 
 # Roadmap
-The server interface is being simplified in anticipation of switching web frameworks,
-to support OpenAPI and GraphQL.
+The original cherrypy `server` is deprecated and being replaced with [starlette](https://www.starlette.io) based services which support OpenAPI and GraphQL.
 
 # Changes
 dev
-* Python >=3.6 required
+* Python >=3.7 required
+* PyLucene 8.6 supported
 * Simplified server command-line options
 
 2.4

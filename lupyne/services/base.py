@@ -1,5 +1,5 @@
 import time
-from typing import List
+from typing import List, Optional
 import graphql
 import lucene
 import strawberry
@@ -29,14 +29,14 @@ def convert(node):
 
 def multi_valued(annotations):
     """Return set of multi-valued fields."""
-    return {name for name, tp in annotations.items() if getattr(tp, '__origin__', 'tp') is list}
+    return {name for name, tp in annotations.items() if getattr(tp, '__origin__', tp) is list}
 
 
 @strawberry.type
 class Document:
     """stored fields"""
 
-    __annotations__ = {field.name.value: convert(field.type) for field in schema.get('Document', [])}
+    __annotations__ = {field.name.value: Optional[convert(field.type)] for field in schema.get('Document', [])}
     locals().update(dict.fromkeys(__annotations__))
     locals().update(dict.fromkeys(multi_valued(__annotations__), ()))
 
@@ -45,11 +45,14 @@ class Document:
             setattr(self, name, values[0] if getattr(type(self), name, ()) is None else values)
 
 
+sort_types = {field.name.value: convert(field.type) for field in schema.get('FieldDoc', [])}
+
+
 @strawberry.type
 class FieldDoc:
     """sort fields"""
 
-    __annotations__ = {field.name.value: convert(field.type) for field in schema.get('FieldDoc', [])}
+    __annotations__ = {name: Optional[sort_types[name]] for name in sort_types}
     locals().update(dict.fromkeys(__annotations__))
     assert not multi_valued(__annotations__)
 
@@ -105,4 +108,4 @@ class WebSearcher:
     def sortfields(self, sort: list) -> dict:
         """Return mapping of fields to lucene SortFields."""
         sort = {name.lstrip('-'): name.startswith('-') for name in sort}
-        return {name: self.searcher.sortfield(name, FieldDoc.__annotations__[name], sort[name]) for name in sort}
+        return {name: self.searcher.sortfield(name, sort_types[name], sort[name]) for name in sort}
