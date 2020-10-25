@@ -1,0 +1,32 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: coady/pylucene
+    steps:
+    - uses: actions/checkout@v2
+    - run: |
+        pip install requests strawberry-graphql fastapi pytest-cov codecov
+        pytest -v --cov=lupyne tests/test_engine.py tests/test_rest.py tests/test_graphql.py
+    - run: |
+        codecov
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.x
+    - run: |
+        pip install black flake8 mypy
+        black --check .
+        flake8
+        mypy -p lupyne.engine

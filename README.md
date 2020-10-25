@@ -2,9 +2,9 @@
 ![image](https://img.shields.io/pypi/pyversions/lupyne.svg)
 [![image](https://pepy.tech/badge/lupyne)](https://pepy.tech/project/lupyne)
 ![image](https://img.shields.io/pypi/status/lupyne.svg)
-[![image](https://api.shippable.com/projects/56059e3e1895ca4474182ec3/badge?branch=master)](https://app.shippable.com/github/coady/lupyne)
-[![image](https://api.shippable.com/projects/56059e3e1895ca4474182ec3/coverageBadge?branch=master)](https://app.shippable.com/github/coady/lupyne)
-[![image](https://requires.io/github/coady/lupyne/requirements.svg)](https://requires.io/github/coady/lupyne/requirements/)
+[![image](https://github.com/coady/lupyne/workflows/build/badge.svg)](https://github.com/coady/lupyne/actions)
+[![image](https://img.shields.io/codecov/c/github/coady/lupyne.svg)](https://codecov.io/github/coady/lupyne)
+[![image](https://requires.io/github/coady/lupyne/requirements.svg?branch=main)](https://requires.io/github/coady/lupyne/requirements/)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://pypi.org/project/black/)
 [![image](http://mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 
