@@ -4,7 +4,7 @@ import lupyne
 setup(
     name='lupyne',
     version=lupyne.__version__,
-    description='Pythonic search engine based on PyLucene, including a standalone server based on CherryPy.',
+    description='Pythonic search engine based on PyLucene.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     author='Aric Coady',
@@ -15,15 +15,13 @@ setup(
     packages=['lupyne', 'lupyne.engine', 'lupyne.server', 'lupyne.services'],
     extras_require={
         'server': ['cherrypy>=11'],
-        'docs': ['nbsphinx', 'jupyter'],
         'rest': ['fastapi'],
         'graphql': ['strawberry-graphql>=0.30'],
     },
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     tests_require=['pytest-cov'],
     classifiers=[
         'Development Status :: 6 - Mature',
-        'Framework :: CherryPy',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: OS Independent',

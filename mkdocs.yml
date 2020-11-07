@@ -1,0 +1,26 @@
+site_name: lupyne
+site_description: Pythonic search engine based on PyLucene.
+theme:
+  name: material
+  logo: logo.png
+
+repo_name: coady/lupyne
+repo_url: https://github.com/coady/lupyne
+edit_uri: ""
+
+nav:
+  - Introduction: index.md
+  - Engine: engine.md
+  - Services: services.md
+  - Examples: examples.ipynb
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          rendering:
+            show_root_heading: true
+            heading_level: 3
+  - mkdocs-jupyter:
+      execute: True

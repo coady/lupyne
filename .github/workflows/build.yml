@@ -12,11 +12,9 @@ jobs:
     container: coady/pylucene
     steps:
     - uses: actions/checkout@v2
-    - run: |
-        pip install requests strawberry-graphql fastapi pytest-cov codecov
-        pytest -v --cov=lupyne tests/test_engine.py tests/test_rest.py tests/test_graphql.py
-    - run: |
-        codecov
+    - run: pip install requests strawberry-graphql fastapi pytest-cov
+    - run: make check
+    - uses: codecov/codecov-action@v1
 
   lint:
     runs-on: ubuntu-latest
@@ -25,8 +23,13 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: 3.x
-    - run: |
-        pip install black flake8 mypy
-        black --check .
-        flake8
-        mypy -p lupyne.engine
+    - run: pip install black flake8 mypy
+    - run: make lint
+
+  docs:
+    runs-on: ubuntu-latest
+    container: coady/pylucene
+    steps:
+    - uses: actions/checkout@v2
+    - run: pip install -r docs/requirements.txt
+    - run: make html

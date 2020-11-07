@@ -1,9 +1,11 @@
-# [GraphQL](https://graphql.org) service
+Services use [Starlette's config](https://www.starlette.io/config/): in environment variables or a .env file
+
+## [GraphQL](https://graphql.org)
 ```console
-% DIRECTORIES=... uvicorn lupyne.services.graphql:app [--reload]
+% DIRECTORIES=... SCHEMA=... uvicorn lupyne.services.graphql:app
 ```
 
-Open http://localhost:8000/graphql.
+Open <http://localhost:8000/graphql>.
 
 Creating a graphql schema is strongly recommended, to retrieve stored fields and sort by fields.
 
@@ -21,19 +23,11 @@ type FieldDoc {
 }
 ```
 
+## [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
 ```console
-% DIRECTORIES=... SCHEMA=... uvicorn lupyne.services.graphql:app [--reload]
+% DIRECTORIES=... SCHEMA=... uvicorn lupyne.services.rest:app
 ```
 
-# [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) service
-```console
-% DIRECTORIES=... uvicorn lupyne.services.rest:app [--reload]
-```
-
-Open http://localhost:8000/docs.
+Open <http://localhost:8000/docs>.
 
 Creating a graphql schema is also recommended - even though it's REST - to retrieve stored fields and sort by fields.
-
-```console
-% DIRECTORIES=... SCHEMA=... uvicorn lupyne.services.rest:app [--reload]
-```
