@@ -12,7 +12,8 @@ jobs:
     container: coady/pylucene
     steps:
     - uses: actions/checkout@v2
-    - run: pip install requests strawberry-graphql fastapi pytest-cov
+    - run: pip install fastapi  # pins starlette version
+    - run: pip install requests strawberry-graphql pytest-cov
     - run: make check
     - uses: codecov/codecov-action@v1
 

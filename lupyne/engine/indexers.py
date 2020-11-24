@@ -78,7 +78,8 @@ def copy(commit, dest):
 class IndexReader:
     """Delegated lucene IndexReader, with a mapping interface of ids to document objects.
 
-    :param reader: lucene IndexReader
+    Args:
+        reader: lucene IndexReader
     """
 
     def __init__(self, reader):
@@ -139,10 +140,11 @@ class IndexReader:
     def suggest(self, name: str, value, count: int = 1, **attrs) -> list:
         """Return spelling suggestions from DirectSpellChecker.
 
-        :param name: field name
-        :param value: term
-        :param count: maximum number of suggestions
-        :param attrs: DirectSpellChecker options
+        Args:
+            name: field name
+            value: term
+            count: maximum number of suggestions
+            attrs: DirectSpellChecker options
         """
         checker = spell.DirectSpellChecker()
         for attr in attrs:
@@ -152,9 +154,10 @@ class IndexReader:
     def sortfield(self, name: str, type=None, reverse=False) -> search.SortField:
         """Return lucene SortField, deriving the the type from FieldInfos if necessary.
 
-        :param name: field name
-        :param type: int, float, or name compatible with SortField constants
-        :param reverse: reverse flag used with sort
+        Args:
+            name: field name
+            type: int, float, or name compatible with SortField constants
+            reverse: reverse flag used with sort
         """
         if type is None:
             type = self.fieldinfos[name].docValuesType.toString()
@@ -166,8 +169,9 @@ class IndexReader:
 
         Note multi-valued DocValues aren't thread-safe and only supported ordered iteration.
 
-        :param name: field name
-        :param type: int or float for converting values
+        Args:
+            name: field name
+            type: int or float for converting values
         """
         type = {int: int, float: util.NumericUtils.sortableLongToDouble}.get(type, util.BytesRef.utf8ToString)
         docValuesType = self.fieldinfos[name].docValuesType.toString().title().replace('_', '')
@@ -179,10 +183,11 @@ class IndexReader:
 
         Optimized to use hard links if the destination is a file system path.
 
-        :param dest: destination directory path or lucene Directory
-        :param query: optional lucene Query to select documents
-        :param exclude: optional lucene Query to exclude documents
-        :param merge: optionally merge into maximum number of segments
+        Args:
+            dest: destination directory path or lucene Directory
+            query: optional lucene Query to select documents
+            exclude: optional lucene Query to exclude documents
+            merge: optionally merge into maximum number of segments
         """
         copy(self.indexCommit, dest)
         with IndexWriter(dest) as writer:
@@ -199,12 +204,13 @@ class IndexReader:
     def terms(self, name: str, value='', stop='', counts=False, distance=0, prefix=0) -> Iterator:
         """Generate a slice of term values, optionally with frequency counts.
 
-        :param name: field name
-        :param value: term prefix, start value (given stop), or fuzzy value (given distance)
-        :param stop: optional upper bound for range terms
-        :param counts: include frequency counts
-        :param distance: maximum edit distance for fuzzy terms
-        :param prefix: prefix length for fuzzy terms
+        Args:
+            name: field name
+            value: term prefix, start value (given stop), or fuzzy value (given distance)
+            stop: optional upper bound for range terms
+            counts: include frequency counts
+            distance: maximum edit distance for fuzzy terms
+            prefix: prefix length for fuzzy terms
         """
         terms = index.MultiTerms.getTerms(self.indexReader, name)
         if not terms:
@@ -267,9 +273,10 @@ class IndexReader:
     def morelikethis(self, doc, *fields, **attrs) -> Query:
         """Return MoreLikeThis query for document.
 
-        :param doc: document id or text
-        :param fields: document fields to use, optional for termvectors
-        :param attrs: additional attributes to set on the morelikethis object
+        Args:
+            doc: document id or text
+            fields: document fields to use, optional for termvectors
+            attrs: additional attributes to set on the morelikethis object
         """
         mlt = queries.mlt.MoreLikeThis(self.indexReader)
         mlt.fieldNames = fields or None
@@ -281,8 +288,9 @@ class IndexReader:
 class IndexSearcher(search.IndexSearcher, IndexReader):
     """Inherited lucene IndexSearcher, with a mixed-in IndexReader.
 
-    :param directory: directory path, lucene Directory, or lucene IndexReader
-    :param analyzer: lucene Analyzer, default StandardAnalyzer
+    Args:
+        directory: directory path, lucene Directory, or lucene IndexReader
+        analyzer: lucene Analyzer, default StandardAnalyzer
     """
 
     def __init__(self, directory, analyzer=None):
@@ -293,7 +301,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
 
     @classmethod
     def load(cls, directory, analyzer=None) -> 'IndexSearcher':
-        """Open `IndexSearcher`_ with a lucene RAMDirectory, loading index into memory."""
+        """Open [IndexSearcher][lupyne.engine.indexers.IndexSearcher] with a lucene RAMDirectory,
+        loading index into memory."""
         with closing.store(directory) as directory:
             directory = store.RAMDirectory(directory, store.IOContext.DEFAULT)
         self = cls(directory, analyzer)
@@ -308,9 +317,10 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
 
     def reopen(self, spellcheckers=False) -> 'IndexSearcher':
-        """Return current `IndexSearcher`_, only creating a new one if necessary.
+        """Return current [IndexSearcher][lupyne.engine.indexers.IndexSearcher], only creating a new one if necessary.
 
-        :param spellcheckers: refresh cached :attr:`spellcheckers`
+        Args:
+            spellcheckers: refresh cached :attr:`spellcheckers`
         """
         reader = self.openIfChanged()
         if reader is None:
@@ -329,14 +339,15 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return Document(self.doc(id))
 
     def get(self, id: int, *fields: str) -> Document:
-        """Return `Document`_ with only selected fields loaded."""
+        """Return [Document][lupyne.engine.documents.Document] with only selected fields loaded."""
         return Document(self.document(id, HashSet(Arrays.asList(fields))))
 
     def spans(self, query: spans.SpanQuery, positions=False) -> Iterator[tuple]:
         """Generate docs with occurrence counts for a span query.
 
-        :param query: lucene SpanQuery
-        :param positions: optionally include slice positions instead of counts
+        Args:
+            query: lucene SpanQuery
+            positions: optionally include slice positions instead of counts
         """
         offset = 0
         weight = query.createWeight(self, search.ScoreMode.COMPLETE_NO_SCORES, 1.0)
@@ -370,8 +381,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def count(self, *query, **options) -> int:
         """Return number of hits for given query or term.
 
-        :param query: :meth:`search` compatible query, or optimally a name and value
-        :param options: additional :meth:`search` options
+        Args:
+            query: [search][lupyne.engine.indexers.IndexSearcher.search] compatible query, or optimally a name and value
+            options: additional [search][lupyne.engine.indexers.IndexSearcher.search] options
         """
         if len(query) > 1:
             return self.docFreq(index.Term(*query))
@@ -394,19 +406,20 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def search(
         self, query=None, count=None, sort=None, reverse=False, scores=False, mincount=1000, timeout=None, **parser
     ) -> Hits:
-        """Run query and return `Hits`_.
+        """Run query and return [Hits][lupyne.engine.documents.Hits].
 
-        .. versionchanged:: 1.4 sort param for lucene only; use Hits.sorted with a callable
-        .. versionchanged:: 2.3 maxscore option removed; use Hits.maxscore property
+        Note:
+            changed in version 2.3: maxscore option removed; use Hits.maxscore property
 
-        :param query: query string or lucene Query
-        :param count: maximum number of hits to retrieve
-        :param sort: lucene Sort parameters
-        :param reverse: reverse flag used with sort
-        :param scores: compute scores for candidate results when sorting
-        :param mincount: total hit count accuracy threshold
-        :param timeout: stop search after elapsed number of seconds
-        :param parser: :meth:`Analyzer.parse` options
+        Args:
+            query: query string or lucene Query
+            count: maximum number of hits to retrieve
+            sort: lucene Sort parameters
+            reverse: reverse flag used with sort
+            scores: compute scores for candidate results when sorting
+            mincount: total hit count accuracy threshold
+            timeout: stop search after elapsed number of seconds
+            parser: [parse][lupyne.engine.analyzers.Analyzer.parse]` options
         """
         query = Query.alldocs() if query is None else self.parse(query, **parser)
         results = cache = collector = self.collector(count, sort, reverse, scores, mincount)
@@ -430,11 +443,10 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def facets(self, query, *fields: str, **query_map: dict) -> dict:
         """Return mapping of document counts for the intersection with each facet.
 
-        .. versionchanged:: 1.6 filters are no longer implicitly cached, a `GroupingSearch`_ is used instead
-
-        :param query: query string or lucene Query
-        :param fields: field names for lucene GroupingSearch
-        :param query_map: `{facet: {key: query, ...}, ...}` for intersected query counts
+        Args:
+            query: query string or lucene Query
+            fields: field names for lucene GroupingSearch
+            query_map: `{facet: {key: query, ...}, ...}` for intersected query counts
         """
         query = self.parse(query)
         counts = {field: self.groupby(field, query).facets for field in fields}
@@ -443,7 +455,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return counts
 
     def groupby(self, field: str, query, count: int = None, start: int = 0, **attrs) -> Groups:
-        """Return `Hits`_ grouped by field using a `GroupingSearch`_."""
+        """Return [Hits][lupyne.engine.documents.Hits] grouped by field
+        using a [GroupingSearch][lupyne.engine.documents.GroupingSearch]."""
         return GroupingSearch(field, **attrs).search(self, self.parse(query), count, start)
 
     def spellchecker(self, field: str) -> SpellChecker:
@@ -469,8 +482,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
 class MultiSearcher(IndexSearcher):
     """IndexSearcher with underlying lucene MultiReader.
 
-    :param reader: directory paths, Directories, IndexReaders, or a single MultiReader
-    :param analyzer: lucene Analyzer, default StandardAnalyzer
+    Args:
+        reader: directory paths, Directories, IndexReaders, or a single MultiReader
+        analyzer: lucene Analyzer, default StandardAnalyzer
     """
 
     def __init__(self, reader, analyzer=None):
@@ -496,11 +510,12 @@ class IndexWriter(index.IndexWriter):
 
     Supports setting fields parameters explicitly, so documents can be represented as dictionaries.
 
-    :param directory: directory path or lucene Directory, default RAMDirectory
-    :param mode: file mode (rwa), except updating (+) is implied
-    :param analyzer: lucene Analyzer, default StandardAnalyzer
-    :param version: lucene Version argument passed to IndexWriterConfig, default is latest
-    :param attrs: additional attributes to set on IndexWriterConfig
+    Args:
+        directory: directory path or lucene Directory, default RAMDirectory
+        mode: file mode (rwa), except updating (+) is implied
+        analyzer: lucene Analyzer, default StandardAnalyzer
+        version: lucene Version argument passed to IndexWriterConfig, default is latest
+        attrs: additional attributes to set on IndexWriterConfig
     """
 
     parse = IndexSearcher.parse
@@ -537,9 +552,10 @@ class IndexWriter(index.IndexWriter):
     def set(self, name: str, cls=Field, **settings) -> Field:
         """Assign settings to field name and return the field.
 
-        :param name: registered name of field
-        :param cls: optional `Field`_ constructor
-        :param settings: stored, indexed, etc. options compatible with `Field`_
+        Args:
+            name: registered name of field
+            cls: optional [Field][lupyne.engine.documents.Field] constructor
+            settings: stored, indexed, etc. options compatible with [Field][lupyne.engine.documents.Field]
         """
         field = self.fields[name] = cls(name, **settings)
         return field
@@ -555,14 +571,12 @@ class IndexWriter(index.IndexWriter):
         return doc
 
     def add(self, document=(), **terms):
-        """Add :meth:`document` to index with optional boost."""
+        """Add [document][lupyne.engine.indexers.IndexWriter.document] to index with optional boost."""
         self.addDocument(self.document(document, **terms))
 
     def update(self, name: str, value='', document=(), **terms):
-        """Atomically delete documents which match given term and add the new :meth:`document`.
-
-        .. versionchanged:: 1.7 update in-place if only DocValues are given
-        """
+        """Atomically delete documents which match given term
+        and add the new [document][lupyne.engine.indexers.IndexWriter.document]."""
         doc = self.document(document, **terms)
         term = index.Term(name, *[value] if value else doc.getValues(name))
         fields = list(doc.iterator())
@@ -576,8 +590,9 @@ class IndexWriter(index.IndexWriter):
     def delete(self, *query, **options):
         """Remove documents which match given query or term.
 
-        :param query: :meth:`IndexSearcher.search` compatible query, or optimally a name and value
-        :param options: additional :meth:`Analyzer.parse` options
+        Args:
+            query: [search][lupyne.engine.indexers.IndexSearcher.search] compatible query, or optimally a name and value
+            options: additional [parse][lupyne.engine.analyzers.Analyzer.parse] options
         """
         parse = self.parse if len(query) == 1 else index.Term
         self.deleteDocuments(parse(*query, **options))
@@ -590,10 +605,7 @@ class IndexWriter(index.IndexWriter):
 
     @contextlib.contextmanager
     def snapshot(self):
-        """Return context manager of an index commit snapshot.
-
-        .. versionchanged:: 1.4 lucene identifies snapshots by commit generation
-        """
+        """Return context manager of an index commit snapshot."""
         commit = self.policy.snapshot()
         try:
             yield commit
@@ -614,9 +626,11 @@ class IndexWriter(index.IndexWriter):
 class Indexer(IndexWriter):
     """An all-purpose interface to an index.
 
-    Creates an `IndexWriter`_ with a delegated `IndexSearcher`_.
+    Creates an [IndexWriter][lupyne.engine.indexers.IndexWriter]
+    with a delegated [IndexSearcher][lupyne.engine.indexers.IndexSearcher].
 
-    :param nrt: optionally use a near real-time searcher
+    Args:
+        nrt: optionally use a near real-time searcher
     """
 
     def __init__(self, directory=None, mode='a', analyzer=None, version=None, nrt=False, **attrs):
@@ -640,13 +654,14 @@ class Indexer(IndexWriter):
         return self.indexSearcher[id]
 
     def refresh(self, **caches):
-        """Store refreshed searcher with :meth:`IndexSearcher.reopen` caches."""
+        """Store refreshed searcher with [reopen][lupyne.engine.indexers.IndexSearcher.reopen] caches."""
         self.indexSearcher = self.indexSearcher.reopen(**caches)
 
     def commit(self, merge=False, **caches):
-        """Commit writes and :meth:`refresh` searcher.
+        """Commit writes and [refresh][lupyne.engine.indexers.Indexer.refresh] searcher.
 
-        :param merge: merge segments with deletes, or optionally specify maximum number of segments
+        Args:
+            merge: merge segments with deletes, or optionally specify maximum number of segments
         """
         super().commit()
         if merge:

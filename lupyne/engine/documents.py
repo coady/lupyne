@@ -17,9 +17,10 @@ FieldType = document.FieldType
 class Field(FieldType):  # type: ignore
     """Saved parameters which can generate lucene Fields given values.
 
-    :param name: name of field
-    :param boost: boost factor
-    :param stored, indexed, settings: lucene FieldType attributes
+    Args:
+        name: name of field
+        boost: boost factor
+        stored, indexed, settings: lucene FieldType attributes
     """
 
     docValuesType = property(FieldType.docValuesType, FieldType.setDocValuesType)
@@ -115,7 +116,8 @@ class NestedField(Field):
 
     Original value may be stored for convenience.
 
-    :param sep: field separator used on name and values
+    Args:
+        sep: field separator used on name and values
     """
 
     def __init__(self, name: str, sep: str = '.', **settings):
@@ -185,8 +187,9 @@ class DateTimeField(Field):
     def duration(self, date, days=0, **delta) -> Query:
         """Return date range query within time span of date.
 
-        :param date: origin date or tuple
-        :param days,delta: timedelta parameters
+        Args:
+            date: origin date or tuple
+            days,delta: timedelta parameters
         """
         if not isinstance(date, datetime.date):
             date = datetime.datetime(*(tuple(date) + (None, 1, 1)[len(date) :]))
@@ -198,9 +201,10 @@ class DateTimeField(Field):
 
         If the delta is an exact number of days, then dates will be used.
 
-        :param days,weeks: number of days to offset from today
-        :param utc: optionally use utc instead of local time
-        :param delta: additional timedelta parameters
+        Args:
+            days,weeks: number of days to offset from today
+            utc: optionally use utc instead of local time
+            delta: additional timedelta parameters
         """
         date = datetime.datetime.utcnow() if utc else datetime.datetime.now()
         if not (isinstance(days + weeks, float) or delta):
@@ -225,8 +229,9 @@ class SpatialField(Field):
     def within(self, lng: float, lat: float, distance: float) -> search.Query:
         """Return range queries for any tiles which could be within distance of given point.
 
-        :param lng,lat: point
-        :param distance: search radius in meters
+        Args:
+            lng,lat: point
+            distance: search radius in meters
         """
         return document.LatLonPoint.newDistanceQuery(self.name, lat, lng, distance)
 
@@ -256,8 +261,9 @@ class Document(dict):
     def dict(self, *names: str, **defaults) -> dict:
         """Return dict representation of document.
 
-        :param names: names of multi-valued fields to return as a list
-        :param defaults: include only given fields, using default values as necessary
+        Args:
+            names: names of multi-valued fields to return as a list
+            defaults: include only given fields, using default values as necessary
         """
         defaults.update((name, self[name]) for name in (defaults or self) if name in self)
         defaults.update((name, self.getlist(name)) for name in names)
@@ -267,7 +273,8 @@ class Document(dict):
 class Hit(Document):
     """A Document from a search result, with :attr:`id`, :attr:`score`, and optional :attr:`sortkeys`.
 
-    .. versionchanged:: 2.4 keys renamed to :attr:`sortkeys`
+    Note:
+        changed in version 2.4: keys renamed to :attr:`sortkeys`
     """
 
     def __init__(self, doc: document.Document, id: int, score: float, sortkeys=()):
@@ -288,12 +295,15 @@ class Hits:
     """Search results: lazily evaluated and memory efficient.
 
     Provides a read-only sequence interface to hit objects.
-    .. versionchanged:: 2.3 maxscore option removed; computed property instead
 
-    :param searcher: `IndexSearcher`_ which can retrieve documents
-    :param scoredocs: lucene ScoreDocs
-    :param count: total number of hits; float indicates estimate
-    :param fields: optional field selectors
+    Note:
+        changed in version 2.3: maxscore option removed; computed property instead
+
+    Args:
+        searcher: [IndexSearcher][lupyne.engine.indexers.IndexSearcher] which can retrieve documents
+        scoredocs: lucene ScoreDocs
+        count: total number of hits; float indicates estimate
+        fields: optional field selectors
     """
 
     def __init__(self, searcher, scoredocs: Sequence, count=0, fields=None):
@@ -339,8 +349,9 @@ class Hits:
     def highlights(self, query: search.Query, **fields: int) -> Iterator[dict]:
         """Generate highlighted fields for each hit.
 
-        :param query: lucene Query
-        :param field: mapping of fields to maxinum number of passages
+        Args:
+            query: lucene Query
+            field: mapping of fields to maxinum number of passages
         """
         mapping = self.searcher.highlighter.highlightFields(list(fields), query, list(self.ids), list(fields.values()))
         mapping = {field: lucene.JArray_string.cast_(mapping.get(field)) for field in fields}
@@ -351,7 +362,7 @@ class Hits:
         return self.searcher.docvalues(field, type).select(self.ids)
 
     def groupby(self, func: Callable, count: int = None, docs: int = None) -> 'Groups':
-        """Return ordered list of `Hits`_ grouped by value of function applied to doc ids.
+        """Return ordered list of [Hits][lupyne.engine.documents.Hits] grouped by value of function applied to doc ids.
 
         Optionally limit the number of groups and docs per group.
         """
@@ -371,18 +382,18 @@ class Hits:
         return Groups(self.searcher, groups[:count], len(groups), self.fields)
 
     def filter(self, func: Callable) -> 'Hits':
-        """Return `Hits`_ filtered by function applied to doc ids."""
+        """Return [Hits][lupyne.engine.documents.Hits] filtered by function applied to doc ids."""
         scoredocs = [scoredoc for scoredoc in self.scoredocs if func(scoredoc.doc)]
         return type(self)(self.searcher, scoredocs, fields=self.fields)
 
     def sorted(self, key: Callable, reverse=False) -> 'Hits':
-        """Return `Hits`_ sorted by key function applied to doc ids."""
+        """Return [Hits][lupyne.engine.documents.Hits] sorted by key function applied to doc ids."""
         scoredocs = sorted(self.scoredocs, key=lambda scoredoc: key(scoredoc.doc), reverse=reverse)
         return type(self)(self.searcher, scoredocs, self.count, self.fields)
 
 
 class Groups:
-    """Sequence of grouped `Hits`_."""
+    """Sequence of grouped [Hits][lupyne.engine.documents.Hits]."""
 
     select = Hits.select
 
@@ -410,10 +421,11 @@ class Groups:
 class GroupingSearch(grouping.GroupingSearch):
     """Inherited lucene GroupingSearch with optimized faceting.
 
-    :param field: unique field name to group by
-    :param sort: lucene Sort to order groups and docs
-    :param cache: use unlimited caching
-    :param attrs: additional attributes to set
+    Args:
+        field: unique field name to group by
+        sort: lucene Sort to order groups and docs
+        cache: use unlimited caching
+        attrs: additional attributes to set
     """
 
     def __init__(self, field: str, sort=None, cache=True, **attrs):
@@ -434,7 +446,7 @@ class GroupingSearch(grouping.GroupingSearch):
         return map(convert, self.allMatchingGroups)
 
     def search(self, searcher, query: search.Query, count: int = None, start: int = 0) -> Groups:
-        """Run query and return `Groups`_."""
+        """Run query and return [Groups][lupyne.engine.documents.Groups]."""
         if count is None:
             count = sum(index.DocValues.getSorted(reader, self.field).valueCount for reader in searcher.readers) or 1
         topgroups = super().search(searcher, query, start, count - start)

@@ -1,5 +1,5 @@
 """
-Pythonic wrapper around `PyLucene <http://lucene.apache.org/pylucene/>`_ search engine.
+Pythonic wrapper around [PyLucene](http://lucene.apache.org/pylucene/) search engine.
 
 Provides high-level interfaces to indexes and documents,
 abstracting away java lucene primitives.

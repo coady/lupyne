@@ -78,7 +78,7 @@ class TokenStream(analysis.TokenStream):
 class TokenFilter(PythonTokenFilter, TokenStream):
     """Create an iterable lucene TokenFilter from a TokenStream.
 
-    Subclass and override :meth:`incrementToken`.
+    Subclass and override [incrementToken][lupyne.engine.analyzers.TokenFilter.incrementToken].
     """
 
     def __init__(self, input: analysis.TokenStream):
@@ -93,8 +93,9 @@ class TokenFilter(PythonTokenFilter, TokenStream):
 class Analyzer(PythonAnalyzer):
     """Return a lucene Analyzer which chains together a tokenizer and filters.
 
-    :param tokenizer: lucene Tokenizer class or callable, called with no args
-    :param filters: lucene TokenFilter classes or callables, successively called on input tokens
+    Args:
+        tokenizer: lucene Tokenizer class or callable, called with no args
+        filters: lucene TokenFilter classes or callables, successively called on input tokens
     """
 
     def __init__(self, tokenizer: Callable, *filters: Callable):
@@ -129,11 +130,12 @@ class Analyzer(PythonAnalyzer):
     def parse(self, query: str, field='', op='', parser=None, **attrs) -> search.Query:
         """Return parsed lucene Query.
 
-        :param query: query string
-        :param field: default query field name, sequence of names, or boost mapping
-        :param op: default query operator ('or', 'and')
-        :param parser: custom PythonQueryParser class
-        :param attrs: additional attributes to set on the parser
+        Args:
+            query: query string
+            field: default query field name, sequence of names, or boost mapping
+            op: default query operator ('or', 'and')
+            parser: custom PythonQueryParser class
+            attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
         cls = queryparser.classic.QueryParser if isinstance(field, str) else queryparser.classic.MultiFieldQueryParser
@@ -159,10 +161,11 @@ class Analyzer(PythonAnalyzer):
     def highlight(self, query: search.Query, field: str, content: str, count: int = 1):
         """Return highlighted content.
 
-        :param query: lucene Query
-        :param field: field name
-        :param content: text
-        :param count: optional maximum number of passages
+        Args:
+            query: lucene Query
+            field: field name
+            content: text
+            count: optional maximum number of passages
         """
         highlighter = uhighlight.UnifiedHighlighter(None, self)
         return highlighter.highlightWithoutSearcher(field, query, content, count).toString()

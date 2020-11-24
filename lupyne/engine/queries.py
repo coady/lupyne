@@ -64,14 +64,14 @@ class Query:
 
     @classmethod
     def span(cls, *term) -> 'SpanQuery':
-        """Return `SpanQuery`_ from term name and value or a MultiTermQuery."""
+        """Return [SpanQuery][lupyne.engine.queries.SpanQuery] from term name and value or a MultiTermQuery."""
         if len(term) <= 1:
             return SpanQuery(spans.SpanMultiTermQueryWrapper, *term)
         return SpanQuery(spans.SpanTermQuery, index.Term(*term))
 
     @classmethod
     def near(cls, name: str, *values, **kwargs) -> 'SpanQuery':
-        """Return :meth:`SpanNearQuery <SpanQuery.near>` from terms.
+        """Return [SpanNearQuery][lupyne.engine.queries.SpanQuery.near] from terms.
         Term values which supply another field name will be masked."""
         spans = (cls.span(name, value) if isinstance(value, str) else cls.span(*value).mask(name) for value in values)
         return SpanQuery.near(*spans, **kwargs)
@@ -279,7 +279,7 @@ class DocValues:
 class SpellParser(PythonQueryParser):
     """Inherited lucene QueryParser which corrects spelling.
 
-    Assign a searcher attribute or override :meth:`correct` implementation.
+    Assign a searcher attribute or override [suggest][lupyne.engine.queries.SpellParser.suggest] implementation.
     """
 
     def suggest(self, term: index.Term) -> index.Term:
