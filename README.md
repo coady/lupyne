@@ -3,8 +3,8 @@
 [![image](https://pepy.tech/badge/lupyne)](https://pepy.tech/project/lupyne)
 ![image](https://img.shields.io/pypi/status/lupyne.svg)
 [![image](https://github.com/coady/lupyne/workflows/build/badge.svg)](https://github.com/coady/lupyne/actions)
-[![image](https://codecov.io/gh/coady/lupyne/branch/main/graph/badge.svg)](https://codecov.io/github/coady/lupyne)
-[![image](https://requires.io/github/coady/lupyne/requirements.svg)](https://requires.io/github/coady/lupyne/requirements/)
+[![image](https://codecov.io/gh/coady/lupyne/branch/main/graph/badge.svg)](https://codecov.io/gh/coady/lupyne/)
+[![image](https://github.com/coady/lupyne/workflows/codeql/badge.svg)](https://github.com/coady/lupyne/security/code-scanning)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://pypi.org/project/black/)
 [![image](http://mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 
@@ -12,10 +12,7 @@ Lupyne is a search engine based on [PyLucene](http://lucene.apache.org/pylucene/
 
 Lupyne also provides GraphQL and RESTful search services, based on [Starlette](https://www.starlette.io). Note Solr and Elasticsearch are popular options for Lucene-based search, if no further (Python) customization is needed. So while the services are suitable for production usage, their primary motivation is to be an extensible example.
 
-Not having to initially choose between an embedded library and a server not only provides greater flexibility,
-it can provide better performance, e.g., batch indexing offline and remote searching live.
-Additionally only lightweight wrappers with extended behavior are used wherever possible,
-so falling back to using PyLucene directly is always an option, but should never be necessary for performance.
+Not having to initially choose between an embedded library and a server not only provides greater flexibility, it can provide better performance, e.g., batch indexing offline and remote searching live. Additionally only lightweight wrappers with extended behavior are used wherever possible, so falling back to using PyLucene directly is always an option, but should never be necessary for performance.
 
 ## Usage
 PyLucene requires initializing the VM.
