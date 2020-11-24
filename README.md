@@ -57,7 +57,7 @@ PyLucene is not `pip` installable.
 ```
 
 ## Changes
-dev
+2.5
 
 * Python >=3.7 required
 * PyLucene 8.6 supported
