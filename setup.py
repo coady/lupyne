@@ -12,12 +12,8 @@ setup(
     url='https://github.com/coady/lupyne',
     project_urls={'Documentation': 'https://coady.github.io/lupyne/'},
     license='Apache Software License',
-    packages=['lupyne', 'lupyne.engine', 'lupyne.server', 'lupyne.services'],
-    extras_require={
-        'server': ['cherrypy>=11'],
-        'rest': ['fastapi'],
-        'graphql': ['strawberry-graphql>=0.30'],
-    },
+    packages=['lupyne', 'lupyne.engine', 'lupyne.services'],
+    extras_require={'rest': ['fastapi'], 'graphql': ['strawberry-graphql>=0.30']},
     python_requires='>=3.7',
     tests_require=['pytest-cov'],
     classifiers=[
