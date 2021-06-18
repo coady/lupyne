@@ -1,6 +1,6 @@
 check:
-	pytest --cov=lupyne.engine tests/test_engine.py
-	python3 -m pytest --cov=lupyne.services tests/test_rest.py tests/test_graphql.py
+	pytest -s --cov=lupyne.engine tests/test_engine.py
+	python3 -m pytest -s --cov=lupyne.services tests/test_rest.py tests/test_graphql.py
 
 lint:
 	black --check .

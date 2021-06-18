@@ -1,4 +1,5 @@
 site_name: lupyne
+site_url: https://coady.github.io/lupyne/
 site_description: Pythonic search engine based on PyLucene.
 theme:
   name: material

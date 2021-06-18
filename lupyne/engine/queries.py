@@ -40,17 +40,17 @@ class Query:
         return builder.build()
 
     @classmethod
-    def any(cls, *queries: search.Query, **terms) -> 'Query':
+    def any(cls, *queries: search.Query, **terms) -> search.BooleanQuery:
         """Return lucene BooleanQuery with SHOULD clauses from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.SHOULD, *queries, **terms)
 
     @classmethod
-    def all(cls, *queries: search.Query, **terms) -> 'Query':
+    def all(cls, *queries: search.Query, **terms) -> search.BooleanQuery:
         """Return lucene BooleanQuery with MUST clauses from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.MUST, *queries, **terms)
 
     @classmethod
-    def filter(cls, *queries: search.Query, **terms) -> 'Query':
+    def filter(cls, *queries: search.Query, **terms) -> search.BooleanQuery:
         """Return lucene BooleanQuery with FILTER clauses from queries and terms."""
         return cls.boolean(search.BooleanClause.Occur.FILTER, *queries, **terms)
 
@@ -88,7 +88,7 @@ class Query:
         return cls(search.TermRangeQuery, name, start, stop, lower, upper)
 
     @classmethod
-    def phrase(cls, name: str, *values, **attrs) -> 'Query':
+    def phrase(cls, name: str, *values, **attrs) -> search.MultiPhraseQuery:
         """Return lucene MultiPhraseQuery.  None may be used as a placeholder."""
         builder = search.MultiPhraseQuery.Builder()
         for attr in attrs:
@@ -133,9 +133,8 @@ class Query:
         return document.LongPoint.newSetQuery(name, tuple(map(int, values)))
 
     @staticmethod
-    def ranges(name: str, *intervals, **inclusive) -> search.Query:
+    def ranges(name: str, *intervals, lower=True, upper=False) -> search.Query:
         """Return lucene multidimensional point range query, by default with half-open intervals."""
-        lower, upper = inclusive.pop('lower', True), inclusive.pop('upper', False)
         starts, stops = [], []
         for start, stop in intervals:
             if isinstance(start, float) or isinstance(stop, float):
@@ -171,29 +170,29 @@ class Query:
         """Return lucene BoostQuery."""
         return Query(search.BoostQuery, self, value)
 
-    def __pos__(self) -> 'Query':
+    def __pos__(self) -> search.BooleanQuery:
         """+self"""
         return Query.all(self)
 
-    def __neg__(self) -> 'Query':
+    def __neg__(self) -> search.BooleanQuery:
         """-self"""
         return Query.boolean(search.BooleanClause.Occur.MUST_NOT, self)
 
-    def __and__(self, other: search.Query) -> 'Query':
+    def __and__(self, other: search.Query) -> search.BooleanQuery:
         """+self +other"""
         return Query.all(self, other)
 
     def __rand__(self, other):
         return Query.all(other, self)
 
-    def __or__(self, other: search.Query) -> 'Query':
+    def __or__(self, other: search.Query) -> search.BooleanQuery:
         """self other"""
         return Query.any(self, other)
 
     def __ror__(self, other):
         return Query.any(other, self)
 
-    def __sub__(self, other: search.Query) -> 'Query':
+    def __sub__(self, other: search.Query) -> search.BooleanQuery:
         """self -other"""
         builder = search.BooleanQuery.Builder()
         builder.add(self, search.BooleanClause.Occur.SHOULD)
