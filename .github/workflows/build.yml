@@ -15,7 +15,9 @@ jobs:
     - run: pip install fastapi  # pins starlette version
     - run: pip install requests strawberry-graphql pytest-cov
     - run: make check
-    - uses: codecov/codecov-action@v2.0.1
+    - uses: codecov/codecov-action@v2
+      with:
+        files: .coverage
 
   lint:
     runs-on: ubuntu-latest
