@@ -12,8 +12,7 @@ jobs:
     container: coady/pylucene
     steps:
     - uses: actions/checkout@v2
-    - run: pip install fastapi  # pins starlette version
-    - run: pip install requests strawberry-graphql pytest-cov
+    - run: pip install -r tests/requirements.in
     - run: make check
     - run: coverage xml
     - uses: codecov/codecov-action@v2
@@ -33,5 +32,5 @@ jobs:
     container: coady/pylucene
     steps:
     - uses: actions/checkout@v2
-    - run: pip install -r docs/requirements.txt
+    - run: pip install -r docs/requirements.in
     - run: make html

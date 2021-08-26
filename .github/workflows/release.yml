@@ -11,10 +11,10 @@ jobs:
     container: coady/pylucene
     steps:
     - uses: actions/checkout@v2
-    - run: pip install build -r docs/requirements.txt
+    - run: pip install build -r docs/requirements.in
     - run: python -m build -n
     - run: PYTHONPATH=$PWD mkdocs gh-deploy --force
-    - uses: pypa/gh-action-pypi-publish@v1.4.2
+    - uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_TOKEN }}
         verbose: true

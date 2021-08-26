@@ -46,7 +46,7 @@ PyLucene is not `pip` installable.
 
 ## Dependencies
 * PyLucene >=8
-* strawberry-graphql >=0.30 (if graphql option)
+* strawberry-graphql >=0.73 (if graphql option)
 * fastapi (if rest option)
 
 ## Tests

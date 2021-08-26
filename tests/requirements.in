@@ -1,0 +1,4 @@
+fastapi
+strawberry-graphql[asgi]
+requests
+pytest-cov
