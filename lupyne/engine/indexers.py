@@ -216,11 +216,8 @@ class IndexReader:
         if not terms:
             return iter([])
         term, termsenum = index.Term(name, value), terms.iterator()
-        if distance:  # pragma: no cover
-            if lucene.VERSION < '8.6':
-                terms = termsenum = search.FuzzyTermsEnum(terms, util.AttributeSource(), term, distance, prefix, False)
-            else:
-                terms = termsenum = search.FuzzyTermsEnum(terms, term, distance, prefix, False)
+        if distance:
+            terms = termsenum = search.FuzzyTermsEnum(terms, term, distance, prefix, False)
         else:
             termsenum.seekCeil(util.BytesRef(value))
             terms = itertools.chain([termsenum.term()], util.BytesRefIterator.cast_(termsenum))
@@ -540,12 +537,12 @@ class IndexWriter(index.IndexWriter):
         return self.docStats.numDocs
 
     @classmethod
-    def check(cls, directory, fix=False) -> index.CheckIndex.Status:
+    def check(cls, directory, repair=False) -> index.CheckIndex.Status:
         """Check and optionally fix unlocked index, returning lucene CheckIndex.Status."""
         with closing.store(directory) as directory:
             with contextlib.closing(index.CheckIndex(directory)) as checkindex:
                 status = checkindex.checkIndex()
-                if fix:
+                if repair:
                     checkindex.exorciseIndex(status)
         return status
 

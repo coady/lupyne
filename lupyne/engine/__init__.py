@@ -12,4 +12,4 @@ from .documents import Document, Field, NestedField, DateTimeField, SpatialField
 from .indexers import IndexSearcher, MultiSearcher, IndexWriter, Indexer  # noqa
 
 version = tuple(map(int, lucene.VERSION.split('.')))
-assert version >= (8,), version
+assert version >= (8, 6), version

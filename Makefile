@@ -8,4 +8,4 @@ lint:
 	mypy -p lupyne.engine
 
 html:
-	PYTHONPATH=$(PWD) mkdocs build
+	PYTHONPATH=$(PWD) python3 -m mkdocs build

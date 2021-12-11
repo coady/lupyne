@@ -267,11 +267,12 @@ def test_indexes(tempdir):
             engine.indexers.copy(commit, path)
     with pytest.raises(lucene.JavaError):
         indexer.check(tempdir)
-    del indexer
-    assert engine.Indexer(tempdir)
-    assert not os.path.exists(os.path.join(tempdir, commit.segmentsFileName))
+
+
+def test_check(tempdir):
+    engine.Indexer(tempdir).close()
     assert engine.IndexWriter.check(tempdir).clean
-    assert not engine.IndexWriter.check(tempdir, fix=True).numBadSegments
+    assert not engine.IndexWriter.check(tempdir, repair=True).numBadSegments
 
 
 def test_queries():
