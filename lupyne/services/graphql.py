@@ -13,10 +13,9 @@ app = Starlette(debug=DEBUG)
 app.on_event('shutdown')(root.close)
 
 
-def selections(node):
+def selections(*fields) -> dict:
     """Return tree of field name selections."""
-    nodes = getattr(node.selection_set, 'selections', [])
-    return {node.name.value: selections(node) for node in nodes}
+    return {selection.name: selections(selection) for field in fields for selection in field.selections}
 
 
 @strawberry.type
@@ -77,13 +76,13 @@ class Query:
     def index(self) -> Index:
         """index information"""
         index = root.index()
-        return Index(directories=index, counts=index.values())
+        return Index(directories=list(index), counts=index.values())
 
     @strawberry.field
     def terms(self, info) -> IndexedFields:
         """indexed field names"""
         fields = {}
-        for name, selected in selections(*info.field_nodes).items():
+        for name, selected in selections(*info.selected_fields).items():
             counts = 'counts' in selected
             terms = root.searcher.terms(name, counts=counts)
             fields[name] = Terms(*zip(*terms)) if counts else Terms(terms)
@@ -94,7 +93,7 @@ class Query:
         """Run query and return hits."""
         sortfields = root.sortfields(sort)
         hits = root.searcher.search(q, count, list(sortfields.values()) or None)
-        hits.select(*selections(*info.field_nodes).get('hits', {}).get('doc', []))
+        hits.select(*selections(*info.selected_fields).get('hits', {}).get('doc', []))
         result = Hits(hits.count, [])
         for hit in hits:
             sortkeys = dict(zip(sortfields, hit.sortkeys))
@@ -108,7 +107,7 @@ class Mutation:
     def index(self, spellcheckers: bool = False) -> Index:
         """Refresh index."""
         index = root.refresh(spellcheckers=spellcheckers)
-        return Index(directories=index, counts=index.values())
+        return Index(directories=list(index), counts=index.values())
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)

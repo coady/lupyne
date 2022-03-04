@@ -96,7 +96,7 @@ class Field(FieldType):  # type: ignore
             types = {int: int, float: util.NumericUtils.doubleToSortableLong}
             for value in values:
                 yield self.docValueClass(self.name, types.get(type(value), util.BytesRef)(value))
-            self = getattr(self, 'docValueLess', self)
+            self = getattr(self, 'docValueLess', self)  # type: ignore
         if self.dimensions:
             for value in values:
                 if isinstance(value, int):
