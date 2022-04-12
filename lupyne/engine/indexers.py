@@ -100,7 +100,7 @@ class IndexReader:
     def __iter__(self) -> Iterator[int]:
         ids = range(self.maxDoc())
         bits = self.bits
-        return filter(bits.get, ids) if bits else iter(ids)
+        return filter(bits.get, ids) if bits else iter(ids)  # type: ignore
 
     @property
     def bits(self) -> util.Bits:
