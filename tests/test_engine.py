@@ -117,8 +117,6 @@ def test_searcher(tempdir, fields, constitution):
     for doc in constitution:
         indexer.add(doc)
     indexer.commit()
-    searcher = engine.IndexSearcher.load(tempdir)
-    assert len(indexer) == len(searcher) and store.RAMDirectory.instance_(searcher.directory)
     assert indexer.spellcheckers == {}
     assert indexer.complete('amendment', '')
     assert list(indexer.spellcheckers) == ['amendment']
@@ -130,7 +128,7 @@ def test_searcher(tempdir, fields, constitution):
     assert list(indexer.spellcheckers) == ['amendment']
     analyzer = engine.Analyzer.standard()
     doc = {'text': doc['text'], 'amendment': analyzer.tokens(doc['amendment'])}
-    scores = list(searcher.match(doc, 'text:congress', 'text:law', 'amendment:27'))
+    scores = list(indexer.match(doc, 'text:congress', 'text:law', 'amendment:27'))
     assert 0.0 == scores[0] < scores[1] <= scores[2] < 1.0
     assert len(indexer) == len(indexer.search()) == 35
     articles = list(indexer.terms('article'))
@@ -388,7 +386,7 @@ def test_grouping(tempdir, indexer, zipcodes):
     assert not hits and not hits.count and math.isnan(hits.maxscore)
     hits = indexer.search(query, timeout=10)
     assert len(hits) == hits.count == indexer.count(query) and hits.maxscore == 1.0
-    directory = store.RAMDirectory()
+    directory = store.ByteBuffersDirectory()
     query = Q.term('state', 'CA')
     size = indexer.copy(directory, query)
     searcher = engine.IndexSearcher(directory)

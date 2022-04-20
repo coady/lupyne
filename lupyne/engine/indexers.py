@@ -30,7 +30,7 @@ class closing(set):
 
     def directory(self, directory):
         if directory is None:
-            directory = store.RAMDirectory()
+            directory = store.ByteBuffersDirectory()
             self.add(directory)
         elif isinstance(directory, str):
             directory = store.FSDirectory.open(File(directory).toPath())
@@ -296,16 +296,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         self.analyzer = self.shared.analyzer(analyzer)
         self.spellcheckers = {}
 
-    @classmethod
-    def load(cls, directory, analyzer=None) -> 'IndexSearcher':
-        """Open [IndexSearcher][lupyne.engine.indexers.IndexSearcher] with a lucene RAMDirectory,
-        loading index into memory."""
-        with closing.store(directory) as directory:
-            directory = store.RAMDirectory(directory, store.IOContext.DEFAULT)
-        self = cls(directory, analyzer)
-        self.shared.add(self.directory)
-        return self
-
     def __del__(self):
         if hash(self):
             self.decRef()
@@ -508,7 +498,7 @@ class IndexWriter(index.IndexWriter):
     Supports setting fields parameters explicitly, so documents can be represented as dictionaries.
 
     Args:
-        directory: directory path or lucene Directory, default RAMDirectory
+        directory: directory path or lucene Directory, default ByteBuffersDirectory
         mode: file mode (rwa), except updating (+) is implied
         analyzer: lucene Analyzer, default StandardAnalyzer
         version: lucene Version argument passed to IndexWriterConfig, default is latest

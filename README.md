@@ -45,7 +45,7 @@ PyLucene is not `pip` installable.
 * [Homebrew](https://brew.sh) formula: `brew install coady/tap/pylucene`
 
 ## Dependencies
-* PyLucene >=8
+* PyLucene >=8.6
 * strawberry-graphql >=0.84.4 (if graphql option)
 * fastapi (if rest option)
 
