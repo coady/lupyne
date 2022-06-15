@@ -222,7 +222,7 @@ class SpatialField(Field):
         """Generate lucene LatLon fields from points (lng, lat)."""
         for lng, lat in points:
             yield document.LatLonPoint(self.name, lat, lng)
-        if self.docvalues:
+        if self.docvalues:  # pragma: no branch
             for lng, lat in points:
                 yield document.LatLonDocValuesField(self.name, lat, lng)
 

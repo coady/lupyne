@@ -59,8 +59,7 @@ PyLucene is not `pip` installable.
 ## Changes
 dev
 
-* PyLucene >=8.6 required
-* PyLucene 8.11 supported
+* PyLucene >=9.1 required
 * [CherryPy](https://cherrypy.org) server removed
 
 2.5

@@ -8,7 +8,8 @@ import lucene
 from java.io import File, IOException, StringReader
 from java.util import Arrays, HashSet
 from org.apache.lucene import analysis, document, index, queries, search, store, util
-from org.apache.lucene.search import spans, spell, uhighlight
+from org.apache.lucene.queries import spans
+from org.apache.lucene.search import spell, uhighlight
 from .analyzers import Analyzer
 from .queries import Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch, Groups
@@ -29,10 +30,7 @@ class closing(set):
         return analyzer
 
     def directory(self, directory):
-        if directory is None:
-            directory = store.ByteBuffersDirectory()
-            self.add(directory)
-        elif isinstance(directory, str):
+        if isinstance(directory, str):
             directory = store.FSDirectory.open(File(directory).toPath())
             self.add(directory)
         return directory
@@ -297,7 +295,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         self.spellcheckers = {}
 
     def __del__(self):
-        if hash(self):
+        if hash(self):  # pragma: no branch
             self.decRef()
 
     def openIfChanged(self):
@@ -338,7 +336,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """
         offset = 0
         weight = query.createWeight(self, search.ScoreMode.COMPLETE_NO_SCORES, 1.0)
-        postings = search.spans.SpanWeight.Postings.POSITIONS
+        postings = queries.spans.SpanWeight.Postings.POSITIONS
         for reader in self.readers:
             try:
                 spans = weight.getSpans(reader.context, postings)
@@ -498,7 +496,7 @@ class IndexWriter(index.IndexWriter):
     Supports setting fields parameters explicitly, so documents can be represented as dictionaries.
 
     Args:
-        directory: directory path or lucene Directory, default ByteBuffersDirectory
+        directory: directory path or lucene Directory
         mode: file mode (rwa), except updating (+) is implied
         analyzer: lucene Analyzer, default StandardAnalyzer
         version: lucene Version argument passed to IndexWriterConfig, default is latest
@@ -507,7 +505,7 @@ class IndexWriter(index.IndexWriter):
 
     parse = IndexSearcher.parse
 
-    def __init__(self, directory=None, mode: str = 'a', analyzer=None, version=None, **attrs):
+    def __init__(self, directory, mode: str = 'a', analyzer=None, version=None, **attrs):
         self.shared = closing()
         args = [] if analyzer is None else [self.shared.analyzer(analyzer)]
         config = index.IndexWriterConfig(*args)
@@ -620,7 +618,7 @@ class Indexer(IndexWriter):
         nrt: optionally use a near real-time searcher
     """
 
-    def __init__(self, directory=None, mode='a', analyzer=None, version=None, nrt=False, **attrs):
+    def __init__(self, directory, mode='a', analyzer=None, version=None, nrt=False, **attrs):
         super().__init__(directory, mode, analyzer, version, **attrs)
         super().commit()
         self.nrt = nrt

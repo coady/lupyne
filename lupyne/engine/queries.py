@@ -3,7 +3,7 @@ import lucene  # noqa
 from java.lang import Double, Integer, Long
 from java.util import Arrays
 from org.apache.lucene import document, index, search, util
-from org.apache.lucene.search import spans
+from org.apache.lucene.queries import spans
 from org.apache.pylucene.queryparser.classic import PythonQueryParser
 
 
@@ -225,10 +225,6 @@ class SpanQuery(Query):
         """Return lucene FieldMaskingSpanQuery, which allows combining span queries from different fields."""
         return SpanQuery(spans.FieldMaskingSpanQuery, self, name)
 
-    def boost(self, value: float) -> 'SpanQuery':
-        """Return lucene SpanBoostQuery."""
-        return SpanQuery(spans.SpanBoostQuery, self, value)
-
     def containing(self, other: spans.SpanQuery) -> 'SpanQuery':
         """Return lucene SpanContainingQuery."""
         return SpanQuery(spans.SpanContainingQuery, self, other)
@@ -253,10 +249,13 @@ class DocValues:
             return {id: self[id] for id in sorted(ids)}
 
         def __getitem__(self, id: int):
+            if self.docvalues.advanceExact(id):  # pragma: no branch
+                return self.type(self.docvalues.lookupOrd(self.docvalues.ordValue()))
+
+    class Binary(Sorted):
+        def __getitem__(self, id: int):
             if self.docvalues.advanceExact(id):
                 return self.type(self.docvalues.binaryValue())
-
-    Binary = Sorted
 
     class Numeric(Sorted):
         def __getitem__(self, id: int):

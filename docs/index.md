@@ -3,7 +3,7 @@ Lupyne is a search engine based on [PyLucene](http://lucene.apache.org/pylucene/
 ## Quickstart
 ```python
 >>> from lupyne import engine                       # don't forget to call lucene.initVM
->>> indexer = engine.Indexer()                      # create an in-memory index (no filename supplied)
+>>> indexer = engine.Indexer('temp')                # create an index at path
 >>> indexer.set('name', stored=True)                # create stored 'name' field
 >>> indexer.set('text', engine.Field.Text)          # create indexed 'text' field
 >>> indexer.add(name='sample', text='hello world')  # add a document to the index
