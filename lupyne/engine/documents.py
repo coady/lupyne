@@ -19,8 +19,6 @@ class Field(FieldType):  # type: ignore
 
     Args:
         name: name of field
-        boost: boost factor
-        stored, indexed, settings: lucene FieldType attributes
     """
 
     docValuesType = property(FieldType.docValuesType, FieldType.setDocValuesType)
@@ -189,7 +187,7 @@ class DateTimeField(Field):
 
         Args:
             date: origin date or tuple
-            days,delta: timedelta parameters
+            days **delta:: timedelta parameters
         """
         if not isinstance(date, datetime.date):
             date = datetime.datetime(*(tuple(date) + (None, 1, 1)[len(date) :]))
@@ -202,9 +200,9 @@ class DateTimeField(Field):
         If the delta is an exact number of days, then dates will be used.
 
         Args:
-            days,weeks: number of days to offset from today
+            days weeks: number of days to offset from today
             utc: optionally use utc instead of local time
-            delta: additional timedelta parameters
+            **delta: additional timedelta parameters
         """
         date = datetime.datetime.utcnow() if utc else datetime.datetime.now()
         if not (isinstance(days + weeks, float) or delta):
@@ -230,7 +228,7 @@ class SpatialField(Field):
         """Return range queries for any tiles which could be within distance of given point.
 
         Args:
-            lng,lat: point
+            lng lat: point
             distance: search radius in meters
         """
         return document.LatLonPoint.newDistanceQuery(self.name, lat, lng, distance)
@@ -262,8 +260,8 @@ class Document(dict):
         """Return dict representation of document.
 
         Args:
-            names: names of multi-valued fields to return as a list
-            defaults: include only given fields, using default values as necessary
+            *names: names of multi-valued fields to return as a list
+            **defaults: include only given fields, using default values as necessary
         """
         defaults.update((name, self[name]) for name in (defaults or self) if name in self)
         defaults.update((name, self.getlist(name)) for name in names)
@@ -351,7 +349,7 @@ class Hits:
 
         Args:
             query: lucene Query
-            field: mapping of fields to maxinum number of passages
+            **fields: mapping of fields to maxinum number of passages
         """
         mapping = self.searcher.highlighter.highlightFields(list(fields), query, list(self.ids), list(fields.values()))
         mapping = {field: lucene.JArray_string.cast_(mapping.get(field)) for field in fields}
@@ -425,7 +423,7 @@ class GroupingSearch(grouping.GroupingSearch):
         field: unique field name to group by
         sort: lucene Sort to order groups and docs
         cache: use unlimited caching
-        attrs: additional attributes to set
+        **attrs: additional attributes to set
     """
 
     def __init__(self, field: str, sort=None, cache=True, **attrs):

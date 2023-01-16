@@ -95,7 +95,7 @@ class Analyzer(PythonAnalyzer):
 
     Args:
         tokenizer: lucene Tokenizer class or callable, called with no args
-        filters: lucene TokenFilter classes or callables, successively called on input tokens
+        *filters: lucene TokenFilter classes or callables, successively called on input tokens
     """
 
     def __init__(self, tokenizer: Callable, *filters: Callable):
@@ -135,7 +135,7 @@ class Analyzer(PythonAnalyzer):
             field: default query field name, sequence of names, or boost mapping
             op: default query operator ('or', 'and')
             parser: custom PythonQueryParser class
-            attrs: additional attributes to set on the parser
+            **attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
         cls = queryparser.classic.QueryParser if isinstance(field, str) else queryparser.classic.MultiFieldQueryParser

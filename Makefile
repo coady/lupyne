@@ -4,7 +4,7 @@ check:
 
 lint:
 	black --check .
-	flake8
+	flake8 --ignore E203,E501,F402
 	mypy -p lupyne.engine
 
 html:

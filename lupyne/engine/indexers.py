@@ -142,7 +142,7 @@ class IndexReader:
             name: field name
             value: term
             count: maximum number of suggestions
-            attrs: DirectSpellChecker options
+            **attrs: DirectSpellChecker options
         """
         checker = spell.DirectSpellChecker()
         for attr in attrs:
@@ -270,8 +270,8 @@ class IndexReader:
 
         Args:
             doc: document id or text
-            fields: document fields to use, optional for termvectors
-            attrs: additional attributes to set on the morelikethis object
+            *fields: document fields to use, optional for termvectors
+            **attrs: additional attributes to set on the morelikethis object
         """
         mlt = queries.mlt.MoreLikeThis(self.indexReader)
         mlt.fieldNames = fields or None
@@ -367,8 +367,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """Return number of hits for given query or term.
 
         Args:
-            query: [search][lupyne.engine.indexers.IndexSearcher.search] compatible query, or optimally a name and value
-            options: additional [search][lupyne.engine.indexers.IndexSearcher.search] options
+            *query: [search][lupyne.engine.indexers.IndexSearcher.search] compatible query, or optimally a name and value
+            **options: additional [search][lupyne.engine.indexers.IndexSearcher.search] options
         """
         if len(query) > 1:
             return self.docFreq(index.Term(*query))
@@ -404,7 +404,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             scores: compute scores for candidate results when sorting
             mincount: total hit count accuracy threshold
             timeout: stop search after elapsed number of seconds
-            parser: [parse][lupyne.engine.analyzers.Analyzer.parse]` options
+            **parser: [parse][lupyne.engine.analyzers.Analyzer.parse]` options
         """
         query = Query.alldocs() if query is None else self.parse(query, **parser)
         results = cache = collector = self.collector(count, sort, reverse, scores, mincount)
@@ -430,8 +430,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
 
         Args:
             query: query string or lucene Query
-            fields: field names for lucene GroupingSearch
-            query_map: `{facet: {key: query, ...}, ...}` for intersected query counts
+            *fields: field names for lucene GroupingSearch
+            **query_map: `{facet: {key: query, ...}, ...}` for intersected query counts
         """
         query = self.parse(query)
         counts = {field: self.groupby(field, query).facets for field in fields}
@@ -500,7 +500,7 @@ class IndexWriter(index.IndexWriter):
         mode: file mode (rwa), except updating (+) is implied
         analyzer: lucene Analyzer, default StandardAnalyzer
         version: lucene Version argument passed to IndexWriterConfig, default is latest
-        attrs: additional attributes to set on IndexWriterConfig
+        **attrs: additional attributes to set on IndexWriterConfig
     """
 
     parse = IndexSearcher.parse
@@ -540,7 +540,7 @@ class IndexWriter(index.IndexWriter):
         Args:
             name: registered name of field
             cls: optional [Field][lupyne.engine.documents.Field] constructor
-            settings: stored, indexed, etc. options compatible with [Field][lupyne.engine.documents.Field]
+            **settings: stored, indexed, etc. options compatible with [Field][lupyne.engine.documents.Field]
         """
         field = self.fields[name] = cls(name, **settings)
         return field
@@ -576,8 +576,8 @@ class IndexWriter(index.IndexWriter):
         """Remove documents which match given query or term.
 
         Args:
-            query: [search][lupyne.engine.indexers.IndexSearcher.search] compatible query, or optimally a name and value
-            options: additional [parse][lupyne.engine.analyzers.Analyzer.parse] options
+            *query: [search][lupyne.engine.indexers.IndexSearcher.search] compatible query, or optimally a name and value
+            **options: additional [parse][lupyne.engine.analyzers.Analyzer.parse] options
         """
         parse = self.parse if len(query) == 1 else index.Term
         self.deleteDocuments(parse(*query, **options))
