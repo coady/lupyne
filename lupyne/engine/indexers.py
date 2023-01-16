@@ -3,7 +3,7 @@ import itertools
 import operator
 import os
 from functools import partial
-from typing import Iterator, Mapping
+from typing import Iterator, Mapping, Optional
 import lucene
 from java.io import File, IOException, StringReader
 from java.util import Arrays, HashSet
@@ -439,7 +439,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             counts[facet] = {key: self.count(Query.all(query, queries[key])) for key in queries}
         return counts
 
-    def groupby(self, field: str, query, count: int = None, start: int = 0, **attrs) -> Groups:
+    def groupby(self, field: str, query, count: Optional[int] = None, start: int = 0, **attrs) -> Groups:
         """Return [Hits][lupyne.engine.documents.Hits] grouped by field
         using a [GroupingSearch][lupyne.engine.documents.GroupingSearch]."""
         return GroupingSearch(field, **attrs).search(self, self.parse(query), count, start)
@@ -451,7 +451,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         except KeyError:
             return self.spellcheckers.setdefault(field, SpellChecker(self.terms(field, counts=True)))
 
-    def complete(self, field: str, prefix: str, count: int = None) -> list:
+    def complete(self, field: str, prefix: str, count: Optional[int] = None) -> list:
         """Return ordered suggested words for prefix."""
         return self.spellchecker(field).complete(prefix, count)
 

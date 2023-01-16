@@ -1,6 +1,7 @@
 name: build
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -9,7 +10,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: coady/pylucene
+    container: coady/pylucene:9.1
     steps:
     - uses: actions/checkout@v3
     - run: pip install -r tests/requirements.in

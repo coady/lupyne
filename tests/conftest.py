@@ -48,7 +48,7 @@ def fields():
 @fixture
 def constitution():
     lines = open(fixtures / 'constitution.txt')
-    items = itertools.groupby(lines, lambda l: l.startswith('Article ') or l.startswith('Amendment '))
+    items = itertools.groupby(lines, lambda l: l.startswith('Article ') or l.startswith('Amendment '))  # noqa: E741
     for _, (header,) in items:
         _, lines = next(items)
         header, num = header.rstrip('.\n').split(None, 1)

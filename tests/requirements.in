@@ -1,4 +1,4 @@
 strawberry-graphql[asgi]
 fastapi
-requests
+httpx
 pytest-cov

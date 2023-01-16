@@ -269,7 +269,7 @@ class DocValues:
 
     class SortedSet(Sorted):
         def __getitem__(self, id: int):
-            ords = iter(self.docvalues.nextOrd, self.docvalues.NO_MORE_ORDS)  # type: Iterator
+            ords: Iterator = iter(self.docvalues.nextOrd, self.docvalues.NO_MORE_ORDS)
             if self.docvalues.advanceExact(id):
                 return tuple(self.type(self.docvalues.lookupOrd(ord)) for ord in ords)
 

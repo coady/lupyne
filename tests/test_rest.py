@@ -1,3 +1,4 @@
+import operator
 import os
 import pytest
 from starlette.testclient import TestClient
@@ -10,7 +11,7 @@ def client(index):
     from lupyne.services.rest import app
 
     client = TestClient(app)
-    client.hooks['response'] = lambda r, **_: r.raise_for_status()
+    client.event_hooks['response'].append(operator.methodcaller('raise_for_status'))
     return client
 
 
@@ -23,7 +24,7 @@ def test_index(client):
     assert resp.json() == result
     assert float(resp.headers['x-response-time']) > 0.0
     assert int(resp.headers['age']) == 0
-    assert client.post('/', params={'spellcheckers': True}).ok
+    assert not client.post('/', params={'spellcheckers': True}).is_error
 
 
 def test_terms(client):

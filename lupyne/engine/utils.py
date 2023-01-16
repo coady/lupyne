@@ -3,7 +3,7 @@ import bisect
 import contextlib
 import heapq
 import itertools
-from typing import Iterable
+from typing import Iterable, Optional
 import lucene
 from java.lang import Double, Float, Number, Object
 from org.apache.lucene import analysis, util
@@ -33,7 +33,7 @@ class SpellChecker(dict):
         alphabet = ''.join(set(itertools.chain.from_iterable(self)))
         self.suffix = alphabet and max(alphabet) * max(map(len, self))
 
-    def complete(self, prefix: str, count: int = None) -> list:
+    def complete(self, prefix: str, count: Optional[int] = None) -> list:
         """Return ordered suggested words for prefix."""
         start = bisect.bisect_left(self.words, prefix)
         stop = bisect.bisect_right(self.words, prefix + self.suffix, start)

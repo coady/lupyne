@@ -4,6 +4,7 @@ import graphql
 import lucene
 import strawberry.asgi
 from starlette.applications import Starlette
+from strawberry.types import Info
 from .settings import DEBUG, DIRECTORIES
 from .base import Document, FieldDoc, WebSearcher
 
@@ -79,22 +80,22 @@ class Query:
         return Index(directories=list(index), counts=index.values())
 
     @strawberry.field
-    def terms(self, info) -> IndexedFields:
+    def terms(self, info: Info) -> IndexedFields:
         """indexed field names"""
         fields = {}
         for name, selected in selections(*info.selected_fields).items():
             counts = 'counts' in selected
             terms = root.searcher.terms(name, counts=counts)
-            fields[name] = Terms(*zip(*terms)) if counts else Terms(terms)
+            fields[name] = Terms(**dict(zip(['values', 'counts'], zip(*terms)))) if counts else Terms(values=terms)
         return IndexedFields(**fields)
 
     @strawberry.field
-    def search(self, info, q: str, count: int = None, sort: List[str] = []) -> Hits:
+    def search(self, info: Info, q: str, count: int = None, sort: List[str] = []) -> Hits:
         """Run query and return hits."""
         sortfields = root.sortfields(sort)
         hits = root.searcher.search(q, count, list(sortfields.values()) or None)
         hits.select(*selections(*info.selected_fields).get('hits', {}).get('doc', []))
-        result = Hits(hits.count, [])
+        result = Hits(count=hits.count, hits=[])
         for hit in hits:
             sortkeys = dict(zip(sortfields, hit.sortkeys))
             result.hits.append(Hit(hit.id, hit.score, sortkeys, hit))
