@@ -10,7 +10,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: coady/pylucene:9.1
+    container: coady/pylucene
     steps:
     - uses: actions/checkout@v3
     - run: pip install -r tests/requirements.in
