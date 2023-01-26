@@ -24,4 +24,5 @@ plugins:
             show_root_heading: true
             heading_level: 3
   - mkdocs-jupyter:
-      execute: True
+      execute: true
+      allow_errors: false

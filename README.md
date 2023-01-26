@@ -57,16 +57,20 @@ PyLucene is not `pip` installable.
 ```
 
 ## Changes
+dev
+
+* Python >=3.8 required
+
 3.0
 
 * PyLucene >=9.1 required
-* [CherryPy](https://cherrypy.org) server removed
+* [CherryPy](https://cherrypy.dev) server removed
 
 2.5
 
 * Python >=3.7 required
 * PyLucene 8.6 supported
-* [CherryPy](https://cherrypy.org) server deprecated
+* [CherryPy](https://cherrypy.dev) server deprecated
 
 2.4
 
