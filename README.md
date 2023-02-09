@@ -60,6 +60,7 @@ PyLucene is not `pip` installable.
 dev
 
 * Python >=3.8 required
+* Shape fields
 
 3.0
 
