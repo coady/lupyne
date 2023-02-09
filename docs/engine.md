@@ -36,7 +36,7 @@
 
 ::: lupyne.engine.documents.DateTimeField
 
-::: lupyne.engine.documents.SpatialField
+::: lupyne.engine.documents.ShapeField
 
 ## queries
 

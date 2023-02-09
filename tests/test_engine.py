@@ -1,10 +1,11 @@
 import bisect
 import datetime
+import json
 import math
 import os
 import pytest
 import lucene
-from org.apache.lucene import analysis, document, search, store, util
+from org.apache.lucene import analysis, document, geo, search, store, util
 from lupyne import engine
 
 Q = engine.Query
@@ -420,6 +421,43 @@ def test_spatial(indexer, zipcodes):
     hits = hits.sorted(distances.__getitem__, reverse=True)
     ids = list(hits.ids)
     assert 0 <= distances[ids[-1]] < distances[ids[0]] < 1e4
+
+
+def test_shape(indexer, zipcodes):
+    for name in ('longitude', 'latitude'):
+        indexer.set(name, dimensions=1, stored=True)
+    latlon = indexer.set('latlon', engine.ShapeField)
+    xy = indexer.set('xy', engine.ShapeField, indexed=False, docvalues=True)
+    for doc in zipcodes:
+        if doc['state'] == 'CA':
+            point = doc['latitude'], doc['longitude']
+            indexer.add(doc, latlon=geo.Point(*point), xy=geo.XYPoint(*point[::-1]))
+    indexer.commit()
+    assert indexer.count(latlon.contains(geo.Point(*point))) == 0
+    assert indexer.count(latlon.disjoint(geo.Point(*point))) == 2647
+    line = [point[0] - 1, point[0] + 1], [point[1], point[1]]
+    assert indexer.count(latlon.disjoint(geo.Line(*line))) == 2647
+    assert indexer.count(latlon.intersects(geo.Line(*line))) == 0
+    circle = point[0], point[1], 1.0
+    assert indexer.count(latlon.disjoint(geo.Circle(*circle))) == 2646
+    assert indexer.count(latlon.intersects(geo.Circle(*circle))) == 1
+    assert indexer.count(latlon.within(geo.Circle(*circle))) == 1
+    lat, lon = point
+    (pg,) = geo.Polygon.fromGeoJSON(
+        json.dumps({'type': 'Polygon', 'coordinates': [[(lon, lat), (lon + 1, lat), (lon, lat + 1), (lon, lat)]]})
+    )
+    assert indexer.count(latlon.contains(pg)) == 0
+    assert indexer.count(latlon.disjoint(pg)) == 2639
+    assert indexer.count(latlon.intersects(pg)) == 8
+    assert indexer.count(latlon.within(pg)) == 8
+
+    assert isinstance(xy.contains(geo.XYPoint(*point)), search.Query)
+    assert isinstance(xy.disjoint(geo.XYLine(*line)), search.Query)
+    assert isinstance(xy.intersects(geo.XYCircle(*circle)), search.Query)
+    assert isinstance(latlon.distances(geo.Point(*point)), search.SortField)
+    assert isinstance(xy.distances(geo.XYPoint(*point)), search.SortField)
+    (field,) = latlon.items(pg)
+    assert isinstance(field, document.Field)
 
 
 def test_fields(indexer, constitution):

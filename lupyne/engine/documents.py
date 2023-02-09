@@ -2,16 +2,17 @@ import calendar
 import collections
 import datetime
 import operator
-from typing import Callable, Iterator, Optional, Sequence
+from typing import Callable, Iterator, Optional, Sequence, Union, no_type_check
 import lucene  # noqa
 from java.lang import Long
 from java.util import Arrays, HashSet
-from org.apache.lucene import document, index, search, util
+from org.apache.lucene import document, geo, index, search, util
 from org.apache.lucene.search import grouping
 from .queries import Query
 from .utils import convert
 
 FieldType = document.FieldType
+QueryRelation = document.ShapeField.QueryRelation
 
 
 class Field(FieldType):  # type: ignore
@@ -211,7 +212,7 @@ class DateTimeField(Field):
 
 
 class SpatialField(Field):
-    """Geospatial points, indexed with optional docvalues."""
+    """Deprecated: see `ShapeField`."""
 
     def __init__(self, name: str, dimensions: int = 1, **settings):
         super().__init__(name, dimensions=dimensions, **settings)
@@ -233,9 +234,70 @@ class SpatialField(Field):
         """
         return document.LatLonPoint.newDistanceQuery(self.name, lat, lng, distance)
 
-    def distances(self, lng: str, lat: str) -> search.Query:
+    def distances(self, lng: str, lat: str) -> search.SortField:
         """Return distance SortField."""
         return document.LatLonDocValuesField.newDistanceSort(self.name, lat, lng)
+
+
+class ShapeField:
+    """Field which indexes geometries: LatLon or XY."""
+
+    def __init__(self, name: str, indexed=True, docvalues=False):
+        self.name, self.indexed, self.docvalues = name, bool(indexed), bool(docvalues)
+
+    @staticmethod
+    def as_tuple(shape: geo.Geometry) -> tuple:
+        if isinstance(shape, geo.Point):
+            return shape.lat, shape.lon
+        if isinstance(shape, geo.XYPoint):
+            return shape.x, shape.y
+        return (shape,)
+
+    @no_type_check
+    def items(self, *shapes: geo.Geometry) -> Iterator[document.Field]:
+        """Generate lucene shape fields from geometries."""
+        for shape in shapes:
+            cls = document.XYShape if isinstance(shape, geo.XYGeometry) else document.LatLonShape
+            args = self.as_tuple(shape)
+            if self.indexed:
+                yield from cls.createIndexableFields(self.name, *args)
+            if self.docvalues:
+                yield cls.createDocValueField(self.name, *args)
+
+    def distances(self, point: Union[geo.Point, geo.XYPoint]) -> search.SortField:
+        """Return distance SortField."""
+        xy = isinstance(point, geo.XYGeometry)
+        cls = document.XYDocValuesField if xy else document.LatLonDocValuesField
+        return cls.newDistanceSort(self.name, *self.as_tuple(point))
+
+    @no_type_check
+    def query(self, relation: QueryRelation, *shapes: geo.Geometry) -> search.Query:
+        shape = shapes[0]
+        cls = document.XYShape if isinstance(shape, geo.XYGeometry) else document.LatLonShape
+        func = cls.newGeometryQuery
+        if isinstance(shape, (geo.Line, geo.XYLine)):
+            func = cls.newLineQuery
+        if isinstance(shape, (geo.Circle, geo.XYCircle)):
+            func = cls.newDistanceQuery
+        if isinstance(shape, (geo.Polygon, geo.XYPolygon)):
+            func = cls.newPolygonQuery
+        return func(self.name, relation, *shapes)
+
+    def contains(self, *shapes: geo.Geometry) -> search.Query:
+        """Return shape query with `contains` relation."""
+        return self.query(QueryRelation.CONTAINS, *shapes)
+
+    def disjoint(self, *shapes: geo.Geometry) -> search.Query:
+        """Return shape query with `disjoint` relation."""
+        return self.query(QueryRelation.DISJOINT, *shapes)
+
+    def intersects(self, *shapes: geo.Geometry) -> search.Query:
+        """Return shape query with `intersects` relation."""
+        return self.query(QueryRelation.INTERSECTS, *shapes)
+
+    def within(self, *shapes: geo.Geometry) -> search.Query:
+        """Return shape query with `within` relation."""
+        return self.query(QueryRelation.WITHIN, *shapes)
 
 
 class Document(dict):

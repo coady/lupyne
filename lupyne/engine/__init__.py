@@ -8,7 +8,7 @@ abstracting away java lucene primitives.
 import lucene
 from .analyzers import Analyzer, TokenFilter  # noqa
 from .queries import Query  # noqa
-from .documents import Document, Field, NestedField, DateTimeField, SpatialField  # noqa
+from .documents import Document, Field, NestedField, DateTimeField, ShapeField, SpatialField  # noqa
 from .indexers import IndexSearcher, MultiSearcher, IndexWriter, Indexer  # noqa
 
 version = tuple(map(int, lucene.VERSION.split('.')))
