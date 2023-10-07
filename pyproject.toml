@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
     "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -31,6 +32,8 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/coady/lupyne"
 Documentation = "https://coady.github.io/lupyne"
+Changelog = "https://github.com/coady/lupyne/blob/main/CHANGELOG.md"
+Issues = "https://github.com/coady/lupyne/issues"
 
 [project.optional-dependencies]
 rest = ["fastapi"]
