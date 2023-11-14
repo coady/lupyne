@@ -90,11 +90,14 @@ class Query:
         return IndexedFields(**fields)
 
     @strawberry.field
-    def search(self, info: Info, q: str, count: int = None, sort: List[str] = []) -> Hits:
+    def search(self, info: Info, q: str, count: Optional[int] = None, sort: List[str] = []) -> Hits:
         """Run query and return hits."""
+        selected = selections(*info.selected_fields)
+        if 'hits' not in selected or count == 0:
+            return Hits(count=root.searcher.count(q), hits=[])
         sortfields = root.sortfields(sort)
         hits = root.searcher.search(q, count, list(sortfields.values()) or None)
-        hits.select(*selections(*info.selected_fields).get('hits', {}).get('doc', []))
+        hits.select(*selected.get('hits', {}).get('doc', []))
         result = Hits(count=hits.count, hits=[])
         for hit in hits:
             sortkeys = dict(zip(sortfields, hit.sortkeys))

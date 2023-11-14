@@ -9,12 +9,10 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     container: coady/pylucene
+    permissions: write-all
     steps:
     - uses: actions/checkout@v4
-    - run: pip install build wheel -r docs/requirements.in
+    - run: pip install build wheel setuptools -r docs/requirements.in
     - run: python -m build -n
     - run: PYTHONPATH=$PWD python -m mkdocs gh-deploy --force
     - uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        password: ${{ secrets.PYPI_TOKEN }}
-        verbose: true
