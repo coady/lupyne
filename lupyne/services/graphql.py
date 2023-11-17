@@ -1,5 +1,8 @@
+import functools
+import inspect
 import math
-from typing import List, Optional
+from collections.abc import Callable
+from typing import Annotated, List, Optional
 import graphql
 import lucene
 import strawberry.asgi
@@ -19,7 +22,22 @@ def selections(*fields) -> dict:
     return {selection.name: selections(selection) for field in fields for selection in field.selections}
 
 
-@strawberry.type
+def doc_type(cls):
+    """Return strawberry type with docstring descriptions."""
+    return strawberry.type(cls, description=inspect.getdoc(cls))
+
+
+def doc_field(func: Optional[Callable] = None, **kwargs: str):
+    """Return strawberry field with argument and docstring descriptions."""
+    if func is None:
+        return functools.partial(doc_field, **kwargs)
+    for name in kwargs:
+        argument = strawberry.argument(description=kwargs[name])
+        func.__annotations__[name] = Annotated[func.__annotations__[name], argument]
+    return strawberry.field(func, description=inspect.getdoc(func))
+
+
+@doc_type
 class Index:
     """index information"""
 
@@ -27,7 +45,7 @@ class Index:
     counts: List[int]
 
 
-@strawberry.type
+@doc_type
 class Terms:
     """terms and counts"""
 
@@ -35,7 +53,7 @@ class Terms:
     counts: List[int] = ()
 
 
-@strawberry.type
+@doc_type
 class IndexedFields:
     """indexed field names"""
 
@@ -43,7 +61,7 @@ class IndexedFields:
     locals().update(dict.fromkeys(__annotations__, graphql.Undefined))
 
 
-@strawberry.type
+@doc_type
 class Hit:
     """search result"""
 
@@ -63,7 +81,7 @@ class Hit:
             self.doc = Document(**doc)
 
 
-@strawberry.type
+@doc_type
 class Hits:
     """search results"""
 
@@ -71,15 +89,15 @@ class Hits:
     hits: List[Hit]
 
 
-@strawberry.type
+@doc_type
 class Query:
-    @strawberry.field
+    @doc_field
     def index(self) -> Index:
         """index information"""
         index = root.index()
         return Index(directories=list(index), counts=index.values())
 
-    @strawberry.field
+    @doc_field
     def terms(self, info: Info) -> IndexedFields:
         """indexed field names"""
         fields = {}
@@ -89,7 +107,11 @@ class Query:
             fields[name] = Terms(**dict(zip(['values', 'counts'], zip(*terms)))) if counts else Terms(values=terms)
         return IndexedFields(**fields)
 
-    @strawberry.field
+    @doc_field(
+        q="query string",
+        count="maximum number of hits to retrieve",
+        sort="sort by fields",
+    )
     def search(self, info: Info, q: str, count: Optional[int] = None, sort: List[str] = []) -> Hits:
         """Run query and return hits."""
         selected = selections(*info.selected_fields)
@@ -105,9 +127,9 @@ class Query:
         return result
 
 
-@strawberry.type
+@doc_type
 class Mutation:
-    @strawberry.field
+    @doc_field(spellcheckers="refresh cached spellcheckers")
     def index(self, spellcheckers: bool = False) -> Index:
         """Refresh index."""
         index = root.refresh(spellcheckers=spellcheckers)
