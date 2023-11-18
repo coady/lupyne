@@ -118,8 +118,13 @@ class Query:
         if 'hits' not in selected or count == 0:
             return Hits(count=root.searcher.count(q), hits=[])
         sortfields = root.sortfields(sort)
-        hits = root.searcher.search(q, count, list(sortfields.values()) or None)
-        hits.select(*selected.get('hits', {}).get('doc', []))
+        hits = root.searcher.search(
+            q,
+            count,
+            sort=list(sortfields.values()) or None,
+            scores='score' in selected['hits'],
+        )
+        hits.select(*selected['hits'].get('doc', []))
         result = Hits(count=hits.count, hits=[])
         for hit in hits:
             sortkeys = dict(zip(sortfields, hit.sortkeys))

@@ -59,7 +59,7 @@ def test_search(client):
     )
     assert data['search']['count'] == 13
     (hit,) = data['search']['hits']
-    assert hit == {'id': 33, 'score': None, 'sortkeys': {'year': 1971}, 'doc': {'amendment': '26'}}
+    assert hit == {'id': 33, 'score': pytest.approx(0.648349), 'sortkeys': {'year': 1971}, 'doc': {'amendment': '26'}}
 
 
 def test_count(client):
