@@ -386,7 +386,8 @@ class Hits:
             return type(self)(self.searcher, scoredocs, self.count, self.fields)
         scoredoc = self.scoredocs[index]
         keys = search.FieldDoc.cast_(scoredoc).fields if search.FieldDoc.instance_(scoredoc) else ()
-        doc = self.searcher.doc(scoredoc.doc, *([self.fields] * bool(self.fields)))
+        storedFields = self.searcher.storedFields()
+        doc = storedFields.document(scoredoc.doc, *([self.fields] * (self.fields is not None)))
         return Hit(doc, scoredoc.doc, scoredoc.score, keys)
 
     @property

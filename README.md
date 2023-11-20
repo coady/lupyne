@@ -6,6 +6,7 @@
 [![image](https://codecov.io/gh/coady/lupyne/branch/main/graph/badge.svg)](https://codecov.io/gh/coady/lupyne/)
 [![image](https://github.com/coady/lupyne/workflows/codeql/badge.svg)](https://github.com/coady/lupyne/security/code-scanning)
 [![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://pypi.org/project/black/)
+[![image](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![image](https://mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 
 Lupyne is a search engine based on [PyLucene](https://lucene.apache.org/pylucene/), the Python extension for accessing Java Lucene. Lucene is a relatively low-level toolkit, and PyLucene wraps it through automatic code generation. So although Java idioms are translated to Python idioms where possible, the resulting interface is far from Pythonic. See `./docs/examples.ipynb` for comparisons with the Lucene API.
@@ -45,8 +46,8 @@ PyLucene is not `pip` installable.
 * [Homebrew](https://brew.sh) formula: `brew install coady/tap/pylucene`
 
 ## Dependencies
-* PyLucene >=9.1
-* strawberry-graphql >=0.84.4 (if graphql option)
+* PyLucene >=9.6
+* strawberry-graphql (if graphql option)
 * fastapi (if rest option)
 
 ## Tests

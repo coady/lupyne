@@ -321,11 +321,11 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return other
 
     def __getitem__(self, id: int) -> Document:
-        return Document(self.doc(id))
+        return Document(self.storedFields().document(id))
 
     def get(self, id: int, *fields: str) -> Document:
         """Return [Document][lupyne.engine.documents.Document] with only selected fields loaded."""
-        return Document(self.document(id, HashSet(Arrays.asList(fields))))
+        return Document(self.storedFields().document(id, HashSet(Arrays.asList(fields))))
 
     def spans(self, query: spans.SpanQuery, positions=False) -> Iterator[tuple]:
         """Generate docs with occurrence counts for a span query.

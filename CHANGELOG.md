@@ -6,9 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## Unreleased
 ### Changed
 * Python >=3.8 required
+* PyLucene >=9.6 required
 
 ### Added
 * Shape fields
+* GraphQL search enhancements
 
 ## [3.0](https://pypi.org/project/lupyne/3.0/) - 2023-01-16
 ### Changed
