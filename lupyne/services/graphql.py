@@ -1,3 +1,4 @@
+import contextlib
 import functools
 import inspect
 import math
@@ -11,10 +12,16 @@ from strawberry.types import Info
 from .settings import DEBUG, DIRECTORIES
 from .base import Document, FieldDoc, WebSearcher
 
+
+@contextlib.asynccontextmanager
+async def lifespan(app: Starlette):  # pragma: no cover
+    yield
+    root.close()
+
+
 assert lucene.getVMEnv() or lucene.initVM()
 root = WebSearcher(*DIRECTORIES)
-app = Starlette(debug=DEBUG)
-app.on_event('shutdown')(root.close)
+app = Starlette(debug=DEBUG, lifespan=lifespan)
 
 
 def selections(*fields) -> dict:

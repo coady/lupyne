@@ -1,3 +1,4 @@
+import contextlib
 import math
 import time
 from typing import Union
@@ -6,10 +7,16 @@ from fastapi import FastAPI
 from .settings import DEBUG, DIRECTORIES
 from .base import Document, WebSearcher
 
+
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):  # pragma: no cover
+    yield
+    root.close()
+
+
 assert lucene.getVMEnv() or lucene.initVM()
 root = WebSearcher(*DIRECTORIES)
-app = FastAPI(debug=DEBUG)
-app.on_event('shutdown')(root.close)
+app = FastAPI(debug=DEBUG, lifespan=lifespan)
 
 app.get('/', response_description="{`directory`: `count`}")(root.index)
 app.post('/', response_description="{`directory`: `count`}")(root.refresh)

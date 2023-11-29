@@ -62,6 +62,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "-p no:faulthandler"
+filterwarnings = ["ignore:builtin type .* has no __module__ attribute:DeprecationWarning"]
 
 [tool.coverage.run]
 source = ["lupyne"]
