@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 import lucene  # noqa
 from java.lang import Double, Integer, Long
 from java.util import Arrays

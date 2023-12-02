@@ -3,7 +3,7 @@ import functools
 import inspect
 import math
 from collections.abc import Callable
-from typing import Annotated, List, Optional
+from typing import Annotated, Optional
 import graphql
 import lucene
 import strawberry.asgi
@@ -48,16 +48,16 @@ def doc_field(func: Optional[Callable] = None, **kwargs: str):
 class Index:
     """index information"""
 
-    directories: List[str]
-    counts: List[int]
+    directories: list[str]
+    counts: list[int]
 
 
 @doc_type
 class Terms:
     """terms and counts"""
 
-    values: List[str]
-    counts: List[int] = ()
+    values: list[str]
+    counts: list[int] = ()
 
 
 @doc_type
@@ -93,7 +93,7 @@ class Hits:
     """search results"""
 
     count: int
-    hits: List[Hit]
+    hits: list[Hit]
 
 
 @doc_type
@@ -119,7 +119,7 @@ class Query:
         count="maximum number of hits to retrieve",
         sort="sort by fields",
     )
-    def search(self, info: Info, q: str, count: Optional[int] = None, sort: List[str] = []) -> Hits:
+    def search(self, info: Info, q: str, count: Optional[int] = None, sort: list[str] = []) -> Hits:
         """Run query and return hits."""
         selected = selections(*info.selected_fields)
         if 'hits' not in selected or count == 0:

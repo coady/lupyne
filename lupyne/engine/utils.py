@@ -3,7 +3,8 @@ import bisect
 import contextlib
 import heapq
 import itertools
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from typing import Optional
 import lucene
 from java.lang import Double, Float, Number, Object
 from org.apache.lucene import analysis, util

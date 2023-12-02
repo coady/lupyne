@@ -2,8 +2,9 @@ import contextlib
 import itertools
 import operator
 import os
+from collections.abc import Iterator, Mapping
 from functools import partial
-from typing import Iterator, Mapping, Optional
+from typing import Optional
 import lucene
 from java.io import File, IOException, StringReader
 from java.util import Arrays, HashSet

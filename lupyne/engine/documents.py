@@ -2,7 +2,8 @@ import calendar
 import collections
 import datetime
 import operator
-from typing import Callable, Iterator, Optional, Sequence, Union, no_type_check
+from collections.abc import Callable, Iterator, Sequence
+from typing import Optional, Union, no_type_check
 import lucene  # noqa
 from java.lang import Long
 from java.util import Arrays, HashSet

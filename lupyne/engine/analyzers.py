@@ -1,4 +1,5 @@
-from typing import Callable, Iterable, Mapping, Optional
+from collections.abc import Callable, Iterable, Mapping
+from typing import Optional
 import jcc  # noqa: F401 needed for building docs
 from java.io import StringReader
 from java.lang import Float

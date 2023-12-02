@@ -1,5 +1,5 @@
 import time
-from typing import List, Optional
+from typing import Optional
 import graphql
 import lucene
 import strawberry
@@ -23,7 +23,7 @@ def convert(node):
     if isinstance(node, graphql.NonNullTypeNode):
         return convert(node.type)
     if isinstance(node, graphql.ListTypeNode):  # pragma: no cover
-        return List[convert(node.type)]
+        return list[convert(node.type)]
     return type_map[node.name.value]
 
 
