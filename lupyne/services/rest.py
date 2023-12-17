@@ -47,5 +47,9 @@ def search(q: str, count: int = None, sort: str = '') -> dict:
 async def headers(request, call_next):
     start = time.time()
     response = await call_next(request)
-    response.headers.update({'x-response-time': str(time.time() - start), 'age': str(int(root.age)), 'etag': root.etag})
+    response.headers.update({
+        'x-response-time': str(time.time() - start),
+        'age': str(int(root.age)),
+        'etag': root.etag,
+    })
     return response

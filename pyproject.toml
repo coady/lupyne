@@ -48,12 +48,17 @@ version = {attr = "lupyne.__version__"}
 [tool.setuptools.package-data]
 lupyne = ["py.typed"]
 
-[tool.black]
-line-length = 120
-skip-string-normalization = true
-
 [tool.ruff]
-ignore = ["E501", "F402"]
+line-length = 100
+ignore = ["F402"]
+extend-include = ["*.ipynb"]
+
+[tool.ruff.format]
+preview = true
+quote-style = "preserve"
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["F821"]
 
 [[tool.mypy.overrides]]
 module = ["lucene", "jcc", "java.*", "org.apache.*"]

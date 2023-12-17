@@ -59,7 +59,9 @@ class Query:
         """Return lucene DisjunctionMaxQuery from queries and terms."""
         queries = list(queries)
         for name, values in terms.items():
-            queries += (cls.term(name, value) for value in ([values] if isinstance(values, str) else values))
+            if isinstance(values, str):
+                values = [values]
+            queries += (cls.term(name, value) for value in values)
         return cls(search.DisjunctionMaxQuery, Arrays.asList(queries), multiplier)
 
     @classmethod
@@ -73,7 +75,10 @@ class Query:
     def near(cls, name: str, *values, **kwargs) -> 'SpanQuery':
         """Return [SpanNearQuery][lupyne.engine.queries.SpanQuery.near] from terms.
         Term values which supply another field name will be masked."""
-        spans = (cls.span(name, value) if isinstance(value, str) else cls.span(*value).mask(name) for value in values)
+        spans = (
+            cls.span(name, value) if isinstance(value, str) else cls.span(*value).mask(name)
+            for value in values
+        )
         return SpanQuery.near(*spans, **kwargs)
 
     @classmethod
@@ -265,7 +270,8 @@ class DocValues:
     class SortedNumeric(Sorted):
         def __getitem__(self, id: int):
             if self.docvalues.advanceExact(id):
-                return tuple(self.type(self.docvalues.nextValue()) for _ in range(self.docvalues.docValueCount()))
+                indices = range(self.docvalues.docValueCount())
+                return tuple(self.type(self.docvalues.nextValue()) for _ in indices)
 
     class SortedSet(Sorted):
         def __getitem__(self, id: int):

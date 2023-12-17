@@ -139,7 +139,9 @@ class Analyzer(PythonAnalyzer):
             **attrs: additional attributes to set on the parser
         """
         # parsers aren't thread-safe (nor slow), so create one each time
-        cls = queryparser.classic.QueryParser if isinstance(field, str) else queryparser.classic.MultiFieldQueryParser
+        cls = queryparser.classic.MultiFieldQueryParser
+        if isinstance(field, str):
+            cls = queryparser.classic.QueryParser
         args = field, self
         if isinstance(field, Mapping):
             boosts = HashMap()

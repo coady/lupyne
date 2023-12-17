@@ -36,7 +36,9 @@ def multi_valued(annotations):
 class Document:
     """stored fields"""
 
-    __annotations__ = {field.name.value: Optional[convert(field.type)] for field in schema.get('Document', [])}
+    __annotations__ = {
+        field.name.value: Optional[convert(field.type)] for field in schema.get('Document', [])
+    }
     locals().update(dict.fromkeys(__annotations__))
     locals().update(dict.fromkeys(multi_valued(__annotations__), ()))
 
@@ -91,7 +93,9 @@ class WebSearcher:
         """index information"""
         searcher = self.searcher
         if isinstance(searcher, engine.MultiSearcher):  # pragma: no cover
-            return {reader.directory().toString(): reader.numDocs() for reader in searcher.indexReaders}
+            return {
+                reader.directory().toString(): reader.numDocs() for reader in searcher.indexReaders
+            }
         return {searcher.directory.toString(): len(searcher)}
 
     def refresh(self, spellcheckers: bool = False) -> dict:

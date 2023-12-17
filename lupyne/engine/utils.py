@@ -62,4 +62,6 @@ def convert(value):
     if not Number.instance_(value):
         return value.toString() if Object.instance_(value) else value
     value = Number.cast_(value)
-    return value.doubleValue() if Float.instance_(value) or Double.instance_(value) else int(value.longValue())
+    if Float.instance_(value) or Double.instance_(value):
+        return value.doubleValue()
+    return int(value.longValue())

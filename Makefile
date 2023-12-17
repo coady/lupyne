@@ -3,8 +3,8 @@ check:
 	python -m pytest -s --cov-append --cov=lupyne.services tests/test_rest.py tests/test_graphql.py
 
 lint:
-	black --check .
 	ruff .
+	ruff format --check .
 	mypy -p lupyne.engine
 
 html:

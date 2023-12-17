@@ -27,17 +27,25 @@ class Field(FieldType):  # type: ignore
     indexOptions = property(FieldType.indexOptions, FieldType.setIndexOptions)
     omitNorms = property(FieldType.omitNorms, FieldType.setOmitNorms)
     stored = property(FieldType.stored, FieldType.setStored)
-    storeTermVectorOffsets = property(FieldType.storeTermVectorOffsets, FieldType.setStoreTermVectorOffsets)
-    storeTermVectorPayloads = property(FieldType.storeTermVectorPayloads, FieldType.setStoreTermVectorPayloads)
-    storeTermVectorPositions = property(FieldType.storeTermVectorPositions, FieldType.setStoreTermVectorPositions)
+    storeTermVectorOffsets = property(
+        FieldType.storeTermVectorOffsets, FieldType.setStoreTermVectorOffsets
+    )
+    storeTermVectorPayloads = property(
+        FieldType.storeTermVectorPayloads, FieldType.setStoreTermVectorPayloads
+    )
+    storeTermVectorPositions = property(
+        FieldType.storeTermVectorPositions, FieldType.setStoreTermVectorPositions
+    )
     storeTermVectors = property(FieldType.storeTermVectors, FieldType.setStoreTermVectors)
     tokenized = property(FieldType.tokenized, FieldType.setTokenized)
 
     properties = {name for name in locals() if not name.startswith('__')}
     types = {int: 'long', float: 'double', str: 'string'}
-    types.update(NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string')
+    types.update(
+        NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string'
+    )
     dimensions = property(
-        getattr(FieldType, 'pointDataDimensionCount', getattr(FieldType, 'pointDimensionCount', None)),
+        FieldType.pointDimensionCount,
         lambda self, count: self.setDimensions(count, Long.BYTES),
     )
 
@@ -54,7 +62,8 @@ class Field(FieldType):  # type: ignore
             self.indexOptions = getattr(index.IndexOptions, indexOptions.upper())
         if docValuesType:
             self.docValuesType = getattr(index.DocValuesType, docValuesType.upper())
-            self.docValueClass = getattr(document, docValuesType.title().replace('_', '') + 'DocValuesField')
+            name = docValuesType.title().replace('_', '')
+            self.docValueClass = getattr(document, name + 'DocValuesField')
             if self.stored or self.indexed or self.dimensions:
                 settings = self.settings
                 del settings['docValuesType']
@@ -62,9 +71,12 @@ class Field(FieldType):  # type: ignore
         assert self.stored or self.indexed or self.docvalues or self.dimensions
 
     @classmethod
-    def String(cls, name: str, tokenized=False, omitNorms=True, indexOptions='DOCS', **settings) -> 'Field':
+    def String(
+        cls, name: str, tokenized=False, omitNorms=True, indexOptions='DOCS', **settings
+    ) -> 'Field':
         """Return Field with default settings for strings."""
-        return cls(name, tokenized=tokenized, omitNorms=omitNorms, indexOptions=indexOptions, **settings)
+        settings.update(tokenized=tokenized, omitNorms=omitNorms, indexOptions=indexOptions)
+        return cls(name, **settings)
 
     @classmethod
     def Text(cls, name: str, indexOptions='DOCS_AND_FREQS_AND_POSITIONS', **settings) -> 'Field':
@@ -128,8 +140,8 @@ class NestedField(Field):
     def values(self, value: str) -> Iterator[str]:
         """Generate component field values in order."""
         value = value.split(self.sep)  # type: ignore
-        for index in range(1, len(value) + 1):
-            yield self.sep.join(value[:index])
+        for stop in range(1, len(value) + 1):
+            yield self.sep.join(value[:stop])
 
     def items(self, *values: str) -> Iterator[document.Field]:
         """Generate indexed component fields."""
@@ -326,9 +338,8 @@ class Document(dict):
             *names: names of multi-valued fields to return as a list
             **defaults: include only given fields, using default values as necessary
         """
-        defaults.update((name, self[name]) for name in (defaults or self) if name in self)
-        defaults.update((name, self.getlist(name)) for name in names)
-        return defaults
+        defaults |= {name: self[name] for name in (defaults or self) if name in self}
+        return defaults | {name: self.getlist(name) for name in names}
 
 
 class Hit(Document):
@@ -415,7 +426,9 @@ class Hits:
             query: lucene Query
             **fields: mapping of fields to maxinum number of passages
         """
-        mapping = self.searcher.highlighter.highlightFields(list(fields), query, list(self.ids), list(fields.values()))
+        mapping = self.searcher.highlighter.highlightFields(
+            list(fields), query, list(self.ids), list(fields.values())
+        )
         mapping = {field: lucene.JArray_string.cast_(mapping.get(field)) for field in fields}
         return (dict(zip(mapping, values)) for values in zip(*mapping.values()))
 
@@ -423,7 +436,9 @@ class Hits:
         """Return mapping of docs to docvalues."""
         return self.searcher.docvalues(field, type).select(self.ids)
 
-    def groupby(self, func: Callable, count: Optional[int] = None, docs: Optional[int] = None) -> 'Groups':
+    def groupby(
+        self, func: Callable, count: Optional[int] = None, docs: Optional[int] = None
+    ) -> 'Groups':
         """Return ordered list of [Hits][lupyne.engine.documents.Hits] grouped by value of function applied to doc ids.
 
         Optionally limit the number of groups and docs per group.
@@ -507,9 +522,14 @@ class GroupingSearch(grouping.GroupingSearch):
     def __iter__(self):
         return map(convert, self.allMatchingGroups)
 
-    def search(self, searcher, query: search.Query, count: Optional[int] = None, start: int = 0) -> Groups:
+    def search(
+        self, searcher, query: search.Query, count: Optional[int] = None, start: int = 0
+    ) -> Groups:
         """Run query and return [Groups][lupyne.engine.documents.Groups]."""
         if count is None:
-            count = sum(index.DocValues.getSorted(reader, self.field).valueCount for reader in searcher.readers) or 1
-        topgroups = super().search(searcher, query, start, count - start)
+            count = sum(
+                index.DocValues.getSorted(reader, self.field).valueCount
+                for reader in searcher.readers
+            )
+        topgroups = super().search(searcher, query, start, max(count - start, 1))
         return Groups(searcher, topgroups.groups, topgroups.totalHitCount)

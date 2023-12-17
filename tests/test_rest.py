@@ -47,5 +47,10 @@ def test_search(client):
     result = client.get('/search', params={'q': "text:right", 'count': 1, 'sort': '-year'}).json()
     assert result['count'] == 13
     assert result['hits'] == [
-        {'id': 33, 'score': None, 'sortkeys': {'year': 1971}, 'doc': {'amendment': '26', 'date': '1971-07-01'}},
+        {
+            'id': 33,
+            'score': None,
+            'sortkeys': {'year': 1971},
+            'doc': {'amendment': '26', 'date': '1971-07-01'},
+        },
     ]

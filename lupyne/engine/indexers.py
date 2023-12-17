@@ -148,7 +148,8 @@ class IndexReader:
         checker = spell.DirectSpellChecker()
         for attr in attrs:
             setattr(checker, attr, attrs[attr])
-        return [word.string for word in checker.suggestSimilar(index.Term(name, value), count, self.indexReader)]
+        words = checker.suggestSimilar(index.Term(name, value), count, self.indexReader)
+        return [word.string for word in words]
 
     def sortfield(self, name: str, type=None, reverse=False) -> search.SortField:
         """Return lucene SortField, deriving the the type from FieldInfos if necessary.
@@ -172,12 +173,15 @@ class IndexReader:
             name: field name
             type: int or float for converting values
         """
-        type = {int: int, float: util.NumericUtils.sortableLongToDouble}.get(type, util.BytesRef.utf8ToString)
+        types = {int: int, float: util.NumericUtils.sortableLongToDouble}
+        type = types.get(type, util.BytesRef.utf8ToString)
         docValuesType = self.fieldinfos[name].docValuesType.toString().title().replace('_', '')
         method = getattr(index.MultiDocValues, f'get{docValuesType}Values')
         return getattr(DocValues, docValuesType)(method(self.indexReader, name), len(self), type)
 
-    def copy(self, dest, query: search.Query = None, exclude: search.Query = None, merge: int = 0) -> int:
+    def copy(
+        self, dest, query: search.Query = None, exclude: search.Query = None, merge: int = 0
+    ) -> int:
         """Copy the index to the destination directory.
 
         Optimized to use hard links if the destination is a file system path.
@@ -221,14 +225,18 @@ class IndexReader:
             termsenum.seekCeil(util.BytesRef(value))
             terms = itertools.chain([termsenum.term()], util.BytesRefIterator.cast_(termsenum))
         terms = map(operator.methodcaller('utf8ToString'), terms)
-        predicate = partial(operator.gt, stop) if stop else operator.methodcaller('startswith', value)
+        predicate = (
+            partial(operator.gt, stop) if stop else operator.methodcaller('startswith', value)
+        )
         if not distance:
             terms = itertools.takewhile(predicate, terms)  # type: ignore
         return ((term, termsenum.docFreq()) for term in terms) if counts else terms
 
     def docs(self, name: str, value, counts=False) -> Iterator:
         """Generate doc ids which contain given term, optionally with frequency counts."""
-        docsenum = index.MultiTerms.getTermPostingsEnum(self.indexReader, name, util.BytesRef(value))
+        docsenum = index.MultiTerms.getTermPostingsEnum(
+            self.indexReader, name, util.BytesRef(value)
+        )
         docs = iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()
         return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)  # type: ignore
 
@@ -236,19 +244,28 @@ class IndexReader:
         """Generate doc ids and positions which contain given term.
 
         Optionally with offsets, or only ones with payloads."""
-        docsenum = index.MultiTerms.getTermPostingsEnum(self.indexReader, name, util.BytesRef(value))
+        docsenum = index.MultiTerms.getTermPostingsEnum(
+            self.indexReader, name, util.BytesRef(value)
+        )
         for doc in iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ():  # type: ignore
             positions = (docsenum.nextPosition() for _ in range(docsenum.freq()))
             if payloads:
-                positions = ((position, docsenum.payload.utf8ToString()) for position in positions if docsenum.payload)
+                positions = (
+                    (position, docsenum.payload.utf8ToString())
+                    for position in positions
+                    if docsenum.payload
+                )
             elif offsets:
-                positions = ((docsenum.startOffset(), docsenum.endOffset()) for position in positions)
+                positions = (
+                    (docsenum.startOffset(), docsenum.endOffset()) for position in positions
+                )
             yield doc, list(positions)
 
     def vector(self, id, field):
         terms = self.getTermVector(id, field)
         termsenum = terms.iterator() if terms else index.TermsEnum.EMPTY
-        return termsenum, map(operator.methodcaller('utf8ToString'), util.BytesRefIterator.cast_(termsenum))
+        terms = map(operator.methodcaller('utf8ToString'), util.BytesRefIterator.cast_(termsenum))
+        return termsenum, terms
 
     def termvector(self, id: int, field: str, counts=False) -> Iterator:
         """Generate terms for given doc id and field, optionally with frequency counts."""
@@ -390,7 +407,15 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return search.TopFieldCollector.create(sort, count, mincount)
 
     def search(
-        self, query=None, count=None, sort=None, reverse=False, scores=False, mincount=1000, timeout=None, **parser
+        self,
+        query=None,
+        count=None,
+        sort=None,
+        reverse=False,
+        scores=False,
+        mincount=1000,
+        timeout=None,
+        **parser,
     ) -> Hits:
         """Run query and return [Hits][lupyne.engine.documents.Hits].
 
@@ -440,7 +465,9 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             counts[facet] = {key: self.count(Query.all(query, queries[key])) for key in queries}
         return counts
 
-    def groupby(self, field: str, query, count: Optional[int] = None, start: int = 0, **attrs) -> Groups:
+    def groupby(
+        self, field: str, query, count: Optional[int] = None, start: int = 0, **attrs
+    ) -> Groups:
         """Return [Hits][lupyne.engine.documents.Hits] grouped by field
         using a [GroupingSearch][lupyne.engine.documents.GroupingSearch]."""
         return GroupingSearch(field, **attrs).search(self, self.parse(query), count, start)
@@ -450,7 +477,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         try:
             return self.spellcheckers[field]
         except KeyError:
-            return self.spellcheckers.setdefault(field, SpellChecker(self.terms(field, counts=True)))
+            spellchecker = SpellChecker(self.terms(field, counts=True))
+            return self.spellcheckers.setdefault(field, spellchecker)
 
     def complete(self, field: str, prefix: str, count: Optional[int] = None) -> list:
         """Return ordered suggested words for prefix."""
@@ -475,7 +503,9 @@ class MultiSearcher(IndexSearcher):
 
     def __init__(self, reader, analyzer=None):
         super().__init__(reader, analyzer)
-        self.indexReaders = [index.DirectoryReader.cast_(context.reader()) for context in self.context.children()]
+        self.indexReaders = [
+            index.DirectoryReader.cast_(context.reader()) for context in self.context.children()
+        ]
         self.version = sum(reader.version for reader in self.indexReaders)
 
     def __getattr__(self, name):
@@ -484,7 +514,8 @@ class MultiSearcher(IndexSearcher):
     def openIfChanged(self):
         readers = list(map(index.DirectoryReader.openIfChanged, self.indexReaders))
         if any(readers):
-            return index.MultiReader([new or old.incRef() or old for new, old in zip(readers, self.indexReaders)])
+            readers = [new or old.incRef() or old for new, old in zip(readers, self.indexReaders)]
+            return index.MultiReader(readers)
 
     @property
     def timestamp(self):
@@ -513,7 +544,8 @@ class IndexWriter(index.IndexWriter):
         config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
         for name, value in attrs.items():
             setattr(config, name, value)
-        self.policy = config.indexDeletionPolicy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
+        self.policy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
+        config.indexDeletionPolicy = self.policy
         super().__init__(self.shared.directory(directory), config)
         self.fields = {}  # type: dict
 
@@ -568,7 +600,9 @@ class IndexWriter(index.IndexWriter):
         fields = list(doc.iterator())
         types = [Field.cast_(field.fieldType()) for field in fields]
         noindex = index.IndexOptions.NONE
-        if any(ft.stored() or ft.indexOptions() != noindex or Field.dimensions.fget(ft) for ft in types):
+        if any(
+            ft.stored() or ft.indexOptions() != noindex or Field.dimensions.fget(ft) for ft in types
+        ):
             self.updateDocument(term, doc)
         elif fields:
             self.updateDocValues(term, *fields)

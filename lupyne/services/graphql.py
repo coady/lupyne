@@ -26,7 +26,9 @@ app = Starlette(debug=DEBUG, lifespan=lifespan)
 
 def selections(*fields) -> dict:
     """Return tree of field name selections."""
-    return {selection.name: selections(selection) for field in fields for selection in field.selections}
+    return {
+        selection.name: selections(selection) for field in fields for selection in field.selections
+    }
 
 
 def doc_type(cls):
@@ -109,9 +111,11 @@ class Query:
         """indexed field names"""
         fields = {}
         for name, selected in selections(*info.selected_fields).items():
-            counts = 'counts' in selected
-            terms = root.searcher.terms(name, counts=counts)
-            fields[name] = Terms(**dict(zip(['values', 'counts'], zip(*terms)))) if counts else Terms(values=terms)
+            if 'counts' in selected:
+                values, counts = zip(*root.searcher.terms(name, counts=True))
+                fields[name] = Terms(values=values, counts=counts)
+            else:
+                fields[name] = Terms(values=root.searcher.terms(name))
         return IndexedFields(**fields)
 
     @doc_field(
