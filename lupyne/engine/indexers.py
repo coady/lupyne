@@ -461,8 +461,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """
         query = self.parse(query)
         counts = {field: self.groupby(field, query).facets for field in fields}
-        for facet, queries in query_map.items():
-            counts[facet] = {key: self.count(Query.all(query, queries[key])) for key in queries}
+        for facet, values in query_map.items():
+            counts[facet] = {key: self.count(Query.all(query, values[key])) for key in values}
         return counts
 
     def groupby(

@@ -50,15 +50,11 @@ lupyne = ["py.typed"]
 
 [tool.ruff]
 line-length = 100
-ignore = ["F402"]
 extend-include = ["*.ipynb"]
 
 [tool.ruff.format]
 preview = true
 quote-style = "preserve"
-
-[tool.ruff.lint.per-file-ignores]
-"*.ipynb" = ["F821"]
 
 [[tool.mypy.overrides]]
 module = ["lucene", "jcc", "java.*", "org.apache.*"]

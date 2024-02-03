@@ -53,10 +53,8 @@ def test_search(client):
     assert hit['score'] > 0
     assert hit['sortkeys'] == {'year': None}
     assert hit['doc'] == {'amendment': '2'}
-    data = client.execute(
-        """{ search(q: "text:right", count: 1, sort: ["-year"])
-        { count hits { id score sortkeys { year } doc { amendment } } } }"""
-    )
+    data = client.execute("""{ search(q: "text:right", count: 1, sort: ["-year"])
+        { count hits { id score sortkeys { year } doc { amendment } } } }""")
     assert data['search']['count'] == 13
     (hit,) = data['search']['hits']
     assert hit == {
