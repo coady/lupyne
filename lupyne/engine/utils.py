@@ -64,4 +64,4 @@ def convert(value):
     value = Number.cast_(value)
     if Float.instance_(value) or Double.instance_(value):
         return value.doubleValue()
-    return int(value.longValue())
+    return value.longValue()

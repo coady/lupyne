@@ -160,7 +160,6 @@ class Query:
                     stop = Long.MAX_VALUE
                 elif not upper:
                     stop -= 1
-                start, stop = int(start), int(stop)
             starts.append(start)
             stops.append(stop)
         if any(isinstance(value, float) for value in starts):

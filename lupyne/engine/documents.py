@@ -111,10 +111,8 @@ class Field(FieldType):  # type: ignore
             self = getattr(self, 'docValueLess', self)  # type: ignore
         if self.dimensions:
             for value in values:
-                if isinstance(value, int):
-                    yield document.LongPoint(self.name, int(value))
-                else:
-                    yield document.DoublePoint(self.name, value)
+                cls = document.LongPoint if isinstance(value, int) else document.DoublePoint
+                yield cls(self.name, value)
         if self.indexed:
             for value in values:
                 yield document.Field(self.name, value, self)
@@ -443,7 +441,7 @@ class Hits:
 
         Optionally limit the number of groups and docs per group.
         """
-        groups = collections.OrderedDict()  # type: dict
+        groups: dict = collections.OrderedDict()
         for scoredoc in self.scoredocs:
             value = func(scoredoc.doc)
             try:

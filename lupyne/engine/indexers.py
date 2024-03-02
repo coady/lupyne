@@ -270,7 +270,7 @@ class IndexReader:
     def termvector(self, id: int, field: str, counts=False) -> Iterator:
         """Generate terms for given doc id and field, optionally with frequency counts."""
         termsenum, terms = self.vector(id, field)
-        return ((term, int(termsenum.totalTermFreq())) for term in terms) if counts else terms
+        return ((term, termsenum.totalTermFreq()) for term in terms) if counts else terms
 
     def positionvector(self, id: int, field: str, offsets=False) -> Iterator[tuple]:
         """Generate terms and positions for given doc id and field, optionally with character offsets."""
@@ -360,8 +360,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 spans = weight.getSpans(reader.context, postings)
             except lucene.JavaError:  # EOF
                 continue
-            for doc in iter(spans.nextDoc, spans.NO_MORE_DOCS):  # type: int
-                starts = iter(spans.nextStartPosition, spans.NO_MORE_POSITIONS)  # type: Iterator
+            for doc in iter(spans.nextDoc, spans.NO_MORE_DOCS):
+                starts = iter(spans.nextStartPosition, spans.NO_MORE_POSITIONS)
                 if positions:
                     values = [(start, spans.endPosition()) for start in starts]
                 else:
@@ -547,7 +547,7 @@ class IndexWriter(index.IndexWriter):
         self.policy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
         config.indexDeletionPolicy = self.policy
         super().__init__(self.shared.directory(directory), config)
-        self.fields = {}  # type: dict
+        self.fields: dict = {}
 
     def __del__(self):
         if hash(self):

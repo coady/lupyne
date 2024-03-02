@@ -594,7 +594,7 @@ def test_numeric(indexer, constitution):
     assert indexer.count(field.within(seconds=100)) == indexer.count(field.within(weeks=1)) == 0
     query = field.duration([2009], days=-100 * 365)
     assert indexer.count(query) == 12
-    sizes = {id: int(indexer[id]['size']) for id in indexer}
+    sizes = {id: indexer[id]['size'] for id in indexer}
     ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
     query = Q.ranges('size', (1000, None))
     hits = indexer.search(query).sorted(sizes.get)
