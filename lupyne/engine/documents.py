@@ -222,34 +222,6 @@ class DateTimeField(Field):
         return self.duration(date, days, weeks=weeks, **delta)
 
 
-class SpatialField(Field):
-    """Deprecated: see `ShapeField`."""
-
-    def __init__(self, name: str, dimensions: int = 1, **settings):
-        super().__init__(name, dimensions=dimensions, **settings)
-
-    def items(self, *points: tuple) -> Iterator[document.Field]:
-        """Generate lucene LatLon fields from points (lng, lat)."""
-        for lng, lat in points:
-            yield document.LatLonPoint(self.name, lat, lng)
-        if self.docvalues:  # pragma: no branch
-            for lng, lat in points:
-                yield document.LatLonDocValuesField(self.name, lat, lng)
-
-    def within(self, lng: float, lat: float, distance: float) -> search.Query:
-        """Return range queries for any tiles which could be within distance of given point.
-
-        Args:
-            lng lat: point
-            distance: search radius in meters
-        """
-        return document.LatLonPoint.newDistanceQuery(self.name, lat, lng, distance)
-
-    def distances(self, lng: str, lat: str) -> search.SortField:
-        """Return distance SortField."""
-        return document.LatLonDocValuesField.newDistanceSort(self.name, lat, lng)
-
-
 class ShapeField:
     """Field which indexes geometries: LatLon or XY."""
 

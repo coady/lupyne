@@ -1,4 +1,3 @@
-import bisect
 import datetime
 import json
 import math
@@ -421,34 +420,6 @@ def test_grouping(tempdir, indexer, zipcodes):
     directory.close()
 
 
-def test_spatial(indexer, zipcodes):
-    for name in ('longitude', 'latitude'):
-        indexer.set(name, dimensions=1, stored=True)
-    field = indexer.set('location', engine.SpatialField, docValuesType='numeric')
-    for doc in zipcodes:
-        if doc['state'] == 'CA':
-            indexer.add(doc, location=[(doc['longitude'], doc['latitude'])])
-    indexer.commit()
-    city, zipcode = 'Beverly Hills', '90210'
-    (hit,) = indexer.search('zipcode:' + zipcode)
-    assert hit['city'] == city
-    x, y = (float(hit[lt]) for lt in ['longitude', 'latitude'])
-    query = field.within(x, y, 1e4)
-    hits = indexer.search(query, sort=field.distances(x, y))
-    distances = {hit.id: hit.sortkeys[0] for hit in hits}
-    assert hits[0]['zipcode'] == zipcode and hits[0].sortkeys < (1,)
-    cities = {hit['city'] for hit in hits}
-    assert city in cities and len(cities) == 12
-    groups = hits.groupby(lambda id: bisect.bisect_left([100, 5000], distances[id]))
-    counts = {hits.value: len(hits) for hits in groups}
-    assert counts == {0: 1, 1: 12, 2: 37}
-    hits = hits.filter(lambda id: distances[id] < 5000)
-    assert 0 < len(hits) < sum(counts.values())
-    hits = hits.sorted(distances.__getitem__, reverse=True)
-    ids = list(hits.ids)
-    assert 0 <= distances[ids[-1]] < distances[ids[0]] < 1e4
-
-
 def test_shape(indexer, zipcodes):
     for name in ('longitude', 'latitude'):
         indexer.set(name, dimensions=1, stored=True)
@@ -478,7 +449,13 @@ def test_shape(indexer, zipcodes):
     assert indexer.count(latlon.contains(pg)) == 0
     assert indexer.count(latlon.disjoint(pg)) == 2639
     assert indexer.count(latlon.intersects(pg)) == 8
-    assert indexer.count(latlon.within(pg)) == 8
+    hits = indexer.search(latlon.within(pg))
+    assert len(hits) == 8
+    counties = {hit.id: hit['county'] for hit in hits}
+    groups = hits.groupby(counties.get)
+    assert len(groups) == 4
+    assert {group.value for group in groups} == set(counties.values())
+    assert len(hits.filter(lambda id: counties[id] == 'Nevada')) == 3
 
     assert isinstance(xy.contains(geo.XYPoint(*point)), search.Query)
     assert isinstance(xy.disjoint(geo.XYLine(*line)), search.Query)
