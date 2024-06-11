@@ -2,9 +2,9 @@
 ![image](https://img.shields.io/pypi/pyversions/lupyne.svg)
 [![image](https://pepy.tech/badge/lupyne)](https://pepy.tech/project/lupyne)
 ![image](https://img.shields.io/pypi/status/lupyne.svg)
-[![image](https://github.com/coady/lupyne/workflows/build/badge.svg)](https://github.com/coady/lupyne/actions)
+[![build](https://github.com/coady/lupyne/actions/workflows/build.yml/badge.svg)](https://github.com/coady/lupyne/actions/workflows/build.yml)
 [![image](https://codecov.io/gh/coady/lupyne/branch/main/graph/badge.svg)](https://codecov.io/gh/coady/lupyne/)
-[![image](https://github.com/coady/lupyne/workflows/codeql/badge.svg)](https://github.com/coady/lupyne/security/code-scanning)
+[![CodeQL](https://github.com/coady/lupyne/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/coady/lupyne/actions/workflows/github-code-scanning/codeql)
 [![image](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![image](https://mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 

@@ -1,10 +1,6 @@
-[build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "lupyne"
-dynamic = ["version"]
+version = "3.1"
 description = "Pythonic search engine based on PyLucene."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -39,21 +35,11 @@ Issues = "https://github.com/coady/lupyne/issues"
 rest = ["fastapi"]
 graphql = ["strawberry-graphql[asgi]>=0.84.4"]
 
-[tool.setuptools]
-packages = ["lupyne", "lupyne.engine", "lupyne.services"]
-
-[tool.setuptools.dynamic]
-version = {attr = "lupyne.__version__"}
-
-[tool.setuptools.package-data]
-lupyne = ["py.typed"]
-
 [tool.ruff]
 line-length = 100
 extend-include = ["*.ipynb"]
 
 [tool.ruff.format]
-preview = true
 quote-style = "preserve"
 
 [[tool.mypy.overrides]]

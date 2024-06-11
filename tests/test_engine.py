@@ -440,12 +440,11 @@ def test_shape(indexer, zipcodes):
     assert indexer.count(latlon.intersects(geo.Circle(*circle))) == 1
     assert indexer.count(latlon.within(geo.Circle(*circle))) == 1
     lat, lon = point
-    (pg,) = geo.Polygon.fromGeoJSON(
-        json.dumps({
-            'type': 'Polygon',
-            'coordinates': [[(lon, lat), (lon + 1, lat), (lon, lat + 1), (lon, lat)]],
-        })
-    )
+    polygon = {
+        'type': 'Polygon',
+        'coordinates': [[(lon, lat), (lon + 1, lat), (lon, lat + 1), (lon, lat)]],
+    }
+    (pg,) = geo.Polygon.fromGeoJSON(json.dumps(polygon))
     assert indexer.count(latlon.contains(pg)) == 0
     assert indexer.count(latlon.disjoint(pg)) == 2639
     assert indexer.count(latlon.intersects(pg)) == 8
