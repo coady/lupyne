@@ -563,10 +563,8 @@ def test_numeric(indexer, constitution):
     query = field.range(datetime.date(1919, 1, 1), datetime.date(1921, 12, 31))
     hits = indexer.search(query)
     assert [hit['amendment'] for hit in hits] == [18, 19]
-    assert [datetime.datetime.utcfromtimestamp(float(hit['date'])).year for hit in hits] == [
-        1919,
-        1920,
-    ]
+    dates = [datetime.datetime.fromtimestamp(float(hit['date'])).year for hit in hits]
+    assert dates == [1919, 1920]
     assert indexer.count(field.within(seconds=100)) == indexer.count(field.within(weeks=1)) == 0
     query = field.duration([2009], days=-100 * 365)
     assert indexer.count(query) == 12

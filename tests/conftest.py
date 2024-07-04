@@ -5,6 +5,7 @@ import shutil
 import sys
 import tempfile
 from datetime import datetime
+from importlib import metadata
 from pathlib import Path
 import pytest
 import lucene
@@ -14,7 +15,7 @@ fixtures = Path(__file__).parent / 'fixtures'
 
 
 def pytest_report_header(config):
-    return 'PyLucene ' + lucene.VERSION
+    return 'lucene: ' + metadata.version('lucene')
 
 
 def pytest_configure(config):

@@ -206,17 +206,17 @@ class DateTimeField(Field):
         delta = datetime.timedelta(days, **delta)  # type: ignore
         return self.range(*sorted([date, date + delta]), upper=True)
 
-    def within(self, days=0, weeks=0, utc=True, **delta) -> Query:
+    def within(self, days=0, weeks=0, tz=None, **delta) -> Query:
         """Return date range query within current time and delta.
 
         If the delta is an exact number of days, then dates will be used.
 
         Args:
             days weeks: number of days to offset from today
-            utc: optionally use utc instead of local time
+            tz: optional timezone
             **delta: additional timedelta parameters
         """
-        date = datetime.datetime.utcnow() if utc else datetime.datetime.now()
+        date = datetime.datetime.now(tz)
         if not (isinstance(days + weeks, float) or delta):
             date = date.date()  # type: ignore
         return self.duration(date, days, weeks=weeks, **delta)
