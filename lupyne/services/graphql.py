@@ -4,11 +4,10 @@ import inspect
 import math
 from collections.abc import Callable
 from typing import Annotated, Optional
-import graphql
 import lucene
 import strawberry.asgi
 from starlette.applications import Starlette
-from strawberry.types import Info
+from strawberry import Info, UNSET
 from .settings import DEBUG, DIRECTORIES
 from .base import Document, FieldDoc, WebSearcher
 
@@ -67,7 +66,7 @@ class IndexedFields:
     """indexed field names"""
 
     __annotations__ = {name: Terms for name in root.indexed()}
-    locals().update(dict.fromkeys(__annotations__, graphql.Undefined))
+    locals().update(dict.fromkeys(__annotations__, UNSET))
 
 
 @doc_type

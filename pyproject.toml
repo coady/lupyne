@@ -33,7 +33,7 @@ Issues = "https://github.com/coady/lupyne/issues"
 
 [project.optional-dependencies]
 rest = ["fastapi"]
-graphql = ["strawberry-graphql[asgi]>=0.84.4"]
+graphql = ["strawberry-graphql[asgi]>=0.221"]
 
 [tool.ruff]
 line-length = 100
