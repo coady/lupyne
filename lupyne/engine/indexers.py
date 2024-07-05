@@ -1,9 +1,9 @@
 import contextlib
 import itertools
 import operator
-import os
 from collections.abc import Iterator, Mapping
 from functools import partial
+from pathlib import Path
 from typing import Optional
 import lucene
 from java.io import File, IOException, StringReader
@@ -63,14 +63,14 @@ def copy(commit, dest):
         for filename in commit.fileNames:
             dest.copyFrom(commit.directory, filename, filename, store.IOContext.DEFAULT)
     else:
-        src = IndexSearcher.path.fget(commit)
-        os.path.isdir(dest) or os.makedirs(dest)
+        src, dest = Path(IndexSearcher.path.fget(commit)), Path(dest)
+        dest.is_dir() or dest.mkdir(parents=True)
         for filename in commit.fileNames:
-            paths = os.path.join(src, filename), os.path.join(dest, filename)
+            paths = (dest / filename), (src / filename)
             try:
-                os.link(*paths)
+                Path.hardlink_to(*paths)
             except OSError:
-                if not os.path.samefile(*paths):
+                if not Path.samefile(*paths):
                     raise
 
 

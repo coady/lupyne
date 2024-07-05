@@ -1,7 +1,7 @@
 import datetime
 import json
 import math
-import os
+from pathlib import Path
 import pytest
 import lucene
 from org.apache.lucene import analysis, document, geo, search, store, util
@@ -265,13 +265,13 @@ def test_indexes(tempdir):
 
     indexer = engine.Indexer(tempdir)
     indexer.add()
-    path = os.path.join(tempdir, 'temp')
+    path = Path(tempdir, 'temp')
     with indexer.snapshot() as commit:
         indexer.commit(merge=1)
         assert indexer.indexCommit.generation > commit.generation
         engine.indexers.copy(commit, path)
-        filepath = os.path.join(path, commit.segmentsFileName)
-        os.remove(filepath)
+        filepath = path / commit.segmentsFileName
+        filepath.unlink()
         open(filepath, 'w').close()
         with pytest.raises(OSError):
             engine.indexers.copy(commit, path)
@@ -412,7 +412,7 @@ def test_grouping(tempdir, indexer, zipcodes):
     size = indexer.copy(directory, query)
     searcher = engine.IndexSearcher(directory)
     assert len(searcher) == size and list(searcher.terms('state')) == ['CA']
-    path = os.path.join(tempdir, 'temp')
+    path = str(Path(tempdir, 'temp'))
     size = indexer.copy(path, exclude=query, merge=1)
     assert len(searcher) + size == len(indexer)
     searcher = engine.IndexSearcher(path)
