@@ -99,7 +99,7 @@ class IndexReader:
     def __iter__(self) -> Iterator[int]:
         ids = range(self.maxDoc())
         bits = self.bits
-        return filter(bits.get, ids) if bits else iter(ids)  # type: ignore
+        return filter(bits.get, ids) if bits else iter(ids)
 
     @property
     def bits(self) -> util.Bits:
@@ -160,7 +160,7 @@ class IndexReader:
             reverse: reverse flag used with sort
         """
         if type is None:
-            type = self.fieldinfos[name].docValuesType.toString()
+            type = str(self.fieldinfos[name].docValuesType)
         type = Field.types.get(type, type).upper()
         return search.SortField(name, getattr(search.SortField.Type, type), reverse)
 
@@ -175,7 +175,7 @@ class IndexReader:
         """
         types = {int: int, float: util.NumericUtils.sortableLongToDouble}
         type = types.get(type, util.BytesRef.utf8ToString)
-        docValuesType = self.fieldinfos[name].docValuesType.toString().title().replace('_', '')
+        docValuesType = str(self.fieldinfos[name].docValuesType).title().replace('_', '')
         method = getattr(index.MultiDocValues, f'get{docValuesType}Values')
         return getattr(DocValues, docValuesType)(method(self.indexReader, name), len(self), type)
 
@@ -247,7 +247,7 @@ class IndexReader:
         docsenum = index.MultiTerms.getTermPostingsEnum(
             self.indexReader, name, util.BytesRef(value)
         )
-        for doc in iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ():  # type: ignore
+        for doc in iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ():
             positions = (docsenum.nextPosition() for _ in range(docsenum.freq()))
             if payloads:
                 positions = (

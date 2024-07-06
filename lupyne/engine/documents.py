@@ -3,7 +3,7 @@ import collections
 import datetime
 import operator
 from collections.abc import Callable, Iterator, Sequence
-from typing import Optional, Union, no_type_check
+from typing import Optional, Union
 import lucene  # noqa
 from java.lang import Long
 from java.util import Arrays, HashSet
@@ -137,9 +137,9 @@ class NestedField(Field):
 
     def values(self, value: str) -> Iterator[str]:
         """Generate component field values in order."""
-        value = value.split(self.sep)  # type: ignore
-        for stop in range(1, len(value) + 1):
-            yield self.sep.join(value[:stop])
+        values = value.split(self.sep)
+        for stop in range(1, len(values) + 1):
+            yield self.sep.join(values[:stop])
 
     def items(self, *values: str) -> Iterator[document.Field]:
         """Generate indexed component fields."""
@@ -228,33 +228,29 @@ class ShapeField:
     def __init__(self, name: str, indexed=True, docvalues=False):
         self.name, self.indexed, self.docvalues = name, bool(indexed), bool(docvalues)
 
-    @staticmethod
-    def as_tuple(shape: geo.Geometry) -> tuple:
+    def apply(self, func: Callable, shape: geo.Geometry):
         if isinstance(shape, geo.Point):
-            return shape.lat, shape.lon
+            return func(self.name, shape.lat, shape.lon)
         if isinstance(shape, geo.XYPoint):
-            return shape.x, shape.y
-        return (shape,)
+            return func(self.name, shape.x, shape.y)
+        return func(self.name, shape)
 
-    @no_type_check
     def items(self, *shapes: geo.Geometry) -> Iterator[document.Field]:
         """Generate lucene shape fields from geometries."""
         for shape in shapes:
             cls = document.XYShape if isinstance(shape, geo.XYGeometry) else document.LatLonShape
-            args = self.as_tuple(shape)
             if self.indexed:
-                yield from cls.createIndexableFields(self.name, *args)
+                yield from self.apply(cls.createIndexableFields, shape)
             if self.docvalues:
-                yield cls.createDocValueField(self.name, *args)
+                yield self.apply(cls.createDocValueField, shape)
 
     def distances(self, point: Union[geo.Point, geo.XYPoint]) -> search.SortField:
         """Return distance SortField."""
         xy = isinstance(point, geo.XYGeometry)
         cls = document.XYDocValuesField if xy else document.LatLonDocValuesField
-        return cls.newDistanceSort(self.name, *self.as_tuple(point))
+        return self.apply(cls.newDistanceSort, point)
 
-    @no_type_check
-    def query(self, relation: QueryRelation, *shapes: geo.Geometry) -> search.Query:
+    def query(self, relation: QueryRelation, *shapes: geo.Geometry) -> search.Query:  # type: ignore
         shape = shapes[0]
         cls = document.XYShape if isinstance(shape, geo.XYGeometry) else document.LatLonShape
         func = cls.newGeometryQuery

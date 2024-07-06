@@ -59,7 +59,7 @@ class TokenStream(analysis.TokenStream):
     @property
     def charTerm(self) -> str:
         """term text"""
-        return self.CharTerm.toString()
+        return str(self.CharTerm)
 
     @charTerm.setter
     def charTerm(self, text: str):
@@ -142,12 +142,12 @@ class Analyzer(PythonAnalyzer):
         cls = queryparser.classic.MultiFieldQueryParser
         if isinstance(field, str):
             cls = queryparser.classic.QueryParser
-        args = field, self
+        args: tuple = field, self
         if isinstance(field, Mapping):
             boosts = HashMap()
             for key in field:
                 boosts.put(key, Float(field[key]))
-            args = list(field), self, boosts  # type: ignore
+            args = list(field), self, boosts
         parser = (parser or cls)(*args)
         if op:
             parser.defaultOperator = getattr(queryparser.classic.QueryParser.Operator, op.upper())
@@ -161,7 +161,7 @@ class Analyzer(PythonAnalyzer):
             if isinstance(parser, PythonQueryParser):
                 parser.finalize()
 
-    def highlight(self, query: search.Query, field: str, content: str, count: int = 1):
+    def highlight(self, query: search.Query, field: str, content: str, count: int = 1) -> str:
         """Return highlighted content.
 
         Args:
@@ -171,4 +171,4 @@ class Analyzer(PythonAnalyzer):
             count: optional maximum number of passages
         """
         highlighter = uhighlight.UnifiedHighlighter(None, self)
-        return highlighter.highlightWithoutSearcher(field, query, content, count).toString()
+        return str(highlighter.highlightWithoutSearcher(field, query, content, count))

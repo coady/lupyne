@@ -60,7 +60,7 @@ def convert(value):
     if util.BytesRef.instance_(value):
         return util.BytesRef.cast_(value).utf8ToString()
     if not Number.instance_(value):
-        return value.toString() if Object.instance_(value) else value
+        return str(value) if Object.instance_(value) else value
     value = Number.cast_(value)
     if Float.instance_(value) or Double.instance_(value):
         return value.doubleValue()
