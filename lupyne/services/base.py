@@ -96,9 +96,9 @@ class WebSearcher:
             return {str(reader.directory()): reader.numDocs() for reader in searcher.indexReaders}
         return {str(searcher.directory): len(searcher)}
 
-    def refresh(self, spellcheckers: bool = False) -> dict:
+    def refresh(self) -> dict:
         """Refresh index version."""
-        self._searcher = self.searcher.reopen(spellcheckers=spellcheckers)
+        self._searcher = self.searcher.reopen()
         self.updated = time.time()
         return self.index()
 

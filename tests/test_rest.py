@@ -24,7 +24,7 @@ def test_index(client):
     assert resp.json() == result
     assert float(resp.headers['x-response-time']) > 0.0
     assert int(resp.headers['age']) == 0
-    assert not client.post('/', params={'spellcheckers': True}).is_error
+    assert not client.post('/').is_error
 
 
 def test_terms(client):

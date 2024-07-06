@@ -1,4 +1,5 @@
 import contextlib
+import heapq
 import itertools
 import operator
 from collections.abc import Iterator, Mapping
@@ -14,7 +15,7 @@ from org.apache.lucene.search import spell, uhighlight
 from .analyzers import Analyzer
 from .queries import Query, DocValues, SpellParser
 from .documents import Field, Document, Hits, GroupingSearch, Groups
-from .utils import suppress, Atomic, SpellChecker
+from .utils import suppress, Atomic
 
 
 class closing(set):
@@ -150,6 +151,11 @@ class IndexReader:
             setattr(checker, attr, attrs[attr])
         words = checker.suggestSimilar(index.Term(name, value), count, self.indexReader)
         return [word.string for word in words]
+
+    def complete(self, name: str, prefix: str, count: int) -> list[str]:
+        """Return autocomplete suggestions for word prefix."""
+        terms = dict(self.terms(name, prefix, counts=True))
+        return heapq.nlargest(count, terms, key=terms.__getitem__)
 
     def sortfield(self, name: str, type=None, reverse=False) -> search.SortField:
         """Return lucene SortField, deriving the the type from FieldInfos if necessary.
@@ -310,7 +316,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         self.shared = closing()
         super().__init__(self.shared.reader(directory))
         self.analyzer = self.shared.analyzer(analyzer)
-        self.spellcheckers = {}
 
     def __del__(self):
         if hash(self):  # pragma: no branch
@@ -319,11 +324,10 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def openIfChanged(self):
         return index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
 
-    def reopen(self, spellcheckers=False) -> 'IndexSearcher':
-        """Return current [IndexSearcher][lupyne.engine.indexers.IndexSearcher], only creating a new one if necessary.
+    def reopen(self) -> 'IndexSearcher':
+        """Return current [IndexSearcher][lupyne.engine.indexers.IndexSearcher].
 
-        Args:
-            spellcheckers: refresh cached :attr:`spellcheckers`
+        Only creates a new one if necessary.
         """
         reader = self.openIfChanged()
         if reader is None:
@@ -331,11 +335,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         other = type(self)(reader, self.analyzer)
         other.decRef()
         other.shared = self.shared
-        if spellcheckers:
-            for field in self.spellcheckers:
-                other.spellchecker(field)
-        else:
-            other.spellcheckers = dict(self.spellcheckers)
         return other
 
     def __getitem__(self, id: int) -> Document:
@@ -471,18 +470,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """Return [Hits][lupyne.engine.documents.Hits] grouped by field
         using a [GroupingSearch][lupyne.engine.documents.GroupingSearch]."""
         return GroupingSearch(field, **attrs).search(self, self.parse(query), count, start)
-
-    def spellchecker(self, field: str) -> SpellChecker:
-        """Return and cache spellchecker for given field."""
-        try:
-            return self.spellcheckers[field]
-        except KeyError:
-            spellchecker = SpellChecker(self.terms(field, counts=True))
-            return self.spellcheckers.setdefault(field, spellchecker)
-
-    def complete(self, field: str, prefix: str, count: Optional[int] = None) -> list:
-        """Return ordered suggested words for prefix."""
-        return self.spellchecker(field).complete(prefix, count)
 
     def match(self, document: Mapping, *queries) -> Iterator[float]:
         """Generate scores for all queries against a given document mapping."""

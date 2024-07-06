@@ -28,10 +28,8 @@ def test_index(client):
     (directory,) = index['directories']
     assert 'Directory@' in directory
     assert index['counts'] == [35]
-    data = client.execute('mutation { index { directories } }')
-    assert data == {'index': {'directories': [directory]}}
-    data = client.execute('mutation { index(spellcheckers: true) { counts } }')
-    assert data == {'index': {'counts': index['counts']}}
+    data = client.execute('mutation { index { directories counts } }')
+    assert data == {'index': index}
 
 
 def test_terms(client):

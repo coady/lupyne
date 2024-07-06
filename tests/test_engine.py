@@ -120,15 +120,12 @@ def test_searcher(tempdir, fields, constitution):
     for doc in constitution:
         indexer.add(doc)
     indexer.commit()
-    assert indexer.spellcheckers == {}
-    assert indexer.complete('amendment', '')
-    assert list(indexer.spellcheckers) == ['amendment']
+    assert indexer.complete('amendment', '', 1)
     indexer.delete('amendment', doc['amendment'])
     indexer.add(doc)
     reader = indexer.indexReader
-    indexer.commit(spellcheckers=True)
+    indexer.commit()
     assert reader.refCount == 0
-    assert list(indexer.spellcheckers) == ['amendment']
     analyzer = engine.Analyzer.standard()
     doc = {'text': doc['text'], 'amendment': analyzer.tokens(doc['amendment'])}
     scores = list(indexer.match(doc, 'text:congress', 'text:law', 'amendment:27'))
@@ -213,15 +210,11 @@ def test_spellcheck(tempdir, fields, constitution):
     for doc in constitution:
         indexer.add(doc)
     indexer.commit()
-    assert indexer.complete('missing', '') == []
-    assert {'shall', 'states'} <= set(indexer.complete('text', '')[:8])
-    assert indexer.complete('text', 'con')[:2] == ['congress', 'constitution']
-    assert (
-        indexer.complete('text', 'congress')
-        == indexer.complete('text', 'con', count=1)
-        == ['congress']
-    )
-    assert indexer.complete('text', 'congresses') == []
+    assert indexer.complete('missing', '', 1) == []
+    assert ['the', 'shall'] == indexer.complete('text', '', 2)
+    assert indexer.complete('text', 'con', 2) == ['congress', 'constitution']
+    assert indexer.complete('text', 'congress', 2) == ['congress']
+    assert indexer.complete('text', 'congresses', 1) == []
     assert indexer.suggest('text', 'write') == ['writs']
     assert indexer.suggest('text', 'write', 3) == ['writs', 'writ', 'written']
     assert indexer.suggest('text', 'write', 3, maxEdits=1) == ['writs', 'writ']

@@ -111,8 +111,8 @@ class Query:
         fields = {}
         for name, selected in selections(*info.selected_fields).items():
             if 'counts' in selected:
-                values, counts = zip(*root.searcher.terms(name, counts=True))
-                fields[name] = Terms(values=values, counts=counts)
+                terms = dict(root.searcher.terms(name, counts=True))
+                fields[name] = Terms(values=terms, counts=terms.values())
             else:
                 fields[name] = Terms(values=root.searcher.terms(name))
         return IndexedFields(**fields)
@@ -144,10 +144,10 @@ class Query:
 
 @doc_type
 class Mutation:
-    @doc_field(spellcheckers="refresh cached spellcheckers")
-    def index(self, spellcheckers: bool = False) -> Index:
+    @doc_field
+    def index(self) -> Index:
         """Refresh index."""
-        index = root.refresh(spellcheckers=spellcheckers)
+        index = root.refresh()
         return Index(directories=list(index), counts=index.values())
 
 
