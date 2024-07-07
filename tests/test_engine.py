@@ -210,6 +210,8 @@ def test_spellcheck(tempdir, fields, constitution):
     for doc in constitution:
         indexer.add(doc)
     indexer.commit()
+    assert indexer.dictionary('text')
+    assert indexer.dictionary('text', 0.5)
     assert indexer.complete('missing', '', 1) == []
     assert ['the', 'shall'] == indexer.complete('text', '', 2)
     assert indexer.complete('text', 'con', 2) == ['congress', 'constitution']

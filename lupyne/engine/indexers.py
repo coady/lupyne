@@ -137,6 +137,11 @@ class IndexReader:
         fieldinfos = index.FieldInfos.getMergedFieldInfos(self.indexReader)
         return {fieldinfo.name: fieldinfo for fieldinfo in fieldinfos.iterator()}
 
+    def dictionary(self, name: str, *args) -> spell.Dictionary:
+        """Return lucene Dictionary, suitable for spellcheckers."""
+        cls = spell.HighFrequencyDictionary if args else spell.LuceneDictionary
+        return cls(self.indexReader, name, *args)
+
     def suggest(self, name: str, value, count: int = 1, **attrs) -> list:
         """Return spelling suggestions from DirectSpellChecker.
 
@@ -660,11 +665,11 @@ class Indexer(IndexWriter):
     def __getitem__(self, id):
         return self.indexSearcher[id]
 
-    def refresh(self, **caches):
-        """Store refreshed searcher with [reopen][lupyne.engine.indexers.IndexSearcher.reopen] caches."""
-        self.indexSearcher = self.indexSearcher.reopen(**caches)
+    def refresh(self):
+        """Store refreshed searcher from [reopening][lupyne.engine.indexers.IndexSearcher.reopen]."""
+        self.indexSearcher = self.indexSearcher.reopen()
 
-    def commit(self, merge=False, **caches):
+    def commit(self, merge: int = False):
         """Commit writes and [refresh][lupyne.engine.indexers.Indexer.refresh] searcher.
 
         Args:
@@ -677,4 +682,4 @@ class Indexer(IndexWriter):
             else:
                 self.forceMerge(merge)
             super().commit()
-        self.refresh(**caches)
+        self.refresh()
