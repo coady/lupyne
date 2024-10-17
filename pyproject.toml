@@ -37,7 +37,6 @@ graphql = ["strawberry-graphql[asgi]>=0.221"]
 
 [tool.ruff]
 line-length = 100
-extend-include = ["*.ipynb"]
 
 [tool.ruff.format]
 quote-style = "preserve"

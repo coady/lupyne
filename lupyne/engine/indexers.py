@@ -373,7 +373,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 yield (doc + offset), values
             offset += reader.maxDoc()
 
-    def parse(self, query, spellcheck=False, **kwargs):
+    def parse(self, query, spellcheck=False, **kwargs) -> search.Query:
         if isinstance(query, search.Query):
             return query
         if spellcheck:
@@ -394,8 +394,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         """
         if len(query) > 1:
             return self.docFreq(index.Term(*query))
-        query = self.parse(*query, **options) if query else Query.alldocs()
-        return super().count(query)
+        return super().count(self.parse(*query, **options) if query else Query.alldocs())
 
     def collector(self, count=None, sort=None, reverse=False, scores=False, mincount=1000):
         if count is None:
