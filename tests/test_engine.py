@@ -398,10 +398,6 @@ def test_grouping(tempdir, indexer, zipcodes):
     assert all(grouping.search(indexer.indexSearcher, Q.alldocs()).facets.values())
     assert len(grouping) == len(list(grouping)) > 100
     assert set(grouping) > set(facets)
-    hits = indexer.search(query, timeout=-1)
-    assert not hits and not hits.count and math.isnan(hits.maxscore)
-    hits = indexer.search(query, timeout=10)
-    assert len(hits) == hits.count == indexer.count(query) and hits.maxscore == 1.0
     directory = store.ByteBuffersDirectory()
     query = Q.term('state', 'CA')
     size = indexer.copy(directory, query)
@@ -465,9 +461,6 @@ def test_fields(indexer, constitution):
         engine.Field('', stored='invalid')
     with pytest.raises(AttributeError):
         engine.Field('', invalid=None)
-    with pytest.raises(lucene.JavaError):
-        with engine.utils.suppress(search.TimeLimitingCollector.TimeExceededException):
-            document.Field('name', 'value', document.FieldType())
     assert str(engine.Field.String('')) == str(
         document.StringField('', '', document.Field.Store.NO).fieldType()
     )

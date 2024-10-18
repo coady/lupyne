@@ -23,7 +23,7 @@ def suppress(exception):
     """Suppress specific lucene exception."""
     try:
         yield
-    except lucene.JavaError as exc:
+    except lucene.JavaError as exc:  # pragma: no cover
         if not exception.instance_(exc.getJavaException()):
             raise
 

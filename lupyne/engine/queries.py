@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable
 import lucene  # noqa
 from java.lang import Double, Integer, Long
 from java.util import Arrays
@@ -27,7 +27,7 @@ class Query:
     @classmethod
     def terms(cls, name: str, values) -> 'Query':
         """Return lucene TermInSetQuery, optimizing a SHOULD BooleanQuery of many terms."""
-        return cls(search.TermInSetQuery, name, list(map(util.BytesRef, values)))
+        return cls(search.TermInSetQuery, name, Arrays.asList(list(map(util.BytesRef, values))))
 
     @classmethod
     def boolean(cls, occur, *queries, **terms):
@@ -274,8 +274,8 @@ class DocValues:
 
     class SortedSet(Sorted):
         def __getitem__(self, id: int):
-            ords: Iterator = iter(self.docvalues.nextOrd, self.docvalues.NO_MORE_ORDS)
             if self.docvalues.advanceExact(id):
+                ords = (self.docvalues.nextOrd() for _ in range(self.docvalues.docValueCount()))
                 return tuple(self.type(self.docvalues.lookupOrd(ord)) for ord in ords)
 
 

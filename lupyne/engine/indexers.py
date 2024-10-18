@@ -273,7 +273,7 @@ class IndexReader:
             yield doc, list(positions)
 
     def vector(self, id, field):
-        terms = self.getTermVector(id, field)
+        terms = self.termVectors().get(id, field)
         termsenum = terms.iterator() if terms else index.TermsEnum.EMPTY
         terms = map(operator.methodcaller('utf8ToString'), util.BytesRefIterator.cast_(termsenum))
         return termsenum, terms
@@ -402,12 +402,12 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         count = min(count, self.maxDoc() or 1)
         mincount = max(count, mincount)
         if sort is None:
-            return search.TopScoreDocCollector.create(count, mincount)
+            return search.TopScoreDocCollectorManager(count, mincount).newCollector()
         if isinstance(sort, str):
             sort = self.sortfield(sort, reverse=reverse)
         if not isinstance(sort, search.Sort):
             sort = search.Sort(sort)
-        return search.TopFieldCollector.create(sort, count, mincount)
+        return search.TopFieldCollectorManager(sort, count, mincount).newCollector()
 
     def search(
         self,
@@ -417,7 +417,6 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         reverse=False,
         scores=False,
         mincount=1000,
-        timeout=None,
         **parser,
     ) -> Hits:
         """Run query and return [Hits][lupyne.engine.documents.Hits].
@@ -432,17 +431,11 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             reverse: reverse flag used with sort
             scores: compute scores for candidate results when sorting
             mincount: total hit count accuracy threshold
-            timeout: stop search after elapsed number of seconds
             **parser: [parse][lupyne.engine.analyzers.Analyzer.parse]` options
         """
         query = Query.alldocs() if query is None else self.parse(query, **parser)
         results = cache = collector = self.collector(count, sort, reverse, scores, mincount)
-        counter = search.TimeLimitingCollector.getGlobalCounter()
-        if timeout is not None:
-            results = search.TimeLimitingCollector(collector, counter, int(timeout * 1000))
-        with suppress(search.TimeLimitingCollector.TimeExceededException):
-            super().search(query, results)
-            timeout = None
+        super().search(query, results)
         if isinstance(cache, search.CachingCollector):
             collector = search.TotalHitCountCollector()
             cache.replay(collector)

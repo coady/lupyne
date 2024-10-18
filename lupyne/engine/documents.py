@@ -348,7 +348,7 @@ class Hits:
         self.searcher, self.scoredocs = searcher, scoredocs
         if hasattr(count, 'relation'):
             cls = int if count.relation == search.TotalHits.Relation.EQUAL_TO else float
-            count = cls(count.value)
+            count = cls(count.value() if lucene.VERSION.startswith('10.') else count.value)
         self.count, self.fields = count, fields
 
     def select(self, *fields: str):
@@ -450,8 +450,12 @@ class Groups:
     def __getitem__(self, index):
         hits = groupdocs = self.groupdocs[index]
         if isinstance(groupdocs, grouping.GroupDocs):
-            hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits)
-            hits.value = convert(groupdocs.groupValue)
+            if lucene.VERSION.startswith('10.'):  # pragma: no cover
+                hits = Hits(self.searcher, groupdocs.scoreDocs(), groupdocs.totalHits())
+                hits.value = convert(groupdocs.groupValue())
+            else:
+                hits = Hits(self.searcher, groupdocs.scoreDocs, groupdocs.totalHits)
+                hits.value = convert(groupdocs.groupValue)
         hits.fields = self.fields
         return hits
 

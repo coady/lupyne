@@ -7,7 +7,6 @@ from java.util import HashMap
 from org.apache.lucene import analysis, queryparser, search, util
 from org.apache.lucene.search import uhighlight
 from org.apache.pylucene.analysis import PythonAnalyzer, PythonTokenFilter
-from org.apache.pylucene.queryparser.classic import PythonQueryParser
 
 
 class TokenStream(analysis.TokenStream):
@@ -155,11 +154,7 @@ class Analyzer(PythonAnalyzer):
             setattr(parser, name, value)
         if isinstance(parser, queryparser.classic.MultiFieldQueryParser):
             return parser.parse(parser, query)
-        try:
-            return parser.parse(query)
-        finally:
-            if isinstance(parser, PythonQueryParser):
-                parser.finalize()
+        return parser.parse(query)
 
     def highlight(self, query: search.Query, field: str, content: str, count: int = 1) -> str:
         """Return highlighted content.
