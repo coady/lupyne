@@ -3,7 +3,6 @@ import collections
 import datetime
 import operator
 from collections.abc import Callable, Iterator, Sequence
-from typing import Optional, Union
 import lucene  # noqa
 from java.lang import Long
 from java.util import Arrays, HashSet
@@ -244,7 +243,7 @@ class ShapeField:
             if self.docvalues:
                 yield self.apply(cls.createDocValueField, shape)
 
-    def distances(self, point: Union[geo.Point, geo.XYPoint]) -> search.SortField:
+    def distances(self, point: geo.Point | geo.XYPoint) -> search.SortField:
         """Return distance SortField."""
         xy = isinstance(point, geo.XYGeometry)
         cls = document.XYDocValuesField if xy else document.LatLonDocValuesField
@@ -403,7 +402,7 @@ class Hits:
         return self.searcher.docvalues(field, type).select(self.ids)
 
     def groupby(
-        self, func: Callable, count: Optional[int] = None, docs: Optional[int] = None
+        self, func: Callable, count: int | None = None, docs: int | None = None
     ) -> 'Groups':
         """Return ordered list of [Hits][lupyne.engine.documents.Hits] grouped by value of function applied to doc ids.
 
@@ -489,7 +488,7 @@ class GroupingSearch(grouping.GroupingSearch):
         return map(convert, self.allMatchingGroups)
 
     def search(
-        self, searcher, query: search.Query, count: Optional[int] = None, start: int = 0
+        self, searcher, query: search.Query, count: int | None = None, start: int = 0
     ) -> Groups:
         """Run query and return [Groups][lupyne.engine.documents.Groups]."""
         if count is None:

@@ -3,7 +3,7 @@ import functools
 import inspect
 import math
 from collections.abc import Callable
-from typing import Annotated, Optional
+from typing import Annotated
 import lucene
 import strawberry.asgi
 from starlette.applications import Starlette
@@ -35,7 +35,7 @@ def doc_type(cls):
     return strawberry.type(cls, description=inspect.getdoc(cls))
 
 
-def doc_field(func: Optional[Callable] = None, **kwargs: str):
+def doc_field(func: Callable | None = None, **kwargs: str):
     """Return strawberry field with argument and docstring descriptions."""
     if func is None:
         return functools.partial(doc_field, **kwargs)
@@ -74,7 +74,7 @@ class Hit:
     """search result"""
 
     id: int
-    score: Optional[float]
+    score: float | None
     if FieldDoc.__annotations__:  # pragma: no branch
         sortkeys: FieldDoc
     if Document.__annotations__:  # pragma: no branch
@@ -122,7 +122,7 @@ class Query:
         count="maximum number of hits to retrieve",
         sort="sort by fields",
     )
-    def search(self, info: Info, q: str, count: Optional[int] = None, sort: list[str] = []) -> Hits:
+    def search(self, info: Info, q: str, count: int | None = None, sort: list[str] = []) -> Hits:
         """Run query and return hits."""
         selected = selections(*info.selected_fields)
         if 'hits' not in selected or count == 0:

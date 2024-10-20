@@ -1,7 +1,6 @@
 import contextlib
 import math
 import time
-from typing import Union
 import lucene
 from fastapi import FastAPI
 from .settings import DEBUG, DIRECTORIES
@@ -24,7 +23,7 @@ app.get('/terms', response_description="[`name`, ...]")(root.indexed)
 
 
 @app.get('/terms/{name}')
-def terms(name: str, *, counts: bool = False) -> Union[list, dict]:
+def terms(name: str, *, counts: bool = False) -> list | dict:
     terms = root.searcher.terms(name, counts=counts)
     return (dict if counts else list)(terms)
 

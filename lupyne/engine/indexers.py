@@ -5,7 +5,6 @@ import operator
 from collections.abc import Iterator, Mapping
 from functools import partial
 from pathlib import Path
-from typing import Optional
 import lucene
 from java.io import File, IOException, StringReader
 from java.util import Arrays, HashSet
@@ -462,7 +461,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         return counts
 
     def groupby(
-        self, field: str, query, count: Optional[int] = None, start: int = 0, **attrs
+        self, field: str, query, count: int | None = None, start: int = 0, **attrs
     ) -> Groups:
         """Return [Hits][lupyne.engine.documents.Hits] grouped by field
         using a [GroupingSearch][lupyne.engine.documents.GroupingSearch]."""

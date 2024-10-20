@@ -1,5 +1,4 @@
 import time
-from typing import Optional
 import graphql
 import lucene
 import strawberry
@@ -37,7 +36,7 @@ class Document:
     """stored fields"""
 
     __annotations__ = {
-        field.name.value: Optional[convert(field.type)] for field in schema.get('Document', [])
+        field.name.value: convert(field.type) | None for field in schema.get('Document', [])
     }
     locals().update(dict.fromkeys(__annotations__))
     locals().update(dict.fromkeys(multi_valued(__annotations__), ()))
@@ -54,7 +53,7 @@ sort_types = {field.name.value: convert(field.type) for field in schema.get('Fie
 class FieldDoc:
     """sort fields"""
 
-    __annotations__ = {name: Optional[sort_types[name]] for name in sort_types}
+    __annotations__ = {name: sort_types[name] | None for name in sort_types}
     locals().update(dict.fromkeys(__annotations__))
     assert not multi_valued(__annotations__)
 

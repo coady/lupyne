@@ -1,5 +1,4 @@
 from collections.abc import Callable, Iterable, Mapping
-from typing import Optional
 import jcc  # noqa: F401 needed for building docs
 from java.io import StringReader
 from java.lang import Float
@@ -123,7 +122,7 @@ class Analyzer(PythonAnalyzer):
     def createComponents(self, field):
         return analysis.Analyzer.TokenStreamComponents(*self.components(field))
 
-    def tokens(self, text: str, field: Optional[str] = None) -> analysis.TokenStream:
+    def tokens(self, text: str, field: str | None = None) -> analysis.TokenStream:
         """Return lucene TokenStream from text."""
         return self.components(field, StringReader(text))[1]
 
