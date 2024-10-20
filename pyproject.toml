@@ -1,6 +1,6 @@
 [project]
 name = "lupyne"
-version = "3.2"
+version = "3.3"
 description = "Pythonic search engine based on PyLucene."
 readme = "README.md"
 requires-python = ">=3.9"
