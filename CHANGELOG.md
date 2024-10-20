@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
+* PyLucene >=10 required
 
 ## [3.3](https://pypi.org/project/lupyne/3.3/) - 2024-10-20
 * PyLucene >=9.12 required
