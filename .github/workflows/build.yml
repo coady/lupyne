@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     container: coady/pylucene
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - run: pip install -r tests/requirements.in
     - run: make check
     - run: coverage xml
@@ -23,7 +23,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: actions/setup-python@v5
       with:
         python-version: 3.x
@@ -34,6 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     container: coady/pylucene
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - run: pip install -r docs/requirements.in
     - run: make html
