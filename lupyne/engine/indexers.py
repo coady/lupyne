@@ -581,13 +581,13 @@ class IndexWriter(index.IndexWriter):
         doc = self.document(document, **terms)
         term = index.Term(name, *[value] if value else doc.getValues(name))
         fields = list(doc.iterator())
-        types = [Field.cast_(field.fieldType()) for field in fields]
         noindex = index.IndexOptions.NONE
-        if any(
-            ft.stored() or ft.indexOptions() != noindex or Field.dimensions.fget(ft) for ft in types
-        ):
-            self.updateDocument(term, doc)
-        elif fields:
+        for field in fields:
+            ft = Field.cast_(field.fieldType())
+            if ft.stored() or ft.indexOptions() != noindex or Field.dimensions.fget(ft):  # type: ignore
+                self.updateDocument(term, doc)
+                return
+        if fields:
             self.updateDocValues(term, *fields)
 
     def delete(self, *query, **options):

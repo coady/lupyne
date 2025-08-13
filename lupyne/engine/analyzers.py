@@ -12,7 +12,6 @@ class TokenStream(analysis.TokenStream):
     """TokenStream mixin with support for iteration and attributes cached as properties."""
 
     def __iter__(self):
-        self.reset()
         return self
 
     def __next__(self):
@@ -83,6 +82,7 @@ class TokenFilter(PythonTokenFilter, TokenStream):
     def __init__(self, input: analysis.TokenStream):
         super().__init__(input)
         self.input = input
+        self.reset()
 
     def incrementToken(self) -> bool:
         """Advance to next token and return whether the stream is not empty."""

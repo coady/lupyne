@@ -40,7 +40,7 @@ class Field(FieldType):  # type: ignore
 
     properties = {name for name in locals() if not name.startswith('__')}
     types = {int: 'long', float: 'double', str: 'string'}
-    types.update(
+    types.update(  # type: ignore
         NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string'
     )
     dimensions = property(
@@ -415,7 +415,7 @@ class Hits:
                 group = groups[value]
             except KeyError:
                 group = groups[value] = type(self)(self.searcher, [], fields=self.fields)
-                group.value = value
+                group.value = value  # type: ignore
             group.scoredocs.append(scoredoc)
         groups = list(groups.values())  # type: ignore
         for group in groups:
