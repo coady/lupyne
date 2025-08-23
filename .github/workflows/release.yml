@@ -2,8 +2,7 @@ name: release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
 
 jobs:
   publish:
@@ -12,8 +11,8 @@ jobs:
     permissions: write-all
     steps:
     - uses: actions/checkout@v5
-    - run: pip install build -r docs/requirements.in
-    - run: python -m build
-    - run: git config --global --add safe.directory /__w/lupyne/lupyne
-    - run: PYTHONPATH=$PWD python -m mkdocs gh-deploy --force
+    - uses: astral-sh/setup-uv@v6
+    - run: uv venv --system-site-packages
+    - run: uv build
+    - run: uv run --with lupyne mkdocs gh-deploy --force
     - uses: pypa/gh-action-pypi-publish@release/v1

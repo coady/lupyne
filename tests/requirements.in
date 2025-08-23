@@ -1,4 +1,0 @@
-strawberry-graphql[asgi]
-fastapi
-httpx
-pytest-cov

@@ -4,13 +4,12 @@ version = "3.3"
 description = "Pythonic search engine based on PyLucene."
 readme = "README.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE.txt"}
+license = "Apache-2.0"
 authors = [{name = "Aric Coady", email = "aric.coady@gmail.com"}]
 keywords = ["lucene", "pylucene"]
 classifiers = [
     "Development Status :: 6 - Mature",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -51,3 +50,17 @@ filterwarnings = ["ignore:builtin type .* has no __module__ attribute:Deprecatio
 [tool.coverage.run]
 source = ["lupyne"]
 branch = true
+
+[dependency-groups]
+dev = [
+    "strawberry-graphql[asgi]",
+    "fastapi",
+    "httpx",
+    "pytest-cov",
+    "pytest-codspeed",
+    "pytest-parametrized",
+    "ruff",
+    "mypy",
+    "mkdocstrings[python]",
+    "mkdocs-jupyter",
+]

@@ -13,9 +13,10 @@ jobs:
     container: coady/pylucene
     steps:
     - uses: actions/checkout@v5
-    - run: pip install -r tests/requirements.in
+    - uses: astral-sh/setup-uv@v6
+    - run: uv venv --system-site-packages
     - run: make check
-    - run: coverage xml
+    - run: uv run coverage xml
     - uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -24,10 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
-    - uses: actions/setup-python@v5
-      with:
-        python-version: 3.x
-    - run: pip install ruff mypy
+    - uses: astral-sh/setup-uv@v6
     - run: make lint
 
   docs:
@@ -35,5 +33,6 @@ jobs:
     container: coady/pylucene
     steps:
     - uses: actions/checkout@v5
-    - run: pip install -r docs/requirements.in
+    - uses: astral-sh/setup-uv@v6
+    - run: uv venv --system-site-packages
     - run: make html
