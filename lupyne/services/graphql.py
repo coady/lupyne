@@ -152,4 +152,4 @@ class Mutation:
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
-app.add_route('/graphql', strawberry.asgi.GraphQL(schema, debug=DEBUG))
+app.add_route('/graphql', strawberry.asgi.GraphQL(schema))
