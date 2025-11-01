@@ -1,5 +1,7 @@
 name: build
 
+permissions: read-all
+
 on:
   workflow_dispatch:
   push:

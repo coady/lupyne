@@ -36,7 +36,7 @@ See `./lupyne/services/README.md` for services usage.
 
 ## Installation
 ```console
-% pip install lupyne[graphql,rest]
+pip install lupyne[graphql,rest]
 ```
 
 PyLucene is not `pip` installable.
@@ -53,5 +53,5 @@ PyLucene is not `pip` installable.
 100% branch coverage.
 
 ```console
-% pytest [--cov]
+pytest [--cov]
 ```

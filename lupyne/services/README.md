@@ -2,7 +2,7 @@ Services use [Starlette's config](https://www.starlette.io/config/): in environm
 
 ## [GraphQL](https://graphql.org)
 ```console
-% DIRECTORIES=... SCHEMA=... uvicorn lupyne.services.graphql:app
+DIRECTORIES=... SCHEMA=... uvicorn lupyne.services.graphql:app
 ```
 
 Open <http://localhost:8000/graphql>.
@@ -25,7 +25,7 @@ type FieldDoc {
 
 ## [REST](https://en.wikipedia.org/wiki/Representational_state_transfer)
 ```console
-% DIRECTORIES=... SCHEMA=... uvicorn lupyne.services.rest:app
+DIRECTORIES=... SCHEMA=... uvicorn lupyne.services.rest:app
 ```
 
 Open <http://localhost:8000/docs>.

@@ -8,4 +8,4 @@ lint:
 	uv run mypy -p lupyne.engine
 
 html:
-	PYTHONPATH=$(PWD) uv run mkdocs build
+	uv run -w . mkdocs build
