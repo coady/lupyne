@@ -14,5 +14,5 @@ jobs:
     - uses: astral-sh/setup-uv@v7
     - run: uv venv --system-site-packages
     - run: uv build
-    - run: uv run mkdocs -w . gh-deploy --force
+    - run: uv run -w . mkdocs gh-deploy --force
     - uses: pypa/gh-action-pypi-publish@release/v1
