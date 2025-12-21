@@ -15,7 +15,7 @@ FieldType = document.FieldType
 QueryRelation = document.ShapeField.QueryRelation
 
 
-class Field(FieldType):  # type: ignore
+class Field(FieldType):
     """Saved parameters which can generate lucene Fields given values.
 
     Args:
@@ -40,7 +40,7 @@ class Field(FieldType):  # type: ignore
 
     properties = {name for name in locals() if not name.startswith('__')}
     types = {int: 'long', float: 'double', str: 'string'}
-    types.update(  # type: ignore
+    types.update(
         NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string'
     )
     dimensions = property(
@@ -107,7 +107,7 @@ class Field(FieldType):  # type: ignore
             types = {int: int, float: util.NumericUtils.doubleToSortableLong}
             for value in values:
                 yield self.docValueClass(self.name, types.get(type(value), util.BytesRef)(value))
-            self = getattr(self, 'docValueLess', self)  # type: ignore
+            self = getattr(self, 'docValueLess', self)
         if self.dimensions:
             for value in values:
                 cls = document.LongPoint if isinstance(value, int) else document.DoublePoint
@@ -202,7 +202,7 @@ class DateTimeField(Field):
         """
         if not isinstance(date, datetime.date):
             date = datetime.datetime(*(tuple(date) + (None, 1, 1)[len(date) :]))
-        delta = datetime.timedelta(days, **delta)  # type: ignore
+        delta = datetime.timedelta(days, **delta)
         return self.range(*sorted([date, date + delta]), upper=True)
 
     def within(self, days=0, weeks=0, tz=None, **delta) -> Query:
@@ -217,7 +217,7 @@ class DateTimeField(Field):
         """
         date = datetime.datetime.now(tz)
         if not (isinstance(days + weeks, float) or delta):
-            date = date.date()  # type: ignore
+            date = date.date()
         return self.duration(date, days, weeks=weeks, **delta)
 
 
@@ -249,7 +249,7 @@ class ShapeField:
         cls = document.XYDocValuesField if xy else document.LatLonDocValuesField
         return self.apply(cls.newDistanceSort, point)
 
-    def query(self, relation: QueryRelation, *shapes: geo.Geometry) -> search.Query:  # type: ignore
+    def query(self, relation: QueryRelation, *shapes: geo.Geometry) -> search.Query:
         shape = shapes[0]
         cls = document.XYShape if isinstance(shape, geo.XYGeometry) else document.LatLonShape
         func = cls.newGeometryQuery
@@ -359,7 +359,7 @@ class Hits:
 
     def __getitem__(self, index):
         if isinstance(index, slice):
-            scoredocs = list(map(self.scoredocs.__getitem__, range(*index.indices(len(self)))))
+            scoredocs = list(map(self.scoredocs.__getitem__, range(*index.indices(len(self)))))  # type: ignore
             return type(self)(self.searcher, scoredocs, self.count, self.fields)
         scoredoc = self.scoredocs[index]
         keys = search.FieldDoc.cast_(scoredoc).fields if search.FieldDoc.instance_(scoredoc) else ()
@@ -450,7 +450,7 @@ class Groups:
         hits = groupdocs = self.groupdocs[index]
         if isinstance(groupdocs, grouping.GroupDocs):
             hits = Hits(self.searcher, groupdocs.scoreDocs(), groupdocs.totalHits())
-            hits.value = convert(groupdocs.groupValue())
+            hits.value = convert(groupdocs.groupValue())  # type: ignore
         hits.fields = self.fields
         return hits
 

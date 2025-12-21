@@ -3,9 +3,9 @@ check:
 	uv run pytest -s --cov-append --cov=lupyne.services tests/test_rest.py tests/test_graphql.py
 
 lint:
-	uv run ruff check
-	uv run ruff format --check
-	uv run mypy -p lupyne.engine
+	uvx ruff check
+	uvx ruff format --check
+	uvx ty check lupyne/engine
 
 html:
-	uv run -w . mkdocs build
+	uv run --group docs -w . mkdocs build

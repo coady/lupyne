@@ -73,7 +73,7 @@ class TokenStream(analysis.TokenStream):
         self.Type.setType(text)
 
 
-class TokenFilter(PythonTokenFilter, TokenStream):
+class TokenFilter(PythonTokenFilter, TokenStream):  # type: ignore
     """Create an iterable lucene TokenFilter from a TokenStream.
 
     Subclass and override [incrementToken][lupyne.engine.analyzers.TokenFilter.incrementToken].

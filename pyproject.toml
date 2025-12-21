@@ -40,9 +40,10 @@ line-length = 100
 [tool.ruff.format]
 quote-style = "preserve"
 
-[[tool.mypy.overrides]]
-module = ["lucene", "jcc", "java.*", "org.apache.*"]
-ignore_missing_imports = true
+[tool.ty.rules]
+unused-ignore-comment = "error"
+possibly-missing-attribute = "ignore"
+unresolved-import = "ignore"
 
 [tool.pytest.ini_options]
 addopts = "-p no:faulthandler"
@@ -53,15 +54,5 @@ source = ["lupyne"]
 branch = true
 
 [dependency-groups]
-dev = [
-    "strawberry-graphql[asgi]",
-    "fastapi",
-    "httpx",
-    "pytest-cov",
-    "pytest-codspeed",
-    "pytest-parametrized",
-    "ruff",
-    "mypy",
-    "mkdocstrings[python]",
-    "mkdocs-jupyter",
-]
+dev = ["strawberry-graphql[asgi]", "fastapi", "httpx", "pytest-cov", "pytest-codspeed", "pytest-parametrized"]
+docs = ["mkdocstrings[python]", "mkdocs-jupyter"]

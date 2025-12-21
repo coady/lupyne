@@ -239,7 +239,7 @@ class IndexReader:
             partial(operator.gt, stop) if stop else operator.methodcaller('startswith', value)
         )
         if not distance:
-            terms = itertools.takewhile(predicate, terms)  # type: ignore
+            terms = itertools.takewhile(predicate, terms)
         return ((term, termsenum.docFreq()) for term in terms) if counts else terms
 
     def docs(self, name: str, value, counts=False) -> Iterator:
@@ -248,7 +248,7 @@ class IndexReader:
             self.indexReader, name, util.BytesRef(value)
         )
         docs = iter(docsenum.nextDoc, index.PostingsEnum.NO_MORE_DOCS) if docsenum else ()
-        return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)  # type: ignore
+        return ((doc, docsenum.freq()) for doc in docs) if counts else iter(docs)
 
     def positions(self, name: str, value, payloads=False, offsets=False) -> Iterator[tuple]:
         """Generate doc ids and positions which contain given term.
@@ -368,7 +368,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
                 if positions:
                     values = [(start, spans.endPosition()) for start in starts]
                 else:
-                    values = sum(1 for _ in starts)  # type: ignore
+                    values = sum(1 for _ in starts)
                 yield (doc + offset), values
             offset += reader.maxDoc()
 
@@ -584,7 +584,7 @@ class IndexWriter(index.IndexWriter):
         noindex = index.IndexOptions.NONE
         for field in fields:
             ft = Field.cast_(field.fieldType())
-            if ft.stored() or ft.indexOptions() != noindex or Field.dimensions.fget(ft):  # type: ignore
+            if ft.stored() or ft.indexOptions() != noindex or Field.dimensions.fget(ft):
                 self.updateDocument(term, doc)
                 return
         if fields:

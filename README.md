@@ -6,7 +6,7 @@
 [![image](https://codecov.io/gh/coady/lupyne/branch/main/graph/badge.svg)](https://codecov.io/gh/coady/lupyne/)
 [![CodeQL](https://github.com/coady/lupyne/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/coady/lupyne/actions/workflows/github-code-scanning/codeql)
 [![image](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![image](https://mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+[![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
 
 Lupyne is a search engine based on [PyLucene](https://lucene.apache.org/pylucene/), the Python extension for accessing Java Lucene. Lucene is a relatively low-level toolkit, and PyLucene wraps it through automatic code generation. So although Java idioms are translated to Python idioms where possible, the resulting interface is far from Pythonic. See `./docs/examples.ipynb` for comparisons with the Lucene API.
 

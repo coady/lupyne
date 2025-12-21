@@ -1,22 +1,12 @@
 name: release
 
-permissions: write-all
+permissions:
+  id-token: write
+  pages: write
 
-on:
-  push:
-    tags: ['v*']
+on: [workflow_dispatch]
 
 jobs:
-  pages:
-    runs-on: ubuntu-latest
-    container: coady/pylucene
-    steps:
-    - uses: actions/checkout@v6
-    - uses: astral-sh/setup-uv@v7
-    - run: uv venv --system-site-packages
-    - run: git config --global --add safe.directory /__w/lupyne/lupyne
-    - run: uv run -w . mkdocs gh-deploy --force
-
   publish:
     runs-on: ubuntu-latest
     steps:
@@ -24,3 +14,16 @@ jobs:
     - uses: astral-sh/setup-uv@v7
     - run: uv build
     - uses: pypa/gh-action-pypi-publish@release/v1
+
+  pages:
+    runs-on: ubuntu-latest
+    container: coady/pylucene
+    steps:
+    - uses: actions/checkout@v6
+    - uses: astral-sh/setup-uv@v7
+    - run: uv venv --system-site-packages
+    - run: make html
+    - uses: actions/upload-pages-artifact@v4
+      with:
+        path: site/
+    - uses: actions/deploy-pages@v4

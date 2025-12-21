@@ -1,13 +1,9 @@
 name: build
 
-permissions: read-all
+permissions:
+  id-token: write
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+on: [workflow_dispatch, push, pull_request]
 
 jobs:
   test:
@@ -21,7 +17,7 @@ jobs:
     - run: uv run coverage xml
     - uses: codecov/codecov-action@v5
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+        use_oidc: true
 
   lint:
     runs-on: ubuntu-latest
