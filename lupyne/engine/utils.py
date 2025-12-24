@@ -1,6 +1,7 @@
 import abc
 import contextlib
 from collections.abc import Iterable
+
 import lucene
 from java.lang import Double, Float, Number, Object
 from org.apache.lucene import analysis, util

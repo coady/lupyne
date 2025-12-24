@@ -7,8 +7,10 @@ import tempfile
 from datetime import datetime
 from importlib import metadata
 from pathlib import Path
-import pytest
+
 import lucene
+import pytest
+
 from lupyne import engine
 
 fixtures = Path(__file__).parent / 'fixtures'

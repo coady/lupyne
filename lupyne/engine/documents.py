@@ -3,11 +3,13 @@ import collections
 import datetime
 import operator
 from collections.abc import Callable, Iterator, Sequence
-import lucene  # noqa
+
+import lucene
 from java.lang import Long
 from java.util import Arrays, HashSet
 from org.apache.lucene import document, geo, index, search, util
 from org.apache.lucene.search import grouping
+
 from .queries import Query
 from .utils import convert
 

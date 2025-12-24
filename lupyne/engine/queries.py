@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterable
-import lucene  # noqa
+
 from java.lang import Double, Integer, Long
 from java.util import Arrays
 from org.apache.lucene import document, index, search, util

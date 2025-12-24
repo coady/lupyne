@@ -37,6 +37,12 @@ graphql = ["strawberry-graphql[asgi]>=0.221"]
 [tool.ruff]
 line-length = 100
 
+[tool.ruff.lint]
+select = ["I"]
+
+[tool.ruff.lint.per-file-ignores]
+"lupyne/engine/__init__.py" = ["F401"]
+
 [tool.ruff.format]
 quote-style = "preserve"
 
@@ -54,5 +60,5 @@ source = ["lupyne"]
 branch = true
 
 [dependency-groups]
-dev = ["strawberry-graphql[asgi]", "fastapi", "httpx", "pytest-cov", "pytest-codspeed", "pytest-parametrized"]
+dev = ["strawberry-graphql[asgi]", "fastapi", "httpx", "pytest-cov"]
 docs = ["mkdocstrings[python]", "mkdocs-jupyter"]

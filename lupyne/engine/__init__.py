@@ -6,10 +6,11 @@ abstracting away java lucene primitives.
 """
 
 import lucene
-from .analyzers import Analyzer, TokenFilter  # noqa
-from .queries import Query  # noqa
-from .documents import Document, Field, NestedField, DateTimeField, ShapeField  # noqa
-from .indexers import IndexSearcher, MultiSearcher, IndexWriter, Indexer  # noqa
+
+from .analyzers import Analyzer, TokenFilter
+from .documents import DateTimeField, Document, Field, NestedField, ShapeField
+from .indexers import Indexer, IndexSearcher, IndexWriter, MultiSearcher
+from .queries import Query
 
 version = tuple(map(int, lucene.VERSION.split('.')))
 assert version >= (10,), version

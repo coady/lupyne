@@ -2,9 +2,11 @@ import datetime
 import json
 import math
 from pathlib import Path
-import pytest
+
 import lucene
+import pytest
 from org.apache.lucene import analysis, document, geo, search, store, util
+
 from lupyne import engine
 
 Q = engine.Query

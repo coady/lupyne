@@ -5,16 +5,18 @@ import operator
 from collections.abc import Iterator, Mapping
 from functools import partial
 from pathlib import Path
+
 import lucene
 from java.io import File, IOException, StringReader
 from java.util import Arrays, HashSet
 from org.apache.lucene import analysis, document, index, queries, search, store, util
 from org.apache.lucene.queries import spans
 from org.apache.lucene.search import spell, uhighlight
+
 from .analyzers import Analyzer
-from .queries import Query, DocValues, SpellParser
-from .documents import Field, Document, Hits, GroupingSearch, Groups
-from .utils import suppress, Atomic
+from .documents import Document, Field, GroupingSearch, Groups, Hits
+from .queries import DocValues, Query, SpellParser
+from .utils import Atomic, suppress
 
 
 class closing(set):

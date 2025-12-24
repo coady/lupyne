@@ -1,10 +1,12 @@
 import contextlib
 import math
 import time
+
 import lucene
 from fastapi import FastAPI
-from .settings import DEBUG, DIRECTORIES
+
 from .base import Document, WebSearcher
+from .settings import DEBUG, DIRECTORIES
 
 
 @contextlib.asynccontextmanager

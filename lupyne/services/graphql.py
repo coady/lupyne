@@ -4,12 +4,14 @@ import inspect
 import math
 from collections.abc import Callable
 from typing import Annotated
+
 import lucene
 import strawberry.asgi
 from starlette.applications import Starlette
-from strawberry import Info, UNSET
-from .settings import DEBUG, DIRECTORIES
+from strawberry import UNSET, Info
+
 from .base import Document, FieldDoc, WebSearcher
+from .settings import DEBUG, DIRECTORIES
 
 
 @contextlib.asynccontextmanager

@@ -1,10 +1,12 @@
 import time
+
 import graphql
 import lucene
 import strawberry
 from org.apache.lucene import index
-from .settings import SCHEMA
+
 from .. import engine
+from .settings import SCHEMA
 
 type_map = {
     'Int': int,
