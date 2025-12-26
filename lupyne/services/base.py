@@ -9,9 +9,9 @@ from .. import engine
 from .settings import SCHEMA
 
 type_map = {
-    'Int': int,
-    'Float': float,
-    'String': str,
+    "Int": int,
+    "Float": float,
+    "String": str,
 }
 schema = {}
 if SCHEMA:  # pragma: no branch
@@ -30,7 +30,7 @@ def convert(node):
 
 def multi_valued(annotations):
     """Return set of multi-valued fields."""
-    return {name for name, tp in annotations.items() if getattr(tp, '__origin__', tp) is list}
+    return {name for name, tp in annotations.items() if getattr(tp, "__origin__", tp) is list}
 
 
 @strawberry.type
@@ -38,7 +38,7 @@ class Document:
     """stored fields"""
 
     __annotations__ = {
-        field.name.value: convert(field.type) | None for field in schema.get('Document', [])
+        field.name.value: convert(field.type) | None for field in schema.get("Document", [])
     }
     locals().update(dict.fromkeys(__annotations__))
     locals().update(dict.fromkeys(multi_valued(__annotations__), ()))
@@ -48,7 +48,7 @@ class Document:
             setattr(self, name, values[0] if getattr(type(self), name, ()) is None else values)
 
 
-sort_types = {field.name.value: convert(field.type) for field in schema.get('FieldDoc', [])}
+sort_types = {field.name.value: convert(field.type) for field in schema.get("FieldDoc", [])}
 
 
 @strawberry.type
@@ -110,5 +110,5 @@ class WebSearcher:
 
     def sortfields(self, sort: list) -> dict:
         """Return mapping of fields to lucene SortFields."""
-        sort = {name.lstrip('-'): name.startswith('-') for name in sort}
+        sort = {name.lstrip("-"): name.startswith("-") for name in sort}
         return {name: self.searcher.sortfield(name, sort_types[name], sort[name]) for name in sort}

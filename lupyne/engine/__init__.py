@@ -12,5 +12,5 @@ from .documents import DateTimeField, Document, Field, NestedField, ShapeField
 from .indexers import Indexer, IndexSearcher, IndexWriter, MultiSearcher
 from .queries import Query
 
-version = tuple(map(int, lucene.VERSION.split('.')))
+version = tuple(map(int, lucene.VERSION.split(".")))
 assert version >= (10,), version

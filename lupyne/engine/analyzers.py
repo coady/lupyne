@@ -21,7 +21,7 @@ class TokenStream(analysis.TokenStream):
         raise StopIteration
 
     def __getattr__(self, name):
-        cls = getattr(analysis.tokenattributes, name + 'Attribute').class_
+        cls = getattr(analysis.tokenattributes, name + "Attribute").class_
         attr = self.getAttribute(cls) if self.hasAttribute(cls) else self.addAttribute(cls)
         setattr(self, name, attr)
         return attr
@@ -127,7 +127,7 @@ class Analyzer(PythonAnalyzer):
         """Return lucene TokenStream from text."""
         return self.components(field, StringReader(text))[1]
 
-    def parse(self, query: str, field='', op='', parser=None, **attrs) -> search.Query:
+    def parse(self, query: str, field="", op="", parser=None, **attrs) -> search.Query:
         """Return parsed lucene Query.
 
         Args:

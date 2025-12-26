@@ -215,7 +215,7 @@ class SpanQuery(Query):
 
     def __getitem__(self, slc: slice) -> SpanQuery:
         start, stop, step = slc.indices(Integer.MAX_VALUE)
-        assert step == 1, 'slice step is not supported'
+        assert step == 1, "slice step is not supported"
         return SpanQuery(spans.SpanPositionRangeQuery, self, start, stop)
 
     def __sub__(self, other: spans.SpanQuery) -> SpanQuery:

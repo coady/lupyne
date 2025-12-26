@@ -41,17 +41,17 @@ class Field(FieldType):
     storeTermVectors = property(FieldType.storeTermVectors, FieldType.setStoreTermVectors)
     tokenized = property(FieldType.tokenized, FieldType.setTokenized)
 
-    properties = {name for name in locals() if not name.startswith('__')}
-    types = {int: 'long', float: 'double', str: 'string'}
+    properties = {name for name in locals() if not name.startswith("__")}
+    types = {int: "long", float: "double", str: "string"}
     types.update(
-        NUMERIC='long', BINARY='string', SORTED='string', SORTED_NUMERIC='long', SORTED_SET='string'
+        NUMERIC="long", BINARY="string", SORTED="string", SORTED_NUMERIC="long", SORTED_SET="string"
     )
     dimensions = property(
         FieldType.pointDimensionCount,
         lambda self, count: self.setDimensions(count, Long.BYTES),
     )
 
-    def __init__(self, name: str, docValuesType='', indexOptions='', dimensions=0, **settings):
+    def __init__(self, name: str, docValuesType="", indexOptions="", dimensions=0, **settings):
         super().__init__()
         self.name = name
         for name in self.properties.intersection(settings):
@@ -64,24 +64,24 @@ class Field(FieldType):
             self.indexOptions = getattr(index.IndexOptions, indexOptions.upper())
         if docValuesType:
             self.docValuesType = getattr(index.DocValuesType, docValuesType.upper())
-            name = docValuesType.title().replace('_', '')
-            self.docValueClass = getattr(document, name + 'DocValuesField')
+            name = docValuesType.title().replace("_", "")
+            self.docValueClass = getattr(document, name + "DocValuesField")
             if self.stored or self.indexed or self.dimensions:
                 settings = self.settings
-                del settings['docValuesType']
+                del settings["docValuesType"]
                 self.docValueLess = Field(self.name, **settings)
         assert self.stored or self.indexed or self.docvalues or self.dimensions
 
     @classmethod
     def String(
-        cls, name: str, tokenized=False, omitNorms=True, indexOptions='DOCS', **settings
+        cls, name: str, tokenized=False, omitNorms=True, indexOptions="DOCS", **settings
     ) -> Self:
         """Return Field with default settings for strings."""
         settings.update(tokenized=tokenized, omitNorms=omitNorms, indexOptions=indexOptions)
         return cls(name, **settings)
 
     @classmethod
-    def Text(cls, name: str, indexOptions='DOCS_AND_FREQS_AND_POSITIONS', **settings) -> Self:
+    def Text(cls, name: str, indexOptions="DOCS_AND_FREQS_AND_POSITIONS", **settings) -> Self:
         """Return Field with default settings for text."""
         return cls(name, indexOptions=indexOptions, **settings)
 
@@ -97,7 +97,7 @@ class Field(FieldType):
     def settings(self) -> dict:
         """dict representation of settings"""
         defaults = FieldType()
-        result = {'dimensions': self.dimensions} if self.dimensions else {}
+        result = {"dimensions": self.dimensions} if self.dimensions else {}
         for name in Field.properties:
             value = getattr(self, name)
             if value != getattr(defaults, name)():
@@ -110,7 +110,7 @@ class Field(FieldType):
             types = {int: int, float: util.NumericUtils.doubleToSortableLong}
             for value in values:
                 yield self.docValueClass(self.name, types.get(type(value), util.BytesRef)(value))
-            self = getattr(self, 'docValueLess', self)
+            self = getattr(self, "docValueLess", self)
         if self.dimensions:
             for value in values:
                 cls = document.LongPoint if isinstance(value, int) else document.DoublePoint
@@ -132,7 +132,7 @@ class NestedField(Field):
         sep: field separator used on name and values
     """
 
-    def __init__(self, name: str, sep: str = '.', **settings):
+    def __init__(self, name: str, sep: str = ".", **settings):
         super().__init__(name, **Field.String(name, **settings).settings)
         self.sep = sep
         self.names = tuple(self.values(name))
@@ -145,7 +145,7 @@ class NestedField(Field):
 
     def items(self, *values: str) -> Iterator[document.Field]:
         """Generate indexed component fields."""
-        field = getattr(self, 'docValueLess', self)
+        field = getattr(self, "docValueLess", self)
         for value in values:
             for name, text in zip(self.names, self.values(value)):
                 yield document.Field(name, text, field)
@@ -176,7 +176,7 @@ class DateTimeField(Field):
     def timestamp(cls, date) -> float:
         """Return utc timestamp from date or time tuple."""
         if isinstance(date, datetime.date):
-            return calendar.timegm(date.timetuple()) + getattr(date, 'microsecond', 0) * 1e-6
+            return calendar.timegm(date.timetuple()) + getattr(date, "microsecond", 0) * 1e-6
         return float(calendar.timegm(tuple(date) + (None, 1, 1, 0, 0, 0)[len(date) :]))
 
     def items(self, *dates) -> Iterator[document.Field]:
@@ -327,7 +327,7 @@ class Hit(Document):
         result = super().dict(*names, **defaults)
         result.update(__id__=self.id, __score__=self.score)
         if self.sortkeys:
-            result['__sortkeys__'] = self.sortkeys
+            result["__sortkeys__"] = self.sortkeys
         return result
 
 
@@ -348,7 +348,7 @@ class Hits:
 
     def __init__(self, searcher, scoredocs: Sequence, count=0, fields=None):
         self.searcher, self.scoredocs = searcher, scoredocs
-        if hasattr(count, 'relation'):
+        if hasattr(count, "relation"):
             cls = int if count.relation == search.TotalHits.Relation.EQUAL_TO else float
             count = cls(count.value())
         self.count, self.fields = count, fields
@@ -372,20 +372,20 @@ class Hits:
 
     @property
     def ids(self) -> Iterator[int]:
-        return map(operator.attrgetter('doc'), self.scoredocs)
+        return map(operator.attrgetter("doc"), self.scoredocs)
 
     @property
     def scores(self) -> Iterator[float]:
-        return map(operator.attrgetter('score'), self.scoredocs)
+        return map(operator.attrgetter("score"), self.scoredocs)
 
     @property
     def maxscore(self) -> float:
         """max score of present hits; not necessarily of all matches"""
-        return max(self.scores, default=float('nan'))
+        return max(self.scores, default=float("nan"))
 
     def items(self) -> Iterator[tuple]:
         """Generate zipped ids and scores."""
-        return map(operator.attrgetter('doc', 'score'), self.scoredocs)
+        return map(operator.attrgetter("doc", "score"), self.scoredocs)
 
     def highlights(self, query: search.Query, **fields: int) -> Iterator[dict]:
         """Generate highlighted fields for each hit.
@@ -406,7 +406,7 @@ class Hits:
 
     def groupby(
         self, func: Callable, count: int | None = None, docs: int | None = None
-    ) -> 'Groups':
+    ) -> "Groups":
         """Return ordered list of [Hits][lupyne.engine.documents.Hits] grouped by value of function applied to doc ids.
 
         Optionally limit the number of groups and docs per group.
@@ -480,7 +480,7 @@ class GroupingSearch(grouping.GroupingSearch):
             self.groupSort = self.sortWithinGroup = sort
             self.fillSortFields = True
         if cache:
-            self.setCachingInMB(float('inf'), True)
+            self.setCachingInMB(float("inf"), True)
         for name in attrs:
             getattr(type(self), name).__set__(self, attrs[name])
 

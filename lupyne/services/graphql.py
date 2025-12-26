@@ -112,7 +112,7 @@ class Query:
         """indexed field names"""
         fields = {}
         for name, selected in selections(*info.selected_fields).items():
-            if 'counts' in selected:
+            if "counts" in selected:
                 terms = dict(root.searcher.terms(name, counts=True))
                 fields[name] = Terms(values=terms, counts=terms.values())
             else:
@@ -127,16 +127,16 @@ class Query:
     def search(self, info: Info, q: str, count: int | None = None, sort: list[str] = []) -> Hits:
         """Run query and return hits."""
         selected = selections(*info.selected_fields)
-        if 'hits' not in selected or count == 0:
+        if "hits" not in selected or count == 0:
             return Hits(count=root.searcher.count(q), hits=[])
         sortfields = root.sortfields(sort)
         hits = root.searcher.search(
             q,
             count,
             sort=list(sortfields.values()) or None,
-            scores='score' in selected['hits'],
+            scores="score" in selected["hits"],
         )
-        hits.select(*selected['hits'].get('doc', []))
+        hits.select(*selected["hits"].get("doc", []))
         result = Hits(count=hits.count, hits=[])
         for hit in hits:
             sortkeys = dict(zip(sortfields, hit.sortkeys))
@@ -154,4 +154,4 @@ class Mutation:
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
-app.add_route('/graphql', strawberry.asgi.GraphQL(schema))
+app.add_route("/graphql", strawberry.asgi.GraphQL(schema))

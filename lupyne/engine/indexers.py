@@ -88,7 +88,7 @@ class IndexReader:
         self.indexReader = reader
 
     def __getattr__(self, name):
-        if name == 'indexReader':
+        if name == "indexReader":
             raise AttributeError(name)
         return getattr(index.DirectoryReader.cast_(self.indexReader), name)
 
@@ -111,7 +111,7 @@ class IndexReader:
     @property
     def directory(self) -> store.Directory:
         """reader's lucene Directory"""
-        return self.__getattr__('directory')()
+        return self.__getattr__("directory")()
 
     @property
     def path(self) -> str:
@@ -188,8 +188,8 @@ class IndexReader:
         """
         types = {int: int, float: util.NumericUtils.sortableLongToDouble}
         type = types.get(type, util.BytesRef.utf8ToString)
-        docValuesType = str(self.fieldinfos[name].docValuesType).title().replace('_', '')
-        method = getattr(index.MultiDocValues, f'get{docValuesType}Values')
+        docValuesType = str(self.fieldinfos[name].docValuesType).title().replace("_", "")
+        method = getattr(index.MultiDocValues, f"get{docValuesType}Values")
         return getattr(DocValues, docValuesType)(method(self.indexReader, name), len(self), type)
 
     def copy(
@@ -217,7 +217,7 @@ class IndexReader:
                 writer.forceMerge(merge)
             return len(writer)
 
-    def terms(self, name: str, value='', stop='', counts=False, distance=0, prefix=0) -> Iterator:
+    def terms(self, name: str, value="", stop="", counts=False, distance=0, prefix=0) -> Iterator:
         """Generate a slice of term values, optionally with frequency counts.
 
         Args:
@@ -237,9 +237,9 @@ class IndexReader:
         else:
             termsenum.seekCeil(util.BytesRef(value))
             terms = itertools.chain([termsenum.term()], util.BytesRefIterator.cast_(termsenum))
-        terms = map(operator.methodcaller('utf8ToString'), terms)
+        terms = map(operator.methodcaller("utf8ToString"), terms)
         predicate = (
-            partial(operator.gt, stop) if stop else operator.methodcaller('startswith', value)
+            partial(operator.gt, stop) if stop else operator.methodcaller("startswith", value)
         )
         if not distance:
             terms = itertools.takewhile(predicate, terms)
@@ -277,7 +277,7 @@ class IndexReader:
     def vector(self, id, field):
         terms = self.termVectors().get(id, field)
         termsenum = terms.iterator() if terms else index.TermsEnum.EMPTY
-        terms = map(operator.methodcaller('utf8ToString'), util.BytesRefIterator.cast_(termsenum))
+        terms = map(operator.methodcaller("utf8ToString"), util.BytesRefIterator.cast_(termsenum))
         return termsenum, terms
 
     def termvector(self, id: int, field: str, counts=False) -> Iterator:
@@ -379,7 +379,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         if isinstance(query, search.Query):
             return query
         if spellcheck:
-            kwargs['parser'], kwargs['searcher'] = SpellParser, self
+            kwargs["parser"], kwargs["searcher"] = SpellParser, self
         return Analyzer.parse(self.analyzer, query, **kwargs)
 
     @property
@@ -400,7 +400,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
 
     def collector(self, count=None, sort=None, reverse=False, scores=False, mincount=1000):
         if count is None:
-            return search.CachingCollector.create(True, float('inf'))
+            return search.CachingCollector.create(True, float("inf"))
         count = min(count, self.maxDoc() or 1)
         mincount = max(count, mincount)
         if sort is None:
@@ -523,11 +523,11 @@ class IndexWriter(index.IndexWriter):
 
     parse = IndexSearcher.parse
 
-    def __init__(self, directory, mode: str = 'a', analyzer=None, version=None, **attrs):
+    def __init__(self, directory, mode: str = "a", analyzer=None, version=None, **attrs):
         self.shared = closing()
         args = [] if analyzer is None else [self.shared.analyzer(analyzer)]
         config = index.IndexWriterConfig(*args)
-        config.openMode = index.IndexWriterConfig.OpenMode.values()['wra'.index(mode)]
+        config.openMode = index.IndexWriterConfig.OpenMode.values()["wra".index(mode)]
         for name, value in attrs.items():
             setattr(config, name, value)
         self.policy = index.SnapshotDeletionPolicy(config.indexDeletionPolicy)
@@ -578,7 +578,7 @@ class IndexWriter(index.IndexWriter):
         """Add [document][lupyne.engine.indexers.IndexWriter.document] to index with optional boost."""
         self.addDocument(self.document(document, **terms))
 
-    def update(self, name: str, value='', document=(), **terms):
+    def update(self, name: str, value="", document=(), **terms):
         """Atomically delete documents which match given term
         and add the new [document][lupyne.engine.indexers.IndexWriter.document]."""
         doc = self.document(document, **terms)
@@ -605,7 +605,7 @@ class IndexWriter(index.IndexWriter):
 
     def __iadd__(self, directory):
         """Add directory (or reader, searcher, writer) to index."""
-        with closing.store(getattr(directory, 'directory', directory)) as directory:
+        with closing.store(getattr(directory, "directory", directory)) as directory:
             self.addIndexes([directory])
         return self
 
@@ -639,14 +639,14 @@ class Indexer(IndexWriter):
         nrt: optionally use a near real-time searcher
     """
 
-    def __init__(self, directory, mode='a', analyzer=None, version=None, nrt=False, **attrs):
+    def __init__(self, directory, mode="a", analyzer=None, version=None, nrt=False, **attrs):
         super().__init__(directory, mode, analyzer, version, **attrs)
         super().commit()
         self.nrt = nrt
         self.indexSearcher = IndexSearcher(self if nrt else self.directory, self.analyzer)
 
     def __getattr__(self, name):
-        if name == 'indexSearcher':
+        if name == "indexSearcher":
             raise AttributeError(name)
         return getattr(self.indexSearcher, name)
 

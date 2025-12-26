@@ -43,9 +43,6 @@ select = ["I"]
 [tool.ruff.lint.per-file-ignores]
 "lupyne/engine/__init__.py" = ["F401"]
 
-[tool.ruff.format]
-quote-style = "preserve"
-
 [tool.ty.rules]
 unused-ignore-comment = "error"
 possibly-missing-attribute = "ignore"
