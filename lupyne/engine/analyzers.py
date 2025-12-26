@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterable, Mapping
+from typing import Self
 
 from java.io import StringReader
 from java.lang import Float
@@ -102,12 +103,12 @@ class Analyzer(PythonAnalyzer):
         self.tokenizer, self.filters = tokenizer, filters
 
     @classmethod
-    def standard(cls, *filters: Callable) -> 'Analyzer':
+    def standard(cls, *filters: Callable) -> Self:
         """Return equivalent of StandardAnalyzer with additional filters."""
         return cls(analysis.standard.StandardTokenizer, analysis.LowerCaseFilter, *filters)
 
     @classmethod
-    def whitespace(cls, *filters: Callable) -> 'Analyzer':
+    def whitespace(cls, *filters: Callable) -> Self:
         """Return equivalent of WhitespaceAnalyzer with additional filters."""
         return cls(analysis.core.WhitespaceTokenizer, *filters)
 

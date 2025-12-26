@@ -5,6 +5,7 @@ import operator
 from collections.abc import Iterator, Mapping
 from functools import partial
 from pathlib import Path
+from typing import Self
 
 import lucene
 from java.io import File, IOException, StringReader
@@ -330,7 +331,7 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
     def openIfChanged(self):
         return index.DirectoryReader.openIfChanged(index.DirectoryReader.cast_(self.indexReader))
 
-    def reopen(self) -> 'IndexSearcher':
+    def reopen(self) -> Self:
         """Return current [IndexSearcher][lupyne.engine.indexers.IndexSearcher].
 
         Only creates a new one if necessary.

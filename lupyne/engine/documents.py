@@ -3,6 +3,7 @@ import collections
 import datetime
 import operator
 from collections.abc import Callable, Iterator, Sequence
+from typing import Self
 
 import lucene
 from java.lang import Long
@@ -74,13 +75,13 @@ class Field(FieldType):
     @classmethod
     def String(
         cls, name: str, tokenized=False, omitNorms=True, indexOptions='DOCS', **settings
-    ) -> 'Field':
+    ) -> Self:
         """Return Field with default settings for strings."""
         settings.update(tokenized=tokenized, omitNorms=omitNorms, indexOptions=indexOptions)
         return cls(name, **settings)
 
     @classmethod
-    def Text(cls, name: str, indexOptions='DOCS_AND_FREQS_AND_POSITIONS', **settings) -> 'Field':
+    def Text(cls, name: str, indexOptions='DOCS_AND_FREQS_AND_POSITIONS', **settings) -> Self:
         """Return Field with default settings for text."""
         return cls(name, indexOptions=indexOptions, **settings)
 
@@ -425,12 +426,12 @@ class Hits:
             group.scoredocs = group.scoredocs[:docs]
         return Groups(self.searcher, groups[:count], len(groups), self.fields)
 
-    def filter(self, func: Callable) -> 'Hits':
+    def filter(self, func: Callable) -> Self:
         """Return [Hits][lupyne.engine.documents.Hits] filtered by function applied to doc ids."""
         scoredocs = [scoredoc for scoredoc in self.scoredocs if func(scoredoc.doc)]
         return type(self)(self.searcher, scoredocs, fields=self.fields)
 
-    def sorted(self, key: Callable, reverse=False) -> 'Hits':
+    def sorted(self, key: Callable, reverse=False) -> Self:
         """Return [Hits][lupyne.engine.documents.Hits] sorted by key function applied to doc ids."""
         scoredocs = sorted(self.scoredocs, key=lambda scoredoc: key(scoredoc.doc), reverse=reverse)
         return type(self)(self.searcher, scoredocs, self.count, self.fields)
