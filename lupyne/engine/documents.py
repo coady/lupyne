@@ -3,7 +3,7 @@ import collections
 import datetime
 import operator
 from collections.abc import Callable, Iterator, Sequence
-from typing import Self
+from typing import Self, no_type_check
 
 import lucene
 from java.lang import Long
@@ -104,6 +104,7 @@ class Field(FieldType):
                 result[name] = value if isinstance(value, int) else str(value)
         return result
 
+    @no_type_check
     def items(self, *values) -> Iterator[document.Field]:
         """Generate lucene Fields suitable for adding to a document."""
         if self.docvalues:
@@ -404,6 +405,7 @@ class Hits:
         """Return mapping of docs to docvalues."""
         return self.searcher.docvalues(field, type).select(self.ids)
 
+    @no_type_check
     def groupby(
         self, func: Callable, count: int | None = None, docs: int | None = None
     ) -> "Groups":
@@ -418,9 +420,9 @@ class Hits:
                 group = groups[value]
             except KeyError:
                 group = groups[value] = type(self)(self.searcher, [], fields=self.fields)
-                group.value = value  # type: ignore
+                group.value = value
             group.scoredocs.append(scoredoc)
-        groups = list(groups.values())  # type: ignore
+        groups = list(groups.values())
         for group in groups:
             group.count = len(group)
             group.scoredocs = group.scoredocs[:docs]
