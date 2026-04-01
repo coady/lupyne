@@ -42,7 +42,7 @@ class Field(FieldType):
     tokenized = property(FieldType.tokenized, FieldType.setTokenized)
 
     properties = {name for name in locals() if not name.startswith("__")}
-    types = {int: "long", float: "double", str: "string"}
+    types: dict = {int: "long", float: "double", str: "string"}
     types.update(
         NUMERIC="long", BINARY="string", SORTED="string", SORTED_NUMERIC="long", SORTED_SET="string"
     )

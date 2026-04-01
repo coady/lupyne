@@ -221,10 +221,10 @@ class SpanQuery(Query):
     def __sub__(self, other: spans.SpanQuery) -> SpanQuery:
         return SpanQuery(spans.SpanNotQuery, self, other)
 
-    def __or__(*spans_: spans.SpanQuery) -> SpanQuery:
-        return SpanQuery(spans.SpanOrQuery, spans_)
+    def __or__(self, other: spans.SpanQuery) -> SpanQuery:
+        return SpanQuery(spans.SpanOrQuery, (self, other))
 
-    def near(*spans_, slop=0, inOrder=True):  # type: ignore
+    def near(*spans_, slop=0, inOrder=True):
         """Return lucene SpanNearQuery from SpanQueries."""
         return SpanQuery(spans.SpanNearQuery, spans_, slop, inOrder)
 

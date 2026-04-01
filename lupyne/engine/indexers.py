@@ -187,7 +187,7 @@ class IndexReader:
             type: int or float for converting values
         """
         types = {int: int, float: util.NumericUtils.sortableLongToDouble}
-        type = types.get(type, util.BytesRef.utf8ToString)
+        type = types.get(type, util.BytesRef.utf8ToString)  # type: ignore
         docValuesType = str(self.fieldinfos[name].docValuesType).title().replace("_", "")
         method = getattr(index.MultiDocValues, f"get{docValuesType}Values")
         return getattr(DocValues, docValuesType)(method(self.indexReader, name), len(self), type)
