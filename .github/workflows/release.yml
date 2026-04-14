@@ -23,7 +23,7 @@ jobs:
     - uses: astral-sh/setup-uv@v7
     - run: uv venv --system-site-packages
     - run: make html
-    - uses: actions/upload-pages-artifact@v4
+    - uses: actions/upload-pages-artifact@v5
       with:
         path: site/
     - uses: actions/deploy-pages@v5
