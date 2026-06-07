@@ -91,7 +91,7 @@ def test_writer(tempdir):
     assert list(indexer.positions("text", "world")) == [(0, [1])]
     assert list(indexer.positions("text", "world", offsets=True)) == [(0, [(-1, -1)])]
     hits = indexer.search("text:hello")
-    assert len(hits) == hits.count == 1
+    assert len(hits) == hits.count == 1 and isinstance(hits.count, int)
     assert hits.scoredocs == hits[:1].scoredocs and not hits[1:]
     assert list(hits.ids) == [0]
     (score,) = hits.scores

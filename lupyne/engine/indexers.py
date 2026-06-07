@@ -436,8 +436,8 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             **parser: [parse][lupyne.engine.analyzers.Analyzer.parse]` options
         """
         query = Query.alldocs() if query is None else self.parse(query, **parser)
-        results = cache = collector = self.collector(count, sort, reverse, scores, mincount)
-        super().search(query, results)
+        cache = collector = self.collector(count, sort, reverse, scores, mincount)
+        super().search(query, collector)
         if isinstance(cache, search.CachingCollector):
             collector = search.TotalHitCountCollector()
             cache.replay(collector)

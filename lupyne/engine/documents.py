@@ -350,7 +350,7 @@ class Hits:
     def __init__(self, searcher, scoredocs: Sequence, count=0, fields=None):
         self.searcher, self.scoredocs = searcher, scoredocs
         if hasattr(count, "relation"):
-            cls = int if count.relation == search.TotalHits.Relation.EQUAL_TO else float
+            cls = int if count.relation() == search.TotalHits.Relation.EQUAL_TO else float
             count = cls(count.value())
         self.count, self.fields = count, fields
 
@@ -363,7 +363,7 @@ class Hits:
 
     def __getitem__(self, index):
         if isinstance(index, slice):
-            scoredocs = list(map(self.scoredocs.__getitem__, range(*index.indices(len(self)))))  # type: ignore
+            scoredocs = list(map(self.scoredocs.__getitem__, range(*index.indices(len(self)))))
             return type(self)(self.searcher, scoredocs, self.count, self.fields)
         scoredoc = self.scoredocs[index]
         keys = search.FieldDoc.cast_(scoredoc).fields if search.FieldDoc.instance_(scoredoc) else ()
