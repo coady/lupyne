@@ -5,7 +5,7 @@ description = "Pythonic search engine based on PyLucene."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
-authors = [{name = "Aric Coady", email = "aric.coady@gmail.com"}]
+authors = [{name = "A. Coady"}]
 keywords = ["lucene", "pylucene"]
 classifiers = [
     "Development Status :: 6 - Mature",
@@ -31,8 +31,8 @@ Changelog = "https://github.com/coady/lupyne/blob/main/CHANGELOG.md"
 Issues = "https://github.com/coady/lupyne/issues"
 
 [project.optional-dependencies]
-rest = ["fastapi"]
-graphql = ["strawberry-graphql[asgi]>=0.221"]
+rest = ["uvicorn[standard]", "fastapi"]
+graphql = ["uvicorn[standard]", "strawberry-graphql[asgi]>=0.221"]
 
 [tool.ruff]
 line-length = 100
@@ -55,5 +55,5 @@ source = ["lupyne"]
 branch = true
 
 [dependency-groups]
-dev = ["strawberry-graphql[asgi]", "fastapi", "httpx", "pytest-cov"]
+dev = ["uvicorn[standard]", "strawberry-graphql[asgi]", "fastapi", "httpx2", "pytest-cov"]
 docs = ["mkdocstrings[python]", "mkdocs-jupyter"]
