@@ -8,4 +8,4 @@ lint:
 	uv run ty check lupyne/engine
 
 html:
-	uv run --group docs -w . mkdocs build
+	uv run --group docs great-docs build

@@ -1,0 +1,25 @@
+user_guide: docs
+
+authors:
+- name: A. Coady
+  github: coady
+
+reference:
+- title: Engine
+  desc: Pythonic wrapper around PyLucene.
+  contents:
+  - engine.Analyzer
+  - engine.TokenFilter
+
+  - engine.DateTimeField
+  - engine.Document
+  - engine.Field
+  - engine.NestedField
+  - engine.ShapeField
+
+  - engine.Indexer
+  - engine.IndexSearcher
+  - engine.IndexWriter
+  - engine.MultiSearcher
+
+  - engine.Query

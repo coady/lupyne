@@ -1,0 +1,334 @@
+---
+title: "Examples"
+---
+
+## indexers
+Basic indexing and searching adapted from [lucene's documentation](https://lucene.apache.org/core/9_7_0/core/index.html).
+
+### lucene
+```{python}
+import lucene
+
+assert lucene.initVM()
+```
+
+```{python}
+import shutil
+
+from java.io import File
+from org.apache.lucene import analysis, document, index, queryparser, search, store
+
+from lupyne import engine
+
+analyzer = analysis.standard.StandardAnalyzer()
+
+directory = store.FSDirectory.open(File("tempIndex").toPath())
+config = index.IndexWriterConfig(analyzer)
+iwriter = index.IndexWriter(directory, config)
+doc = document.Document()
+text = "This is the text to be indexed."
+doc.add(document.Field("fieldname", text, document.TextField.TYPE_STORED))
+iwriter.addDocument(doc)
+iwriter.close()
+
+# Now search the index:
+ireader = index.DirectoryReader.open(directory)
+isearcher = search.IndexSearcher(ireader)
+# Parse a simple query that searches for "text":
+parser = queryparser.classic.QueryParser("fieldname", analyzer)
+query = parser.parse("text")
+hits = isearcher.search(query, 10).scoreDocs
+assert len(hits) == 1
+# Iterate through the results:
+storedFields = isearcher.storedFields()
+for hit in hits:
+    hitDoc = storedFields.document(hit.doc)
+    assert hitDoc["fieldname"] == text
+ireader.close()
+directory.close()
+shutil.rmtree("tempIndex")
+```
+
+### lupyne
+```{python}
+# Indexer combines Writer and Searcher; StandardAnalyzer is the default
+indexer = engine.Indexer("tempIndex")
+# default indexed text settings for documents
+indexer.set("fieldname", engine.Field.Text, stored=True)
+indexer.add(fieldname=text)  # add document
+indexer.commit()  # commit changes and refresh searcher
+
+hits = indexer.search("text", field="fieldname")  # parsing handled if necessary
+assert len(hits) == 1
+for hit in hits:  # hits support mapping interface
+    assert hit["fieldname"] == text
+# closing is handled automatically
+del indexer
+shutil.rmtree("tempIndex")
+```
+
+## queries
+Classmethods for convenient query building. Operator overloading is used for combining boolean clauses, provided at least one of the queries is wrapped by lupyne.
+
+### lucene
+```{python}
+from org.apache.lucene.queries import spans
+
+q1 = search.TermQuery(index.Term("text", "lucene"))
+q2 = (
+    search.PhraseQuery.Builder()
+    .add(index.Term("text", "search"))
+    .add(index.Term("text", "engine"))
+    .build()
+)
+search.BooleanQuery.Builder().add(q1, search.BooleanClause.Occur.MUST).add(
+    q2, search.BooleanClause.Occur.MUST
+).build()
+```
+
+```{python}
+q1 = spans.SpanTermQuery(index.Term("text", "hello"))
+q2 = spans.SpanTermQuery(index.Term("text", "world"))
+q3 = spans.SpanPositionRangeQuery(q1, 0, 10)
+q4 = spans.SpanNearQuery([q1, q2], 0, True)
+spans.SpanNotQuery(q3, q4)
+```
+
+### lupyne
+```{python}
+Q = engine.Query
+
+Q.term("text", "lucene") & Q.phrase("text", "search", "engine")
+```
+
+```{python}
+Q.span("text", "hello")[:10] - Q.near("text", "hello", "world")
+```
+
+## searching
+Advanced searching with custom fields.
+
+Lupyne ShapeFields and DateTimeFields are implemented as lucene Shape and Point fields.
+NestedFields simulate a composite index.
+The fields have convenience methods for creating prefix and range queries.
+
+```{python}
+from datetime import date
+
+from org.apache.lucene import geo
+
+docs = [
+    {
+        "city": "San Francisco",
+        "state": "CA",
+        "incorporated": "1850-04-15",
+        "population": 808976,
+        "longitude": -122.4192,
+        "latitude": 37.7752,
+    },
+    {
+        "city": "Los Angeles",
+        "state": "CA",
+        "incorporated": "1850-04-04",
+        "population": 3849378,
+        "longitude": -118.2434,
+        "latitude": 34.0521,
+    },
+    {
+        "city": "Portland",
+        "state": "OR",
+        "incorporated": "1851-02-08",
+        "population": 575930,
+        "longitude": -122.6703,
+        "latitude": 45.5238,
+    },
+]
+
+indexer = engine.Indexer("tempIndex")
+indexer.set("city", stored=True)
+indexer.set("state", stored=True)
+# set method supports custom field types inheriting their default settings
+indexer.set("incorporated", engine.DateTimeField)
+indexer.set("year-month-day", engine.NestedField, sep="-")
+indexer.set("population", dimensions=1)
+indexer.set("point", engine.ShapeField)
+# assigned fields can have a different key from their underlying field name
+indexer.fields["location"] = engine.NestedField("state.city")
+
+for doc in docs:
+    doc["year-month-day"] = doc["incorporated"]
+    point = geo.Point(doc.pop("latitude"), doc.pop("longitude"))
+    location = doc["state"] + "." + doc["city"]
+    incorporated = map(int, doc.pop("incorporated").split("-"))
+    indexer.add(doc, location=location, incorporated=date(*incorporated), point=point)
+indexer.commit()
+
+query = indexer.fields["incorporated"].prefix([1850])
+[hit["city"] for hit in indexer.search(query)]
+```
+
+```{python}
+query = indexer.fields["incorporated"].range(date(1850, 4, 10), None)
+[hit["city"] for hit in indexer.search(query)]
+```
+
+```{python}
+query = indexer.fields["year-month-day"].prefix("1850")
+query
+```
+
+```{python}
+[hit["city"] for hit in indexer.search(query)]
+```
+
+```{python}
+query = indexer.fields["year-month-day"].range("1850-04-10", None)
+query
+```
+
+```{python}
+[hit["city"] for hit in indexer.search(query)]
+```
+
+```{python}
+query = Q.ranges("population", (0, 1000000))
+[hit["city"] for hit in indexer.search(query)]
+```
+
+```{python}
+cities = ["San Francisco", "Los Angeles", "Portland"]
+for distance in [1e3, 1e5, 7e5, 1e6]:
+    query = indexer.fields["point"].within(geo.Circle(37.7, -122.4, distance))
+    print([hit["city"] for hit in indexer.search(query)])
+```
+
+```{python}
+query = indexer.fields["location"].prefix("CA.San")
+query  # works like any prefix query
+```
+
+```{python}
+[hit["city"] for hit in indexer.search(query)]
+```
+
+```{python}
+query = indexer.fields["location"].prefix("CA")
+query  # optimized to search the best field
+```
+
+```{python}
+[hit["city"] for hit in indexer.search(query)]
+del indexer
+shutil.rmtree("tempIndex")
+```
+
+## sorting
+PyLucene has several pitfalls when collecting or sorting a large query result.
+Generally they involve the overhead of traversing the VM in an internal loop.
+
+Lucene also requires supplying a maximum doc count for searches,
+and supplying an excessively large count is a poor workaround because the collection heap is pre-allocated.
+
+To mitigate these problems, Lupyne first provides a unified search interface.
+The same Hits type is returned regardless of optional doc count or sorting parameters.
+As with lucene, the result is fully evaluated but each individual Hit object will only be loaded on demand.
+Internally a CachingCollector is used when all docs are requested.
+
+The search method allows lucene Sort parameters to be passed through, since that's still optimal.
+Additionally the hits themselves can be sorted afterwards with any python callable key.
+The IndexReader.docvalues method is convenient for creating a sort key table from fields with docvalues.
+The upshot is custom sorting and sorting large results are both easier and faster.
+
+Custom sorting isn't necessary in the below example of course, just there for demonstration.
+
+### lucene
+```{python}
+colors = "red", "green", "blue", "cyan", "magenta", "yellow"
+indexer = engine.Indexer("tempIndex")
+indexer.set("color", engine.Field.String, stored=True, docValuesType="sorted")
+for color in colors:
+    indexer.add(color=color)
+indexer.commit()
+
+searcher = search.IndexSearcher(indexer.indexReader)
+sorter = search.Sort(search.SortField("color", search.SortField.Type.STRING))
+topdocs = searcher.search(search.MatchAllDocsQuery(), 10, sorter)
+storedFields = searcher.storedFields()
+[storedFields.document(scoredoc.doc)["color"] for scoredoc in topdocs.scoreDocs]
+```
+
+### lupyne
+```{python}
+hits = indexer.search(sort="color")
+[hit["color"] for hit in hits]
+```
+
+```{python}
+docvalues = hits.docvalues("color")
+docvalues
+```
+
+```{python}
+hits = indexer.search().sorted(docvalues.__getitem__)
+[hit["color"] for hit in hits]
+del indexer
+shutil.rmtree("tempIndex")
+```
+
+## grouping
+Lupyne supports lucene's contrib grouping.GroupingSearch interface, but it has some limitations.
+GroupingSearch objects only support single-valued strings, and won't find zero-valued facets.
+Lupyne also supports grouping hits by an arbitrary function after the original search.
+Similar to sorting, the native approach is generally more efficient, proportional to the number of documents culled.
+
+Lupyne can also compute facet counts with intersected queries.
+Although seemingly less efficient, it may be faster with small numbers of terms.
+It also has no limitations on multiple values, and can be fully customized without reindexing.
+
+```{python}
+import itertools
+
+colors = "red", "green", "blue", "cyan", "magenta", "yellow"
+facets = dict(zip(colors, itertools.count(1)))
+indexer = engine.Indexer("tempIndex")
+indexer.set("color", engine.Field.String, stored=True, docValuesType="sorted")
+for color in facets:
+    for _ in range(facets[color]):
+        indexer.add(color=color)
+indexer.commit()
+query = Q.alldocs()
+```
+
+Groupby using GroupingSearch.
+
+```{python}
+for hits in indexer.groupby("color", query):
+    assert facets[hits.value] == hits.count
+    (hit,) = hits
+    assert hit["color"] == hits.value
+```
+
+Groupby using Hits.
+
+```{python}
+hits = indexer.search(query)
+for hits in hits.groupby(hits.docvalues("color").__getitem__, docs=1):
+    assert facets[hits.value] == hits.count
+    (hit,) = hits
+    assert hit["color"] == hits.value
+```
+
+Facets using GroupingSearch.
+
+```{python}
+indexer.facets(query, "color")
+```
+
+Facets using query counts.
+
+```{python}
+queries = {"additive": Q.any(color=colors[:3]), "subtractive": Q.any(color=colors[3:])}
+indexer.facets(query, color=queries)
+del indexer
+shutil.rmtree("tempIndex")
+```

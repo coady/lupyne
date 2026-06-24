@@ -4,11 +4,17 @@ permissions:
   id-token: write
   pages: write
 
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
+    inputs:
+      docs_only:
+        description: "upload docs without publishing to pypi"
+        type: boolean
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    if: ${{ !inputs.docs_only }}
     steps:
     - uses: actions/checkout@v7
     - uses: astral-sh/setup-uv@v7
@@ -22,8 +28,9 @@ jobs:
     - uses: actions/checkout@v7
     - uses: astral-sh/setup-uv@v7
     - run: uv venv --system-site-packages
+    - uses: quarto-dev/quarto-actions/setup@v2
     - run: make html
     - uses: actions/upload-pages-artifact@v5
       with:
-        path: site/
+        path: great-docs/_site/
     - uses: actions/deploy-pages@v5
