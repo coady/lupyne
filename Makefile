@@ -5,7 +5,7 @@ check:
 lint:
 	uvx ruff check
 	uvx ruff format --check
-	uvx ty check lupyne/engine
+	uv run ty check lupyne/engine
 
 html:
 	uv run --group docs -w . mkdocs build

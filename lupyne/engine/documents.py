@@ -293,7 +293,7 @@ class Document(dict):
     def __getitem__(self, name):
         return super().__getitem__(name)[0]
 
-    def get(self, name: str, default=None):
+    def get(self, name: str, default=None):  # type: ignore
         return super().get(name, [default])[0]
 
     def getlist(self, name: str) -> list:

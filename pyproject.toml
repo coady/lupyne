@@ -55,5 +55,5 @@ source = ["lupyne"]
 branch = true
 
 [dependency-groups]
-dev = ["uvicorn[standard]", "strawberry-graphql[asgi]", "fastapi", "httpx2", "pytest-cov"]
+dev = ["uvicorn[standard]", "strawberry-graphql[asgi]", "fastapi", "httpx2", "pytest-cov", "ty"]
 docs = ["mkdocstrings[python]", "mkdocs-jupyter"]
