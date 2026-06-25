@@ -58,7 +58,7 @@ indexer.set("fieldname", engine.Field.Text, stored=True)
 indexer.add(fieldname=text)  # add document
 indexer.commit()  # commit changes and refresh searcher
 
-hits = indexer.search("text", field="fieldname")  # parsing handled if necessary
+hits = indexer.search("text", count=None, field="fieldname")  # parsing handled if necessary
 assert len(hits) == 1
 for hit in hits:  # hits support mapping interface
     assert hit["fieldname"] == text
@@ -164,12 +164,12 @@ for doc in docs:
 indexer.commit()
 
 query = indexer.fields["incorporated"].prefix([1850])
-[hit["city"] for hit in indexer.search(query)]
+[hit["city"] for hit in indexer.search(query, count=None)]
 ```
 
 ```{python}
 query = indexer.fields["incorporated"].range(date(1850, 4, 10), None)
-[hit["city"] for hit in indexer.search(query)]
+[hit["city"] for hit in indexer.search(query, count=None)]
 ```
 
 ```{python}
@@ -178,7 +178,7 @@ query
 ```
 
 ```{python}
-[hit["city"] for hit in indexer.search(query)]
+[hit["city"] for hit in indexer.search(query, count=None)]
 ```
 
 ```{python}
@@ -187,19 +187,19 @@ query
 ```
 
 ```{python}
-[hit["city"] for hit in indexer.search(query)]
+[hit["city"] for hit in indexer.search(query, count=None)]
 ```
 
 ```{python}
 query = Q.ranges("population", (0, 1000000))
-[hit["city"] for hit in indexer.search(query)]
+[hit["city"] for hit in indexer.search(query, count=None)]
 ```
 
 ```{python}
 cities = ["San Francisco", "Los Angeles", "Portland"]
 for distance in [1e3, 1e5, 7e5, 1e6]:
     query = indexer.fields["point"].within(geo.Circle(37.7, -122.4, distance))
-    print([hit["city"] for hit in indexer.search(query)])
+    print([hit["city"] for hit in indexer.search(query, count=None)])
 ```
 
 ```{python}
@@ -208,7 +208,7 @@ query  # works like any prefix query
 ```
 
 ```{python}
-[hit["city"] for hit in indexer.search(query)]
+[hit["city"] for hit in indexer.search(query, count=None)]
 ```
 
 ```{python}
@@ -217,7 +217,7 @@ query  # optimized to search the best field
 ```
 
 ```{python}
-[hit["city"] for hit in indexer.search(query)]
+[hit["city"] for hit in indexer.search(query, count=None)]
 del indexer
 shutil.rmtree("tempIndex")
 ```
@@ -259,7 +259,7 @@ storedFields = searcher.storedFields()
 
 ### lupyne
 ```{python}
-hits = indexer.search(sort="color")
+hits = indexer.search(None, count=None, sort="color")
 [hit["color"] for hit in hits]
 ```
 
@@ -269,7 +269,7 @@ docvalues
 ```
 
 ```{python}
-hits = indexer.search().sorted(docvalues.__getitem__)
+hits = indexer.search(None, count=None).sorted(docvalues.__getitem__)
 [hit["color"] for hit in hits]
 del indexer
 shutil.rmtree("tempIndex")
@@ -311,7 +311,7 @@ for hits in indexer.groupby("color", query):
 Groupby using Hits.
 
 ```{python}
-hits = indexer.search(query)
+hits = indexer.search(query, count=None)
 for hits in hits.groupby(hits.docvalues("color").__getitem__, docs=1):
     assert facets[hits.value] == hits.count
     (hit,) = hits

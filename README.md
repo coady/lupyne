@@ -29,7 +29,7 @@ Indexes are accessed through an `IndexSearcher` (read-only), `IndexWriter`, or t
 from lupyne import engine
 
 searcher = engine.IndexSearcher('index/path')
-hits = searcher.search('text:query')
+hits = searcher.search('text:query', count=None)
 ```
 
 See `./lupyne/services/README.md` for services usage.

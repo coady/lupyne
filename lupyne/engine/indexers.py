@@ -398,27 +398,12 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
             return self.docFreq(index.Term(*query))
         return super().count(self.parse(*query, **options) if query else Query.alldocs())
 
-    def collector(self, count=None, sort=None, reverse=False, scores=False, mincount=1000):
-        if count is None:
-            return search.CachingCollector.create(True, float("inf"))
-        count = min(count, self.maxDoc() or 1)
-        mincount = max(count, mincount)
-        if sort is None:
-            return search.TopScoreDocCollectorManager(count, mincount).newCollector()
-        if isinstance(sort, str):
-            sort = self.sortfield(sort, reverse=reverse)
-        if not isinstance(sort, search.Sort):
-            sort = search.Sort(sort)
-        return search.TopFieldCollectorManager(sort, count, mincount).newCollector()
-
     def search(
         self,
-        query=None,
-        count=None,
-        sort=None,
-        reverse=False,
-        scores=False,
-        mincount=1000,
+        query: str | search.Query | None,
+        count: int | None,
+        sort: str | search.SortField | search.Sort = None,
+        scores: bool = False,
         **parser,
     ) -> Hits:
         """Run query and return [Hits][lupyne.engine.documents.Hits].
@@ -429,24 +414,21 @@ class IndexSearcher(search.IndexSearcher, IndexReader):
         Args:
             query: query string or lucene Query
             count: maximum number of hits to retrieve
-            sort: lucene Sort parameters
-            reverse: reverse flag used with sort
+            sort: lucene Sort parameters; supports field with `-` to indicate reverse
             scores: compute scores for candidate results when sorting
-            mincount: total hit count accuracy threshold
             **parser: [parse][lupyne.engine.analyzers.Analyzer.parse]` options
         """
         query = Query.alldocs() if query is None else self.parse(query, **parser)
-        cache = collector = self.collector(count, sort, reverse, scores, mincount)
-        super().search(query, collector)
-        if isinstance(cache, search.CachingCollector):
-            collector = search.TotalHitCountCollector()
-            cache.replay(collector)
-            count = collector.totalHits or 1
-            collector = self.collector(count, sort, reverse, scores, count)
-            cache.replay(collector)
-        topdocs = collector.topDocs()
-        if scores:
-            search.TopFieldCollector.populateScores(topdocs.scoreDocs, self, query)
+        if count is None:
+            count = self.maxDoc() if self.maxDoc() <= 1000 else self.count(query) or 1
+        if sort is None:
+            topdocs = super().search(query, count)
+        else:
+            if isinstance(sort, str):
+                sort = self.sortfield(sort.strip("-"), reverse=sort.startswith("-"))
+            if not isinstance(sort, search.Sort):
+                sort = search.Sort(sort)
+            topdocs = super().search(query, count, sort, scores)
         return Hits(self, topdocs.scoreDocs, topdocs.totalHits)
 
     def facets(self, query, *fields: str, **query_map: dict) -> dict:

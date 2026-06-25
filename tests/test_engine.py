@@ -66,7 +66,7 @@ def test_writer(tempdir):
     searcher = indexer.indexSearcher
     indexer.commit()
     assert searcher is indexer.indexSearcher
-    assert not searcher.search(count=1)
+    assert not searcher.search(None, count=1)
     indexer.add(text="hello world", name="sample", tag=["python", "search"])
     assert len(indexer) == 1 and list(indexer) == []
     indexer.commit()
@@ -90,7 +90,7 @@ def test_writer(tempdir):
     assert list(indexer.docs("text", "world", counts=True)) == [(0, 1)]
     assert list(indexer.positions("text", "world")) == [(0, [1])]
     assert list(indexer.positions("text", "world", offsets=True)) == [(0, [(-1, -1)])]
-    hits = indexer.search("text:hello")
+    hits = indexer.search("text:hello", count=None)
     assert len(hits) == hits.count == 1 and isinstance(hits.count, int)
     assert hits.scoredocs == hits[:1].scoredocs and not hits[1:]
     assert list(hits.ids) == [0]
@@ -99,9 +99,9 @@ def test_writer(tempdir):
     assert dict(hits.items()) == {0: score}
     data = hits[0].dict()
     assert data["__id__"] == 0 and "__score__" in data
-    assert not indexer.search("hello") and indexer.search("hello", field="text")
-    assert indexer.search("text:hello hi") and not indexer.search("text:hello hi", op="and")
-    assert indexer.search("text:*hello", allowLeadingWildcard=True)
+    assert not indexer.search("hello", 1) and indexer.search("hello", 1, field="text")
+    assert indexer.search("text:hello hi", 1) and not indexer.search("text:hello hi", 1, op="and")
+    assert indexer.search("text:*hello", count=None, allowLeadingWildcard=True)
     indexer.delete("name:sample")
     indexer.delete("tag", "python")
     assert 0 in indexer and len(indexer) == 1 and indexer.segments == {"_0": 1}
@@ -132,7 +132,7 @@ def test_searcher(tempdir, fields, constitution):
     doc = {"text": doc["text"], "amendment": analyzer.tokens(doc["amendment"])}
     scores = list(indexer.match(doc, "text:congress", "text:law", "amendment:27"))
     assert 0.0 == scores[0] < scores[1] <= scores[2] < 1.0
-    assert len(indexer) == len(indexer.search()) == 35
+    assert len(indexer) == len(indexer.search(None, count=None)) == 35
     articles = list(indexer.terms("article"))
     articles.remove("Preamble")
     assert sorted(map(int, articles)) == list(range(1, 8))
@@ -155,16 +155,16 @@ def test_searcher(tempdir, fields, constitution):
     assert len(docs) == count and all(counts) and sum(counts) > count
     positions = dict(indexer.positions("text", "people"))
     assert list(map(len, positions.values())) == counts
-    (hit,) = indexer.search('"We the People"', field="text")
+    (hit,) = indexer.search('"We the People"', count=None, field="text")
     assert hit["article"] == "Preamble"
     assert sorted(hit.dict()) == ["__id__", "__score__", "article"]
-    hits = indexer.search("people", field="text")
+    hits = indexer.search("people", count=None, field="text")
     assert "Preamble" in (hit.get("article") for hit in hits)
     assert len(hits) == hits.count == 8
     assert set(map(type, hits.ids)) == {int} and set(map(type, hits.scores)) == {float}
     assert hits.maxscore == next(hits.scores)
     ids = list(hits.ids)
-    hits = indexer.search("people", count=5, mincount=5, field="text")
+    hits = indexer.search("people", count=5, field="text")
     assert list(hits.ids) == ids[: len(hits)]
     assert len(hits) == 5 and hits.count == 8
     assert not any(map(math.isnan, hits.scores))
@@ -172,10 +172,10 @@ def test_searcher(tempdir, fields, constitution):
     hits = indexer.search("text:people", count=5, sort=search.Sort.INDEXORDER, scores=True)
     assert sorted(hits.ids) == list(hits.ids)
     assert all(score > 0 for score in hits.scores)
-    (hit,) = indexer.search("freedom", field="text")
+    (hit,) = indexer.search("freedom", count=None, field="text")
     assert hit["amendment"] == "1"
     assert sorted(hit.dict()) == ["__id__", "__score__", "amendment", "date"]
-    hits = indexer.search("date:[1919 TO 1921]")
+    hits = indexer.search("date:[1919 TO 1921]", count=None)
     amendments = ["18", "19"]
     assert sorted(hit["amendment"] for hit in hits) == amendments
     query = Q.range("date", "1919", "1921")
@@ -371,14 +371,14 @@ def test_grouping(tempdir, indexer, zipcodes):
     states = list(indexer.terms("state"))
     assert states[0] == "AK" and states[-1] == "WY"
     counties = [term.split(".")[-1] for term in indexer.terms("state.county", "CA")]
-    hits = indexer.search(field.prefix("CA"))
+    hits = indexer.search(field.prefix("CA"), count=None)
     assert sorted({hit["county"] for hit in hits}) == counties
     assert counties[0] == "Alameda" and counties[-1] == "Yuba"
     cities = [term.split(".")[-1] for term in indexer.terms("state.county.city", "CA.Los Angeles")]
-    hits = indexer.search(field.prefix("CA.Los Angeles"))
+    hits = indexer.search(field.prefix("CA.Los Angeles"), count=None)
     assert sorted({hit["city"] for hit in hits}) == cities
     assert cities[0] == "Acton" and cities[-1] == "Woodland Hills"
-    (hit,) = indexer.search("zipcode:90210")
+    (hit,) = indexer.search("zipcode:90210", count=None)
     assert hit["state"] == "CA" and hit["county"] == "Los Angeles"
     assert hit["city"] == "Beverly Hills" and hit["longitude"] == "-118.406"
     query = Q.prefix("zipcode", "90")
@@ -441,7 +441,7 @@ def test_shape(indexer, zipcodes):
     assert indexer.count(latlon.contains(pg)) == 0
     assert indexer.count(latlon.disjoint(pg)) == 2639
     assert indexer.count(latlon.intersects(pg)) == 8
-    hits = indexer.search(latlon.within(pg))
+    hits = indexer.search(latlon.within(pg), count=None)
     assert len(hits) == 8
     counties = {hit.id: hit["county"] for hit in hits}
     groups = hits.groupby(counties.get)
@@ -514,13 +514,13 @@ def test_fields(indexer, constitution):
     assert indexer.count(query) == 19
     query = field.range("1919-01-01", "1921-12-31")
     assert str(query) == "Y-m-d:[1919-01-01 TO 1921-12-31}"
-    hits = indexer.search(query)
+    hits = indexer.search(query, count=None)
     assert [hit["amendment"] for hit in hits] == ["18", "19"]
     assert [hit["Y-m-d"].split("-")[0] for hit in hits] == ["1919", "1920"]
     sizes = {id: int(indexer[id]["size"]) for id in indexer}
     ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
     query = Q.range("size", "1000", None)
-    hits = indexer.search(query).sorted(sizes.get)
+    hits = indexer.search(query, count=None).sorted(sizes.get)
     assert list(hits.ids) == ids
     hits = indexer.search(query, count=3, sort="size")
     assert list(hits.ids) == ids[: len(hits)]
@@ -551,7 +551,7 @@ def test_numeric(indexer, constitution):
     query = field.range(None, (1921, 12), lower=False, upper=True)
     assert indexer.count(query) == 19
     query = field.range(datetime.date(1919, 1, 1), datetime.date(1921, 12, 31))
-    hits = indexer.search(query)
+    hits = indexer.search(query, count=None)
     assert [hit["amendment"] for hit in hits] == [18, 19]
     dates = [datetime.datetime.fromtimestamp(float(hit["date"])).year for hit in hits]
     assert dates == [1919, 1920]
@@ -561,13 +561,13 @@ def test_numeric(indexer, constitution):
     sizes = {id: indexer[id]["size"] for id in indexer}
     ids = sorted((id for id in sizes if sizes[id] >= 1000), key=sizes.get)
     query = Q.ranges("size", (1000, None))
-    hits = indexer.search(query).sorted(sizes.get)
+    hits = indexer.search(query, count=None).sorted(sizes.get)
     assert list(hits.ids) == ids
     hits = indexer.search(query, count=3, sort=indexer.sortfield("size", type=int))
     assert list(hits.ids) == ids[: len(hits)]
     query = Q.ranges("size", (None, 1000))
     assert indexer.count(query) == len(sizes) - len(ids)
-    (hit,) = indexer.search(Q.points("amendment", 1))
+    (hit,) = indexer.search(Q.points("amendment", 1), count=None)
     assert hit["amendment"] == 1
 
 
@@ -590,7 +590,7 @@ def test_highlighting(tempdir, constitution):
         engine.Analyzer.highlight(indexer.analyzer, query, "text", "word right word")
         == "word <b>right</b> word"
     )
-    hits = indexer.search(query)
+    hits = indexer.search(query, count=None)
     highlights = list(hits.highlights(query, text=1))
     assert len(hits) == len(highlights)
     for highlight in highlights:
@@ -700,7 +700,7 @@ def test_docvalues(tempdir):
     assert list(indexer.docvalues("point", type=float)) == [2.5]
     with pytest.raises(AttributeError):
         indexer.docvalues("id")
-    assert indexer.search().docvalues("title") == {0: "two"}
+    assert indexer.search(None, count=None).docvalues("title") == {0: "two"}
 
     indexer.add()
     indexer.commit()

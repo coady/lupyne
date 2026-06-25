@@ -16,7 +16,7 @@ indexer.set('text', engine.Field.Text)          # create indexed 'text' field
 indexer.add(name='sample', text='hello world')  # add a document to the index
 indexer.commit()                                # commit changes; document is now searchable
 
-hits = indexer.search('text:hello')             # run search and return sequence of documents
+hits = indexer.search('text:hello', count=None)             # run search and return sequence of documents
 len(hits), hits.count                           # 1 hit retrieved (out of a total of 1)
 ```
 
