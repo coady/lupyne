@@ -364,7 +364,7 @@ def test_grouping(tempdir, indexer, zipcodes):
     )
     for doc in zipcodes:
         if doc["state"] in ("CA", "AK", "WY", "PR"):
-            lat, lng = ("{0:08.3f}".format(doc.pop(lt)) for lt in ["latitude", "longitude"])
+            lat, lng = (f"{doc.pop(lt):08.3f}" for lt in ["latitude", "longitude"])
             location = ".".join(doc[name] for name in ["state", "county", "city"])
             indexer.add(doc, latitude=lat, longitude=lng, location=location)
     indexer.commit()

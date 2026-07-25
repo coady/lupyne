@@ -3,7 +3,7 @@ import collections
 import datetime
 import operator
 from collections.abc import Callable, Iterator, Sequence
-from typing import Self, no_type_check
+from typing import ClassVar, Self, no_type_check
 
 import lucene
 from java.lang import Long
@@ -41,8 +41,8 @@ class Field(FieldType):
     storeTermVectors = property(FieldType.storeTermVectors, FieldType.setStoreTermVectors)
     tokenized = property(FieldType.tokenized, FieldType.setTokenized)
 
-    properties = {name for name in locals() if not name.startswith("__")}
-    types: dict = {int: "long", float: "double", str: "string"}
+    properties = frozenset(name for name in locals() if not name.startswith("__"))
+    types: ClassVar[dict] = {int: "long", float: "double", str: "string"}
     types.update(
         NUMERIC="long", BINARY="string", SORTED="string", SORTED_NUMERIC="long", SORTED_SET="string"
     )

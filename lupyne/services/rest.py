@@ -31,7 +31,7 @@ def terms(name: str, *, counts: bool = False) -> list | dict:
 
 
 @app.get("/search")
-def search(q: str, count: int = None, sort: str = "") -> dict:
+def search(q: str, count: int | None = None, sort: str = "") -> dict:
     """Run query and return hits."""
     sortfields = root.sortfields(sort and sort.split(","))
     hits = root.searcher.search(q, count, list(sortfields.values()) or None)

@@ -8,7 +8,7 @@
 [![image](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
 
-Lupyne is a search engine based on [PyLucene](https://lucene.apache.org/pylucene/), the Python extension for accessing Java Lucene. Lucene is a relatively low-level toolkit, and PyLucene wraps it through automatic code generation. So although Java idioms are translated to Python idioms where possible, the resulting interface is far from Pythonic. See `./docs/examples.ipynb` for comparisons with the Lucene API.
+Lupyne is a search engine based on [PyLucene](https://lucene.apache.org/pylucene/), the Python extension for accessing Java Lucene. Lucene is a relatively low-level toolkit, and PyLucene wraps it through automatic code generation. So although Java idioms are translated to Python idioms where possible, the resulting interface is far from Pythonic. See examples for comparisons with the Lucene API.
 
 Lupyne also provides GraphQL and RESTful search services, based on [Starlette](https://www.starlette.io). Note Solr and Elasticsearch are popular options for Lucene-based search, if no further (Python) customization is needed. So while the services are suitable for production usage, their primary motivation is to be an extensible example.
 
@@ -28,8 +28,8 @@ Indexes are accessed through an `IndexSearcher` (read-only), `IndexWriter`, or t
 ```python
 from lupyne import engine
 
-searcher = engine.IndexSearcher('index/path')
-hits = searcher.search('text:query', count=None)
+searcher = engine.IndexSearcher("index/path")
+hits = searcher.search("text:query", count=None)
 ```
 
 See `./lupyne/services/README.md` for services usage.

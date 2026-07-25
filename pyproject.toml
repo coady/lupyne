@@ -38,10 +38,11 @@ graphql = ["uvicorn[standard]", "strawberry-graphql[asgi]>=0.221"]
 line-length = 100
 
 [tool.ruff.lint]
-extend-select = ["I"]
+ignore = ["B006", "DTZ", "PL", "SIM"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"test_*.py" = ["B018"]
 
 [tool.ty.rules]
 unresolved-import = "ignore"
