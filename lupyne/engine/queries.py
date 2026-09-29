@@ -99,8 +99,8 @@ class Query:
     def phrase(cls, name: str, *values, **attrs) -> search.MultiPhraseQuery:
         """Return lucene MultiPhraseQuery.  None may be used as a placeholder."""
         builder = search.MultiPhraseQuery.Builder()
-        for attr in attrs:
-            setattr(builder, attr, attrs[attr])
+        for attr, value in attrs.items():
+            setattr(builder, attr, value)
         for idx, words in enumerate(values):
             if isinstance(words, str):
                 words = [words]

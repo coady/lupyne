@@ -54,9 +54,9 @@ class Field(FieldType):
     def __init__(self, name: str, docValuesType="", indexOptions="", dimensions=0, **settings):
         super().__init__()
         self.name = name
-        for name in self.properties.intersection(settings):
-            setattr(self, name, settings.pop(name))
-        for name in settings:
+        for attr in self.properties.intersection(settings):
+            setattr(self, attr, settings.pop(attr))
+        for attr in settings:
             raise AttributeError(f"'Field' object has no property '{name}'")
         if dimensions:
             self.dimensions = dimensions
@@ -111,7 +111,7 @@ class Field(FieldType):
             types = {int: int, float: util.NumericUtils.doubleToSortableLong}
             for value in values:
                 yield self.docValueClass(self.name, types.get(type(value), util.BytesRef)(value))
-            self = getattr(self, "docValueLess", self)
+            self = getattr(self, "docValueLess", self)  # noqa: PLW0642
         if self.dimensions:
             for value in values:
                 cls = document.LongPoint if isinstance(value, int) else document.DoublePoint
@@ -178,7 +178,7 @@ class DateTimeField(Field):
         """Return utc timestamp from date or time tuple."""
         if isinstance(date, datetime.date):
             return calendar.timegm(date.timetuple()) + getattr(date, "microsecond", 0) * 1e-6
-        return float(calendar.timegm(tuple(date) + (None, 1, 1, 0, 0, 0)[len(date) :]))
+        return float(calendar.timegm(tuple(date) + (None, 1, 1, 0, 0, 0)[len(date) :]))  # type: ignore
 
     def items(self, *dates) -> Iterator[document.Field]:
         """Generate lucene NumericFields of timestamps."""
@@ -205,7 +205,7 @@ class DateTimeField(Field):
             days **delta:: timedelta parameters
         """
         if not isinstance(date, datetime.date):
-            date = datetime.datetime(*(tuple(date) + (None, 1, 1)[len(date) :]))
+            date = datetime.datetime(*(tuple(date) + (None, 1, 1)[len(date) :]))  # type: ignore
         delta = datetime.timedelta(days, **delta)
         return self.range(*sorted([date, date + delta]), upper=True)
 
@@ -483,8 +483,8 @@ class GroupingSearch(grouping.GroupingSearch):
             self.fillSortFields = True
         if cache:
             self.setCachingInMB(float("inf"), True)
-        for name in attrs:
-            getattr(type(self), name).__set__(self, attrs[name])
+        for name, value in attrs.items():
+            getattr(type(self), name).__set__(self, value)
 
     def __len__(self):
         return self.allMatchingGroups.size()

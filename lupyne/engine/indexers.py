@@ -154,8 +154,8 @@ class IndexReader:
             **attrs: DirectSpellChecker options
         """
         checker = spell.DirectSpellChecker()
-        for attr in attrs:
-            setattr(checker, attr, attrs[attr])
+        for attr, setting in attrs.items():
+            setattr(checker, attr, setting)
         words = checker.suggestSimilar(index.Term(name, value), count, self.indexReader)
         return [word.string for word in words]
 
@@ -528,11 +528,10 @@ class IndexWriter(index.IndexWriter):
     @classmethod
     def check(cls, directory, repair=False) -> index.CheckIndex.Status:
         """Check and optionally fix unlocked index, returning lucene CheckIndex.Status."""
-        with closing.store(directory) as directory:
-            with contextlib.closing(index.CheckIndex(directory)) as checkindex:
-                status = checkindex.checkIndex()
-                if repair:
-                    checkindex.exorciseIndex(status)
+        with closing.store(directory) as dir, contextlib.closing(index.CheckIndex(dir)) as checker:
+            status = checker.checkIndex()
+            if repair:
+                checker.exorciseIndex(status)
         return status
 
     def set(self, name: str, cls=Field, **settings) -> Field:
@@ -587,8 +586,8 @@ class IndexWriter(index.IndexWriter):
 
     def __iadd__(self, directory):
         """Add directory (or reader, searcher, writer) to index."""
-        with closing.store(getattr(directory, "directory", directory)) as directory:
-            self.addIndexes([directory])
+        with closing.store(getattr(directory, "directory", directory)) as dir:
+            self.addIndexes([dir])
         return self
 
     @contextlib.contextmanager
